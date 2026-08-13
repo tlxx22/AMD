@@ -1,23 +1,32 @@
-root_path_name=../data/
-data_path_name=exchange_rate.csv
-model_id_name=exchange_rate
-data_name=exchange_rate
+#!/usr/bin/env bash
+set -euo pipefail
 
-seed=2024
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
 
+data_path_name="exchange_rate.csv"
+model_id_name="exchange_rate"
+data_name="exchange_rate"
 seq_len=96
+artifact_root="${PROJECT_ROOT}/artifacts"
+python_bin="${PYTHON_BIN:-python}"
+read -r -a seeds <<< "${SEEDS:-2024}"
 
-for pred_len in 96 192 336 720
-do
-  python -u main.py \
-    --seed $seed \
-    --data $root_path_name$data_path_name \
+for seed in "${seeds[@]}"; do
+  for pred_len in 96 192 336 720; do
+    "${python_bin}" -u "${PROJECT_ROOT}/main.py" \
+    --implementation_variant "AMD-mdm-u-to-ddi-v1" \
+    --seed "${seed}" \
+    --dataset_id "${data_name}" \
+    --data "${PROJECT_ROOT}/data/${data_path_name}" \
     --feature_type M \
     --target OT \
-    --checkpoint_dir ./checkpoints \
-    --name $model_id_name \
-    --seq_len $seq_len \
-    --pred_len $pred_len \
+    --artifact_root "${artifact_root}" \
+    --name "${model_id_name}" \
+    --device "cuda:0" \
+    --seq_len "${seq_len}" \
+    --pred_len "${pred_len}" \
     --n_block 1 \
     --alpha 0.0 \
     --mix_layer_num 3 \
@@ -28,6 +37,6 @@ do
     --dropout 0.1 \
     --train_epochs 10 \
     --batch_size 512 \
-    --learning_rate 0.0003 \
-    --result_path result.csv
+    --learning_rate 0.0003
+  done
 done

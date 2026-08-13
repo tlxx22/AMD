@@ -1,10 +1,46 @@
+import math
+
 import torch
 import torch.nn as nn
+
+
+def _positive_int(value, name):
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{name} must be a positive integer, got {value!r}")
+    return value
+
+
+def _validate_input_shape(input_shape, module_name):
+    if not isinstance(input_shape, (tuple, list, torch.Size)) or len(input_shape) != 2:
+        raise ValueError(
+            f"{module_name} input_shape must be (seq_len, feature_num), "
+            f"got {input_shape!r}"
+        )
+    seq_len = _positive_int(input_shape[0], f"{module_name} seq_len")
+    feature_num = _positive_int(input_shape[1], f"{module_name} feature_num")
+    return seq_len, feature_num
 
 
 class TopKGating(nn.Module):
     def __init__(self, input_dim, num_experts, top_k=2, noise_epsilon=1e-5):
         super(TopKGating, self).__init__()
+        input_dim = _positive_int(input_dim, "TopKGating input_dim")
+        num_experts = _positive_int(num_experts, "TopKGating num_experts")
+        if isinstance(top_k, bool) or not isinstance(top_k, int) or not 1 <= top_k <= num_experts:
+            raise ValueError(
+                f"TopKGating top_k must be in [1, {num_experts}], got {top_k!r}"
+            )
+        if (
+            isinstance(noise_epsilon, bool)
+            or not isinstance(noise_epsilon, (int, float))
+            or not math.isfinite(noise_epsilon)
+            or noise_epsilon < 0
+        ):
+            raise ValueError(
+                "TopKGating noise_epsilon must be finite and non-negative, "
+                f"got {noise_epsilon!r}"
+            )
+        self.input_dim = input_dim
         self.gate = nn.Linear(input_dim, num_experts)
         self.top_k = top_k
         self.noise_epsilon = noise_epsilon
@@ -15,6 +51,13 @@ class TopKGating(nn.Module):
 
     def decompostion_tp(self, x, alpha=10):
         # x [batch_size, seq_len]
+        if not torch.is_tensor(x):
+            raise TypeError("TopKGating logits must be a torch.Tensor")
+        if x.ndim != 2 or x.shape[1] != self.num_experts:
+            raise ValueError(
+                "TopKGating decomposition expects "
+                f"[batch, {self.num_experts}], got {tuple(x.shape)}"
+            )
         output = torch.zeros_like(x)
         # [batch_size]
         kth_largest_val, _ = torch.kthvalue(x, self.num_experts - self.top_k + 1)
@@ -31,6 +74,15 @@ class TopKGating(nn.Module):
 
     def forward(self, x):
         # [batch_size, seq_len]
+
+        if not torch.is_tensor(x):
+            raise TypeError("TopKGating input must be a torch.Tensor")
+        if x.ndim != 2 or x.shape[1] != self.input_dim:
+            raise ValueError(
+                f"TopKGating expects [batch, {self.input_dim}], got {tuple(x.shape)}"
+            )
+        if x.shape[0] <= 0:
+            raise ValueError("TopKGating requires a non-empty batch")
 
         x = self.gate(x)
         clean_logits = x
@@ -61,6 +113,18 @@ class TopKGating(nn.Module):
 class Expert(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim, dropout=0.2):
         super(Expert, self).__init__()
+        input_dim = _positive_int(input_dim, "Expert input_dim")
+        output_dim = _positive_int(output_dim, "Expert output_dim")
+        hidden_dim = _positive_int(hidden_dim, "Expert hidden_dim")
+        if (
+            isinstance(dropout, bool)
+            or not isinstance(dropout, (int, float))
+            or not math.isfinite(dropout)
+            or not 0 <= dropout < 1
+        ):
+            raise ValueError(
+                f"Expert dropout must satisfy 0 <= dropout < 1, got {dropout!r}"
+            )
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.GELU(),
@@ -76,16 +140,30 @@ class AMS(nn.Module):
     def __init__(self, input_shape, pred_len, ff_dim=2048, dropout=0.2, loss_coef=1.0, num_experts=4, top_k=2):
         super(AMS, self).__init__()
         # input_shape[0] = seq_len    input_shape[1] = feature_num
+        self.seq_len, self.feature_num = _validate_input_shape(input_shape, "AMS")
+        pred_len = _positive_int(pred_len, "AMS pred_len")
+        ff_dim = _positive_int(ff_dim, "AMS ff_dim")
+        num_experts = _positive_int(num_experts, "AMS num_experts")
+        if isinstance(top_k, bool) or not isinstance(top_k, int) or not 1 <= top_k <= num_experts:
+            raise ValueError(f"AMS top_k must be in [1, {num_experts}], got {top_k!r}")
+        if (
+            isinstance(loss_coef, bool)
+            or not isinstance(loss_coef, (int, float))
+            or not math.isfinite(loss_coef)
+            or loss_coef < 0
+        ):
+            raise ValueError(
+                f"AMS loss_coef must be finite and non-negative, got {loss_coef!r}"
+            )
         self.num_experts = num_experts
         self.top_k = top_k
         self.pred_len = pred_len
 
-        self.gating = TopKGating(input_shape[0], num_experts, top_k)
+        self.gating = TopKGating(self.seq_len, num_experts, top_k)
 
         self.experts = nn.ModuleList(
-            [Expert(input_shape[0], pred_len, hidden_dim=ff_dim, dropout=dropout) for _ in range(num_experts)])
+            [Expert(self.seq_len, pred_len, hidden_dim=ff_dim, dropout=dropout) for _ in range(num_experts)])
         self.loss_coef = loss_coef
-        assert (self.top_k <= self.num_experts)
 
     def cv_squared(self, x):
         eps = 1e-10
@@ -96,13 +174,42 @@ class AMS(nn.Module):
 
     def forward(self, x, time_embedding):
         # [batch_size, feature_num, seq_len]
+        if not torch.is_tensor(x) or not torch.is_tensor(time_embedding):
+            raise TypeError("AMS x and time_embedding must both be torch.Tensor instances")
+        if x.ndim != 3 or time_embedding.ndim != 3:
+            raise ValueError(
+                "AMS expects x and time_embedding shaped [batch, feature, sequence], "
+                f"got {tuple(x.shape)} and {tuple(time_embedding.shape)}"
+            )
+        if x.shape != time_embedding.shape:
+            raise ValueError(
+                "AMS x and time_embedding must have identical shapes, "
+                f"got {tuple(x.shape)} and {tuple(time_embedding.shape)}"
+            )
+        if x.shape[0] <= 0:
+            raise ValueError("AMS requires a non-empty batch")
+        if x.shape[1] != self.feature_num or x.shape[2] != self.seq_len:
+            raise ValueError(
+                f"AMS expects [batch, {self.feature_num}, {self.seq_len}], "
+                f"got {tuple(x.shape)}"
+            )
+        if x.device != time_embedding.device:
+            raise ValueError(
+                "AMS x and time_embedding must be on the same device, "
+                f"got {x.device} and {time_embedding.device}"
+            )
+        if x.dtype != time_embedding.dtype:
+            raise ValueError(
+                "AMS x and time_embedding must have the same dtype, "
+                f"got {x.dtype} and {time_embedding.dtype}"
+            )
         batch_size = x.shape[0]
         feature_num = x.shape[1]
         # [feature_num, batch_size, seq_len]
         x = torch.transpose(x, 0, 1)
         time_embedding = torch.transpose(time_embedding, 0, 1)
 
-        output = torch.zeros(feature_num, batch_size, self.pred_len).to(x.device)
+        output = x.new_zeros((feature_num, batch_size, self.pred_len))
         loss = 0
 
         for i in range(feature_num):
@@ -112,7 +219,7 @@ class AMS(nn.Module):
             gates = self.gating(time_info)
 
             # expert_outputs [batch_size, num_experts, pred_len]
-            expert_outputs = torch.zeros(self.num_experts, batch_size, self.pred_len).to(x.device)
+            expert_outputs = x.new_zeros((self.num_experts, batch_size, self.pred_len))
 
             for j in range(self.num_experts):
                 expert_outputs[j, :, :] = self.experts[j](input)
