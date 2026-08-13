@@ -1,10 +1,5 @@
 # coding=utf-8
-"""Train the corrected AMD baseline.
-
-This entry point preserves the released internal operators, applies the
-explicitly requested paper-described MDM(U)->DDI connection, and repairs
-experiment infrastructure that could change or invalidate reported results.
-"""
+"""Train the reproducible AMD paper-close interpretation variant."""
 
 import argparse
 import hashlib
@@ -38,9 +33,9 @@ from utils.dataloader import CustomDataLoader
 from utils.general import capture_rng_state, restore_rng_state, set_seed
 
 
-IMPLEMENTATION_VARIANT = "AMD-mdm-u-to-ddi-v1"
+IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 SCHEMA_VERSION = 1
-PUBLIC_WEIGHT_DECAY = 1e-9
+PAPER_WEIGHT_DECAY = 1e-7
 METRIC_SPACE = "train-standardized"
 
 
@@ -72,9 +67,9 @@ def parse_args(argv=None):
     dataset = "ETTh1"
     parser = argparse.ArgumentParser(
         description=(
-            "Train AMD-mdm-u-to-ddi-v1 with released internal operators, the "
-            "paper-described MDM(U)->DDI connection, and corrected experiment "
-            "bookkeeping."
+            "Train AMD-paper-norm-wd-ddi-v1: MDM(U)->DDI wiring, true "
+            "last-dimension LayerNorm at flag-controlled entries, paper DDI "
+            "hidden width and weight decay, with reproducible bookkeeping."
         )
     )
     parser.add_argument("--implementation_variant", default=IMPLEMENTATION_VARIANT,
@@ -110,8 +105,8 @@ def parse_args(argv=None):
     parser.add_argument(
         "--layernorm", type=str2bool, default=True,
         help=(
-            "preserve the public code's 'layernorm' switch; it controls "
-            "BatchNorm1d, not torch.nn.LayerNorm"
+            "enable torch.nn.LayerNorm over the final look-back dimension at "
+            "the MDM and DDI entries controlled by the released switch"
         ),
     )
     parser.add_argument("--dropout", type=float, default=0.1)
@@ -120,7 +115,7 @@ def parse_args(argv=None):
                         help="target total epoch count when resuming")
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--learning_rate", type=float, default=0.00005)
-    parser.add_argument("--weight_decay", type=float, default=PUBLIC_WEIGHT_DECAY)
+    parser.add_argument("--weight_decay", type=float, default=PAPER_WEIGHT_DECAY)
 
     parser.add_argument(
         "--artifact_root", type=str, default=None,
@@ -194,8 +189,11 @@ def prepare_args(args):
     for name, value in positive_ints.items():
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValueError(f"{name} must be a positive integer, got {value!r}")
-    if args.batch_size < 2:
-        raise ValueError("batch_size must be at least 2 because the public model trains BatchNorm1d")
+    if args.batch_size < 2 and args.n_block > 0 and args.seq_len > args.patch:
+        raise ValueError(
+            "batch_size must be at least 2 because DDI's retained internal "
+            "BatchNorm1d is active when seq_len > patch"
+        )
     if (
         isinstance(args.mix_layer_num, bool)
         or not isinstance(args.mix_layer_num, int)
@@ -216,10 +214,10 @@ def prepare_args(args):
         raise ValueError("learning_rate must be finite and positive")
     if (
         not math.isfinite(args.weight_decay)
-        or args.weight_decay != PUBLIC_WEIGHT_DECAY
+        or args.weight_decay != PAPER_WEIGHT_DECAY
     ):
         raise ValueError(
-            f"{IMPLEMENTATION_VARIANT} fixes weight_decay at {PUBLIC_WEIGHT_DECAY:g}; "
+            f"{IMPLEMENTATION_VARIANT} fixes weight_decay at {PAPER_WEIGHT_DECAY:g}; "
             f"got {args.weight_decay:g}"
         )
     return args
@@ -520,9 +518,9 @@ def train_one_epoch(model, data_loader, optimizer, criterion, device, epoch,
         disable=not show_progress, leave=False,
     )
     for batch_x, batch_y in iterator:
-        if batch_x.shape[0] < 2:
+        if batch_x.shape[0] < 2 and getattr(model, "_uses_batch_norm", False):
             raise RuntimeError(
-                "the public BatchNorm1d model cannot train on a batch of size 1; "
+                "DDI's retained internal BatchNorm1d cannot train on a batch of size 1; "
                 "increase the dataset/batch size or keep training drop_last=True"
             )
         batch_x = batch_x.to(device)
@@ -578,8 +576,12 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
             "patch": args.patch,
             "norm": args.norm,
             "layernorm_flag": args.layernorm,
-            "normalization_impl": "public_batchnorm1d",
-            "ddi_hidden_rule": "2**ceil(log2(feature_count))",
+            "entry_normalization_impl": "torch_layernorm_last_dim_sequence",
+            "entry_normalization_scope": "mdm_and_ddi_entries_controlled_by_layernorm_flag",
+            "ddi_internal_normalization_impl": (
+                "released_batchnorm1d_norm1_and_norm2_when_alpha_gt_0"
+            ),
+            "ddi_hidden_rule": "max(32,2**ceil(log2(feature_count)))_when_alpha_gt_0",
             "module_connection": "X->MDM(U)->DDI; AMS_selector<-U",
             "selector_mode": "horizon_shared_dense_emphasis",
             "dropout": args.dropout,
@@ -674,7 +676,7 @@ def _load_resume_checkpoint(run_dir, config_hash, data_sha256, train_epochs):
     if manifest.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("resume manifest schema version mismatch")
     if manifest.get("implementation_variant") != IMPLEMENTATION_VARIANT:
-        raise RuntimeError("resume variant does not match AMD-mdm-u-to-ddi-v1")
+        raise RuntimeError(f"resume variant does not match {IMPLEMENTATION_VARIANT}")
     if manifest.get("run_id") != run_dir.name:
         raise RuntimeError("resume manifest run_id/path mismatch")
     manifest_artifact_dir = manifest.get("artifact_dir")

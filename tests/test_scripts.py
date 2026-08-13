@@ -186,8 +186,9 @@ class ScriptTests(unittest.TestCase):
                 self.assertIn('--artifact_root "${artifact_root}"', text)
                 self.assertIn('--device "cuda:0"', text)
                 self.assertIn(
-                    '--implementation_variant "AMD-mdm-u-to-ddi-v1"', text
+                    '--implementation_variant "AMD-paper-norm-wd-ddi-v1"', text
                 )
+                self.assertIn('--weight_decay 0.0000001', text)
 
                 self.assertNotIn("--checkpoint_dir", text)
                 self.assertNotIn("../checkpoints", text)
@@ -209,7 +210,7 @@ class ScriptTests(unittest.TestCase):
                 self.assertEqual(text.count("\ndone\n"), 1)
                 self.assertEqual(text.count("  done\n"), 1)
 
-    def test_scripts_preserve_public_literal_hyperparameters(self):
+    def test_scripts_preserve_dataset_hyperparameters_and_paper_weight_decay(self):
         for name, expected in EXPECTED.items():
             with self.subTest(script=name):
                 text = _script_text(name)

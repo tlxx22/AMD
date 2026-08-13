@@ -23,7 +23,15 @@ class SummaryTests(unittest.TestCase):
                 "device": "cpu",
                 "metric_space": summary.METRIC_SPACE,
             },
-            "model": {"seq_len": 4, "pred_len": 2},
+            "model": {
+                "seq_len": 4,
+                "pred_len": 2,
+                **summary.EXPECTED_MODEL_CONTRACT,
+            },
+            "optimization": {
+                "batch_size": 8,
+                **summary.EXPECTED_OPTIMIZATION_CONTRACT,
+            },
         }
         config_hash = summary._stable_hash(scientific)
         config = {
@@ -132,6 +140,31 @@ class SummaryTests(unittest.TestCase):
             config["scientific_config"]["model"]["seq_len"] = 999
             config_path.write_text(json.dumps(config), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "scientific config hash mismatch"):
+                summary.load_completed_runs(artifacts)
+
+    def test_self_consistent_wrong_variant_contract_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "artifacts"
+            run_dir = self._make_run(artifacts, "run-a", 2024)
+            config_path = run_dir / "config.resolved.json"
+            metrics_path = run_dir / "metrics.json"
+            manifest_path = run_dir / "manifest.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+            config["scientific_config"]["optimization"]["weight_decay"] = 1e-9
+            wrong_hash = summary._stable_hash(config["scientific_config"])
+            config["config_hash"] = wrong_hash
+            metrics["config_hash"] = wrong_hash
+            manifest["config_hash"] = wrong_hash
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            metrics_path.write_text(json.dumps(metrics), encoding="utf-8")
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                ValueError, "optimization contract mismatch for weight_decay"
+            ):
                 summary.load_completed_runs(artifacts)
 
     def test_missing_artifact_or_manifest_best_epoch_mismatch_is_rejected(self):

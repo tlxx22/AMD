@@ -3,6 +3,7 @@ import unittest
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from models.common import DDI, MDM
 from models.tsAMD import AMD
@@ -113,19 +114,32 @@ class ArchitectureContractTests(unittest.TestCase):
         self.assertTrue(torch.equal(output, (u + 1100.0).transpose(1, 2)))
         self.assertEqual(auxiliary_loss.item(), 0.0)
 
-    def test_retained_public_operator_structure_is_frozen(self):
+    def test_paper_close_operator_contract_is_frozen(self):
         model = AMD(
             (8, 7), 3, n_block=1, dropout=0.1, patch=4, k=1, c=2,
             alpha=1.0, target_slice=slice(0, None), norm=True,
             layernorm=True,
         )
-        self.assertIsInstance(model.pastmixing.norm, nn.BatchNorm1d)
+        self.assertIsInstance(model.pastmixing.norm, nn.LayerNorm)
+        self.assertEqual(model.pastmixing.norm.normalized_shape, (8,))
         block = model.fc_blocks[0]
-        self.assertIsInstance(block.norm, nn.BatchNorm1d)
+        self.assertIsInstance(block.norm, nn.LayerNorm)
+        self.assertEqual(block.norm.normalized_shape, (8,))
         self.assertIsInstance(block.norm1, nn.BatchNorm1d)
         self.assertIsInstance(block.norm2, nn.BatchNorm1d)
-        self.assertEqual(block.ff_dim, 2 ** math.ceil(math.log2(7)))
-        self.assertEqual(block.ff_dim, 8)
+        self.assertEqual(block.norm1.num_features, 4 * 7)
+        self.assertEqual(block.norm2.num_features, 4 * 7)
+        self.assertEqual(block.ff_dim, max(32, 2 ** math.ceil(math.log2(7))))
+        self.assertEqual(block.ff_dim, 32)
+        self.assertEqual(block.fc_block[0].in_features, 7)
+        self.assertEqual(block.fc_block[0].out_features, 32)
+        self.assertEqual(block.fc_block[3].in_features, 32)
+        self.assertEqual(block.fc_block[3].out_features, 7)
+
+        wide_block = DDI(
+            (4, 33), dropout=0.0, patch=2, alpha=1.0, layernorm=False
+        )
+        self.assertEqual(wide_block.ff_dim, 64)
 
         self.assertEqual(model.moe.num_experts, 8)
         self.assertEqual(model.moe.top_k, 2)
@@ -137,7 +151,7 @@ class ArchitectureContractTests(unittest.TestCase):
         self.assertEqual(expert[0].out_features, 2048)
         self.assertEqual(expert[-1].out_features, 3)
 
-    def test_layernorm_false_keeps_public_internal_batch_norm(self):
+    def test_layernorm_false_keeps_released_internal_batch_norm(self):
         model = AMD(
             (8, 7), 3, n_block=1, dropout=0.0, patch=4, k=1, c=2,
             alpha=1.0, target_slice=slice(0, None), norm=False,
@@ -148,6 +162,27 @@ class ArchitectureContractTests(unittest.TestCase):
         self.assertFalse(hasattr(block, "norm"))
         self.assertIsInstance(block.norm1, nn.BatchNorm1d)
         self.assertIsInstance(block.norm2, nn.BatchNorm1d)
+
+    def test_layernorm_uses_each_channels_last_sequence_dimension(self):
+        x = torch.tensor(
+            [[[1.0, 2.0, 3.0, 4.0], [101.0, 102.0, 103.0, 104.0]]]
+        )
+        expected = F.layer_norm(x, (4,))
+        cross_channel = F.layer_norm(x, (2, 4))
+
+        mdm = MDM((4, 2), k=0, c=2, layernorm=True).train()
+        mdm_output = mdm(x)
+        torch.testing.assert_close(mdm_output, expected)
+        self.assertFalse(torch.allclose(mdm_output, cross_channel))
+        torch.testing.assert_close(
+            mdm_output.mean(dim=-1), torch.zeros(1, 2), atol=3e-6, rtol=0
+        )
+
+        # With one full-length patch, DDI applies only its entry LayerNorm.
+        ddi = DDI(
+            (4, 2), dropout=0.0, patch=4, alpha=0.0, layernorm=True
+        ).train()
+        torch.testing.assert_close(ddi(x), expected)
 
     def test_selector_is_dense_simplex_and_horizon_shared(self):
         gating = TopKGating(3, 4, top_k=2).eval()
@@ -310,6 +345,18 @@ class ArchitectureContractTests(unittest.TestCase):
         ).train()
         with self.assertRaisesRegex(ValueError, "training batch size >= 2"):
             model(torch.randn(1, 8, 3))
+
+        no_internal_batch_norm_execution = AMD(
+            (4, 3), 4, n_block=1, dropout=0.0, patch=4, k=1,
+            c=2, alpha=1.0, target_slice=slice(0, None),
+            norm=False, layernorm=True,
+        ).train()
+        output, auxiliary_loss = no_internal_batch_norm_execution(
+            torch.randn(1, 4, 3)
+        )
+        self.assertEqual(output.shape, (1, 4, 3))
+        self.assertTrue(torch.isfinite(output).all().item())
+        self.assertTrue(torch.isfinite(auxiliary_loss).item())
 
 
 if __name__ == "__main__":

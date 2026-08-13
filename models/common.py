@@ -137,17 +137,14 @@ class MDM(nn.Module):
             )
         self.layernorm = layernorm
         if self.layernorm:
-            self.norm = nn.BatchNorm1d(input_shape[0] * input_shape[-1])
+            # Variant-defined MDM-entry LayerNorm normalizes input X over its
+            # final look-back dimension in [batch, channel, sequence].
+            self.norm = nn.LayerNorm(self.seq_len)
 
     def forward(self, x):
         _validate_bcl_input(x, self.seq_len, self.feature_num, "MDM")
-        if self.training and self.layernorm and x.shape[0] < 2:
-            raise ValueError(
-                "MDM uses BatchNorm1d when layernorm=True and requires "
-                "training batch size >= 2"
-            )
         if self.layernorm:
-            x = self.norm(torch.flatten(x, 1, -1)).reshape(x.shape)
+            x = self.norm(x)
         if self.k == 0:
             return x
         # x [batch_size, feature_num, seq_len]
@@ -197,7 +194,9 @@ class DDI(nn.Module):
         self.seq_len = seq_len
         self.feature_num = feature_num
         if alpha > 0.0:
-            self.ff_dim = 2 ** math.ceil(math.log2(self.input_shape[-1]))
+            self.ff_dim = max(
+                32, 2 ** math.ceil(math.log2(self.input_shape[-1]))
+            )
             self.fc_block = nn.Sequential(
                 nn.Linear(self.input_shape[-1], self.ff_dim),
                 nn.GELU(),
@@ -213,7 +212,10 @@ class DDI(nn.Module):
 
         self.layernorm = layernorm
         if self.layernorm:
-            self.norm = nn.BatchNorm1d(self.input_shape[0] * self.input_shape[-1])
+            # Keep the public flag's scope while using actual LayerNorm over
+            # the final sequence dimension. Internal norm1/norm2 below retain
+            # their released BatchNorm1d semantics.
+            self.norm = nn.LayerNorm(self.seq_len)
         self.norm1 = nn.BatchNorm1d(self.n_history * patch * self.input_shape[-1])
         if self.alpha > 0.0:
             self.norm2 = nn.BatchNorm1d(self.patch * self.input_shape[-1])
@@ -224,13 +226,13 @@ class DDI(nn.Module):
     def forward(self, x):
         # [batch_size, feature_num, seq_len]
         _validate_bcl_input(x, self.seq_len, self.feature_num, "DDI")
-        uses_batch_norm = self.layernorm or self.seq_len > self.patch
+        uses_batch_norm = self.seq_len > self.patch
         if self.training and uses_batch_norm and x.shape[0] < 2:
             raise ValueError(
                 "DDI uses BatchNorm1d and requires training batch size >= 2"
             )
         if self.layernorm:
-            x = self.norm(torch.flatten(x, 1, -1)).reshape(x.shape)
+            x = self.norm(x)
 
         output = torch.zeros_like(x)
         output[:, :, :self.n_history * self.patch] = x[:, :, :self.n_history * self.patch].clone()

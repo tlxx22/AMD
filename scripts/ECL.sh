@@ -16,7 +16,7 @@ read -r -a seeds <<< "${SEEDS:-2024}"
 for seed in "${seeds[@]}"; do
   for pred_len in 96 192 336 720; do
     "${python_bin}" -u "${PROJECT_ROOT}/main.py" \
-    --implementation_variant "AMD-mdm-u-to-ddi-v1" \
+    --implementation_variant "AMD-paper-norm-wd-ddi-v1" \
     --seed "${seed}" \
     --dataset_id "${data_name}" \
     --data "${PROJECT_ROOT}/data/${data_path_name}" \
@@ -37,6 +37,7 @@ for seed in "${seeds[@]}"; do
     --dropout 0.1 \
     --train_epochs 20 \
     --batch_size 128 \
-    --learning_rate 0.0003
+    --learning_rate 0.0003 \
+    --weight_decay 0.0000001
   done
 done

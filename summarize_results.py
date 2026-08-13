@@ -13,9 +13,23 @@ from copy import deepcopy
 from pathlib import Path
 
 
-IMPLEMENTATION_VARIANT = "AMD-mdm-u-to-ddi-v1"
+IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 SCHEMA_VERSION = 1
 METRIC_SPACE = "train-standardized"
+EXPECTED_MODEL_CONTRACT = {
+    "entry_normalization_impl": "torch_layernorm_last_dim_sequence",
+    "entry_normalization_scope": "mdm_and_ddi_entries_controlled_by_layernorm_flag",
+    "ddi_internal_normalization_impl": (
+        "released_batchnorm1d_norm1_and_norm2_when_alpha_gt_0"
+    ),
+    "ddi_hidden_rule": "max(32,2**ceil(log2(feature_count)))_when_alpha_gt_0",
+    "module_connection": "X->MDM(U)->DDI; AMS_selector<-U",
+    "selector_mode": "horizon_shared_dense_emphasis",
+}
+EXPECTED_OPTIMIZATION_CONTRACT = {
+    "optimizer": "Adam",
+    "weight_decay": 1e-7,
+}
 RUN_FIELDS = (
     "implementation_variant", "dataset_id", "seq_len", "pred_len", "seed",
     "run_id", "best_epoch", "val_mse", "val_mae", "test_mse", "test_mae",
@@ -67,6 +81,27 @@ def _comparison_hash(resolved_config, path, train_epochs):
     # remain separate comparison groups.
     scientific["completed_train_epochs"] = int(train_epochs)
     return _stable_hash(scientific)
+
+
+def _validate_variant_contract(scientific, run_dir):
+    """Reject self-consistent artifacts that do not implement this variant."""
+
+    model = scientific.get("model")
+    optimization = scientific.get("optimization")
+    if not isinstance(model, dict) or not isinstance(optimization, dict):
+        raise ValueError(f"missing model/optimization contract in {run_dir}")
+    for field, expected in EXPECTED_MODEL_CONTRACT.items():
+        if model.get(field) != expected:
+            raise ValueError(
+                f"model contract mismatch for {field} in {run_dir}: "
+                f"expected {expected!r}, got {model.get(field)!r}"
+            )
+    for field, expected in EXPECTED_OPTIMIZATION_CONTRACT.items():
+        if optimization.get(field) != expected:
+            raise ValueError(
+                f"optimization contract mismatch for {field} in {run_dir}: "
+                f"expected {expected!r}, got {optimization.get(field)!r}"
+            )
 
 
 def load_completed_runs(artifact_root):
@@ -144,6 +179,7 @@ def load_completed_runs(artifact_root):
             raise ValueError(f"scientific config variant mismatch in {run_dir}")
         if not isinstance(config_hash, str) or _stable_hash(scientific) != config_hash:
             raise ValueError(f"scientific config hash mismatch in {run_dir}")
+        _validate_variant_contract(scientific, run_dir)
         if config.get("config_hash") != config_hash:
             raise ValueError(f"config hash mismatch in {run_dir}")
         if manifest.get("config_hash") != config_hash:
@@ -329,7 +365,7 @@ def write_summaries(artifact_root, output_dir):
 def parse_args(argv=None):
     root = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
-        description="Summarize completed AMD-mdm-u-to-ddi-v1 artifacts"
+        description=f"Summarize completed {IMPLEMENTATION_VARIANT} artifacts"
     )
     parser.add_argument("--artifact_root", default=str(root / "artifacts"))
     parser.add_argument("--output_dir", default=str(root / "summaries"))

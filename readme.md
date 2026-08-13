@@ -4,28 +4,36 @@
 
 # Adaptive Multi-Scale Decomposition for Time Series Forecasting
 
-This repository contains an AMD-derived wiring variant with released internal
-operators and a corrected, reproducible experiment runner:
+This branch contains an AMD-derived, paper-close interpretation with a
+corrected and reproducible experiment runner:
 
 ```text
-AMD-mdm-u-to-ddi-v1
+AMD-paper-norm-wd-ddi-v1
 ```
 
-The variant keeps the released internal operators, applies the explicitly
-requested paper-described connection from the first module's output `U` into
-the second module, and fixes unambiguous experiment-infrastructure defects. It
-is not bit-for-bit topology-equivalent to the original public code, nor does
-its name claim that every paper/code mismatch has been reimplemented.
+It keeps the requested `U -> DDI` connection and changes three explicit
+paper/code mismatches: actual LayerNorm at the flag-controlled entries, the
+paper's DDI hidden-width rule, and the paper's Adam weight decay. It is not
+claimed to be an exact reconstruction of every underspecified paper detail.
 
-## What v1 preserves
+## Paper-close interpretation contract
 
-- The `layernorm` flag still controls the released flattened `BatchNorm1d`
-  implementation; it does not substitute `torch.nn.LayerNorm`.
-- DDI uses `2**ceil(log2(feature_count))`, without a minimum hidden width of 32.
+- When `layernorm=True`, the MDM and DDI entry normalizers are
+  `torch.nn.LayerNorm(seq_len)` applied to `[batch, channel, sequence]`. Thus
+  each channel is normalized independently over its final look-back axis.
+- The paper does not specify the LayerNorm axes and Algorithm 1 only explicitly
+  shows LayerNorm at the DDI entry. Applying the same released switch at both
+  MDM and DDI entries is this variant's documented interpretation.
+- DDI's patch-internal `norm1`, and `norm2` when `alpha > 0`, remain the
+  released flattened `BatchNorm1d` operators; they are not controlled by the
+  `layernorm` flag.
+- When channel mixing is enabled (`alpha > 0`), its hidden width is
+  `max(32, 2**ceil(log2(feature_count)))`.
+- Adam weight decay is fixed at the paper value `1e-7`.
 - The selector produces one expert-weight vector per input window/channel and
-  shares it across every forecast horizon.
+  shares it across every forecast horizon by expanding it from one dimension
+  to `T`; the paper's stated `S` shape is intentionally not reimplemented yet.
 - The released dense Top-K emphasis and auxiliary-loss reduction are unchanged.
-- Adam weight decay is fixed at the public-code value `1e-9`.
 - Public dataset split boundaries and standardized-space metrics are retained.
 
 ## MDM-U-to-DDI module connection
@@ -42,11 +50,11 @@ the selector. In this corrected tree, the first DDI block receives `U`; later
 DDI blocks remain sequential, and the selector continues to receive the same
 `U`.
 
-Artifacts and checkpoints labeled `AMD-public-code-fixed-v1` use the older
-`X -> DDI` wiring. They are intentionally stored separately and cannot be
-resumed as `AMD-mdm-u-to-ddi-v1` runs.
+Artifacts and checkpoints labeled `AMD-public-code-fixed-v1` or
+`AMD-mdm-u-to-ddi-v1` are different model variants. They remain stored
+separately and cannot be resumed as `AMD-paper-norm-wd-ddi-v1` runs.
 
-## What v1 fixes
+## What the reproducible runner fixes
 
 - `False` is now parsed as false for `--norm` and `--layernorm`. In particular,
   ETTh2 runs with `norm=False, layernorm=False` as written in the public script.
@@ -107,7 +115,7 @@ split policy, independently of the filename. Matching is case-insensitive:
 - `ETTm*`: fixed endpoints `34560 / 46080 / 57600`.
 - `ETTh*`: fixed endpoints `8640 / 11520 / 14400`.
 - `PEMS*`: 60% train, 20% validation, 20% test. The input must be an `.npz`
-  archive with a `data` array shaped `[time, feature, channel]`; v1 preserves
+  archive with a `data` array shaped `[time, feature, channel]`; this variant preserves
   the public reader's channel-0 selection.
 - `Solar*`: 70% train, 10% validation, 20% test and headerless CSV/TXT input.
 - All other IDs: the same 70%/10%/20% generic split.
@@ -141,7 +149,7 @@ not override their formal CUDA setting.
 A successfully completed run is isolated as:
 
 ```text
-artifacts/AMD-mdm-u-to-ddi-v1/
+artifacts/AMD-paper-norm-wd-ddi-v1/
 └── <dataset>/sl<seq>_pl<pred>/seed<seed>/<timestamp>-<uuid>/
     ├── manifest.json
     ├── config.resolved.json
@@ -158,7 +166,7 @@ otherwise start a new run. Resume granularity is one complete epoch, not a
 partially processed batch.
 
 Existing legacy files under `checkpoints/` are not read by this runner and must
-not be mixed into v1 summaries.
+not be mixed into this variant's summaries.
 
 To resume an interrupted run, repeat its original scientific arguments, set the
 target total epoch count, and add its directory:
@@ -166,7 +174,7 @@ target total epoch count, and add its directory:
 ```bash
 python main.py <original arguments> \
   --train_epochs 20 \
-  --resume artifacts/AMD-mdm-u-to-ddi-v1/.../<run_id>
+  --resume artifacts/AMD-paper-norm-wd-ddi-v1/.../<run_id>
 ```
 
 Variant, source, runtime, data, preprocessing, and scientific configuration
@@ -175,7 +183,7 @@ hashes must match. Completed runs are immutable and cannot be resumed.
 ## Summaries
 
 Generate run-level and seed-aggregate CSVs using only completed, internally
-consistent v1 artifacts:
+consistent artifacts from this variant:
 
 ```bash
 python summarize_results.py
@@ -184,8 +192,8 @@ python summarize_results.py
 This writes:
 
 ```text
-summaries/AMD-mdm-u-to-ddi-v1.csv
-summaries/AMD-mdm-u-to-ddi-v1-aggregate.csv
+summaries/AMD-paper-norm-wd-ddi-v1.csv
+summaries/AMD-paper-norm-wd-ddi-v1-aggregate.csv
 ```
 
 Aggregate standard deviation is the sample standard deviation (`ddof=1`). If
@@ -200,7 +208,8 @@ Run the regression suite with no extra test dependency:
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-The tests lock the retained public operator semantics, the `U -> DDI`
+The tests lock the documented LayerNorm axes, DDI hidden rule, retained
+patch-internal BatchNorm and horizon-shared selector, the `U -> DDI`
 connection, dataset/window policies, strict boolean parsing, global metrics,
 checkpoint selection, deterministic resume equivalence, script paths, and
 result aggregation.

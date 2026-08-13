@@ -166,6 +166,44 @@ class RunnerUnitTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     runner.prepare_args(args)
 
+    def test_paper_weight_decay_and_model_contract_are_resolved(self):
+        args = runner.prepare_args(
+            runner.parse_args(["--weight_decay", "0.0000001"])
+        )
+        self.assertEqual(args.weight_decay, 1e-7)
+        scientific = runner._scientific_config(
+            args,
+            data_sha256="data-sha",
+            source_sha256="source-sha",
+            preprocessing={},
+            device=torch.device("cpu"),
+            environment=_runtime_metadata(),
+        )
+        self.assertEqual(scientific["optimization"]["weight_decay"], 1e-7)
+        self.assertEqual(
+            scientific["model"]["entry_normalization_impl"],
+            "torch_layernorm_last_dim_sequence",
+        )
+        self.assertEqual(
+            scientific["model"]["ddi_internal_normalization_impl"],
+            "released_batchnorm1d_norm1_and_norm2_when_alpha_gt_0",
+        )
+        self.assertEqual(
+            scientific["model"]["ddi_hidden_rule"],
+            "max(32,2**ceil(log2(feature_count)))_when_alpha_gt_0",
+        )
+        self.assertEqual(
+            scientific["model"]["selector_mode"],
+            "horizon_shared_dense_emphasis",
+        )
+
+        for invalid in ("0.000000001", "nan", "inf"):
+            with self.subTest(weight_decay=invalid):
+                with self.assertRaises(ValueError):
+                    runner.prepare_args(
+                        runner.parse_args(["--weight_decay", invalid])
+                    )
+
     def test_atomic_serializers_leave_complete_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -252,6 +290,23 @@ class RunnerUnitTests(unittest.TestCase):
                 torch.set_rng_state(cpu_rng_state)
             finally:
                 torch.set_rng_state(previous_cpu_rng)
+
+    def test_old_variant_resume_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory) / "run-old-variant"
+            config_hash, data_sha256 = _write_resume_fixture(run_dir)
+            manifest_path = run_dir / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["implementation_variant"] = "AMD-mdm-u-to-ddi-v1"
+            runner.atomic_write_json(manifest_path, manifest)
+
+            with self.assertRaisesRegex(RuntimeError, "resume variant"):
+                runner._load_resume_checkpoint(
+                    run_dir,
+                    config_hash=config_hash,
+                    data_sha256=data_sha256,
+                    train_epochs=2,
+                )
 
     def test_nonexistent_resume_path_is_rejected_without_creating_it(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -398,6 +453,10 @@ class RunnerResumeIntegrationTests(unittest.TestCase):
 
             full_last = torch.load(full_dir / "last.pt", map_location="cpu")
             resumed_last = torch.load(resumed_dir / "last.pt", map_location="cpu")
+            self.assertEqual(
+                full_last["optimizer_state"]["param_groups"][0]["weight_decay"],
+                1e-7,
+            )
             self._assert_state_dict_equal(
                 self, full_last["model_state"], resumed_last["model_state"]
             )

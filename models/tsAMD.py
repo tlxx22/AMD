@@ -54,7 +54,9 @@ class AMD(nn.Module):
 
         self.seq_len = seq_len
         self.feature_num = feature_num
-        self._uses_batch_norm = layernorm or (n_block > 0 and seq_len > patch)
+        # DDI's released internal norm1/norm2 remain BatchNorm1d. The
+        # layernorm-controlled MDM/DDI entry normalizers are true LayerNorm.
+        self._uses_batch_norm = n_block > 0 and seq_len > patch
 
         self.target_slice = target_slice
         self.norm = norm
@@ -87,7 +89,7 @@ class AMD(nn.Module):
             )
         if self.training and self._uses_batch_norm and x.shape[0] < 2:
             raise ValueError(
-                "AMD public architecture uses BatchNorm1d and requires "
+                "AMD DDI internal normalization uses BatchNorm1d and requires "
                 "training batch size >= 2"
             )
 
