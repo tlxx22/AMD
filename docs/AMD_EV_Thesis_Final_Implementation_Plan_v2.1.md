@@ -7,7 +7,7 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
-本文件替代此前的 `AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`，作为后续实现、实验登记和论文写作的唯一权威方案。旧版及更早方案移入 `docs/archive/`，它们只保留历史记录，不得参与当前实现决策。
+本文件替代此前的 `AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`，作为后续实现、实验登记和论文写作的唯一权威方案。旧版及更早方案移入 `docs/archive/plans/`，它们只保留历史记录，不得参与当前实现决策。
 
 当前仓库与开发位置：
 
@@ -118,7 +118,10 @@ variant：el-amd-pmcr-teb-v1
 历史多变量序列
       |
       v
-EL-AMD -> H_time, y_time
+EL-AMD -> state_source, y_time
+      |
+      v
+trained StateAdapter（M4） -> H_time
       |
       +-----------------------------+
       |                             |
@@ -185,10 +188,16 @@ AMD-paper-repro-custom-modules-v1
 
 ## 3.2 M0-A：只读审计
 
-Codex 输出：
+M0 唯一阶段报告：
 
 ```text
-docs/baseline_audit.md
+docs/milestones/M0_baseline_freeze_and_equivalence.md
+```
+
+机器生成的 patch、清单和原始证据统一放在：
+
+```text
+docs/evidence/M0/
 ```
 
 至少记录：
@@ -319,17 +328,22 @@ y_graph [B,N,H_out]
 node_ids [N]
 ```
 
-EL-AMD 在模型内部执行：
+graph wrapper 按阶段执行：
 
 ```text
 [B,T,N,C]
  -> permute/reshape
 [B*N,T,C]
- -> node-wise EL-AMD
+ -> node-wise EL-AMD(return_state_source=True)
+state_source [B*N,2*T+d_teb]
+y_time [B*N,H_out]
+ -> M4 中经过已训练 StateAdapter
  -> restore
 H_time [B,N,d]
 y_time [B,N,H_out]
 ```
+
+M1 只需验证 flatten/restore 后的 `state_source` 与 `y_time`；在 M4 创建并训练 StateAdapter 之前，不得伪造 `H_time`。
 
 禁止把第三章任意 shuffle 后的 `B_region` 样本直接拼回图。必须通过时间窗口 ID 和固定 node order 恢复，且有单元测试验证。
 
@@ -339,13 +353,18 @@ y_time [B,N,H_out]
 
 1. 用 `GraphWindowDataset` 内部 flatten；
 2. 用 `TemporalRegionDataset` 按相同 node order 手工展开；
-3. 两者得到的 node-wise `y_time` 和 `H_time` 必须一致。
+3. M1 验证两者得到的 node-wise `y_time` 和 `state_source` 必须一致；
+4. M4 在同一已训练 StateAdapter 下再验证两者恢复的 `H_time` 一致。
 
 # 5. 任务模式、输入变量与目标输出合同
 
-## 5.1 两种任务模式
+## 5.1 第三章两种任务模式
 
 ### 模式 A：单目标 + 外生变量
+
+```text
+task_mode=target_exogenous
+```
 
 用于：
 
@@ -365,6 +384,10 @@ EPF：price
 外生变量只提供辅助信息，不计算未来预测损失。
 
 ### 模式 B：标准 M-to-M 多变量预测
+
+```text
+task_mode=parallel_multivariate
+```
 
 用于：
 
@@ -612,42 +635,41 @@ pred = select_target_or_all(pred_all, task_mode, target_idx)
 h = x_ch 后送入 DDI
 ```
 
-## 8.2 H_raw 与 StateAdapter
+## 8.2 return_state_source 与后续 StateAdapter
 
-第四章不直接使用最终预测值构图，也不采用“两个标量 Pool + context”的过度压缩接口。
-
-定义：
+第三章增强模型只公开 M0-B 已冻结的原始状态源接口，不直接返回未训练的 `StateProjection` 或 `H_time`：
 
 ```text
 v_target     = v[:,target_idx,:]       # [B_region,T]
 u_target     = u_mdm[:,target_idx,:]   # [B_region,T]
 exo_context  = [B_region,d_teb]
+state_source = concat(v_target,u_target,exo_context)
+             # [B_region,2*T+d_teb]
 ```
 
-StateAdapter：
+调用合同固定为：
 
-```text
-s_v = Linear_v(LayerNorm(v_target))       # T -> d_s
-s_u = Linear_u(LayerNorm(u_target))       # T -> d_s
-s_e = Linear_e(exo_context)               # d_teb -> d_s
-H_region = MLP(LayerNorm(concat(s_v,s_u,s_e)))  # -> state_dim
+```python
+pred, moe_loss, state_source = model(
+    x,
+    return_state_source=True,
+)
 ```
 
-推荐：
+`target_idx` 必须显式提供并经过范围校验；TEB 关闭或尚未实现时，`exo_context` 必须是 dtype/device 正确的确定性固定零张量。`return_state_source=True` 只增加返回值，不得改变预测或 MoE loss；默认调用仍返回 `(pred, moe_loss)`。
+
+M0-B 不创建 `StateProjection`、`StateAdapter` 或 `H_time`。到 M4 的第四章 graph mode 才允许新增并训练独立 StateAdapter，以 `state_source` 为输入：
 
 ```text
-d_s=16
-state_dim=32
-```
-
-在 GraphWindowDataset 中恢复：
-
-```text
+s_v = Linear_v(LayerNorm(v_target))
+s_u = Linear_u(LayerNorm(u_target))
+s_e = Linear_e(exo_context)
+H_region = MLP(LayerNorm(concat(s_v,s_u,s_e)))
 H_time = reshape(H_region,[B,N,state_dim])
 y_time = reshape(pred,[B,N,H_out])
 ```
 
-`return_state=True` 只增加返回值，不得改变预测路径。
+该 StateAdapter 必须属于第四章模型及其 checkpoint，并参与训练；不得把随机、未训练投影冒充第三章 EL-AMD 输出。推荐 `d_s=16`、`state_dim=32`，最终值只依据训练/验证集确定。
 
 # 9. 第三章实验设计
 
@@ -714,24 +736,26 @@ EL-AMD
 
 ## 9.3 消融矩阵
 
-### UrbanEV / EPF-PJM
+### target_exogenous：UrbanEV / EPF-PJM（U0-U4）
 
 | 编号 | 结构 | 问题 |
 |---|---|---|
-| A0 | AMD-TargetOnly | 只有目标历史 |
-| A1 | AMD-Concat | 相同辅助变量直接作为普通通道 |
-| A2 | A1 + TEB | 定向外生桥接是否有效 |
-| A3 | A1 + PMCR | 局部卷积细化是否有效 |
-| A4 | A1 + TEB + PMCR | 最终时间模型 |
+| U0 | AMD-TargetOnly | 只有目标历史 |
+| U1 | AMD-Concat | 相同辅助变量直接作为普通通道 |
+| U2 | U1 + TEB | 定向外生桥接是否有效 |
+| U3 | U1 + PMCR | 局部卷积细化是否有效 |
+| U4 | U1 + TEB + PMCR | 最终时间模型 |
 
-### Weather / ECL（完整模块消融）
+### parallel_multivariate：标准多变量（M0-M3）
+
+本小节的 M0-M3 是标准多变量消融编号，与工程里程碑 M0 不同。
 
 | 编号 | 结构 |
 |---|---|
-| B0 | AMD |
-| B1 | AMD + PMCR |
-| B2 | AMD + parallel-TEB |
-| B3 | AMD + PMCR + parallel-TEB |
+| M0 | AMD |
+| M1 | AMD + PMCR |
+| M2 | AMD + parallel-TEB |
+| M3 | AMD + PMCR + parallel-TEB |
 
 ETTh1/Exchange 只跑主 baseline、AMD、两个单模块和 EL-AMD；不重复全部输入变量消融。
 
@@ -1196,13 +1220,13 @@ tests/
 
 | 阶段 | 任务 | 完成标志 |
 |---|---|---|
-| M0-A | tag、全量 diff、audit、artifact 和环境审计 | `baseline_audit.md`，基准可追溯 |
-| M0-B | pass-through AMDEnhanced + return_state 空壳 | pred/MoE loss <1e-6；zero context；target denorm 测试 |
+| M0-A | tag、全量 diff、audit、artifact 和环境审计 | `docs/milestones/M0_baseline_freeze_and_equivalence.md`，基准可追溯 |
+| M0-B | pass-through AMDEnhanced + return_state_source 空壳 | pred/MoE loss <1e-6；zero context；target denorm 测试 |
 | G0 | 总门禁 | M0-A/M0-B 通过，worktree 干净 |
-| M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、双接口一致性测试通过 |
+| M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过 |
-| M4 | StateAdapter 与 graph mode | `[B,N,d]`、target-only output、一致性测试通过 |
+| M4 | 训练 StateAdapter 与 graph mode | `H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
 | M5 | 第三章筛选 | UrbanEV + EPF-PJM + Weather/ECL 验证结果 |
 | M6 | 第三章正式实验 | 6 数据集主表、消融、效率 |
 | M7 | HSTGCN-core、图归一化、train-only DTW | S0-S3 跑通，图测试通过 |
