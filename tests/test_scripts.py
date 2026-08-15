@@ -181,7 +181,9 @@ class ScriptTests(unittest.TestCase):
                 )
                 self.assertIn('PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"', text)
                 self.assertIn('cd "${PROJECT_ROOT}"', text)
-                self.assertIn('artifact_root="${PROJECT_ROOT}/artifacts"', text)
+                self.assertIn(
+                    'artifact_root="${ARTIFACT_ROOT:-${PROJECT_ROOT}/artifacts}"', text
+                )
                 self.assertIn('--data "${PROJECT_ROOT}/data/${data_path_name}"', text)
                 self.assertIn('--artifact_root "${artifact_root}"', text)
                 self.assertIn('--device "cuda:0"', text)

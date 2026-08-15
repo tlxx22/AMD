@@ -9,7 +9,7 @@ data_path_name="exchange_rate.csv"
 model_id_name="exchange_rate"
 data_name="exchange_rate"
 seq_len=96
-artifact_root="${PROJECT_ROOT}/artifacts"
+artifact_root="${ARTIFACT_ROOT:-${PROJECT_ROOT}/artifacts}"
 python_bin="${PYTHON_BIN:-python}"
 read -r -a seeds <<< "${SEEDS:-2024}"
 

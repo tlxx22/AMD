@@ -9,7 +9,7 @@ data_path_name="traffic.csv"
 model_id_name="traffic"
 data_name="traffic"
 seq_len=512
-artifact_root="${PROJECT_ROOT}/artifacts"
+artifact_root="${ARTIFACT_ROOT:-${PROJECT_ROOT}/artifacts}"
 python_bin="${PYTHON_BIN:-python}"
 read -r -a seeds <<< "${SEEDS:-2024}"
 
