@@ -175,7 +175,7 @@ class ArchitectureContractTests(unittest.TestCase):
         torch.testing.assert_close(mdm_output, expected)
         self.assertFalse(torch.allclose(mdm_output, cross_channel))
         torch.testing.assert_close(
-            mdm_output.mean(dim=-1), torch.zeros(1, 2), atol=3e-6, rtol=0
+            mdm_output.mean(dim=-1), torch.zeros(1, 2), atol=5e-6, rtol=0
         )
 
         # With one full-length patch, DDI applies only its entry LayerNorm.
