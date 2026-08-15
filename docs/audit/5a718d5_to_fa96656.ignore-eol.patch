@@ -1,0 +1,10 @@
+diff --git a/.gitattributes b/.gitattributes
+index dfdb8b771ce07609491fa2e83698969fd917a135..1f43fc70855a2c57aaee60e0858872440736e244 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -1 +1,5 @@
++* text=auto eol=lf
++
+ *.sh text eol=lf
++*.bat text eol=crlf
++*.cmd text eol=crlf
