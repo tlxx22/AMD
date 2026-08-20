@@ -409,7 +409,9 @@ PEMS04/PEMS08（图任务中目标通常为节点主变量）
 volume
 e_price
 s_price
-weather_central 中训练集缺失率低、定义明确的温度/湿度/气压/降水
+weather_central.csv: T -> Ta
+weather_central.csv: P -> P
+weather_central.csv: U -> h
 hour_sin, hour_cos
 weekday_sin, weekday_cos
 is_weekend
@@ -418,6 +420,8 @@ is_weekend
 规则：
 
 - 非日历变量只使用历史窗口内观测值；
+- UrbanEV 第一版天气固定使用 `weather_central.csv` 的 `T/P/U`，分别映射为 `Ta/P/h`；
+- UrbanEV 第一版暂不使用 `P0`、`nRAIN`、`Td` 和 `weather_airport.csv`，不包含降水；
 - 不输入未来真实天气；
 - 所有公平比较模型获得同一组可用变量；
 - 第一版不把 occupancy、duration 作为主输入；
