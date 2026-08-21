@@ -458,64 +458,152 @@ y = volume[t+12+label_horizon-1]
 ## 6.1 插入位置
 
 ```text
-MDM -> DDI -> PMCR -> TEB -> AMS
+RevIN -> MDM -> DDI -> PMCR -> TEB -> AMS -> Forecast
 ```
+
+M2 尚未实现 TEB，因此本阶段真实路径为：
+
+```text
+RevIN -> MDM -> DDI -> PMCR -> AMS -> Forecast
+```
+
+其中 `AMS` experts 使用 PMCR 后的 `v`，selector 始终使用原始 `u_mdm`；禁止让 DDI 重新接回 `x_ch`，也禁止把 PMCR 后的 `v` 送入 selector。
 
 ## 6.2 精确张量合同
 
-输入：
-
 ```text
 H [B,C,T]
-```
-
-为确保 PMCR 不承担跨变量混合，按变量独立展开：
-
-```text
 H_bc = reshape(H, [B*C,1,T])
-U = Conv1d(1,d,kernel=1)(H_bc)          # [B*C,d,T]
-V = ReparamLargeKernelDWConv(U)          # groups=d
-V = ConvFFN1_per_variable(V)
-delta = Conv1d(d,1,kernel=1)(V)          # [B*C,1,T]
-delta = reshape(delta, [B,C,T])
+U = Conv1d(1,d,kernel_size=1)(H_bc)       # [B*C,d,T]
+V = ReparamLargeKernelDWConv(U)           # groups=d，[B*C,d,T]
+V = FeatureWiseLayerNorm(V)               # [B*C,d,T]
+V = ConvFFN1(V)                           # [B*C,d,T]
+delta_bc = Conv1d(d,1,kernel_size=1)(V)   # [B*C,1,T]
+delta = reshape(delta_bc, [B,C,T])
 H_out = H + gamma_pmcr * delta
 ```
 
-`ConvFFN1_per_variable` 只在每条变量内部进行 feature expansion/reduction；禁止添加 ModernTCN ConvFFN2，因为 AMD-DDI 已承担跨变量交互。
+公开分析接口固定为：
 
-## 6.3 归一化与参数
-
-不直接照搬 ModernTCN 的跨 batch BatchNorm。优先：
-
-```text
-GroupNorm(1,d) 或 feature-wise LayerNorm
+```python
+delta = pmcr.compute_delta(H)  # 未乘 gamma_pmcr
+H_out = pmcr(H)                # H + gamma_pmcr * delta
 ```
 
-推荐：
+`B*C` 仅用于将每个变量视作独立样本，所有变量共享同一套 PMCR 参数；PMCR 内不得发生跨变量数据混合。保留 variable-independent temporal processing、large/small temporal depthwise convolution、结构重参数化、ConvFFN1 和外层 residual；删除 patchify stem、多 stage backbone、ConvFFN2、完整 ModernTCN 预测头及其他重复的跨变量建模。
+
+## 6.3 归一化与 ConvFFN1
+
+归一化固定为 feature-wise LayerNorm：
+
+```text
+[B*C,d,T]
+ -> transpose [B*C,T,d]
+ -> LayerNorm(d, eps=1e-5)
+ -> transpose [B*C,d,T]
+```
+
+禁止 BatchNorm、跨 batch 统计以及分支内独立 GroupNorm/LayerNorm。large/small 两个纯线性卷积分支先求和，再经过一个公共 feature-wise LayerNorm：
+
+```text
+large DWConv ----\
+                  + -> feature-wise LayerNorm -> ConvFFN1
+small DWConv ----/
+```
+
+公共 LayerNorm 不参与卷积核融合，部署形态中继续保留。
+
+ConvFFN1 固定为：
+
+```text
+Conv1d(d,2d,kernel_size=1,bias=True)
+ -> GELU
+ -> Dropout(0.1)
+ -> Conv1d(2d,d,kernel_size=1,bias=True)
+ -> Dropout(0.1)
+```
+
+固定 expansion ratio 为 2；ConvFFN1 内部不增加 residual，PMCR 只保留外层 `H_out = H + gamma_pmcr * delta`。
+
+## 6.4 gamma 与初始化
+
+`gamma_pmcr` 固定为所有变量共享的可学习全局标量 `nn.Parameter`，初始化为 `1e-3`，不施加 sigmoid、softplus 或非负约束。禁止固定常数、每变量 gamma、每特征 gamma 和零初始化。
+
+初始化固定为：
+
+```text
+input/output 1x1 projection：Xavier uniform，bias=0
+ConvFFN1 两个 1x1 projection：Xavier uniform，bias=0
+large/small DWConv：Kaiming fan-in、linear；各分支权重乘 1/sqrt(2)，bias=0
+LayerNorm：weight=1，bias=0
+gamma_pmcr：1e-3
+```
+
+禁止 output projection 零初始化，以保证首次反向传播时 PMCR 内部参数可获得非零梯度。
+
+## 6.5 kernel、padding 与重参数化
+
+固定：
+
+```text
+stride = 1
+dilation = 1
+padding_mode = zeros
+padding = kernel_size // 2
+k_small > 0，k_large > 0
+k_small、k_large 均为奇数
+k_large > k_small
+```
+
+在 `AMDEnhanced` 集成时要求 `k_large <= seq_len`。独立 `ReparamLargeKernelDWConv` 不绑定固定 T，但必须保持 same padding 和时间长度不变。短/长序列参数只作为显式配置建议，不得依据 dataset 名称或 `seq_len` 自动选择：
 
 | 数据类型 | k_small | k_large | d |
 |---|---:|---:|---:|
 | UrbanEV/CHARGED，T=12 | 3 | 7 | 4 或 8 |
 | 标准长序列，L>=96 | 5 | 31 | 8 或 16 |
 
-约束：
+固定提供：
 
-```text
-k_large、k_small 为奇数
-k_large >= k_small
-same padding
-training：large/small 两分支
-inference export：可选结构重参数化合并
+```python
+get_equivalent_kernel_bias()
+switch_to_deploy()
+to_deploy()
 ```
 
+语义固定为：
+
+- `get_equivalent_kernel_bias()` 只计算，不修改模块；
+- `switch_to_deploy()` 显式、原地、幂等，不在普通 `forward()` 中自动执行；
+- `to_deploy()` 深拷贝当前模块，对副本执行 `eval()` 和 `switch_to_deploy()`，不修改原训练模块；
+- small kernel 居中补零后融合：`K_eq = K_large + center_pad(K_small)`，`b_eq = b_large + b_small`；
+- 部署后只合并 large/small temporal DWConv；公共 LayerNorm、ConvFFN1、输入/输出投影和外层 residual 均保留。
+
+## 6.6 开关、配置与 checkpoint
+
 ```text
-gamma_pmcr = 1e-3
-dropout = 0.1
+use_pmcr=False：
+  self.pmcr = None
+  不产生 pmcr.* state_dict key
+  直接旁路
+  冻结 AMD checkpoint 继续 strict=True 加载
+
+use_pmcr=True：
+  显式提供 hidden_dim、kernel_small、kernel_large
+  实例化完整 PMCR
+  完整 PMCR checkpoint 使用 strict=True 恢复
+  从冻结 AMD 初始化时使用专用 allowlist importer
 ```
 
-模块关闭时直接返回输入，不执行任何卷积。
+专用 importer 只允许：
 
-## 6.4 必做测试
+```text
+missing keys == 当前模型全部 pmcr.* keys
+unexpected keys == 空集
+```
+
+校验必须在修改参数前完成；禁止把全局静默 `strict=False` 作为兼容方案。`use_pmcr`、hidden dim、两个 kernel、dropout、gamma init 及 deploy 形态均应进入可追溯配置/checkpoint 元数据；正式 runner 接入在 M3 完成完整 EL-AMD 后统一处理。
+
+## 6.7 必做测试
 
 - shape 与 dtype/device；
 - `use_pmcr=False` 严格 pass-through；

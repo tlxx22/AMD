@@ -248,8 +248,9 @@ def source_fingerprint(root=ROOT):
 
     root = Path(root)
     files = [root / "main.py"]
-    files.extend(sorted((root / "models").glob("*.py")))
-    files.extend(sorted((root / "utils").glob("*.py")))
+    files.extend((root / "models").rglob("*.py"))
+    files.extend((root / "utils").glob("*.py"))
+    files = sorted(files, key=lambda path: path.relative_to(root).as_posix())
     digest = hashlib.sha256()
     for path in files:
         relative = path.relative_to(root).as_posix().encode("utf-8")

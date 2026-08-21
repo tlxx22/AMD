@@ -124,6 +124,39 @@ def _write_resume_fixture(run_dir, completed_epoch=1):
 
 
 class RunnerUnitTests(unittest.TestCase):
+    def test_source_fingerprint_recurses_models_in_stable_relative_order(self):
+        files = {
+            "main.py": "# runner\n",
+            "models/top.py": "TOP = 1\n",
+            "models/modules/nested.py": "NESTED = 2\n",
+            "utils/helper.py": "HELPER = 3\n",
+        }
+
+        def build(root, ordered_paths):
+            for relative in ordered_paths:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(files[relative], encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as first_dir, tempfile.TemporaryDirectory() as second_dir:
+            first_root = Path(first_dir)
+            second_root = Path(second_dir)
+            build(first_root, list(files))
+            build(second_root, list(reversed(files)))
+
+            original = runner.source_fingerprint(first_root)
+            self.assertEqual(original, runner.source_fingerprint(second_root))
+
+            nested = first_root / "models/modules/nested.py"
+            nested.write_text("NESTED = 99\n", encoding="utf-8")
+            self.assertNotEqual(original, runner.source_fingerprint(first_root))
+
+            before_non_python = runner.source_fingerprint(first_root)
+            (first_root / "models/modules/ignored.txt").write_text(
+                "not executable Python", encoding="utf-8"
+            )
+            self.assertEqual(before_non_python, runner.source_fingerprint(first_root))
+
     def test_strict_boolean_parser(self):
         for value in ("true", "TRUE", "yes", "on", "1"):
             self.assertIs(runner.str2bool(value), True)
