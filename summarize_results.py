@@ -14,6 +14,18 @@ from pathlib import Path
 
 
 IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
+ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
+SUPPORTED_IMPLEMENTATION_VARIANTS = (
+    IMPLEMENTATION_VARIANT,
+    ENHANCED_IMPLEMENTATION_VARIANT,
+)
+ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
+ENHANCED_CHECKSUM_FILES = (
+    "best.pt", "last.pt", "config.resolved.json", "history.jsonl",
+    "metrics.json", "manifest.json", "sys.argv.json", "command.txt",
+    "stdout.log", "stderr.log", "train.log", "source_fingerprint.json",
+    "data_fingerprint.json",
+)
 SCHEMA_VERSION = 1
 METRIC_SPACE = "train-standardized"
 EXPECTED_MODEL_CONTRACT = {
@@ -31,7 +43,8 @@ EXPECTED_OPTIMIZATION_CONTRACT = {
     "weight_decay": 1e-7,
 }
 RUN_FIELDS = (
-    "implementation_variant", "dataset_id", "seq_len", "pred_len", "seed",
+    "implementation_variant", "dataset_id", "task_mode", "target",
+    "label_horizon", "fold", "seq_len", "pred_len", "seed",
     "run_id", "best_epoch", "val_mse", "val_mae", "test_mse", "test_mae",
     "parameter_count", "train_epochs", "duration_seconds", "config_hash",
     "comparison_config_hash", "data_sha256", "completed_at", "artifact_dir",
@@ -104,7 +117,7 @@ def _validate_variant_contract(scientific, run_dir):
             )
 
 
-def load_completed_runs(artifact_root):
+def _load_legacy_completed_runs(artifact_root):
     """Return validated run rows; failed/running/foreign variants are ignored."""
 
     variant_root = Path(artifact_root).resolve() / IMPLEMENTATION_VARIANT
@@ -283,6 +296,330 @@ def load_completed_runs(artifact_root):
     return rows
 
 
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _verify_enhanced_checksums(run_dir):
+    run_dir = Path(run_dir)
+    checksum_path = run_dir / "checksums.sha256"
+    if not checksum_path.is_file():
+        raise ValueError(f"enhanced completed run has no checksums.sha256: {run_dir}")
+    observed = {}
+    for line in checksum_path.read_text(encoding="utf-8").splitlines():
+        digest, separator, name = line.partition("  ")
+        if (
+            not separator
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise ValueError(f"invalid enhanced checksum line in {checksum_path}: {line!r}")
+        candidate = Path(name)
+        if candidate.is_absolute() or len(candidate.parts) != 1 or candidate.name != name:
+            raise ValueError(f"unsafe enhanced checksum path: {name!r}")
+        if name in observed:
+            raise ValueError(f"duplicate enhanced checksum entry: {name}")
+        observed[name] = digest
+    expected = set(ENHANCED_CHECKSUM_FILES)
+    if set(observed) != expected:
+        raise ValueError(
+            "enhanced checksum file set mismatch: "
+            f"missing={sorted(expected - set(observed))}, "
+            f"unexpected={sorted(set(observed) - expected)}"
+        )
+    for name, expected_digest in observed.items():
+        path = run_dir / name
+        if not path.is_file():
+            raise ValueError(f"enhanced checksum target is missing: {path}")
+        actual = _sha256_file(path)
+        if actual != expected_digest:
+            raise ValueError(
+                f"enhanced checksum mismatch for {name}: "
+                f"{actual} != {expected_digest}"
+            )
+    allowed_files = expected | {"checksums.sha256"}
+    if (run_dir / ".run.lock").exists():
+        raise ValueError(f"enhanced completed artifact retains .run.lock: {run_dir}")
+    extras = sorted(
+        path.name for path in run_dir.iterdir()
+        if path.name not in allowed_files
+    )
+    if extras:
+        raise ValueError(f"unexpected entries in enhanced completed artifact: {extras}")
+    return observed
+
+
+def _enhanced_path_identity(variant_root, run_dir):
+    relative = run_dir.relative_to(variant_root)
+    parts = relative.parts
+    if len(parts) != 7:
+        raise ValueError(
+            "enhanced artifact path must be dataset/task/target/horizon/fold/seed/run_id: "
+            f"{run_dir}"
+        )
+    dataset_id, task_mode, target, horizon_part, fold_part, seed_part, run_id = parts
+    if not horizon_part.startswith("horizon_"):
+        raise ValueError(f"enhanced artifact horizon component is invalid: {run_dir}")
+    if not fold_part.startswith("fold_"):
+        raise ValueError(f"enhanced artifact fold component is invalid: {run_dir}")
+    if not seed_part.startswith("seed_"):
+        raise ValueError(f"enhanced artifact seed component is invalid: {run_dir}")
+    try:
+        horizon = int(horizon_part[len("horizon_"):])
+        seed = int(seed_part[len("seed_"):])
+    except ValueError as exc:
+        raise ValueError(f"enhanced artifact horizon/seed is not an integer: {run_dir}") from exc
+    return {
+        "dataset_id": dataset_id,
+        "task_mode": task_mode,
+        "target": target,
+        "artifact_horizon": horizon,
+        "fold": fold_part[len("fold_"):],
+        "seed": seed,
+        "run_id": run_id,
+    }
+
+
+def _load_enhanced_completed_runs(artifact_root):
+    variant_root = Path(artifact_root).resolve() / ENHANCED_IMPLEMENTATION_VARIANT
+    if not variant_root.exists():
+        return []
+
+    candidate_dirs = {
+        path.parent.resolve()
+        for pattern in ("manifest.json", "metrics.json")
+        for path in variant_root.rglob(pattern)
+        if not any(
+            part.startswith(".") and part.endswith(".staging")
+            for part in path.relative_to(variant_root).parts
+        )
+    }
+    rows = []
+    seen_run_ids = set()
+    seen_scientific_seed = set()
+    for run_dir in sorted(candidate_dirs):
+        identity = _enhanced_path_identity(variant_root, run_dir)
+        _verify_enhanced_checksums(run_dir)
+        manifest_path = run_dir / "manifest.json"
+        metrics_path = run_dir / "metrics.json"
+        config_path = run_dir / "config.resolved.json"
+        manifest = _read_json(manifest_path)
+        metrics = _read_json(metrics_path)
+        config = _read_json(config_path)
+        if not all(isinstance(value, dict) for value in (manifest, metrics, config)):
+            raise ValueError(f"enhanced metadata must contain JSON objects: {run_dir}")
+        for label, value in (
+            ("manifest", manifest),
+            ("metrics", metrics),
+            ("config", config),
+        ):
+            if value.get("schema_version") != SCHEMA_VERSION:
+                raise ValueError(f"enhanced {label} schema version mismatch: {run_dir}")
+            if (
+                value.get("artifact_schema_version")
+                != ENHANCED_ARTIFACT_SCHEMA_VERSION
+            ):
+                raise ValueError(
+                    f"enhanced {label} artifact schema version mismatch: {run_dir}"
+                )
+            if value.get("implementation_variant") != ENHANCED_IMPLEMENTATION_VARIANT:
+                raise ValueError(f"enhanced {label} variant mismatch: {run_dir}")
+        if manifest.get("status") != "completed" or metrics.get("status") != "completed":
+            raise ValueError(f"enhanced final artifact is not completed: {run_dir}")
+
+        run_id = identity["run_id"]
+        if run_id in seen_run_ids:
+            raise ValueError(f"duplicate enhanced run_id {run_id!r}")
+        seen_run_ids.add(run_id)
+        if manifest.get("run_id") != run_id or metrics.get("run_id") != run_id:
+            raise ValueError(f"enhanced run_id/path mismatch: {run_dir}")
+        expected_dir = str(run_dir)
+        run_config = config.get("run")
+        if not isinstance(run_config, dict):
+            raise ValueError(f"enhanced resolved config has no run object: {run_dir}")
+        if any(
+            value != expected_dir
+            for value in (
+                manifest.get("artifact_dir"),
+                metrics.get("artifact_dir"),
+                run_config.get("run_dir"),
+            )
+        ):
+            raise ValueError(f"enhanced artifact path identity mismatch: {run_dir}")
+
+        scientific = config.get("scientific_config")
+        if not isinstance(scientific, dict):
+            raise ValueError(f"enhanced config has no scientific_config: {run_dir}")
+        config_hash = metrics.get("config_hash")
+        if not isinstance(config_hash, str) or _stable_hash(scientific) != config_hash:
+            raise ValueError(f"enhanced scientific config hash mismatch: {run_dir}")
+        if (
+            config.get("config_hash") != config_hash
+            or manifest.get("config_hash") != config_hash
+        ):
+            raise ValueError(f"enhanced config/manifest hash mismatch: {run_dir}")
+        if scientific.get("implementation_variant") != ENHANCED_IMPLEMENTATION_VARIANT:
+            raise ValueError(f"enhanced scientific variant mismatch: {run_dir}")
+
+        dataset = scientific.get("dataset")
+        model = scientific.get("model")
+        execution = scientific.get("execution")
+        optimization = scientific.get("optimization")
+        experiment = scientific.get("experiment")
+        if not all(
+            isinstance(value, dict)
+            for value in (dataset, model, execution, optimization, experiment)
+        ):
+            raise ValueError(f"enhanced scientific contract is incomplete: {run_dir}")
+        if model.get("model_class") != "AMDEnhanced":
+            raise ValueError(f"enhanced model_class mismatch: {run_dir}")
+        if (
+            optimization.get("optimizer") != "Adam"
+            or optimization.get("weight_decay") != 1e-7
+        ):
+            raise ValueError(f"enhanced optimization contract mismatch: {run_dir}")
+
+        observed_identity = {
+            "dataset_id": str(dataset.get("id")),
+            "task_mode": dataset.get("task_mode"),
+            "target": dataset.get("target"),
+            "artifact_horizon": dataset.get("artifact_horizon"),
+            "fold": str(dataset.get("fold")),
+            "seed": execution.get("seed"),
+            "run_id": run_id,
+        }
+        if observed_identity != identity:
+            raise ValueError(
+                f"enhanced config/path identity mismatch: "
+                f"{observed_identity!r} != {identity!r}"
+            )
+        for document_name, document in (("manifest", manifest), ("metrics", metrics)):
+            document_identity = {
+                "task_mode": document.get("task_mode"),
+                "target": document.get("target"),
+                "artifact_horizon": document.get("artifact_horizon"),
+                "fold": str(document.get("fold")),
+                "seed": document.get("seed"),
+            }
+            expected = {
+                key: identity[key]
+                for key in ("task_mode", "target", "artifact_horizon", "fold", "seed")
+            }
+            if document_identity != expected:
+                raise ValueError(
+                    f"enhanced {document_name}/path identity mismatch: {run_dir}"
+                )
+        if experiment.get("artifact_horizon") != identity["artifact_horizon"]:
+            raise ValueError(f"enhanced experiment horizon mismatch: {run_dir}")
+        if model.get("model_pred_len") != metrics.get("model_pred_len"):
+            raise ValueError(f"enhanced model_pred_len mismatch: {run_dir}")
+        if dataset.get("label_horizon") != metrics.get("label_horizon"):
+            raise ValueError(f"enhanced label_horizon mismatch: {run_dir}")
+
+        data_sha256 = metrics.get("data_sha256")
+        if (
+            not isinstance(data_sha256, str)
+            or dataset.get("sha256") != data_sha256
+            or manifest.get("data_sha256") != data_sha256
+        ):
+            raise ValueError(f"enhanced data fingerprint mismatch: {run_dir}")
+        train_epochs = int(metrics.get("train_epochs", -1))
+        best_epoch = int(metrics.get("best_epoch", -1))
+        if train_epochs <= 0 or not 1 <= best_epoch <= train_epochs:
+            raise ValueError(f"enhanced epoch metadata is invalid: {run_dir}")
+        if (
+            int(run_config.get("train_epochs", -1)) != train_epochs
+            or int(manifest.get("completed_epoch", -1)) != train_epochs
+            or int(manifest.get("best_epoch", -1)) != best_epoch
+        ):
+            raise ValueError(f"enhanced manifest/config epoch mismatch: {run_dir}")
+
+        validation = metrics.get("best_validation")
+        test = metrics.get("test")
+        if not isinstance(validation, dict) or not isinstance(test, dict):
+            raise ValueError(f"enhanced validation/test metrics are missing: {run_dir}")
+        val_mse = _finite_number(validation.get("mse"), f"{run_id} val_mse")
+        val_mae = _finite_number(validation.get("mae"), f"{run_id} val_mae")
+        test_mse = _finite_number(test.get("mse"), f"{run_id} test_mse")
+        test_mae = _finite_number(test.get("mae"), f"{run_id} test_mae")
+        for field, observed, expected in (
+            ("best_validation_mse", manifest.get("best_validation_mse"), val_mse),
+            ("test_mse", manifest.get("test_mse"), test_mse),
+            ("test_mae", manifest.get("test_mae"), test_mae),
+        ):
+            if _finite_number(observed, f"{run_id} manifest {field}") != expected:
+                raise ValueError(f"enhanced manifest {field} mismatch: {run_dir}")
+
+        comparison_hash = _comparison_hash(config, config_path, train_epochs)
+        duplicate_identity = (comparison_hash, int(identity["seed"]))
+        if duplicate_identity in seen_scientific_seed:
+            raise ValueError(
+                "multiple enhanced completed runs exist for the same scientific "
+                "identity and seed; no run was selected automatically"
+            )
+        seen_scientific_seed.add(duplicate_identity)
+        rows.append({
+            "implementation_variant": ENHANCED_IMPLEMENTATION_VARIANT,
+            "dataset_id": identity["dataset_id"],
+            "task_mode": identity["task_mode"],
+            "target": identity["target"],
+            "label_horizon": metrics.get("label_horizon"),
+            "fold": identity["fold"],
+            "seq_len": int(metrics.get("seq_len", -1)),
+            "pred_len": int(metrics.get("pred_len", -1)),
+            "seed": int(identity["seed"]),
+            "run_id": run_id,
+            "best_epoch": best_epoch,
+            "val_mse": val_mse,
+            "val_mae": val_mae,
+            "test_mse": test_mse,
+            "test_mae": test_mae,
+            "parameter_count": int(metrics.get("parameter_count", -1)),
+            "train_epochs": train_epochs,
+            "duration_seconds": _finite_number(
+                metrics.get("duration_seconds"), f"{run_id} duration_seconds"
+            ),
+            "config_hash": config_hash,
+            "comparison_config_hash": comparison_hash,
+            "data_sha256": data_sha256,
+            "completed_at": str(metrics.get("completed_at")),
+            "artifact_dir": str(run_dir),
+        })
+    rows.sort(
+        key=lambda item: (
+            item["dataset_id"],
+            item["task_mode"],
+            item["target"],
+            str(item["label_horizon"]),
+            str(item["fold"]),
+            item["seed"],
+            item["run_id"],
+        )
+    )
+    return rows
+
+
+def load_completed_runs(
+    artifact_root,
+    implementation_variant=IMPLEMENTATION_VARIANT,
+):
+    """Load one explicitly supported variant without mutating artifacts."""
+
+    if implementation_variant not in SUPPORTED_IMPLEMENTATION_VARIANTS:
+        raise ValueError(
+            f"unsupported implementation variant: {implementation_variant!r}; "
+            f"expected one of {SUPPORTED_IMPLEMENTATION_VARIANTS}"
+        )
+    if implementation_variant == IMPLEMENTATION_VARIANT:
+        return _load_legacy_completed_runs(artifact_root)
+    return _load_enhanced_completed_runs(artifact_root)
+
+
+
 def aggregate_runs(rows):
     """Aggregate paired seed runs, refusing ambiguous duplicate successful seeds."""
 
@@ -351,12 +688,19 @@ def _atomic_write_csv(path, fieldnames, rows):
             temporary.unlink()
 
 
-def write_summaries(artifact_root, output_dir):
-    rows = load_completed_runs(artifact_root)
+def write_summaries(
+    artifact_root,
+    output_dir,
+    implementation_variant=IMPLEMENTATION_VARIANT,
+):
+    rows = load_completed_runs(
+        artifact_root,
+        implementation_variant=implementation_variant,
+    )
     aggregates = aggregate_runs(rows)
     output_dir = Path(output_dir).resolve()
-    run_path = output_dir / f"{IMPLEMENTATION_VARIANT}.csv"
-    aggregate_path = output_dir / f"{IMPLEMENTATION_VARIANT}-aggregate.csv"
+    run_path = output_dir / f"{implementation_variant}.csv"
+    aggregate_path = output_dir / f"{implementation_variant}-aggregate.csv"
     _atomic_write_csv(run_path, RUN_FIELDS, rows)
     _atomic_write_csv(aggregate_path, AGGREGATE_FIELDS, aggregates)
     return run_path, aggregate_path, len(rows), len(aggregates)
@@ -369,13 +713,20 @@ def parse_args(argv=None):
     )
     parser.add_argument("--artifact_root", default=str(root / "artifacts"))
     parser.add_argument("--output_dir", default=str(root / "summaries"))
+    parser.add_argument(
+        "--implementation_variant",
+        default=IMPLEMENTATION_VARIANT,
+        choices=SUPPORTED_IMPLEMENTATION_VARIANTS,
+    )
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
     run_path, aggregate_path, run_count, group_count = write_summaries(
-        args.artifact_root, args.output_dir
+        args.artifact_root,
+        args.output_dir,
+        implementation_variant=args.implementation_variant,
     )
     print(f"wrote {run_count} run(s) to {run_path}")
     print(f"wrote {group_count} aggregate group(s) to {aggregate_path}")

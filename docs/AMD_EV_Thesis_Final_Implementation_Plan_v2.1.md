@@ -294,9 +294,9 @@ data_fingerprint.json
 graph_fingerprint.json（第四章）
 ```
 
-`sys.argv.json` 必须逐项保存运行时 `sys.argv`；`command.txt` 必须保存可重放的完整 shell-escaped command；`stdout.log`、`stderr.log` 和 `train.log` 必须完整保留正式运行输出。不得用事后推断的命令冒充原始命令证据。
+`sys.argv.json` 必须逐项保存运行时真实 `sys.argv`；`command.txt` 必须按 `shlex.join([sys.executable, *sys.argv])` 保存真实 Python executable 与完整 shell-escaped argv，形成可重放的等价命令。`stdout.log`、`stderr.log` 和 `train.log` 必须完整保留正式运行的真实捕获输出，不得用空占位文件或事后推断的命令冒充原始证据。
 
-`checksums.sha256` 必须作为独立文件生成，至少覆盖 `best.pt`、`last.pt`、`config.resolved.json`、`history.jsonl`、`metrics.json`、`manifest.json` 和 `train.log`。run 只有在所有文件原子落盘且 `sha256sum -c checksums.sha256` 通过后才能标记 completed。
+`checksums.sha256` 必须作为独立文件生成，至少覆盖 `best.pt`、`last.pt`、`config.resolved.json`、`history.jsonl`、`metrics.json`、`manifest.json` 和 `train.log`。增强 artifact 固定采用：隐藏 staging 目录写入全部可变文件 -> 关闭 stdout/stderr/train.log writer -> 写最终 completed manifest -> 生成 checksums -> Python verifier -> 实际执行 `sha256sum -c checksums.sha256` -> 同文件系统目录级 atomic rename 发布到最终 run 目录。最终 run 目录只代表已经验证且不可变的 completed artifact；校验或发布失败时最终目录必须不存在，staging 不得被 summarizer 接受。
 
 resume 时必须核对 variant、dataset、task_mode、target、horizon、fold、seed、run_id、源码哈希、数据/图哈希和科学配置哈希；不一致时拒绝恢复。
 
@@ -317,6 +317,8 @@ resume 时必须核对 variant、dataset、task_mode、target、horizon、fold�
 训练集可以在窗口生成后 shuffle 区域样本；验证和测试保持确定顺序。禁止先从完整时间轴随机生成窗口后再切分。
 
 该接口使 AMD-DDI 只在同一区域内部处理变量，不发生区域间消息传播。
+
+UrbanEV `target_exogenous` 正式 runner 必须直接消费 M1 的共享数据对象：`UrbanEVRawData.load(data_root) -> UrbanEVFoldPreprocessor.fit_transform(fold,preset) -> one shared UrbanEVFoldBundle -> TemporalRegionDataset(train/validation/test)`。不得另建 scaler、split 或窗口逻辑。固定 `seq_len=history_len=12`、`label_horizon in {3,6,9,12}`、`model_pred_len=1`、`fold in {1,...,6}`；artifact 的 `horizon_<h>` 使用 `label_horizon`，而非 `model_pred_len`。
 
 ## 4.2 GraphWindowDataset：第四章时空训练
 
@@ -433,10 +435,20 @@ is_weekend
 UrbanEV/CHARGED 的 AMD-Concat 与 EL-AMD 第一版保留 AMD 的全部通道内部计算和 AMS 输出，以最大程度复用冻结基准；完成 RevIN 全通道反归一化后，只返回 `target_idx` 对应的目标预测，并只在该目标上计算 loss。
 
 ```text
-pred_all_norm [B_region,C,H_out]
- -> RevIN denorm with per-channel statistics
-pred_target = pred_all[:, target_idx, :]
-loss = criterion(pred_target, y_target)
+pred_all_norm_ch [B_region,C,H_out]
+ -> transpose
+pred_all_norm [B_region,H_out,C]
+ -> RevIN full-channel denorm with slice(None)
+pred_all [B_region,H_out,C]
+
+pred_target = pred_all[:,:,target_idx:target_idx+1]
+# [B_region,H_out,1]
+
+loss = criterion(
+    pred_target.squeeze(-1),
+    y_target,
+)
+# y_target [B_region,H_out]
 ```
 
 禁止把单通道预测直接送入要求 C 通道统计量的通用 RevIN `denorm`。若后续增加 target-specific denorm，必须先与“全通道 denorm 后选 target”做数值等价测试。
@@ -601,7 +613,7 @@ missing keys == 当前模型全部 pmcr.* keys
 unexpected keys == 空集
 ```
 
-校验必须在修改参数前完成；禁止把全局静默 `strict=False` 作为兼容方案。`use_pmcr`、hidden dim、两个 kernel、dropout、gamma init 及 deploy 形态均应进入可追溯配置/checkpoint 元数据；正式 runner 接入在 M3 完成完整 EL-AMD 后统一处理。
+校验必须在修改参数前完成；禁止把全局静默 `strict=False` 作为兼容方案。`use_pmcr`、hidden dim、两个 kernel、dropout、gamma init 及 deploy 形态均进入可追溯配置/checkpoint 元数据；M3 正式 runner 通过 `el-amd-pmcr-teb-v1` 和显式消融开关统一接入 PMCR/TEB。
 
 ## 6.7 必做测试
 
@@ -613,6 +625,8 @@ unexpected keys == 空集
 - `T=12` 下 kernel/padding 不改变长度。
 
 # 7. TEB：TimeXer-inspired 目标—外生桥接
+
+当前正式 v1 定义为 **Global Target-Conditioned Residual TEB（全局目标条件残差桥接）**。它是在 AMD 隐表示上的轻量 Target–Exogenous Bridge，不是完整 TimeXer、缩小版 TimeXer Transformer 或第二套时间预测主干。
 
 ## 7.1 单目标模式
 
@@ -626,70 +640,154 @@ H_y = H[:,target_idx,:]
 目标 Query：
 
 ```text
-q = W_q Pool(LayerNorm(H_y))      # [B,1,d]
+q = LayerNorm_q(Linear_q(T -> d)(H_y)).unsqueeze(1)
+# [B,1,d]
 ```
 
-每个外生变量独立编码为 variate token：
+外生输入固定为 RevIN 后的历史 `normalized_input=x_norm [B,T,C]`，所有辅助变量共享同一个 projector：
 
 ```text
-e_j = W_j LayerNorm(X_aux,j)      # [B,d]
-E_aux = stack(e_1,...,e_m)         # [B,m,d]
+X_aux = normalized_input[:,:,aux_idx].transpose(1,2)
+# [B,m,T]
+
+E_aux = LayerNorm_exo(Linear_exo(T -> d)(X_aux))
+# [B,m,d]
 ```
 
 Cross-attention：
 
 ```text
-c_exo = MHA(q,E_aux,E_aux)         # [B,1,d]
-delta = W_o(c_exo).squeeze(1)      # [B,T]
-H_y' = H_y + gamma_teb * delta
-exo_context = c_exo.squeeze(1)     # [B,d]
+c_exo = MHA(query=q,key=E_aux,value=E_aux)
+# [B,1,d]
+
+delta_y = Linear_out(d -> T)(c_exo.squeeze(1))
+# [B,T]
+
+H_y_new = H_y + gamma_teb * delta_y
+exo_context = c_exo.squeeze(1)
+# [B,d]
 ```
 
-仅替换目标通道，其他通道保持原值。
+只替换 `target_idx` 通道，其他通道必须逐元素保持原值。`d = teb_context_dim`，不设置 `teb_hidden_dim`。
 
 推荐：
 
 ```text
-d=32
-heads=4
-dropout=0.1
-gamma_teb=1e-3
+teb_context_dim=32
+teb_heads=4
+teb_dropout=0.1
+teb_gamma_init=1e-3
 ```
 
-第一版不改变 AMS selector 使用的 `u_mdm`，只改变 AMS experts 的输入。
+`Linear_out(d -> T)` 使 TEB checkpoint 与 `seq_len` 绑定；runner/resume 必须把 `seq_len` 作为严格科学配置，不支持跨 `seq_len` 静默加载。第一版不改变 AMS selector 使用的原始 `u_mdm`，只改变 AMS experts 的输入。
+
+`gamma_teb` 是所有变量共享、无约束、可学习的全局 scalar `nn.Parameter`，初始化 `1e-3`。禁止固定常数、零初始化、sigmoid/softplus 约束、每变量或每时间位置 gamma。零初始化会使受门控的 TEB 内部参数第一次反向传播梯度为零；`1e-3` 保持小扰动且梯度非零。
 
 ## 7.2 TEB 关闭合同
 
 ```text
 use_teb=False：
+    self.teb = None
+    不产生 teb.* state_dict key
     v 保持逐元素不变
-    exo_context = zeros([B,d_teb], device=v.device, dtype=v.dtype)
+    exo_context = v.new_zeros([B,teb_context_dim])
 ```
 
-不得返回 `None`，不得改变 StateAdapter 输入维度。
+不得返回 `None`，不得改变 StateAdapter 输入维度。空输入合同固定为：
+
+```text
+use_teb=False + aux_idx=[]：合法严格旁路
+target_exogenous + use_teb=True + aux_idx=[]：明确报错
+parallel_multivariate + use_teb=True + C=1：明确报错
+parallel_multivariate + use_teb=False + C=1：合法旁路
+```
+
+单目标空辅助固定报错为 `TEB requires at least one auxiliary variable.`；parallel `C=1` 固定报错为 `Parallel TEB requires at least two variables.`。不得将空 Key/Value 送入 MHA、产生全 `-inf` attention 行、在 `C=1` 时取消 mask，或以 zero context 冒充 TEB enabled。
+
+`target_exogenous` 的 `aux_idx` 必须显式、有序并规范化为 `tuple[int,...]`，保持调用方顺序，拒绝 bool、重复、越界和 `target_idx`。Scientific config 同时保存 feature/target/aux 名称与索引及 schema fingerprint。`parallel_multivariate` 固定 `parallel_aux_policy=all_other_variables`，非空手工 `aux_idx` 必须拒绝。
 
 ## 7.3 M-to-M 并行模式
 
-用于 ETTh1/Weather/ECL/Exchange：
-
-- 每个变量同时作为一个 Query；
-- 其他变量作为 Key/Value；
-- 参数共享；
-- 使用 diagonal mask，禁止变量只复制自身；
-- 一次向量化完成，禁止 Python 循环逐变量运行完整 AMD；
-- 输出仍为原 AMD 的全部变量。
-
-## 7.4 公平对照
-
-UrbanEV/EPF 必须比较：
+用于 ETTh1/Weather/ECL/Exchange，一次向量化执行：
 
 ```text
-AMD-TargetOnly
-AMD-Concat（与 Ours 完全相同的辅助变量）
-AMD-Concat + TEB
+Q = LayerNorm_q(Linear_q(T -> d)(hidden))
+# [B,C,d]
+
+E = LayerNorm_exo(Linear_exo(T -> d)(normalized_input.transpose(1,2)))
+# [B,C,d]
+
+diagonal_mask [C,C]
+diagonal_mask[i,i] = True
+diagonal_mask[i,j] = False, i != j
+
+context_all = MHA(query=Q,key=E,value=E,attn_mask=diagonal_mask)
+# [B,C,d]
+
+delta_all = Linear_out(d -> T)(context_all)
+hidden_out = hidden + gamma_teb * delta_all
+# [B,C,T]
+
+exo_context = context_all[:,target_idx,:]
+# [B,d]
 ```
 
-只有 `AMD-Concat + TEB` 优于或至少不劣于 `AMD-Concat`，才能把增益归因于桥接结构。
+Mask 中 `True` 表示禁止。禁止 Python 循环逐变量运行完整 AMD；所有变量均参与更新和预测。`context_all [B,C,d]` 只在 parallel 内部更新全部变量；普通 `exo_context [B,d]` 只用于固定 `state_source`。`target_idx` 在 parallel 中只作为状态和可选分析锚点，不限制全部变量预测。
+
+## 7.4 模块边界、checkpoint 与 runner
+
+模块固定包含：
+
+```text
+Linear_q(T,d,bias=True) -> LayerNorm(d,eps=1e-5)
+共享 Linear_exo(T,d,bias=True) -> LayerNorm(d,eps=1e-5)
+MultiheadAttention(d,heads,dropout=teb_dropout,bias=True,batch_first=True)
+Linear_out(d,T,bias=True)
+scalar gamma_teb
+```
+
+除 gamma 外使用 PyTorch 默认初始化。第一版不加入 mean pooling、variable identity embedding、q residual、attention 后 FFN、额外 output dropout、endogenous/exogenous self-attention、多层 Transformer、TimeXer prediction head 或未来真实外生变量。唯一写回 AMD 隐表示的 residual 是 `H_new = H + gamma_teb * delta`。
+
+checkpoint 使用显式 source-kind 精确 allowlist，并在修改参数前校验完整 key 集与 tensor shape：
+
+```text
+baseline  -> 允许目标模型全部 pmcr.* / teb.* 缺失
+pmcr_only -> 只允许目标模型全部 teb.* 缺失
+teb_only  -> 只允许目标模型全部 pmcr.* 缺失
+unexpected keys 必须为空；部分 enhancement key 不得接受
+完整同结构 EL-AMD checkpoint/resume 使用 strict=True
+```
+
+禁止全局静默 `strict=False`。正式 variant 固定为 `el-amd-pmcr-teb-v1`，以显式 `ablation_id` 表达消融。runner 必须显式保存任务模式、目标/辅助名称与索引、schema fingerprint、PMCR/TEB 参数及 policy；新正式路径中 `target_idx` 是唯一目标索引来源，`target_slice=None`，并遵循第 3.4 节 artifact/checksum/resume 合同。
+
+## 7.5 公平对照
+
+UrbanEV/EPF 的 U1 与 U2 必须使用完全相同的辅助 schema、变量顺序、划分、scaler、horizon 和 seed：
+
+```text
+U1: AMD-Concat，PMCR off，TEB off
+U2: AMD-Concat + TEB，PMCR off，TEB on
+```
+
+M3 只以 tiny synthetic smoke 验证结构、配置和 artifact 流程，不据此宣称性能改善。只有 M5/M6 正式验证中 U2 优于或至少不劣于 U1，才能把增益归因于桥接结构。
+
+## 7.6 预留方案：性能失败后的首选替代方向——Patch-conditioned TEB
+
+本节是预留方案，不属于当前 M3 实现。当前正式 v1 仍是 Global Target-Conditioned Residual TEB。若它在 M5 限定调参与验证集验收后仍未达到 TEB 模块验收线，第一替代方向优先考虑 Patch-conditioned TEB，而不是复制完整 TimeXer Transformer：
+
+```text
+AMD 的 H_y
+-> 划分少量 target patches
+-> 每个 patch 形成一个 Query
+-> 所有 patch Queries 查询同一组 exogenous variate tokens
+-> 每个 patch 得到自己的 exogenous context
+-> 将 patch-level contexts 恢复为 T 长度残差
+-> H_y + gamma * delta
+```
+
+目标是缓解 global TEB“所有时间位置共用同一组全局外生选择”的表达限制；仍不增加 endogenous/exogenous self-attention、多层 Transformer、TimeXer prediction head 或未来真实外生输入。
+
+Patch-conditioned TEB 本轮不得实现，不得增加对应 flag、参数、checkpoint key、runner 配置或测试，也不得写成当前已完成方法。只有 M5 验收失败且用户重新确认后，才能修改 canonical 并实现；后续不得反向改写已经 Closed 的 M3 milestone。
 
 # 8. 第三章最终 forward 与时间状态接口
 
@@ -697,9 +795,14 @@ AMD-Concat + TEB
 
 ```python
 x_norm = RevIN_norm(x)
-x_ch = x_norm.transpose(1,2)               # [B,C,T]
+# [B,T,C]
+
+x_ch = x_norm.transpose(1,2)
+# [B,C,T]
 
 u_mdm = MDM(x_ch)
+# [B,C,T]
+
 v = u_mdm
 for block in DDI_blocks:
     v = block(v)
@@ -707,19 +810,30 @@ for block in DDI_blocks:
 if use_pmcr:
     v = PMCR(v)
 
-exo_context = v.new_zeros((v.shape[0], teb_context_dim))
-if use_teb:
-    v, exo_context = TEB(
-        hidden=v,
-        raw_aux=x_norm,
-        target_idx=target_idx,
-        aux_idx=aux_idx,
-    )
+v_local = v
+exo_context = v_local.new_zeros((v_local.shape[0], teb_context_dim))
 
-pred_all_norm, moe_loss = AMS(v, u_mdm)
+if use_teb:
+    v_final, exo_context = TEB(
+        hidden=v_local,
+        normalized_input=x_norm,
+    )
+else:
+    v_final = v_local
+
+pred_all_norm, moe_loss = AMS(v_final, u_mdm)
 pred_all = RevIN_denorm_all(pred_all_norm)
 pred = select_target_or_all(pred_all, task_mode, target_idx)
 ```
+
+固定双输入语义：
+
+```text
+AMS experts  <- v_final
+AMS selector <- 原始 u_mdm
+```
+
+不得让 DDI 重新接回 `x_ch`，不得把 PMCR/TEB 后的表示送入 selector，也不得先切出单通道再调用通用 RevIN denorm；单目标必须先完成全通道反归一化，再按 `target_idx` 选择 `[B,H,1]`，parallel 输出保持 `[B,H,C]`。
 
 不得再出现：
 
@@ -732,11 +846,12 @@ h = x_ch 后送入 DDI
 第三章增强模型只公开 M0-B 已冻结的原始状态源接口，不直接返回未训练的 `StateProjection` 或 `H_time`：
 
 ```text
-v_target     = v[:,target_idx,:]       # [B_region,T]
+v_target     = v_final[:,target_idx,:] # [B_region,T]
 u_target     = u_mdm[:,target_idx,:]   # [B_region,T]
-exo_context  = [B_region,d_teb]
+exo_context  = TEB 目标上下文或确定性零张量
+             # [B_region,teb_context_dim]
 state_source = concat(v_target,u_target,exo_context)
-             # [B_region,2*T+d_teb]
+             # [B_region,2*T+teb_context_dim]
 ```
 
 调用合同固定为：
@@ -748,9 +863,9 @@ pred, moe_loss, state_source = model(
 )
 ```
 
-`target_idx` 必须显式提供并经过范围校验；TEB 关闭或尚未实现时，`exo_context` 必须是 dtype/device 正确的确定性固定零张量。`return_state_source=True` 只增加返回值，不得改变预测或 MoE loss；默认调用仍返回 `(pred, moe_loss)`。
+`target_idx` 必须显式提供并经过范围校验；TEB 关闭时，`exo_context` 必须是 dtype/device 正确的确定性固定零张量。`return_state_source=True` 只增加返回值，不得改变预测或 MoE loss；默认调用仍返回 `(pred, moe_loss)`。
 
-M0-B 不创建 `StateProjection`、`StateAdapter` 或 `H_time`。到 M4 的第四章 graph mode 才允许新增并训练独立 StateAdapter，以 `state_source` 为输入：
+M3 仍不创建 `StateProjection`、`StateAdapter` 或 `H_time`。到 M4 的第四章 graph mode 才允许新增并训练独立 StateAdapter，以 `state_source` 为输入：
 
 ```text
 s_v = Linear_v(LayerNorm(v_target))
@@ -838,7 +953,15 @@ EL-AMD
 | U3 | U1 + PMCR | 局部卷积细化是否有效 |
 | U4 | U1 + TEB + PMCR | 最终时间模型 |
 
+U0 固定使用 F0：`feature_names=(volume,)`、`target_idx=0`、`aux_idx=()`。U1-U4 必须固定使用同一套非空辅助 schema：默认使用 F4，或只依据训练/验证集预先选定一个 F1-F4 preset；一旦锁定，不得在 U1-U4 之间更换。四组必须统一 feature/target/aux 名称与顺序、schema fingerprint、fold、split、scaler、horizon、seed、训练预算和评价流程。
+
+模块归因固定为：
+
+- `U2 - U1`：TEB；
+- `U3 - U1`：PMCR；
+- `U4 - U1`：PMCR + TEB 完整模型。
 ### parallel_multivariate：标准多变量（M0-M3）
+
 
 本小节的 M0-M3 是标准多变量消融编号，与工程里程碑 M0 不同。
 
@@ -861,7 +984,14 @@ ETTh1/Exchange 只跑主 baseline、AMD、两个单模块和 EL-AMD；不重复�
 | F3 | F1 + weather |
 | F4 | all selected historical auxiliary features |
 
-同时报告 AMD-Concat 与 EL-AMD。
+F0 的 compact tensor 只有 `volume`，因此 `target_idx=0`、`aux_idx=()`；它只用于 AMD-TargetOnly 和可选的 AMD-TargetOnly + PMCR，不得标记为 AMD-Concat、TEB 或 EL-AMD。F0 上的 EL-AMD 结果记为 N/A。
+
+F1-F4 的 compact tensor 均保持表中 canonical 顺序，目标 `volume` 位于第 0 通道，`aux_idx` 是其余通道的有序索引且非空。每个 preset 内 AMD-Concat 与 EL-AMD 必须使用完全相同的变量、顺序、fold、split、scaler、horizon、seed 和评价流程。
+
+报告拆为两个 panel：
+
+- Panel A：F0 的 target-only 对照；
+- Panel B：F1-F4 的同输入 AMD-Concat 与 EL-AMD 对照。
 
 ## 9.5 模块验收线
 
@@ -1369,7 +1499,7 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 
 | 模块 | 第一轮允许调整 | 保留来源的备选实现 | 最终仍失败时 |
 |---|---|---|---|
-| TEB | 缩小 aux；d/heads；dropout | TimeXer-inspired gated additive target bridge | 更换另一篇近三年外生变量模块，不得简单删除 |
+| TEB | 缩小 aux；d/heads；dropout | 首选 Patch-conditioned TEB；gated additive target bridge 仅为更晚的次级候选 | 更换另一篇近三年外生变量模块，不得简单删除 |
 | PMCR | k=7->5；d 减小；仅 target | 保留 Reparam DWConv+ConvFFN1 的 target-only PMCR | 更换另一篇近三年局部时间模块 |
 | SADR | b_lambda 更负；k/d_a；正则 | ASTGRN global adaptive graph 与 DTW 的残差融合 | 更换另一篇近三年空间图模块；退回静态双图只算排障结果 |
 | SC-SimGCA | rho 初始化；层数；SimAM lambda | 保留 G-STAN 层融合，移除 Graph-SimAM，改名 SC-GCF | 若仍失败，更换另一篇近三年空间传播模块 |

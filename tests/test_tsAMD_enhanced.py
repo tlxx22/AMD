@@ -2,7 +2,12 @@ import unittest
 
 import torch
 import torch.nn as nn
+from models.common import RevIN
 
+from models.modules.target_exogenous_bridge import (
+    PARALLEL_MULTIVARIATE,
+    TARGET_EXOGENOUS,
+)
 from models.tsAMD import AMD
 from models.tsAMD_enhanced import AMDEnhanced
 
@@ -404,6 +409,449 @@ class AMDEnhancedM0BTests(unittest.TestCase):
                 teb_context_dim=5,
                 use_pmcr=1,
             )
+
+
+class AMDEnhancedM3Tests(unittest.TestCase):
+    @staticmethod
+    def _backbone_kwargs():
+        return {
+            "input_shape": (4, 3),
+            "pred_len": 2,
+            "n_block": 1,
+            "dropout": 0.0,
+            "patch": 4,
+            "k": 0,
+            "c": 2,
+            "alpha": 0.0,
+            "target_slice": None,
+            "norm": False,
+            "layernorm": False,
+        }
+
+    def _enhanced(
+        self,
+        *,
+        use_pmcr=False,
+        use_teb=False,
+        task_mode=TARGET_EXOGENOUS,
+        norm=False,
+    ):
+        kwargs = self._backbone_kwargs()
+        kwargs["norm"] = norm
+        return AMDEnhanced(
+            **kwargs,
+            target_idx=1,
+            teb_context_dim=4,
+            task_mode=task_mode,
+            aux_idx=(0, 2) if task_mode == TARGET_EXOGENOUS else (),
+            use_pmcr=use_pmcr,
+            pmcr_hidden_dim=4 if use_pmcr else None,
+            pmcr_kernel_small=1 if use_pmcr else None,
+            pmcr_kernel_large=3 if use_pmcr else None,
+            pmcr_dropout=0.0,
+            use_teb=use_teb,
+            teb_heads=2,
+            teb_dropout=0.0,
+            teb_gamma_init=1e-3,
+        )
+
+    def test_pmcr_teb_four_switch_matrix_and_state_keys(self):
+        torch.manual_seed(3103)
+        x = torch.randn(2, 4, 3)
+        for use_pmcr, use_teb in (
+            (False, False),
+            (True, False),
+            (False, True),
+            (True, True),
+        ):
+            with self.subTest(use_pmcr=use_pmcr, use_teb=use_teb):
+                model = self._enhanced(
+                    use_pmcr=use_pmcr,
+                    use_teb=use_teb,
+                ).eval()
+                keys = set(model.state_dict())
+                self.assertEqual(model.pmcr is not None, use_pmcr)
+                self.assertEqual(model.teb is not None, use_teb)
+                self.assertEqual(any(key.startswith("pmcr.") for key in keys), use_pmcr)
+                self.assertEqual(any(key.startswith("teb.") for key in keys), use_teb)
+
+                with torch.no_grad():
+                    prediction, moe_loss, state_source = model(
+                        x, return_state_source=True
+                    )
+                self.assertEqual(prediction.shape, (2, 2, 1))
+                self.assertEqual(moe_loss.ndim, 0)
+                self.assertEqual(state_source.shape, (2, 12))
+                context = state_source[:, 8:]
+                if use_teb:
+                    self.assertGreater(context.abs().max().item(), 0.0)
+                else:
+                    self.assertTrue(torch.equal(context, torch.zeros_like(context)))
+
+    def test_final_routing_and_state_source_use_teb_output_only_for_experts(self):
+        class AddConstantMDM(nn.Module):
+            def forward(self, value):
+                return value + 10.0
+
+        class AddConstantDDI(nn.Module):
+            def forward(self, value):
+                return value + 100.0
+
+        class AddConstantPMCR(nn.Module):
+            def forward(self, value):
+                return value + 1000.0
+
+        class RecordingTEB(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.hidden = None
+                self.normalized_input = None
+
+            def forward(self, *, hidden, normalized_input):
+                self.hidden = hidden.detach().clone()
+                self.normalized_input = normalized_input.detach().clone()
+                return hidden + 10000.0, hidden.new_full((hidden.shape[0], 4), 7.0)
+
+        class RecordingAMS(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.expert_input = None
+                self.selector_input = None
+
+            def forward(self, expert_input, selector_input):
+                self.expert_input = expert_input.detach().clone()
+                self.selector_input = selector_input.detach().clone()
+                return expert_input, expert_input.new_tensor(5.0)
+
+        model = self._enhanced(use_pmcr=True, use_teb=True).eval()
+        model.pastmixing = AddConstantMDM()
+        model.fc_blocks = nn.ModuleList([AddConstantDDI()])
+        model.pmcr = AddConstantPMCR()
+        teb = RecordingTEB()
+        model.teb = teb
+        ams = RecordingAMS()
+        model.moe = ams
+
+        x = torch.arange(24, dtype=torch.float64).reshape(2, 4, 3)
+        prediction, moe_loss, state_source = model(x, return_state_source=True)
+        x_ch = x.transpose(1, 2)
+        u_mdm = x_ch + 10.0
+        v_local = u_mdm + 1100.0
+        v_final = v_local + 10000.0
+
+        self.assertTrue(torch.equal(teb.hidden, v_local))
+        self.assertTrue(torch.equal(teb.normalized_input, x))
+        self.assertTrue(torch.equal(ams.expert_input, v_final))
+        self.assertTrue(torch.equal(ams.selector_input, u_mdm))
+        self.assertTrue(torch.equal(prediction, v_final[:, 1:2, :].transpose(1, 2)))
+        self.assertEqual(moe_loss.item(), 5.0)
+        expected_state = torch.cat(
+            (
+                v_final[:, 1, :],
+                u_mdm[:, 1, :],
+                v_final.new_full((2, 4), 7.0),
+            ),
+            dim=-1,
+        )
+        self.assertTrue(torch.equal(state_source, expected_state))
+
+    def test_full_channel_revin_denorm_precedes_formal_task_selection(self):
+        class FixedAMS(nn.Module):
+            def __init__(self, normalized_prediction):
+                super().__init__()
+                self.register_buffer("normalized_prediction", normalized_prediction)
+
+            def forward(self, expert_input, selector_input):
+                prediction = self.normalized_prediction.expand(
+                    expert_input.shape[0], -1, -1
+                )
+                return prediction, expert_input.new_zeros(())
+
+        x = torch.tensor(
+            [
+                [[1.0, 10.0, -5.0], [2.0, 14.0, -1.0],
+                 [5.0, 22.0, 7.0], [8.0, 30.0, 15.0]],
+                [[3.0, -2.0, 40.0], [7.0, 2.0, 44.0],
+                 [11.0, 10.0, 52.0], [15.0, 18.0, 60.0]],
+            ]
+        )
+        normalized_bch = torch.tensor(
+            [[[0.5, -0.5], [1.0, -1.0], [1.5, -1.5]]]
+        )
+
+        target_model = self._enhanced(norm=True).eval()
+        with torch.no_grad():
+            target_model.rev_norm.affine_weight.copy_(torch.tensor([2.0, 3.0, 4.0]))
+            target_model.rev_norm.affine_bias.copy_(torch.tensor([0.1, -0.2, 0.3]))
+        target_model.pastmixing = nn.Identity()
+        target_model.fc_blocks = nn.ModuleList()
+        target_model.moe = FixedAMS(normalized_bch)
+
+        prediction, _ = target_model(x)
+        mean = x.mean(dim=1, keepdim=True)
+        scale = torch.sqrt(x.var(dim=1, keepdim=True, unbiased=False) + 1e-5)
+        normalized_bhc = normalized_bch.expand(2, -1, -1).transpose(1, 2)
+        expected_all = (
+            (normalized_bhc - target_model.rev_norm.affine_bias)
+            / (target_model.rev_norm.affine_weight + 1e-10)
+            * scale
+            + mean
+        )
+        self.assertEqual(prediction.shape, (2, 2, 1))
+        torch.testing.assert_close(prediction, expected_all[:, :, 1:2])
+
+        parallel_model = self._enhanced(
+            task_mode=PARALLEL_MULTIVARIATE,
+            norm=True,
+        ).eval()
+        with torch.no_grad():
+            parallel_model.rev_norm.affine_weight.copy_(
+                target_model.rev_norm.affine_weight
+            )
+            parallel_model.rev_norm.affine_bias.copy_(target_model.rev_norm.affine_bias)
+        parallel_model.pastmixing = nn.Identity()
+        parallel_model.fc_blocks = nn.ModuleList()
+        parallel_model.moe = FixedAMS(normalized_bch)
+        parallel_prediction, _ = parallel_model(x)
+        self.assertEqual(parallel_prediction.shape, (2, 2, 3))
+        torch.testing.assert_close(parallel_prediction, expected_all)
+
+    def test_formal_off_off_revin_parity_matrix(self):
+        cases = [
+            (torch.device("cpu"), torch.float32, True, True, 0, PARALLEL_MULTIVARIATE),
+            (torch.device("cpu"), torch.float32, False, None, 2, TARGET_EXOGENOUS),
+            (torch.device("cpu"), torch.float64, True, False, 2, TARGET_EXOGENOUS),
+            (torch.device("cpu"), torch.float64, False, None, 0, PARALLEL_MULTIVARIATE),
+        ]
+        if torch.cuda.is_available():
+            cuda = torch.device("cuda", torch.cuda.current_device())
+            cases.extend(
+                [
+                    (cuda, torch.float32, True, True, 0, TARGET_EXOGENOUS),
+                    (cuda, torch.float32, True, False, 2, PARALLEL_MULTIVARIATE),
+                    (cuda, torch.float32, False, None, 0, TARGET_EXOGENOUS),
+                ]
+            )
+
+        max_prediction_error = 0.0
+        max_moe_error = 0.0
+        for device, dtype, norm, affine, target_idx, task_mode in cases:
+            with self.subTest(
+                device=str(device),
+                dtype=str(dtype),
+                norm=norm,
+                affine=affine,
+                target_idx=target_idx,
+                task_mode=task_mode,
+            ):
+                kwargs = self._backbone_kwargs()
+                kwargs["norm"] = norm
+                frozen_kwargs = dict(kwargs)
+                frozen_kwargs["target_slice"] = slice(None)
+                formal_kwargs = dict(kwargs)
+                formal_kwargs["target_slice"] = None
+                frozen = AMD(**frozen_kwargs)
+                formal = AMDEnhanced(
+                    **formal_kwargs,
+                    target_idx=target_idx,
+                    teb_context_dim=4,
+                    task_mode=task_mode,
+                    aux_idx=(
+                        tuple(index for index in range(3) if index != target_idx)
+                        if task_mode == TARGET_EXOGENOUS
+                        else ()
+                    ),
+                    use_pmcr=False,
+                    use_teb=False,
+                    teb_gamma_init=1e-3,
+                )
+                if norm and affine is False:
+                    frozen.rev_norm = RevIN(3, affine=False)
+                    formal.rev_norm = RevIN(3, affine=False)
+                frozen = frozen.to(device=device, dtype=dtype).eval()
+                formal = formal.to(device=device, dtype=dtype).eval()
+                formal.load_state_dict(frozen.state_dict(), strict=True)
+                torch.manual_seed(3411)
+                if device.type == "cuda":
+                    torch.cuda.manual_seed_all(3411)
+                x = torch.randn(2, 4, 3, device=device, dtype=dtype)
+                shared_rng = _capture_torch_rng_state()
+                _restore_torch_rng_state(shared_rng)
+                with torch.no_grad():
+                    frozen_prediction, frozen_moe = frozen(x)
+                expected_prediction = (
+                    frozen_prediction
+                    if task_mode == PARALLEL_MULTIVARIATE
+                    else frozen_prediction[:, :, target_idx : target_idx + 1]
+                )
+                _restore_torch_rng_state(shared_rng)
+                with torch.no_grad():
+                    formal_prediction, formal_moe = formal(
+                        x,
+                        return_state_source=False,
+                    )
+                _restore_torch_rng_state(shared_rng)
+                with torch.no_grad():
+                    state_prediction, state_moe, _ = formal(
+                        x,
+                        return_state_source=True,
+                    )
+                for observed_prediction, observed_moe in (
+                    (formal_prediction, formal_moe),
+                    (state_prediction, state_moe),
+                ):
+                    prediction_error = _max_abs_error(
+                        expected_prediction,
+                        observed_prediction,
+                    )
+                    moe_error = _max_abs_error(frozen_moe, observed_moe)
+                    max_prediction_error = max(max_prediction_error, prediction_error)
+                    max_moe_error = max(max_moe_error, moe_error)
+                    self.assertLess(prediction_error, 1e-6)
+                    self.assertLess(moe_error, 1e-6)
+        print(
+            "formal RevIN off/off parity "
+            f"prediction_max_abs={max_prediction_error:.9g} "
+            f"moe_max_abs={max_moe_error:.9g}"
+        )
+
+    def test_teb_gamma_is_fixed_across_amd_enhanced_public_api(self):
+        for gamma in (0.0, 1e-2, -1e-3, float("nan"), float("inf")):
+            for use_teb in (False, True):
+                with self.subTest(gamma=gamma, use_teb=use_teb):
+                    with self.assertRaisesRegex(ValueError, "fixed at 1e-3"):
+                        AMDEnhanced(
+                            **self._backbone_kwargs(),
+                            target_idx=1,
+                            teb_context_dim=4,
+                            task_mode=TARGET_EXOGENOUS,
+                            aux_idx=(0, 2),
+                            use_teb=use_teb,
+                            teb_heads=2,
+                            teb_dropout=0.0,
+                            teb_gamma_init=gamma,
+                        )
+
+    def test_checkpoint_rejections_never_pollute_parameters(self):
+        baseline = dict(AMD(**self._backbone_kwargs()).state_dict())
+        pmcr_source = dict(self._enhanced(use_pmcr=True).state_dict())
+        teb_source = dict(self._enhanced(use_teb=True).state_dict())
+        target = self._enhanced(use_pmcr=True, use_teb=True)
+
+        partial_pmcr = dict(pmcr_source)
+        partial_pmcr.pop(next(key for key in partial_pmcr if key.startswith("pmcr.")))
+        partial_teb = dict(teb_source)
+        partial_teb.pop(next(key for key in partial_teb if key.startswith("teb.")))
+        unexpected = dict(baseline)
+        unexpected["unexpected.weight"] = torch.ones(1)
+        missing_backbone = dict(baseline)
+        missing_backbone.pop(next(iter(missing_backbone)))
+        shape_mismatch = dict(baseline)
+        shape_key = next(
+            key for key, value in shape_mismatch.items()
+            if torch.is_tensor(value) and value.ndim > 0
+        )
+        expected = shape_mismatch[shape_key]
+        shape_mismatch[shape_key] = expected.new_zeros(
+            (*expected.shape[:-1], expected.shape[-1] + 1)
+        )
+
+        cases = (
+            ("partial_pmcr", partial_pmcr, "pmcr_only", RuntimeError, "missing_source_keys"),
+            ("partial_teb", partial_teb, "teb_only", RuntimeError, "missing_source_keys"),
+            ("unexpected", unexpected, "baseline", RuntimeError, "unexpected"),
+            ("missing_backbone", missing_backbone, "baseline", RuntimeError, "missing_source_keys"),
+            ("shape_mismatch", shape_mismatch, "baseline", RuntimeError, "tensor contract"),
+            ("wrong_source_kind", baseline, "unknown", ValueError, "source_kind"),
+        )
+        for name, state, source_kind, exception, message in cases:
+            with self.subTest(case=name):
+                before = {
+                    key: value.detach().clone()
+                    for key, value in target.state_dict().items()
+                }
+                with self.assertRaisesRegex(exception, message):
+                    target.load_enhancement_state_dict(
+                        state,
+                        source_kind=source_kind,
+                    )
+                for key, value in before.items():
+                    self.assertTrue(torch.equal(value, target.state_dict()[key]), key)
+
+        before = {
+            key: value.detach().clone()
+            for key, value in target.state_dict().items()
+        }
+        with self.assertRaisesRegex(TypeError, "source_kind"):
+            target.load_enhancement_state_dict(baseline)
+        for key, value in before.items():
+            self.assertTrue(torch.equal(value, target.state_dict()[key]), key)
+    def test_checkpoint_source_kind_matrix_and_rejections(self):
+        torch.manual_seed(3317)
+        baseline = AMD(**self._backbone_kwargs()).state_dict()
+        off = self._enhanced()
+        pmcr_only = self._enhanced(use_pmcr=True)
+        teb_only = self._enhanced(use_teb=True)
+        full = self._enhanced(use_pmcr=True, use_teb=True)
+
+        for name, target in (
+            ("off", off),
+            ("pmcr_only", pmcr_only),
+            ("teb_only", teb_only),
+            ("full", full),
+        ):
+            with self.subTest(source="baseline", target=name):
+                result = target.load_enhancement_state_dict(
+                    baseline, source_kind="baseline"
+                )
+                self.assertEqual(result.missing_keys, [])
+                self.assertEqual(result.unexpected_keys, [])
+
+        full_from_pmcr = self._enhanced(use_pmcr=True, use_teb=True)
+        result = full_from_pmcr.load_enhancement_state_dict(
+            pmcr_only.state_dict(), source_kind="pmcr_only"
+        )
+        self.assertEqual(result.missing_keys, [])
+        self.assertEqual(result.unexpected_keys, [])
+
+        full_from_teb = self._enhanced(use_pmcr=True, use_teb=True)
+        result = full_from_teb.load_enhancement_state_dict(
+            teb_only.state_dict(), source_kind="teb_only"
+        )
+        self.assertEqual(result.missing_keys, [])
+        self.assertEqual(result.unexpected_keys, [])
+
+        strict_copy = self._enhanced(use_pmcr=True, use_teb=True)
+        result = strict_copy.load_state_dict(full.state_dict(), strict=True)
+        self.assertEqual(result.missing_keys, [])
+        self.assertEqual(result.unexpected_keys, [])
+
+        partial_pmcr = dict(pmcr_only.state_dict())
+        partial_pmcr.pop(next(key for key in partial_pmcr if key.startswith("pmcr.")))
+        with self.assertRaisesRegex(RuntimeError, "missing_source_keys"):
+            full.load_enhancement_state_dict(
+                partial_pmcr, source_kind="pmcr_only"
+            )
+
+        partial_teb = dict(teb_only.state_dict())
+        partial_teb.pop(next(key for key in partial_teb if key.startswith("teb.")))
+        with self.assertRaisesRegex(RuntimeError, "missing_source_keys"):
+            full.load_enhancement_state_dict(partial_teb, source_kind="teb_only")
+
+        unexpected = dict(baseline)
+        unexpected["not_allowed.weight"] = torch.ones(1)
+        with self.assertRaisesRegex(RuntimeError, "unexpected"):
+            full.load_enhancement_state_dict(unexpected, source_kind="baseline")
+
+        missing_backbone = dict(baseline)
+        missing_backbone.pop(next(iter(missing_backbone)))
+        before = {key: value.clone() for key, value in full.state_dict().items()}
+        with self.assertRaisesRegex(RuntimeError, "missing_source_keys"):
+            full.load_enhancement_state_dict(
+                missing_backbone, source_kind="baseline"
+            )
+        for key, value in before.items():
+            self.assertTrue(torch.equal(value, full.state_dict()[key]), key)
 
 
 if __name__ == "__main__":
