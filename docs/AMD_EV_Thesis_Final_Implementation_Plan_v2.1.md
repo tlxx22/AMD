@@ -39,7 +39,7 @@ M3 工程候选时间 variant：el-amd-pmcr-teb-v1
 4. 在空间基准上加入至少两个来自近三年正式论文、并经过明确修改的模块；
 5. 每个模块都有独立开关、独立消融、同输入基线和可追溯来源；
 6. 第三、第四章均进行多数据集、多模型比较；
-7. 结构和超参数只依据训练集与验证集，测试集只在方案冻结后使用；
+7. 除明确登记的 development-only 数据集外，结构和超参数只依据训练集与验证集；正式评价数据集的测试集只在方案冻结后使用；
 8. 新增模块全部关闭时，增强入口必须与冻结 AMD 在相同权重、`eval()`、相同输入下数值等价；
 9. “模块临时关闭”只能用于排障，不能在最终论文中替代“两模块均经过验证”的硬性要求；若某个来源模块经过限定调参仍失败，必须换用同来源的合理变体或更换另一篇近三年论文模块。
 
@@ -65,7 +65,11 @@ M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭�
 
 M4 只处理第三章时间模块诊断与候选迭代。M4 可以形成诊断结论，并在用户另行确认后实现保持论文来源边界的候选；不得据此静默选择结构或超参数。Patch-conditioned TEB 可在 M4 诊断后由用户另行授权，不再固定延期到 M5 之后。在 M4 尚未形成足够证据前，不得实现 M7 或任何空间模块。
 
-测试集只在 M5 完成结构冻结后用于 M6 正式实验。已经查看的 pre-M4 ETTm1 test 结果永久退出模型结构和超参数选择，只保留为触发性能风险审计的历史事实，不得再次引用其数值参与决策。
+ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
+
+ETTm1 test 已被纳入模型开发反馈，因此不得作为 M6 正式未见测试集结果，不得进入第三章正式性能主表，也不得用于最终无偏泛化主张。pre-M4 ETTm1 test 已查看并触发 M4 的事实继续保留，但不再被解释为“永久禁止参与后续 M4 开发决策”。论文可将 ETTm1 记录为开发集、诊断集或结构搜索数据集。
+
+“测试集只在 M5 冻结后使用”的限制仅适用于当前正式评价数据集：UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange。这些数据集的结构和超参数选择在 M4/M5 仍只依据 train/validation，其 test 只在 M5 结构冻结后于 M6 使用。ETTm1 当前不属于 M6 正式主表；ETTh1 暂时仍保留为正式候选数据集，是否因同属 ETT 数据族而替换，延后至 M5 前由用户决定。若最终保留 ETTh1，论文必须披露 ETTm1 曾用于 M4 development。ETTm1 的 development-only 例外不得扩展到任何正式评价数据集。
 
 “平均退化不超过 0.5%”只是安全底线，不能单独构成模块保留依据；practical-effect threshold 尚未锁定，必须在 M5 正式筛选前由用户确认。最终第三章仍必须包含至少两个来自近三年论文、经过修改并通过消融的来源模块；不得因 v1 暂时表现不佳而取消这一硬性要求。
 
@@ -797,7 +801,7 @@ U1: AMD-Concat，PMCR off，TEB off
 U2: AMD-Concat + TEB，PMCR off，TEB on
 ```
 
-M3 只以 tiny synthetic smoke 验证结构、配置和 artifact 流程，不据此宣称性能改善。M4 仅使用训练/验证证据进行诊断和经用户授权的候选迭代；M5 完成公平筛选与结构冻结；测试集只在结构冻结后的 M6 正式实验中使用。只有满足完整公平协议和 practical-effect threshold 后，才能把稳定增益归因于桥接结构。
+M3 只以 tiny synthetic smoke 验证结构、配置和 artifact 流程，不据此宣称性能改善。M4 对正式评价数据集仅使用训练/验证证据；ETTm1 则按第 0.1 节登记为 development-only benchmark，可使用 train/validation/test 进行经用户授权的候选迭代。M5 完成公平筛选与结构冻结；UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange 的测试集只在结构冻结后的 M6 正式实验中使用。只有满足完整公平协议和 practical-effect threshold 后，才能把稳定增益归因于桥接结构。
 
 ## 7.6 M4 可评估的来源保持型方向：Patch-conditioned TEB
 
@@ -1413,7 +1417,7 @@ S6 vs S4/S5
 - 主表报告相同 seed 列表的均值和标准差；
 - 单 seed 探索结果不得混入正式主表；
 - TEB attention 只能称“注意力分配/关联权重”，不能直接解释为因果重要性；
-- 测试集只在模型结构、变量和超参数冻结后运行。
+- UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange 的测试集只在模型结构、变量和超参数冻结后运行；ETTm1 按第 0.1 节的 development-only 例外治理。
 
 图 cache key 至少包含：
 

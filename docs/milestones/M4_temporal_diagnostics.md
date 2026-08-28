@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第三轮，canonical 候选身份残余冲突 repair
+当前轮次：第五轮，ETTm1 development-only 协议与 P1/T1 容量 sanity
 
 canonical 内部版本：v2.1-R1
 
@@ -12,7 +12,7 @@ canonical 内部版本：v2.1-R1
 
 M4 只处理第三章时间模块的训练/验证诊断、证据边界澄清和经用户另行授权的来源保持型候选迭代。M4 当前不执行模型筛选或结构冻结，M5-M13 尚未开始。
 
-本阶段不得提前实现 StateAdapter、StateProjection、`H_time`、Graph Mode、HSTGCN-core、地理图或需求图、SADR、SC-SimGCA 及任何其他空间模块。不得使用 test 指标选择结构或超参数，不得把单数据集、单 seed、10 epoch 的 smoke 诊断写成正式性能验收。
+本阶段不得提前实现 StateAdapter、StateProjection、`H_time`、Graph Mode、HSTGCN-core、地理图或需求图、SADR、SC-SimGCA 及任何其他空间模块。ETTm1 自第五轮起是 development-only benchmark，可使用 train/validation/test 开发候选；UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange 的 test 仍不得用于 M4/M5 结构或超参数选择。任何单数据集、单 seed、10 epoch 诊断均不得写成正式性能验收。
 
 M0、M1、M2、M3 均保持 Closed，不重新打开，也不向其 milestone 追加 M4 结果。
 
@@ -54,11 +54,13 @@ M13 终稿审校、复现材料与答辩
 
 canonical 已同步该顺序。M0-M3 milestone 保留其历史现场，不因后续重排而修改。
 
-## 4. pre-M4 test 隔离登记
+## 4. pre-M4 test 与 ETTm1 development 登记
 
-现有 pre-M4 ETTm1 smoke 包含 4 类模型 × 4 个 horizon、单训练 seed、10 epoch。其 test 结果在 M4 建立前已经被查看，只作为触发性能风险审计的历史事实；具体 test MSE/MAE 不在本 milestone 复述，也永久退出后续结构和超参数选择。
+现有 pre-M4 ETTm1 smoke 包含 4 类模型 × 4 个 horizon、单训练 seed、10 epoch。其 test 结果在 M4 建立前已经被查看，并触发了 M4 时间模块诊断。
 
-M4 只使用训练/validation 证据。最终 test 只允许在 M5 完成结构冻结后进入 M6 正式实验。
+用户在第五轮将 ETTm1 重新指定为 M4 development-only benchmark。其 train、validation 和 test 均可继续用于 M4 候选结构、容量与超参数开发；这些 test 结果不进入 M6 正式主表，也不再解释为未见测试集泛化结果。pre-M4 test 不再被登记为“永久禁止参与后续决策”。
+
+UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange 的 test 继续隔离：M4/M5 只允许 train/validation 参与选择，M6 在 M5 结构冻结后才使用 test。本决定只适用于 ETTm1。
 
 ## 5. 第一轮 artifact、源码与协议审计
 
@@ -218,3 +220,44 @@ M4 状态保持 `In Progress`。当前已完成第一轮 validation 诊断、第
 第二轮共享初始化补核与阶段文档建立没有重新评价模型；第一轮只读 validation 复算及内部诊断已经记录在本 milestone 第 5、7-12 节。第三轮只做文档一致性 repair，同样不重新评价模型。
 
 第三轮未训练、未读取或复述 test 数值、未实现或选择候选、未创建新 variant、未进入 M5、未实现 M7 或任何空间模块、未 commit/push。后续任何候选实现、训练或筛选均需用户另行授权。
+
+## 15. 第四轮只读 runner 审计
+
+第四轮逐函数核验了当前 production runner 的真实路径：
+
+```text
+train
+-> validation
+-> validation MSE 选择 best checkpoint
+-> 重新加载 best.pt
+-> 无条件 test
+-> schema-v2 completed artifact
+```
+
+当前不存在不访问 test Dataset/DataLoader/evaluation 的 validation-only 安全路径；schema-v2 completed artifact 与正式 summarizer 也要求 test 字段。用户决定不实现 validation-only runner、独立 validation-only schema、summarizer 或 artifact purpose，因为 ETTm1 已转为 development-only 数据集。该决定不得扩展到正式评价数据集。
+
+## 16. 第五轮 Stage A：P1/T1 容量 sanity 预登记
+
+第五轮 Stage A 固定使用 ETTm1、`parallel_multivariate`、全部 7 个变量、`seq_len=512`、seed 2024、10 epochs，以及 horizon 96/192/336/720。实验使用现有 production runner 和完整 schema-v2 artifact；ETTm1 test 在本阶段是 development 指标，不是正式论文结果。
+
+P1 固定为 `P1_PMCR_CAP16`：
+
+```text
+PMCR v1 architecture
+hidden_dim: 8 -> 16
+kernel_small/kernel_large: 5/31
+dropout: 0.1
+TEB: off
+```
+
+T1 固定为 `T1_GLOBAL_TEB_D64_H4`：
+
+```text
+Global TEB v1 architecture
+context_dim: 32 -> 64
+heads: 4（head_dim: 8 -> 16）
+dropout: 0.1
+PMCR: off
+```
+
+P1/T1 仅改变 v1 architecture 的一个容量参数，不创建新 class 或新 implementation variant，也不实现 P2/T2/T3。其余 AMD、数据、split/scaler、优化、seed、训练预算、输出与 best-checkpoint 合同必须逐字段复用对应 P0/T0 completed artifact。M4 状态继续为 `In Progress`。
