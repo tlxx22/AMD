@@ -16,7 +16,7 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 可执行冻结基准：amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6
 论文语义审计锚点：AMD-paper-norm-wd-ddi-v1 @ 5a718d5
 开发分支：AMD-paper-repro-custom-modules-v1
-时间模型 variant：el-amd-pmcr-teb-v1
+M3 工程候选时间 variant：el-amd-pmcr-teb-v1
 时空模型 variant：st-el-amd-hst-sadr-sc-simgca-v1
 ```
 
@@ -43,7 +43,33 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 8. 新增模块全部关闭时，增强入口必须与冻结 AMD 在相同权重、`eval()`、相同输入下数值等价；
 9. “模块临时关闭”只能用于排障，不能在最终论文中替代“两模块均经过验证”的硬性要求；若某个来源模块经过限定调参仍失败，必须换用同来源的合理变体或更换另一篇近三年论文模块。
 
-# 1. 最终锁定路线
+## 0.1 阶段顺序、候选身份与性能治理
+
+自 2026-08-28 起，工程阶段固定为：
+
+```text
+M0-M3：已 Closed 的基准、数据管线、PMCR v1 与 Global TEB v1 工程闭环
+M4：时间模块诊断与候选迭代
+M5：模型筛选与结构冻结
+M6：第三章正式实验与定稿
+M7：时间状态接口与 Graph Mode
+M8：HSTGCN-core 与双图构建
+M9：SADR 状态需求残差图
+M10：SC-SimGCA 状态条件图传播
+M11：第四章正式实验与定稿
+M12：论文正文、图表与结果分析
+M13：终稿审校、复现材料与答辩
+```
+
+M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭环，不表示 PMCR 或 TEB 已通过最终性能验收。PMCR v1 与 Global TEB v1 均为可追溯工程候选；`el-amd-pmcr-teb-v1` 是 M3 时点的工程组合 variant，不是最终冻结模型。最终时间结构与正式 variant 只能在 M5 依据训练/验证证据冻结。
+
+M4 只处理第三章时间模块诊断与候选迭代。M4 可以形成诊断结论，并在用户另行确认后实现保持论文来源边界的候选；不得据此静默选择结构或超参数。Patch-conditioned TEB 可在 M4 诊断后由用户另行授权，不再固定延期到 M5 之后。在 M4 尚未形成足够证据前，不得实现 M7 或任何空间模块。
+
+测试集只在 M5 完成结构冻结后用于 M6 正式实验。已经查看的 pre-M4 ETTm1 test 结果永久退出模型结构和超参数选择，只保留为触发性能风险审计的历史事实，不得再次引用其数值参与决策。
+
+“平均退化不超过 0.5%”只是安全底线，不能单独构成模块保留依据；practical-effect threshold 尚未锁定，必须在 M5 正式筛选前由用户确认。最终第三章仍必须包含至少两个来自近三年论文、经过修改并通过消融的来源模块；不得因 v1 暂时表现不佳而取消这一硬性要求。
+
+# 1. 总体来源路线与冻结边界
 
 ## 1.1 第三章：纯时间模型
 
@@ -66,12 +92,14 @@ RevIN
   -> Forecast
 ```
 
-最终时间模型：
+M3 时点工程组合：
 
 ```text
 EL-AMD：Exogenous-and-Local Enhanced AMD
-variant：el-amd-pmcr-teb-v1
+工程 variant：el-amd-pmcr-teb-v1
 ```
+
+EL-AMD 名称继续作为第三章增强时间模型的项目名称（模型族名称）；`el-amd-pmcr-teb-v1` 只标识 M3 已闭环、可追溯的 PMCR v1 + Global TEB v1 工程候选。最终内部结构和正式 implementation variant 只能在 M5 冻结。
 
 两个来源模块：
 
@@ -121,7 +149,7 @@ variant：el-amd-pmcr-teb-v1
 EL-AMD -> state_source, y_time
       |
       v
-trained StateAdapter（M4） -> H_time
+trained StateAdapter（M7） -> H_time
       |
       +-----------------------------+
       |                             |
@@ -339,13 +367,13 @@ graph wrapper 按阶段执行：
  -> node-wise EL-AMD(return_state_source=True)
 state_source [B*N,2*T+d_teb]
 y_time [B*N,H_out]
- -> M4 中经过已训练 StateAdapter
+ -> M7 中经过已训练 StateAdapter
  -> restore
 H_time [B,N,d]
 y_time [B,N,H_out]
 ```
 
-M1 只需验证 flatten/restore 后的 `state_source` 与 `y_time`；在 M4 创建并训练 StateAdapter 之前，不得伪造 `H_time`。
+M1 只需验证 flatten/restore 后的 `state_source` 与 `y_time`；在 M7 创建并训练 StateAdapter 之前，不得伪造 `H_time`。
 
 禁止把第三章任意 shuffle 后的 `B_region` 样本直接拼回图。必须通过时间窗口 ID 和固定 node order 恢复，且有单元测试验证。
 
@@ -356,7 +384,7 @@ M1 只需验证 flatten/restore 后的 `state_source` 与 `y_time`；在 M4 创�
 1. 用 `GraphWindowDataset` 内部 flatten；
 2. 用 `TemporalRegionDataset` 按相同 node order 手工展开；
 3. M1 验证两者得到的 node-wise `y_time` 和 `state_source` 必须一致；
-4. M4 在同一已训练 StateAdapter 下再验证两者恢复的 `H_time` 一致。
+4. M7 在同一已训练 StateAdapter 下再验证两者恢复的 `H_time` 一致。
 
 # 5. 任务模式、输入变量与目标输出合同
 
@@ -473,7 +501,7 @@ y = volume[t+12+label_horizon-1]
 RevIN -> MDM -> DDI -> PMCR -> TEB -> AMS -> Forecast
 ```
 
-M2 尚未实现 TEB，因此本阶段真实路径为：
+M2 工程实现阶段尚未实现 TEB，因此该阶段的历史真实路径为：
 
 ```text
 RevIN -> MDM -> DDI -> PMCR -> AMS -> Forecast
@@ -613,7 +641,7 @@ missing keys == 当前模型全部 pmcr.* keys
 unexpected keys == 空集
 ```
 
-校验必须在修改参数前完成；禁止把全局静默 `strict=False` 作为兼容方案。`use_pmcr`、hidden dim、两个 kernel、dropout、gamma init 及 deploy 形态均进入可追溯配置/checkpoint 元数据；M3 正式 runner 通过 `el-amd-pmcr-teb-v1` 和显式消融开关统一接入 PMCR/TEB。
+校验必须在修改参数前完成；禁止把全局静默 `strict=False` 作为兼容方案。`use_pmcr`、hidden dim、两个 kernel、dropout、gamma init 及 deploy 形态均进入可追溯配置/checkpoint 元数据；M3 工程 runner 通过 `el-amd-pmcr-teb-v1` 和显式消融开关统一接入 PMCR/TEB。该 variant 只记录 M3 时点工程候选，最终正式 variant 由 M5 冻结。
 
 ## 6.7 必做测试
 
@@ -755,10 +783,10 @@ baseline  -> 允许目标模型全部 pmcr.* / teb.* 缺失
 pmcr_only -> 只允许目标模型全部 teb.* 缺失
 teb_only  -> 只允许目标模型全部 pmcr.* 缺失
 unexpected keys 必须为空；部分 enhancement key 不得接受
-完整同结构 EL-AMD checkpoint/resume 使用 strict=True
+完整同结构 `el-amd-pmcr-teb-v1` checkpoint/resume 使用普通 `load_state_dict(strict=True)`
 ```
 
-禁止全局静默 `strict=False`。正式 variant 固定为 `el-amd-pmcr-teb-v1`，以显式 `ablation_id` 表达消融。runner 必须显式保存任务模式、目标/辅助名称与索引、schema fingerprint、PMCR/TEB 参数及 policy；新正式路径中 `target_idx` 是唯一目标索引来源，`target_slice=None`，并遵循第 3.4 节 artifact/checksum/resume 合同。
+禁止全局静默 `strict=False`。M3 已闭环工程 variant 为 `el-amd-pmcr-teb-v1`，并使用显式 `ablation_id` 表达其 v1 消融；它不是 M5 冻结后的正式 variant。M4 若实现任何结构变化，必须使用新的候选 variant，不得覆盖、复用或重新定义 `el-amd-pmcr-teb-v1`。最终正式 implementation variant 由 M5 冻结。runner 必须显式保存任务模式、目标/辅助名称与索引、schema fingerprint、PMCR/TEB 参数及 policy；M3 v1 路径中 `target_idx` 是唯一目标索引来源，`target_slice=None`，并遵循第 3.4 节 artifact/checksum/resume 合同。
 
 ## 7.5 公平对照
 
@@ -769,11 +797,11 @@ U1: AMD-Concat，PMCR off，TEB off
 U2: AMD-Concat + TEB，PMCR off，TEB on
 ```
 
-M3 只以 tiny synthetic smoke 验证结构、配置和 artifact 流程，不据此宣称性能改善。只有 M5/M6 正式验证中 U2 优于或至少不劣于 U1，才能把增益归因于桥接结构。
+M3 只以 tiny synthetic smoke 验证结构、配置和 artifact 流程，不据此宣称性能改善。M4 仅使用训练/验证证据进行诊断和经用户授权的候选迭代；M5 完成公平筛选与结构冻结；测试集只在结构冻结后的 M6 正式实验中使用。只有满足完整公平协议和 practical-effect threshold 后，才能把稳定增益归因于桥接结构。
 
-## 7.6 预留方案：性能失败后的首选替代方向——Patch-conditioned TEB
+## 7.6 M4 可评估的来源保持型方向：Patch-conditioned TEB
 
-本节是预留方案，不属于当前 M3 实现。当前正式 v1 仍是 Global Target-Conditioned Residual TEB。若它在 M5 限定调参与验证集验收后仍未达到 TEB 模块验收线，第一替代方向优先考虑 Patch-conditioned TEB，而不是复制完整 TimeXer Transformer：
+本节记录保持 TimeXer 来源边界的候选方向，不属于已 Closed 的 M3 实现。Global Target-Conditioned Residual TEB v1 是可追溯工程候选，不是最终冻结结构。若 M4 诊断形成足够训练/验证证据，用户可以另行授权实现 Patch-conditioned TEB；不要求等待 M5 结束，也不得在未授权时把它写成既定替代方案。该候选仍不复制完整 TimeXer Transformer：
 
 ```text
 AMD 的 H_y
@@ -787,9 +815,9 @@ AMD 的 H_y
 
 目标是缓解 global TEB“所有时间位置共用同一组全局外生选择”的表达限制；仍不增加 endogenous/exogenous self-attention、多层 Transformer、TimeXer prediction head 或未来真实外生输入。
 
-Patch-conditioned TEB 本轮不得实现，不得增加对应 flag、参数、checkpoint key、runner 配置或测试，也不得写成当前已完成方法。只有 M5 验收失败且用户重新确认后，才能修改 canonical 并实现；后续不得反向改写已经 Closed 的 M3 milestone。
+Patch-conditioned TEB 在获得用户针对 M4 候选实现的明确授权前不得实现，不得增加对应 flag、参数、checkpoint key、runner 配置或测试，也不得写成当前已完成方法。任何后续实现只进入唯一 M4 milestone 和当时的 canonical，不得反向改写已经 Closed 的 M3 milestone；最终是否采用仍由 M5 筛选冻结。
 
-# 8. 第三章最终 forward 与时间状态接口
+# 8. M3 工程候选 forward 与时间状态接口
 
 ## 8.1 前向流程
 
@@ -865,7 +893,7 @@ pred, moe_loss, state_source = model(
 
 `target_idx` 必须显式提供并经过范围校验；TEB 关闭时，`exo_context` 必须是 dtype/device 正确的确定性固定零张量。`return_state_source=True` 只增加返回值，不得改变预测或 MoE loss；默认调用仍返回 `(pred, moe_loss)`。
 
-M3 仍不创建 `StateProjection`、`StateAdapter` 或 `H_time`。到 M4 的第四章 graph mode 才允许新增并训练独立 StateAdapter，以 `state_source` 为输入：
+M3 仍不创建 `StateProjection`、`StateAdapter` 或 `H_time`。到 M7 的第四章 Graph Mode 才允许新增并训练独立 StateAdapter，以 `state_source` 为输入：
 
 ```text
 s_v = Linear_v(LayerNorm(v_target))
@@ -881,6 +909,8 @@ y_time = reshape(pred,[B,N,H_out])
 # 9. 第三章实验设计
 
 原 v2.1 把 UrbanEV 的 `AMD-V/AMD-Concat` 消融直接套到 Weather/ECL，任务语义不一致。本替代版将实验拆成两种协议。
+
+本节及后续第四章规划中未带 variant 后缀的 “EL-AMD”，统一表示由 M5 最终冻结的第三章增强时间模型。EL-AMD 是项目名称或模型族名称，不等同于任何具体候选。在 M5 之前，当前 M3 实现必须写作 `el-amd-pmcr-teb-v1`；后续新结构必须使用各自新的候选 variant；不得用无后缀 EL-AMD 暗示某个候选已经入选。
 
 ## 9.1 必做数据集
 
@@ -951,7 +981,7 @@ EL-AMD
 | U1 | AMD-Concat | 相同辅助变量直接作为普通通道 |
 | U2 | U1 + TEB | 定向外生桥接是否有效 |
 | U3 | U1 + PMCR | 局部卷积细化是否有效 |
-| U4 | U1 + TEB + PMCR | 最终时间模型 |
+| U4 | U1 + Global TEB v1 + PMCR v1 | 当前 v1 完整工程候选；最终结构由 M5 决定 |
 
 U0 固定使用 F0：`feature_names=(volume,)`、`target_idx=0`、`aux_idx=()`。U1-U4 必须固定使用同一套非空辅助 schema：默认使用 F4，或只依据训练/验证集预先选定一个 F1-F4 preset；一旦锁定，不得在 U1-U4 之间更换。四组必须统一 feature/target/aux 名称与顺序、schema fingerprint、fold、split、scaler、horizon、seed、训练预算和评价流程。
 
@@ -959,7 +989,7 @@ U0 固定使用 F0：`feature_names=(volume,)`、`target_idx=0`、`aux_idx=()`�
 
 - `U2 - U1`：TEB；
 - `U3 - U1`：PMCR；
-- `U4 - U1`：PMCR + TEB 完整模型。
+- `U4 - U1`：PMCR v1 + Global TEB v1 完整候选组合。
 ### parallel_multivariate：标准多变量（M0-M3）
 
 
@@ -995,16 +1025,17 @@ F1-F4 的 compact tensor 均保持表中 canonical 顺序，目标 `volume` 位�
 
 ## 9.5 模块验收线
 
-每个时间模块最终保留必须满足：
+每个时间模块只有在 M5 公平筛选中满足全部条件后才能最终保留：
 
-1. 相对同输入 AMD 的验证指标平均退化不超过 0.5%；
+1. 相对同输入 AMD 的验证指标平均退化不超过 0.5%；该值仅是安全底线，不能单独构成保留依据；
 2. 至少在一个核心场景和一个独立场景出现稳定改善：
    - TEB：UrbanEV/EPF 中至少两项；
    - PMCR：UrbanEV + Weather/ECL/ETTh1 中至少两项；
 3. 3 个锁定 seed 下方向基本一致；
-4. 参数量和耗时增幅与收益相匹配。
+4. 参数量和耗时增幅与收益相匹配；
+5. 达到在 M5 筛选前由用户锁定的 practical-effect threshold；当前阈值尚未确定。
 
-若不满足，不能简单关闭模块后仍宣称满足“两模块”要求，必须执行第 21 节的替换/变体流程。
+M4 validation 诊断不是正式性能验收。若候选不满足最终条件，不能简单关闭模块后仍宣称满足“两模块”要求，必须执行第 21 节的来源保持型变体或替换流程。
 
 # 10. 第四章：每个数据域必须独立获得时间基线
 
@@ -1046,6 +1077,8 @@ F1-F4 的 compact tensor 均保持表中 canonical 顺序，目标 `volume` 位�
 5. 不进行跨数据集权重迁移，除非单独设立迁移学习附加实验。
 
 # 11. HSTGCN-core 与统一图归一化
+
+本节工程实现归属 M8。`adj.csv` 方向性处理、train-only DTW 需求图、地理—需求双图与 HSTGCN-core 均不得在 M4-M7 提前实现。
 
 ## 11.1 图来源
 
@@ -1117,6 +1150,8 @@ HSTGCN-core / HSTGCN-style static dual graph
 只有完整重实现 GCN-GRU 与原预测模块时，才可在表中写 `HSTGCN`。
 
 # 12. SADR：ASTGRN-inspired 状态需求残差图
+
+本节工程实现归属 M9；不得在 M4 时间模块诊断阶段提前实现。
 
 基础 embedding：
 
@@ -1194,6 +1229,8 @@ union State blockwise top-k
 
 # 13. SC-SimGCA：只输出空间残差
 
+本节工程实现归属 M10；不得在 M4 时间模块诊断阶段提前实现。
+
 原 v2.1 定义 `H_r = H_time + ...`，随后又在最终 head 中加到 `y_time`，会让“空间残差”包含额外纯时间旁路，削弱 S3/S5 的归因。本替代版改为纯空间残差输出。
 
 对关系分支 `r in {geo,demand}`：
@@ -1236,6 +1273,8 @@ R_r = GraphSimAM(C_stack)       # 纯空间分支残差，不加 H_time
 启用模块时不再设置第二个零初始化内门控，避免与最终 `gamma_sp` 形成双零门控导致空间模块早期无梯度。模块关闭时显式旁路为对应普通 GCN 分支。
 
 # 14. 第四章最终 forward
+
+本节完整组合在 M10 形成工程闭环，并在 M11 执行第四章正式实验与定稿。
 
 ```text
 H_time, y_time = EL_AMD_graph_mode(X_graph)
@@ -1447,14 +1486,17 @@ tests/
 | G0 | 总门禁 | M0-A/M0-B 通过，worktree 干净 |
 | M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
-| M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过 |
-| M4 | 训练 StateAdapter 与 graph mode | `H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
-| M5 | 第三章筛选 | UrbanEV + EPF-PJM + Weather/ECL 验证结果 |
-| M6 | 第三章正式实验 | 6 数据集主表、消融、效率 |
-| M7 | HSTGCN-core、图归一化、train-only DTW | S0-S3 跑通，图测试通过 |
-| M8 | SADR | S4、blockwise top-k、关系可视化 |
-| M9 | SC-SimGCA | S5，纯空间 residual 测试通过 |
-| M10 | 第四章完整实验 | UrbanEV + CHARGED + PEMS04/08，S6 与主表 |
+| M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
+| M4 | 时间模块诊断与候选迭代 | 只用训练/验证证据完成诊断；候选实现须经用户另行授权 |
+| M5 | 模型筛选与结构冻结 | 公平多数据集、多 seed 验证；锁定 practical-effect threshold、最终时间结构与正式 variant |
+| M6 | 第三章正式实验与定稿 | 结构冻结后运行正式 test；完成主表、消融、效率与第三章定稿 |
+| M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
+| M8 | HSTGCN-core 与双图构建 | 图归一化、官方地理图、train-only DTW、S0-S3 与图测试通过 |
+| M9 | SADR 状态需求残差图 | S4、blockwise top-k、关系可视化 |
+| M10 | SC-SimGCA 状态条件图传播 | S5，纯空间 residual 测试通过 |
+| M11 | 第四章正式实验与定稿 | UrbanEV + CHARGED + PEMS04/08，S6、主表与第四章定稿 |
+| M12 | 论文正文、图表与结果分析 | 全文叙事、图表、结果分析与章节一致性完成 |
+| M13 | 终稿审校、复现材料与答辩 | 终稿、复现清单、答辩材料与最终校验完成 |
 
 # 20. 结果表与可视化
 
@@ -1497,19 +1539,20 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 
 临时降级可以用于定位问题，但最终毕业版本仍必须有两个经过修改且通过消融的时间模块，以及两个经过修改且通过消融的空间模块。
 
-| 模块 | 第一轮允许调整 | 保留来源的备选实现 | 最终仍失败时 |
+| 模块 | M4 诊断与候选边界 | 保留来源的备选实现 | 最终仍失败时 |
 |---|---|---|---|
-| TEB | 缩小 aux；d/heads；dropout | 首选 Patch-conditioned TEB；gated additive target bridge 仅为更晚的次级候选 | 更换另一篇近三年外生变量模块，不得简单删除 |
-| PMCR | k=7->5；d 减小；仅 target | 保留 Reparam DWConv+ConvFFN1 的 target-only PMCR | 更换另一篇近三年局部时间模块 |
+| TEB | M4 只诊断 aux、表示压缩、attention 与 residual；任何参数或结构候选须经用户确认 | 可评估保持 TimeXer 来源边界的 Patch-conditioned TEB；不得预先选定 | 更换另一篇近三年外生变量模块，不得简单删除 |
+| PMCR | M4 只诊断 kernel、hidden、作用范围与 residual；任何参数或结构候选须经用户确认 | 可评估保留 Reparam DWConv + ConvFFN1 来源边界的候选；不得预先选定 | 更换另一篇近三年局部时间模块 |
 | SADR | b_lambda 更负；k/d_a；正则 | ASTGRN global adaptive graph 与 DTW 的残差融合 | 更换另一篇近三年空间图模块；退回静态双图只算排障结果 |
 | SC-SimGCA | rho 初始化；层数；SimAM lambda | 保留 G-STAN 层融合，移除 Graph-SimAM，改名 SC-GCF | 若仍失败，更换另一篇近三年空间传播模块 |
 
-单模块正式通过线：
+单模块正式通过线由 M5 执行：
 
-1. 相对同输入/同骨干基线平均退化不超过 0.5%；
+1. 相对同输入/同骨干基线平均退化不超过 0.5%；该值只是安全底线，不能单独支持保留；
 2. 至少在一个 EV 数据域和一个外部数据域或第二城市上产生稳定改善；
 3. 3 seed 方向基本一致；
-4. 最终组合不因模块交互产生稳定退化。
+4. 最终组合不因模块交互产生稳定退化；
+5. 达到用户在 M5 筛选前锁定的 practical-effect threshold。
 
 # 22. 代码与复现难度
 
@@ -1547,10 +1590,10 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 
 [D2] Guo, Z., You, L., Zhu, R., et al. A City-scale and Harmonized Dataset for Global Electric Vehicle Charging Demand Analysis. Scientific Data, 12, 1254, 2025.
 
-# 24. 最终一句话路线
+# 24. 总体论文路线（最终时间结构由 M5 冻结）
 
 ```text
-第三章：AMD + ModernTCN-inspired PMCR + TimeXer-inspired TEB
+第三章：AMD + ModernTCN-inspired PMCR + TimeXer-inspired TEB（来源路线；最终实现由 M5 冻结）
 数据：UrbanEV + EPF-PJM + ETTh1 + Weather + ECL + Exchange
 
 第四章：EL-AMD + HSTGCN-core + ASTGRN-inspired SADR + G-STAN-inspired SC-SimGCA
