@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第五轮，ETTm1 development-only 协议与 P1/T1 容量 sanity
+当前轮次：第六轮，T2 Patch-Conditioned TEB 工程实现
 
 canonical 内部版本：v2.1-R1
 
@@ -451,4 +451,96 @@ ETTm1 development 推断：增大 PMCR hidden capacity 没有形成一致正向�
 
 不能推出：P2、T2 或 T3 是否有效；最终 PMCR/TEB 结构；多 seed 可重复性；EV 场景有效性；正式数据集 test 表现；M6 正式泛化能力。第五轮没有实现 P2/T2/T3，没有继续设计或保留 T4/T5，没有进入 M5，也没有实现任何空间模块。
 
-M4 状态继续为 `In Progress`。本节及第 18-20 节是 Stage A 结果，当前仅保留在未 stage、未 commit 的工作区，等待用户与 ChatGPT review。
+本节及第 18-20 节记录第五轮 Stage A 结束、Git closure 前的历史现场；最终 closure 状态以第 22 节为准。M4 状态继续为 `In Progress`。
+
+## 22. 第六轮 Stage A closure 与 T2 工程合同
+
+### 22.1 Stage A Git closure
+
+- repair 将第 2 节 canonical SHA 消歧为第三轮候选身份 repair SHA 与第五轮 ETTm1 development 协议 SHA，未改变任何 P1/T1 artifact、指标或结论。
+- closure commit：`36104e7a9fd0681d283b91e740c7d4339a7df1a9`。
+- parent：`adad7fee12688769c53bf5736c7d1fcc3bb33c6e`。
+- title：`docs(m4): record capacity sanity results`。
+- commit 仅包含 `docs/milestones/M4_temporal_diagnostics.md`，已普通 push 至 `origin/AMD-paper-repro-custom-modules-v1`；local、tracking 与 live remote 闭环一致。
+- P1 与 T1 均为 `negative-or-negligible` development signal；不继续 PMCR `d=32/d=128`、Global TEB heads/context 网格，也不据此冻结最终结构。
+
+### 22.2 T2 授权、身份与来源边界
+
+用户明确授权第六轮实现 T2 Patch-Conditioned TEB，但未授权训练。固定身份：
+
+```text
+class = PatchConditionedTargetExogenousBridge
+implementation_variant = el-amd-m4-t2-patch-teb-v1
+ablation_id = M4_T2
+teb_architecture = patch_conditioned_v1
+```
+
+T2 是 TimeXer-inspired hierarchical representation adaptation：保留 target patch-level queries、whole-series exogenous variate tokens 与 global target context；patch queries 直接查询外生 variate tokens。不复制 TimeXer 完整 self-attention、FFN、Transformer stack 或 prediction head。Global TEB v1 的 class、文件、keys、forward 和 `el-amd-pmcr-teb-v1` 身份保持冻结。
+
+### 22.3 精确张量与参数合同
+
+- non-overlap target patch，`N=ceil(T/P)`，只做 right-zero padding，输出 unpatch 后 crop 回 T。
+- `Q_patch=LayerNorm(Linear(P,d)(patches)+fixed_sinusoidal)`；位置 buffer 不可学习、`persistent=False`。
+- `q_global=LayerNorm(Linear(T,d)(H_y))`；外生 token 继续来自 RevIN 后 `normalized_input`，共享 `Linear(T,d)+LayerNorm`。
+- single 模式拼接 `N` 个 patch query 与一个 global query，只替换 target 通道；parallel 模式以 `[B,C*(N+1),d]` 一次向量化 MHA，并用 `[C*(N+1),C]` owner mask 排除自身 key。
+- patch context 经共享 `Linear(d,P)`、unpatch/crop 后形成 residual；global context 进入 `state_source`，其顺序与 `[B,2*T+d]` 宽度不变。
+- `d=32`、heads=4、dropout=0.1、gamma init=1e-3、padding=`right_zero_crop`、position=`fixed_sinusoidal`；ETTm1 `P=32`、UrbanEV `P=3` 均须显式配置。
+- 参数量公式固定为 `2*P*d + 2*T*d + 4*d*d + 13*d + P + 1`；ETTm1 为 39,361，UrbanEV 为 5,476。
+
+### 22.4 Config、checkpoint 与阶段边界
+
+T2 的 variant、ablation、architecture、patch size/padding/position、TEB 参数、seq_len、task/target/aux/schema、source/data fingerprint 必须进入 scientific config、checkpoint、manifest、resume mismatch 与 summarizer identity。只允许 from scratch 和完全同结构 `load_state_dict(strict=True)`；禁止 Global v1/T2 跨结构加载、source-kind importer、部分 key、`strict=False` 或自动补 key。
+
+本轮不训练 T2，不运行真实 ETTm1/UrbanEV，不实现 P2/T3/T4/T5，不进入 M5，不实现空间模块。T2 实现和测试完成后仍保持未提交，必须先通过用户与 ChatGPT review。
+
+### 22.5 工程实现与文件范围
+
+第六轮在 Stage A closure 后的 clean HEAD 上完成独立 T2 class 和工程接入。实际实现文件为：
+
+- 新增 `models/modules/patch_conditioned_target_exogenous_bridge.py`：single/parallel patch-conditioned bridge、固定 sinusoidal buffer、owner mask 与显式输入合同。
+- 修改 `models/modules/__init__.py`：公开独立 T2 class 与固定合同常量。
+- 修改 `models/tsAMD_enhanced.py`：按 `teb_architecture` 条件实例化 Global v1 或 T2；保持 DDI/PMCR/AMS/state-source 路由；严格同结构恢复先验证完整 key/shape，失败不污染参数；T2 禁止 source-kind importer。
+- 修改 `main.py`：新增 `el-amd-m4-t2-patch-teb-v1`、`M4_T2`、三个显式 patch CLI 字段、候选 scientific/manifest/checkpoint/resume/artifact 身份；旧 Global v1 scientific config 不增加 patch 字段。
+- 修改 `summarize_results.py`：独立加载 T2 variant，核验 patch candidate contract、路径/manifest/config、13-file checksum 和重复科学身份，不与 Global v1 混分组。
+- 新增 `tests/test_patch_conditioned_teb.py`、`tests/test_patch_conditioned_teb_parallel.py`、`tests/test_patch_conditioned_teb_checkpoint.py`。
+- 修改 `tests/test_tsAMD_enhanced.py`、`tests/test_public_architecture.py`、`tests/test_runner.py`、`tests/test_summarize_results.py`，增加 T2 集成、旧 v1 key/hash、runner/artifact/resume 与 summarizer 门禁。
+- 修改 canonical 与本 milestone，仅记录已授权的 T2 精确合同、实现证据和阶段边界。
+
+T2 使用一个向量化 parallel MHA；single 模式非目标通道逐元素不变；parallel 的 `target_idx` 只锚定导出的 global context。固定位置 buffer 不进入 `state_dict`。真实 P0/T0 h96 回归 fixture 证明旧 Global v1 scientific/config comparison hash 语义未因 T2 字段而改变。
+
+### 22.6 定向测试与完整回归
+
+所有命令均使用 `/public/home/yueweiting/miniconda/envs/amd/bin/python -B`、`PYTHONDONTWRITEBYTECODE=1` 和 `GIT_OPTIONAL_LOCKS=0`；仅执行 unit-test synthetic fixture、受控 forward/backward 和 `TemporaryDirectory` artifact，不执行真实候选训练。
+
+| 门禁组 | 命令范围 | 结果 | failed | skipped | wall-clock |
+|---|---|---:|---:|---:|---:|
+| T2 模块/parallel/checkpoint | `test_patch_conditioned_teb*.py` 三文件 | 19/19 passed | 0 | 0 | 2.009 s |
+| 集成/runner/summarizer | `test_tsAMD_enhanced.py`、`test_public_architecture.py`、`test_runner.py`、`test_summarize_results.py` | 75/75 passed | 0 | 0 | 7.359 s |
+| Global TEB v1 保护 | `test_teb.py`、`test_teb_parallel.py`、`test_teb_disabled_zero_context.py` | 17/17 passed | 0 | 0 | 1.805 s |
+| PMCR v1 保护 | `test_pmcr.py`、`test_pmcr_no_cross_variable.py`、`test_pmcr_reparameterization.py` | 15/15 passed | 0 | 0 | 1.895 s |
+| M1 保护 | M1 五个既有数据合同文件 | 21/21 passed | 0 | 0 | 4.727 s |
+| 完整回归 | `unittest discover -s tests -p 'test_*.py' -v` | 165/165 passed | 0 | 0 | 11.640 s |
+
+CUDA 可用且 T2 CUDA float32 分支实际执行。参数量门禁实测为 ETTm1 `T=512,P=32,d=32` 39,361 与 UrbanEV `T=12,P=3,d=32` 5,476。所有逻辑参数组及输入梯度均存在、有限且非零；owner mask 的被禁止 attention 权重为零；T2 same-structure `strict=True` 成功，partial/mismatch/Global↔T2/`strict=False` 均在写参前拒绝。完整 `state_source` 继续为 `[B,2*T+32]`。
+
+### 22.7 Fingerprint、冻结保护与 review 门禁
+
+- canonical T2 实现版本 SHA-256：`16e8425968f0586a4464e4546b6a8fe7a6969f2fa9daf27e92a4832c5465160b`；内部版本仍为 `v2.1-R1`。
+- source fingerprint：`883bbbef80d5a7a13d5353d3dc08e549159dcfbf3beed40a307759db4e20a117`；算法仍为 `sha256_length_prefixed_relative_path_and_content_v1`，文件数由 17 增至 18，新纳入 `models/modules/patch_conditioned_target_exogenous_bridge.py`。
+- `models/tsAMD.py`：`fa72cdbe34348364344c0d9c0755668a82d22f6a37ee061c7ece93ecfaf90ba1`。
+- Global TEB v1：`c389157fd20ed66911163b6db0df3e7cd96f66b6f0bb112c432b77cf37588b2e`。
+- PMCR v1：`4f0507d3512df22152826e55a6113bb06ed2b5e9d39e6fe0a417a528c23ecd56`。
+- M0/M1/M2/M3 SHA-256 分别保持 `e2a20131664391752340e92a9d9a5302b0078cac48d7dcdbb4a4841a16f62cdd`、`bcd9b3e3d821a1cf609423a3e8b58ecb4129bc202238e9fe1f8d7cf3a361c70b`、`8a4343e054f9dacd9cd623b930b07376a55e507f2d9085e56c634323b6dbda54`、`be3ff6606a52c9668ca4f1c2d47aaf9771be1e25e69b8fe991031f7fb9c192ed`。
+- 不可变 baseline tag 仍解析到 `fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`；UrbanEV、ModernTCN 与 TimeXer 参考仓库未修改。
+
+本轮没有训练 T2，没有运行真实 ETTm1/UrbanEV T2，没有产生正式 artifact，没有实现 P2/T3/T4/T5，没有进入 M5，也没有实现空间模块。T2 代码、测试、canonical 与本 milestone 均保持未 stage、未 commit、未 push；M4 状态继续为 `In Progress`。下一步必须先完成 T2 implementation review，未经新授权不得开始训练或 Git closure。
+
+## 23. 第七轮 T2 implementation review
+
+- 变更范围复核：工作区精确包含已授权的 14 个 T2 代码、测试与文档文件，无第 15 个变化文件；独立 `PatchConditionedTargetExogenousBridge`、single/parallel 张量合同、AMS 路由、`state_source`、初始化、variant/config/checkpoint/artifact 合同均通过源码审查。
+- 冻结保护：`models/tsAMD.py`、Global TEB v1、PMCR v1 与 M0-M3 均保持既有 SHA-256；旧 Global v1 class、state keys、forward、CLI/config identity 未被 T2 覆盖或重新定义。
+- ETTm1 real validation batch smoke：`x=[128,512,7]`、`y=[128,96,7]`、prediction=`[128,96,7]`、`state_source=[128,1056]`；prediction、state 与标量 MoE loss 均有限，T2 参数量为 39,361。
+- UrbanEV M1 production pipeline F4/fold 1 real validation batch smoke：`x=[4,12,11]`、`y=[4,1]`、prediction=`[4,1,1]`、`state_source=[4,56]`；`target_idx=0`，`aux_idx=[1,2,3,4,5,6,7,8,9,10]` 有序非空，全部输出有限，T2 参数量为 5,476。两项 smoke 均为 `eval()+no_grad()`，未构造 optimizer、未训练、未创建 artifact，也未遍历 UrbanEV test。
+- 公共 AMD 初始化 parity：按真实 runner 的 seed→loader→model 顺序，在 h96/h192/h336/h720 分别重建 T0 Global TEB v1 与 T2；每个 horizon 的 60 个公共 AMD parameter/persistent buffer keys 完全一致，`max_abs_error=0`，不一致 key 为空。
+- 第七轮复跑：T2 模块/parallel/checkpoint 19/19、集成/runner/summarizer 75/75、Global TEB v1 保护 17/17、PMCR v1 保护 15/15、M1 保护 21/21、完整回归 165/165，均 `failed=0, skipped=0`；CUDA 可用且 T2 CUDA float32 测试实际执行。
+- implementation review：**Passed**。M4 状态继续为 `In Progress`；本结论只完成工程实现审查，尚未完成 T2 性能验收，尚未进入 M5。

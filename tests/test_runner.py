@@ -859,6 +859,28 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
             values.extend(["--resume", str(resume)])
         return runner.parse_args(values)
 
+    def _t2_args(self, data_path, artifact_root, *, train_epochs=1, resume=None):
+        args = self._args(
+            data_path,
+            artifact_root,
+            use_teb=True,
+            ablation_id="U2",
+            train_epochs=train_epochs,
+            resume=resume,
+            teb_dropout=0.1,
+        )
+        args.implementation_variant = runner.T2_IMPLEMENTATION_VARIANT
+        args.ablation_id = "M4_T2"
+        args.teb_context_dim = 32
+        args.teb_heads = 4
+        args.teb_dropout = 0.1
+        args.teb_gamma_init = 1e-3
+        args.teb_patch_size = 2
+        args.teb_patch_padding = runner.RIGHT_ZERO_CROP
+        args.teb_patch_position = runner.FIXED_SINUSOIDAL
+        return args
+
+
     @staticmethod
     def _urbanev_args(data_root, artifact_root):
         return runner.parse_args(
@@ -919,6 +941,27 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
         if len(runs) != 1:
             raise AssertionError(f"expected one enhanced run, got {runs}")
         return runs[0]
+
+    @staticmethod
+    def _t2_run_parent(artifact_root):
+        return (
+            Path(artifact_root)
+            / runner.T2_IMPLEMENTATION_VARIANT
+            / "toy"
+            / "target_exogenous"
+            / "b"
+            / "horizon_2"
+            / "fold_official"
+            / "seed_123"
+        )
+
+    @classmethod
+    def _single_t2_run_dir(cls, artifact_root):
+        runs = list(cls._t2_run_parent(artifact_root).iterdir())
+        if len(runs) != 1:
+            raise AssertionError(f"expected one T2 run, got {runs}")
+        return runs[0]
+
 
     @staticmethod
     def _fake_train(model, *args, **kwargs):
@@ -1019,6 +1062,295 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
             parallel_c1.ablation_id = "M2"
             with self.assertRaisesRegex(ValueError, "at least two variables"):
                 runner.prepare_args(parallel_c1)
+
+    def test_t2_contract_is_explicit_and_old_variant_rejects_patch_fields(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+            prepared = runner.prepare_args(
+                self._t2_args(data_path, root / "artifacts")
+            )
+            self.assertEqual(
+                prepared.implementation_variant, runner.T2_IMPLEMENTATION_VARIANT
+            )
+            self.assertEqual(prepared.ablation_id, "M4_T2")
+            self.assertEqual(prepared.teb_architecture, runner.PATCH_CONDITIONED_V1)
+            self.assertEqual(prepared.teb_patch_size, 2)
+            self.assertEqual(prepared.teb_patch_padding, runner.RIGHT_ZERO_CROP)
+            self.assertEqual(prepared.teb_patch_position, runner.FIXED_SINUSOIDAL)
+            self.assertFalse(prepared.use_pmcr)
+            self.assertTrue(prepared.use_teb)
+
+            scientific = runner._scientific_config(
+                prepared,
+                "data-hash",
+                "source-hash",
+                {"columns": ["a", "b"], "target_indices": [1]},
+                torch.device("cpu"),
+                _runtime_metadata(),
+            )
+            teb = scientific["model"]["teb"]
+            self.assertEqual(teb["architecture"], runner.PATCH_CONDITIONED_V1)
+            self.assertEqual(teb["patch_size"], 2)
+            self.assertEqual(teb["patch_padding"], runner.RIGHT_ZERO_CROP)
+            self.assertEqual(teb["patch_position"], runner.FIXED_SINUSOIDAL)
+            self.assertEqual(scientific["experiment"]["ablation_id"], "M4_T2")
+            self.assertNotEqual(
+                runner.stable_hash(scientific),
+                runner.stable_hash({**scientific, "implementation_variant": "other"}),
+            )
+
+            old = self._args(data_path, root / "old")
+            old.teb_patch_size = 2
+            with self.assertRaisesRegex(ValueError, "does not accept T2"):
+                runner.prepare_args(old)
+
+            missing = self._t2_args(data_path, root / "missing")
+            missing.teb_patch_position = None
+            with self.assertRaisesRegex(ValueError, "requires explicit"):
+                runner.prepare_args(missing)
+
+            contradictory = self._t2_args(data_path, root / "contradictory")
+            contradictory.use_pmcr = True
+            contradictory.pmcr_hidden_dim = 4
+            contradictory.pmcr_kernel_small = 1
+            contradictory.pmcr_kernel_large = 3
+            with self.assertRaisesRegex(ValueError, "T2 variant contract mismatch"):
+                runner.prepare_args(contradictory)
+
+    def test_real_p0_t0_h96_scientific_and_comparison_hash_fixtures_are_stable(self):
+        data_path = runner.ROOT / "data" / "ETTm1.csv"
+        self.assertTrue(data_path.is_file())
+        feature_names = ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+        common = [
+            "--implementation_variant", runner.ENHANCED_IMPLEMENTATION_VARIANT,
+            "--seed", "2024",
+            "--dataset_id", "ETTm1",
+            "--data", str(data_path),
+            "--feature_type", "M",
+            "--target", "all",
+            "--artifact_root", "/tmp/m4-t2-hash-fixture",
+            "--name", "ETTm1",
+            "--device", "cuda:0",
+            "--seq_len", "512",
+            "--pred_len", "96",
+            "--horizon", "96",
+            "--task_mode", "parallel_multivariate",
+            "--fold", "official",
+            "--target_idx", "6",
+            "--feature_names", *feature_names,
+            "--target_feature_name", "OT",
+            "--aux_idx",
+            "--aux_feature_names",
+            "--schema_fingerprint", "f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc",
+            "--n_block", "1",
+            "--alpha", "0.0",
+            "--mix_layer_num", "3",
+            "--mix_layer_scale", "2",
+            "--patch", "16",
+            "--norm", "true",
+            "--layernorm", "true",
+            "--dropout", "0.1",
+            "--teb_context_dim", "32",
+            "--teb_heads", "4",
+            "--teb_dropout", "0.1",
+            "--teb_gamma_init", "0.001",
+            "--train_epochs", "10",
+            "--batch_size", "128",
+            "--learning_rate", "0.00003",
+            "--weight_decay", "0.0000001",
+        ]
+        p0 = runner.prepare_args(runner.parse_args(common + [
+            "--ablation_id", "M1",
+            "--use_pmcr", "true",
+            "--pmcr_hidden_dim", "8",
+            "--pmcr_kernel_small", "5",
+            "--pmcr_kernel_large", "31",
+            "--pmcr_dropout", "0.1",
+            "--pmcr_gamma_init", "0.001",
+            "--pmcr_deploy", "false",
+            "--use_teb", "false",
+        ]))
+        t0 = runner.prepare_args(runner.parse_args(common + [
+            "--ablation_id", "M2",
+            "--use_pmcr", "false",
+            "--use_teb", "true",
+        ]))
+        generator = torch.Generator().manual_seed(2024)
+        runtime_data = runner._build_runtime_data(p0, generator)
+        self.assertEqual(
+            runtime_data.data_fingerprint,
+            "6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e",
+        )
+        environment = {
+            "python": "3.11.15",
+            "numpy": "1.24.3",
+            "pandas": "2.0.3",
+            "scipy": "1.11.4",
+            "scikit_learn": "1.3.2",
+            "torch": "2.0.1",
+            "torch_cuda": "11.8",
+            "cudnn": 8700,
+            "device_name": "NVIDIA A800 80GB PCIe",
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "deterministic_algorithms": False,
+            "cuda_matmul_allow_tf32": False,
+            "cudnn_allow_tf32": True,
+        }
+        expected = {
+            "M1": (
+                "9fee6de64f01868f8c77aeb6788267ae320aa93ec8a160181c2f61dcd980690b",
+                "f6cc8acfaa1c46963471891dbe330b98601db3e262d9a0a9081af286802a57db",
+            ),
+            "M2": (
+                "cb5ee9b612f4652ad4dc63c63b9b721af0dd89abfd679dcf0aeef8738efc1da7",
+                "f15d3a48d4ecf163b2860af7cda89a1019b0c51a01ee950e25c11739946f6dd5",
+            ),
+        }
+        for args in (p0, t0):
+            scientific = runner._scientific_config(
+                args,
+                runtime_data.data_fingerprint,
+                "961efb5a54742db972b55b6556a2dc2e05939e580b2c9e61b595f3ff9983f330",
+                runtime_data.preprocessing,
+                torch.device("cuda:0"),
+                environment,
+            )
+            config_hash = runner.stable_hash(scientific)
+            comparison = json.loads(json.dumps(scientific))
+            del comparison["execution"]["seed"]
+            comparison["completed_train_epochs"] = 10
+            comparison_hash = runner.stable_hash(comparison)
+            self.assertEqual(
+                (config_hash, comparison_hash), expected[args.ablation_id]
+            )
+            self.assertFalse(
+                {"architecture", "patch_size", "patch_padding", "patch_position"}
+                & set(scientific["model"]["teb"])
+            )
+
+    def test_t2_synthetic_schema_v2_artifact_and_summarizer_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            artifact_root = root / "artifacts"
+            self._write_dataset(data_path)
+            stable_git = {"commit": "test", "dirty": False, "status": []}
+            with mock.patch.object(
+                runner, "environment_metadata", return_value=_runtime_metadata()
+            ), mock.patch.object(
+                runner, "git_metadata", return_value=stable_git
+            ), mock.patch.object(
+                runner, "AMDEnhanced", _TinyCheckpointModel
+            ), mock.patch.object(
+                runner, "train_one_epoch", side_effect=self._fake_train
+            ), mock.patch.object(
+                runner, "evaluate", side_effect=self._fake_evaluate
+            ):
+                metrics = runner.main(self._t2_args(data_path, artifact_root))
+
+            run_dir = self._single_t2_run_dir(artifact_root)
+            self.assertEqual(metrics["status"], "completed")
+            self.assertEqual(run_dir.name.startswith("."), False)
+            config = json.loads((run_dir / "config.resolved.json").read_text())
+            manifest = json.loads((run_dir / "manifest.json").read_text())
+            scientific = config["scientific_config"]
+            self.assertEqual(
+                config["implementation_variant"], runner.T2_IMPLEMENTATION_VARIANT
+            )
+            self.assertEqual(
+                scientific["model"]["teb"]["architecture"],
+                runner.PATCH_CONDITIONED_V1,
+            )
+            self.assertEqual(scientific["model"]["teb"]["patch_size"], 2)
+            self.assertEqual(
+                manifest["candidate_contract"],
+                runner._t2_candidate_contract(
+                    runner.prepare_args(self._t2_args(data_path, artifact_root))
+                ),
+            )
+            self.assertEqual(
+                set(runner.verify_checksums(run_dir)),
+                set(runner.ENHANCED_CHECKSUM_FILES),
+            )
+            source = json.loads((run_dir / "source_fingerprint.json").read_text())
+            source_paths = [entry["path"] for entry in source["files"]]
+            self.assertIn(
+                "models/modules/patch_conditioned_target_exogenous_bridge.py",
+                source_paths,
+            )
+            rows = summary.load_completed_runs(
+                artifact_root,
+                implementation_variant=runner.T2_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(
+                rows[0]["implementation_variant"], runner.T2_IMPLEMENTATION_VARIANT
+            )
+            self.assertEqual(
+                summary.load_completed_runs(
+                    artifact_root,
+                    implementation_variant=runner.ENHANCED_IMPLEMENTATION_VARIANT,
+                ),
+                [],
+            )
+
+    def test_t2_resume_rejects_patch_contract_mismatch_without_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            artifact_root = root / "artifacts"
+            self._write_dataset(data_path)
+            calls = {"count": 0}
+
+            def interrupt_second_epoch(model, *args, **kwargs):
+                calls["count"] += 1
+                if calls["count"] == 2:
+                    raise RuntimeError("synthetic T2 interruption")
+                return self._fake_train(model, *args, **kwargs)
+
+            stable_git = {"commit": "test", "dirty": False, "status": []}
+            with mock.patch.object(
+                runner, "environment_metadata", return_value=_runtime_metadata()
+            ), mock.patch.object(
+                runner, "git_metadata", return_value=stable_git
+            ), mock.patch.object(
+                runner, "AMDEnhanced", _TinyCheckpointModel
+            ), mock.patch.object(
+                runner, "train_one_epoch", side_effect=interrupt_second_epoch
+            ), mock.patch.object(
+                runner, "evaluate", side_effect=self._fake_evaluate
+            ):
+                with self.assertRaisesRegex(RuntimeError, "synthetic T2 interruption"):
+                    runner.main(self._t2_args(
+                        data_path, artifact_root, train_epochs=2
+                    ))
+
+            run_dir = self._single_t2_run_dir(artifact_root)
+            watched = {
+                name: (run_dir / name).read_bytes()
+                for name in ("manifest.json", "config.resolved.json", "last.pt")
+            }
+            mismatch = self._t2_args(
+                data_path,
+                artifact_root,
+                train_epochs=2,
+                resume=run_dir,
+            )
+            mismatch.teb_patch_size = 4
+            with mock.patch.object(
+                runner, "environment_metadata", return_value=_runtime_metadata()
+            ), mock.patch.object(
+                runner, "git_metadata", return_value=stable_git
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError, "resume manifest configuration hash mismatch"
+                ):
+                    runner.main(mismatch)
+            for name, content in watched.items():
+                self.assertEqual((run_dir / name).read_bytes(), content, name)
 
     def test_enhanced_synthetic_smoke_and_complete_artifact_contract(self):
         with tempfile.TemporaryDirectory() as directory:

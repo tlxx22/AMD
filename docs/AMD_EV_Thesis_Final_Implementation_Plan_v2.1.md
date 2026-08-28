@@ -803,23 +803,115 @@ U2: AMD-Concat + TEB，PMCR off，TEB on
 
 M3 只以 tiny synthetic smoke 验证结构、配置和 artifact 流程，不据此宣称性能改善。M4 对正式评价数据集仅使用训练/验证证据；ETTm1 则按第 0.1 节登记为 development-only benchmark，可使用 train/validation/test 进行经用户授权的候选迭代。M5 完成公平筛选与结构冻结；UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange 的测试集只在结构冻结后的 M6 正式实验中使用。只有满足完整公平协议和 practical-effect threshold 后，才能把稳定增益归因于桥接结构。
 
-## 7.6 M4 可评估的来源保持型方向：Patch-conditioned TEB
+## 7.6 M4 工程候选：T2 Patch-Conditioned TEB
 
-本节记录保持 TimeXer 来源边界的候选方向，不属于已 Closed 的 M3 实现。Global Target-Conditioned Residual TEB v1 是可追溯工程候选，不是最终冻结结构。若 M4 诊断形成足够训练/验证证据，用户可以另行授权实现 Patch-conditioned TEB；不要求等待 M5 结束，也不得在未授权时把它写成既定替代方案。该候选仍不复制完整 TimeXer Transformer：
+用户已在 M4 第六轮明确授权实现 **T2 Patch-Conditioned TEB**。其工程身份固定为：
 
 ```text
-AMD 的 H_y
--> 划分少量 target patches
--> 每个 patch 形成一个 Query
--> 所有 patch Queries 查询同一组 exogenous variate tokens
--> 每个 patch 得到自己的 exogenous context
--> 将 patch-level contexts 恢复为 T 长度残差
--> H_y + gamma * delta
+implementation_variant = el-amd-m4-t2-patch-teb-v1
+ablation_id = M4_T2
+teb_architecture = patch_conditioned_v1
 ```
 
-目标是缓解 global TEB“所有时间位置共用同一组全局外生选择”的表达限制；仍不增加 endogenous/exogenous self-attention、多层 Transformer、TimeXer prediction head 或未来真实外生输入。
+T2 是 M4 工程候选，不是最终 TEB 或最终 EL-AMD，不覆盖 Global TEB v1，不复用或重新定义 `el-amd-pmcr-teb-v1`；是否进入正式模型只能由 M5 冻结。
 
-Patch-conditioned TEB 在获得用户针对 M4 候选实现的明确授权前不得实现，不得增加对应 flag、参数、checkpoint key、runner 配置或测试，也不得写成当前已完成方法。任何后续实现只进入唯一 M4 milestone 和当时的 canonical，不得反向改写已经 Closed 的 M3 milestone；最终是否采用仍由 M5 筛选冻结。
+### 7.6.1 来源边界与固定配置
+
+TimeXer 原始来源语义是 endogenous patch-level tokens 加 global endogenous token、exogenous whole-series variate tokens，以及 global token 对 exogenous tokens 的查询，外生信息再经目标侧 token 交互传播到 patches。本项目 T2 改为 target patch queries 直接查询 exogenous variate tokens，同时保留 global target context。因此 T2 必须表述为 **TimeXer-inspired hierarchical representation adaptation**，不是原样 TimeXer cross-attention、完整 TimeXer 或缩小版 TimeXer Transformer。
+
+固定配置为：
+
+```text
+teb_context_dim = 32
+teb_heads = 4
+teb_dropout = 0.1
+teb_gamma_init = 1e-3
+teb_patch_padding = right_zero_crop
+teb_patch_position = fixed_sinusoidal
+
+ETTm1 / seq_len=512：teb_patch_size=32
+UrbanEV / seq_len=12：teb_patch_size=3
+```
+
+`teb_patch_size` 必须显式配置，不得依据 dataset 名称自动选择。位置编码固定为不可学习、非 persistent 的 sinusoidal buffer；除共享 scalar `gamma_teb=1e-3` 外，Linear、LayerNorm 和 MHA 沿用 Global TEB v1 的 PyTorch 默认初始化语义。
+
+### 7.6.2 Single-target 精确合同
+
+```text
+H_y = hidden[:,target_idx,:]                         # [B,T]
+N = ceil(T/P); pad_len = N*P-T
+patches = right_zero_pad(H_y).reshape(B,N,P)        # [B,N,P]
+Q_patch = LayerNorm(Linear(P,d)(patches) + PE)      # [B,N,d]
+q_global = LayerNorm(Linear(T,d)(H_y)).unsqueeze(1) # [B,1,d]
+
+X_aux = normalized_input[:,:,aux_idx].transpose(1,2) # [B,m,T]
+E_aux = LayerNorm(shared Linear(T,d)(X_aux))          # [B,m,d]
+Q_all = concat(Q_patch,q_global,dim=1)                 # [B,N+1,d]
+C_all = MHA(Q_all,E_aux,E_aux)                         # [B,N+1,d]
+
+C_patch = C_all[:,:N,:]
+c_global = C_all[:,N,:]                              # [B,d]
+delta_patch = shared Linear(d,P)(C_patch)            # [B,N,P]
+delta_y = delta_patch.reshape(B,N*P)[:,:T]           # [B,T]
+H_y_new = H_y + gamma_teb * delta_y
+```
+
+只替换 `target_idx`，其他通道逐元素不变；`exo_context=c_global [B,d]`。`aux_idx` 继续是显式有序 tuple，非空、不含 target、无重复、无 bool 且不越界。
+
+### 7.6.3 Parallel 精确合同
+
+```text
+hidden [B,C,T]
+ -> patches [B,C,N,P]
+ -> Q_patch [B,C,N,d]
+q_global [B,C,1,d]
+Q_by_variable = concat(Q_patch,q_global,dim=2)       # [B,C,N+1,d]
+Q_flat = reshape(Q_by_variable,[B,C*(N+1),d])
+
+E_all = LayerNorm(shared Linear(T,d)(
+    normalized_input.transpose(1,2)
+))                                                   # [B,C,d]
+
+owner = arange(C).repeat_interleave(N+1)
+mask[q,k] = (k == owner[q])                          # [C*(N+1),C]
+C_flat = MHA(Q_flat,E_all,E_all,attn_mask=mask)
+C_by_variable = reshape(C_flat,[B,C,N+1,d])
+
+C_patch = C_by_variable[:,:,:N,:]
+C_global = C_by_variable[:,:,N,:]                   # [B,C,d]
+delta_all = Linear(d,P)(C_patch)
+             .reshape(B,C,N*P)[:,:,:T]              # [B,C,T]
+hidden_out = hidden + gamma_teb * delta_all
+exo_context = C_global[:,target_idx,:]               # [B,d]
+```
+
+MHA 必须一次向量化执行，mask 中 `True` 表示禁止查询自身变量；不得逐变量运行 AMD 或完整 TEB。全部变量都产生 residual 和预测，`target_idx` 只选择 `state_source` 的 global context。`C=1` 且启用 T2 时固定报错 `Parallel TEB requires at least two variables.`。
+
+T2 后状态源顺序和宽度保持：
+
+```text
+state_source = concat(
+    v_final[:,target_idx,:],
+    u_mdm[:,target_idx,:],
+    exo_context,
+) # [B,2*T+d]
+```
+
+### 7.6.4 模块、checkpoint 与 artifact 合同
+
+T2 使用独立 `PatchConditionedTargetExogenousBridge` class，旧 `TargetExogenousBridge` 文件、class、state keys 和 forward 均不改变。T2 trainable parameter count 固定满足：
+
+```text
+2*P*d + 2*T*d + 4*d*d + 13*d + P + 1
+T=512,P=32,d=32 -> 39,361
+T=12,P=3,d=32   -> 5,476
+```
+
+T2 只允许 from-scratch 初始化和完全同结构的普通 `load_state_dict(strict=True)` resume。variant、ablation、architecture、patch size/padding/position、context dim、heads、dropout、gamma init、seq_len、task mode、target/aux/schema 以及 source/data fingerprint 全部进入 scientific config/checkpoint/resume 合同。禁止 Global TEB v1 与 T2 之间 strict load，禁止 source-kind 结构迁移、部分 key、`strict=False` 或自动补齐 missing patch keys。固定 sinusoidal position 不进入 state dict。
+
+T2 使用现有 schema-v2 完整 artifact，路径以 `el-amd-m4-t2-patch-teb-v1` 为 variant 根；summarizer 必须保留该候选身份、核验完整 patch 合同和 13-file checksum、拒绝重复科学身份，不得把 T2 归入 `el-amd-pmcr-teb-v1`。旧 v1 scientific/comparison config 不得无条件增加 patch 字段，历史 hash 语义保持不变。
+
+T2 明确不包含 T3 confidence gate、T4 Hidden-KV、T5 sparse/top-k、外生 patchify、外生或目标 self-attention、完整 Transformer encoder、attention 后 FFN、variable identity embedding、未来真实外生输入、第二套 selector、PMCR/P2/MDM-bypass 或任何空间模块。本轮只完成工程实现和测试，不训练 T2；实现 review 通过前不得启动 T2 实验。
 
 # 8. M3 工程候选 forward 与时间状态接口
 

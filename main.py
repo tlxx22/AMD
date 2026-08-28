@@ -31,6 +31,11 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from models.modules.patch_conditioned_target_exogenous_bridge import (
+    FIXED_SINUSOIDAL,
+    PATCH_CONDITIONED_V1,
+    RIGHT_ZERO_CROP,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     TARGET_EXOGENOUS,
@@ -51,11 +56,17 @@ from utils.general import capture_rng_state, restore_rng_state, set_seed
 
 BASELINE_IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
+T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 IMPLEMENTATION_VARIANT = BASELINE_IMPLEMENTATION_VARIANT
+ENHANCED_IMPLEMENTATION_VARIANTS = (
+    ENHANCED_IMPLEMENTATION_VARIANT,
+    T2_IMPLEMENTATION_VARIANT,
+)
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
-    ENHANCED_IMPLEMENTATION_VARIANT,
+    *ENHANCED_IMPLEMENTATION_VARIANTS,
 )
+GLOBAL_TEB_V1 = "global_v1"
 SCHEMA_VERSION = 1
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 PAPER_WEIGHT_DECAY = 1e-7
@@ -75,6 +86,32 @@ ENHANCED_CHECKSUM_FILES = (
     "source_fingerprint.json",
     "data_fingerprint.json",
 )
+
+
+def _is_enhanced_variant(value):
+    return value in ENHANCED_IMPLEMENTATION_VARIANTS
+
+
+def _t2_candidate_contract(args):
+    """Return the explicit T2 identity duplicated into its manifest."""
+
+    return {
+        "ablation_id": args.ablation_id,
+        "teb_architecture": args.teb_architecture,
+        "teb_patch_size": args.teb_patch_size,
+        "teb_patch_padding": args.teb_patch_padding,
+        "teb_patch_position": args.teb_patch_position,
+        "teb_context_dim": args.teb_context_dim,
+        "teb_heads": args.teb_heads,
+        "teb_dropout": args.teb_dropout,
+        "teb_gamma_init": args.teb_gamma_init,
+        "seq_len": args.seq_len,
+        "task_mode": args.task_mode,
+        "target_idx": args.target_idx,
+        "aux_idx": list(args.aux_idx),
+        "schema_fingerprint": args.schema_fingerprint,
+        "target_selection_policy": args.target_selection_policy,
+    }
 
 
 def str2bool(value):
@@ -171,6 +208,7 @@ def parse_args(argv=None):
         choices=[
             "U0", "U1", "U2", "U3", "U4", "target_only_pmcr",
             "M0", "M1", "M2", "M3",
+            "M4_T2",
         ],
     )
 
@@ -204,6 +242,17 @@ def parse_args(argv=None):
     parser.add_argument("--teb_heads", type=int, default=4)
     parser.add_argument("--teb_dropout", type=float, default=0.1)
     parser.add_argument("--teb_gamma_init", type=float, default=1e-3)
+    parser.add_argument("--teb_patch_size", type=int, default=None)
+    parser.add_argument(
+        "--teb_patch_padding",
+        default=None,
+        choices=[RIGHT_ZERO_CROP],
+    )
+    parser.add_argument(
+        "--teb_patch_position",
+        default=None,
+        choices=[FIXED_SINUSOIDAL],
+    )
     parser.add_argument(
         "--teb_query_policy",
         default="linear_then_layernorm",
@@ -297,7 +346,7 @@ def _ordered_unique_names(value, field_name, *, allow_empty=False):
 
 def _is_urbanev_production(args):
     return (
-        args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+        _is_enhanced_variant(args.implementation_variant)
         and str(args.dataset_id).casefold() == "urbanev"
         and args.task_mode == TARGET_EXOGENOUS
     )
@@ -550,7 +599,82 @@ def _prepare_enhanced_contract(args):
             "PMCR dimensions/kernels must be omitted when use_pmcr=False"
         )
 
+    patch_values = (
+        args.teb_patch_size,
+        args.teb_patch_padding,
+        args.teb_patch_position,
+    )
+    if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
+        if any(value is not None for value in patch_values):
+            raise ValueError(
+                "el-amd-pmcr-teb-v1 does not accept T2 patch parameters"
+            )
+        args.teb_architecture = GLOBAL_TEB_V1
+    else:
+        args.teb_architecture = PATCH_CONDITIONED_V1
+        required_patch = {
+            "teb_patch_size": args.teb_patch_size,
+            "teb_patch_padding": args.teb_patch_padding,
+            "teb_patch_position": args.teb_patch_position,
+        }
+        missing_patch = [
+            name for name, value in required_patch.items() if value is None
+        ]
+        if missing_patch:
+            raise ValueError(
+                "T2 requires explicit " + ", ".join(missing_patch)
+            )
+        if (
+            isinstance(args.teb_patch_size, bool)
+            or not isinstance(args.teb_patch_size, int)
+            or not 0 < args.teb_patch_size <= args.seq_len
+        ):
+            raise ValueError("teb_patch_size must satisfy 0 < patch_size <= seq_len")
+        if args.teb_patch_padding != RIGHT_ZERO_CROP:
+            raise ValueError(f"T2 requires teb_patch_padding={RIGHT_ZERO_CROP}")
+        if args.teb_patch_position != FIXED_SINUSOIDAL:
+            raise ValueError(f"T2 requires teb_patch_position={FIXED_SINUSOIDAL}")
+        expected_t2 = {
+            "ablation_id": "M4_T2",
+            "use_pmcr": False,
+            "use_teb": True,
+            "teb_context_dim": 32,
+            "teb_heads": 4,
+            "teb_dropout": 0.1,
+            "teb_gamma_init": 1e-3,
+        }
+        mismatches = [
+            name for name, expected in expected_t2.items()
+            if getattr(args, name) != expected
+        ]
+        if mismatches:
+            raise ValueError(
+                "T2 variant contract mismatch for " + ", ".join(mismatches)
+            )
+
     aux_nonempty = bool(args.aux_idx)
+    if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
+        if args.task_mode == TARGET_EXOGENOUS:
+            if args.feature_type != "MS":
+                raise ValueError("target_exogenous requires feature_type='MS'")
+            if args.target != args.target_feature_name:
+                raise ValueError("target must equal target_feature_name")
+            if not aux_nonempty:
+                raise ValueError("TEB requires at least one auxiliary variable.")
+        else:
+            if args.feature_type != "M":
+                raise ValueError("parallel_multivariate requires feature_type='M'")
+            if args.target != "all":
+                raise ValueError("parallel_multivariate requires target='all'")
+            if args.aux_idx or args.aux_feature_names:
+                raise ValueError(
+                    "parallel_multivariate uses all other variables; aux_idx must be empty"
+                )
+            if len(args.feature_names) < 2:
+                raise ValueError("Parallel TEB requires at least two variables.")
+        args.display_name = "T2 Patch-Conditioned TEB"
+        return args
+
     if args.task_mode == TARGET_EXOGENOUS:
         if args.feature_type != "MS":
             raise ValueError("target_exogenous requires feature_type='MS'")
@@ -703,6 +827,9 @@ def prepare_args(args):
             "horizon": args.horizon,
             "label_horizon": args.label_horizon,
             "ablation_id": args.ablation_id,
+            "teb_patch_size": args.teb_patch_size,
+            "teb_patch_padding": args.teb_patch_padding,
+            "teb_patch_position": args.teb_patch_position,
         }
         configured = [
             name for name, value in baseline_only_values.items()
@@ -1444,14 +1571,14 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
     model_config = {
         "model_class": (
             "AMDEnhanced"
-            if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+            if _is_enhanced_variant(args.implementation_variant)
             else "AMD"
         ),
         "seq_len": args.seq_len,
         "pred_len": args.pred_len,
         "model_pred_len": (
             args.model_pred_len
-            if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+            if _is_enhanced_variant(args.implementation_variant)
             else args.pred_len
         ),
         "n_block": args.n_block,
@@ -1472,7 +1599,7 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
         "dropout": args.dropout,
     }
     experiment = None
-    if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
+    if _is_enhanced_variant(args.implementation_variant):
         dataset_config.update({
             "task_mode": args.task_mode,
             "feature_names": list(args.feature_names),
@@ -1520,6 +1647,14 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
             "empty_aux_policy": args.empty_aux_policy,
             "parallel_c1_policy": args.parallel_c1_policy,
         })
+        if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
+            model_config["teb"].update({
+                "architecture": PATCH_CONDITIONED_V1,
+                "patch_size": args.teb_patch_size,
+                "patch_padding": args.teb_patch_padding,
+                "patch_position": args.teb_patch_position,
+                "target_selection_policy": args.target_selection_policy,
+            })
         experiment = {
             "ablation_id": args.ablation_id,
             "display_name": args.display_name,
@@ -1570,7 +1705,7 @@ def _resolved_config(args, scientific, config_hash, run_dir, source, environment
         "schema_version": SCHEMA_VERSION,
         "artifact_schema_version": (
             ENHANCED_ARTIFACT_SCHEMA_VERSION
-            if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+            if _is_enhanced_variant(args.implementation_variant)
             else None
         ),
         "implementation_variant": args.implementation_variant,
@@ -1646,7 +1781,7 @@ def _load_resume_checkpoint(
     if manifest.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("resume manifest schema version mismatch")
     if (
-        implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+        _is_enhanced_variant(implementation_variant)
         and manifest.get("artifact_schema_version")
         != ENHANCED_ARTIFACT_SCHEMA_VERSION
     ):
@@ -1670,7 +1805,7 @@ def _load_resume_checkpoint(
     if previous_config.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("resume resolved config schema version mismatch")
     if (
-        implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+        _is_enhanced_variant(implementation_variant)
         and previous_config.get("artifact_schema_version")
         != ENHANCED_ARTIFACT_SCHEMA_VERSION
     ):
@@ -1703,7 +1838,7 @@ def _load_resume_checkpoint(
     if checkpoint.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("checkpoint schema version mismatch")
     if (
-        implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+        _is_enhanced_variant(implementation_variant)
         and checkpoint.get("artifact_schema_version")
         != ENHANCED_ARTIFACT_SCHEMA_VERSION
     ):
@@ -1851,7 +1986,7 @@ def _artifact_paths(args):
             raise ValueError(
                 f"resume path must be a run directory or last.pt: {resume}"
             )
-        if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
+        if _is_enhanced_variant(args.implementation_variant):
             run_id = _enhanced_run_id_from_staging(work_dir)
             final_dir = work_dir.parent / run_id
             if final_dir.exists():
@@ -1861,7 +1996,7 @@ def _artifact_paths(args):
             return ArtifactPaths(work_dir, final_dir, run_id, True)
         return ArtifactPaths(work_dir, work_dir, work_dir.name, False)
 
-    if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
+    if _is_enhanced_variant(args.implementation_variant):
         parent = _enhanced_artifact_parent(args)
         parent.mkdir(parents=True, exist_ok=True)
         run_id = _new_run_id()
@@ -2070,7 +2205,7 @@ def _build_generic_runtime_data(args, train_generator):
         "schema_version": SCHEMA_VERSION,
         "artifact_schema_version": (
             ENHANCED_ARTIFACT_SCHEMA_VERSION
-            if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT
+            if _is_enhanced_variant(args.implementation_variant)
             else None
         ),
         "algorithm": "sha256_file_bytes",
@@ -2099,7 +2234,7 @@ def _build_runtime_data(args, train_generator):
     return _build_generic_runtime_data(args, train_generator)
 
 def _validate_loader_contract(args, data_loader, preprocessing):
-    if args.implementation_variant != ENHANCED_IMPLEMENTATION_VARIANT:
+    if not _is_enhanced_variant(args.implementation_variant):
         return
     observed_names = tuple(str(name) for name in preprocessing["columns"])
     if observed_names != args.feature_names:
@@ -2153,6 +2288,10 @@ def _build_model(args, data_loader):
         teb_heads=args.teb_heads,
         teb_dropout=args.teb_dropout,
         teb_gamma_init=args.teb_gamma_init,
+        teb_architecture=args.teb_architecture,
+        teb_patch_size=args.teb_patch_size,
+        teb_patch_padding=args.teb_patch_padding,
+        teb_patch_position=args.teb_patch_position,
     )
 
 
@@ -2233,6 +2372,8 @@ def _main_impl(args, transcript=None):
             "seed": args.seed,
         })
     resume_checkpoint = None
+    if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
+        manifest["candidate_contract"] = _t2_candidate_contract(args)
     previous_config = None
     manifest_is_mutable = False
     artifact_sealed = False
@@ -2283,7 +2424,7 @@ def _main_impl(args, transcript=None):
         else:
             manifest_is_mutable = True
 
-        if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
+        if _is_enhanced_variant(args.implementation_variant):
             if transcript is None:
                 raise RuntimeError("enhanced runner requires an active run transcript")
             transcript.bind(run_dir)
@@ -2317,7 +2458,7 @@ def _main_impl(args, transcript=None):
         history = []
 
         if resume_checkpoint is not None:
-            model.load_state_dict(resume_checkpoint["model_state"])
+            model.load_state_dict(resume_checkpoint["model_state"], strict=True)
             optimizer.load_state_dict(resume_checkpoint["optimizer_state"])
             start_epoch = int(resume_checkpoint["completed_epoch"])
             best_mse = float(resume_checkpoint["best_mse"])
@@ -2447,7 +2588,7 @@ def _main_impl(args, transcript=None):
         # checkpoint provenance without changing its selected model state.
         best_checkpoint["resolved_config"] = resolved_config
         atomic_torch_save(best_path, best_checkpoint)
-        model.load_state_dict(best_checkpoint["model_state"])
+        model.load_state_dict(best_checkpoint["model_state"], strict=True)
         test_metrics = evaluate(
             model, test_data, device, description="Final Test",
             show_progress=args.progress,
@@ -2565,9 +2706,8 @@ def _main_impl(args, transcript=None):
 def main(args):
     """Run one experiment, adding native transcripts for the enhanced variant."""
 
-    is_enhanced = (
+    is_enhanced = _is_enhanced_variant(
         getattr(args, "implementation_variant", IMPLEMENTATION_VARIANT)
-        == ENHANCED_IMPLEMENTATION_VARIANT
     )
     transcript = RunTranscript().install() if is_enhanced else None
     try:

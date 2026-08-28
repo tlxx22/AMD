@@ -104,10 +104,12 @@ class SummaryTests(unittest.TestCase):
         run_id,
         seed=2024,
         status="completed",
+        implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+        patch_size=3,
     ):
         run_dir = (
             Path(root)
-            / summary.ENHANCED_IMPLEMENTATION_VARIANT
+            / implementation_variant
             / "UrbanEV"
             / "target_exogenous"
             / "volume"
@@ -117,19 +119,44 @@ class SummaryTests(unittest.TestCase):
             / run_id
         )
         run_dir.mkdir(parents=True)
+        is_t2 = implementation_variant == summary.T2_IMPLEMENTATION_VARIANT
+        dataset = {
+            "id": "UrbanEV",
+            "sha256": "data-hash",
+            "task_mode": "target_exogenous",
+            "target": "volume",
+            "target_idx": 0,
+            "aux_idx": [1],
+            "schema_fingerprint": "fixture-schema",
+            "fold": 1,
+            "label_horizon": 3,
+            "model_pred_len": 1,
+            "artifact_horizon": 3,
+        }
+        teb = {
+            "context_dim": 32,
+            "heads": 4,
+            "dropout": 0.1,
+            "gamma_init": 1e-3,
+            "query_policy": "linear_full_sequence_then_feature_layernorm",
+            "projector_policy": "shared_linear_full_sequence_then_feature_layernorm",
+            "variable_identity_embedding": False,
+            "output_dropout": False,
+            "query_residual": False,
+            "post_attention_ffn": False,
+        }
+        if is_t2:
+            teb.update({
+                "architecture": "patch_conditioned_v1",
+                "patch_size": patch_size,
+                "patch_padding": "right_zero_crop",
+                "patch_position": "fixed_sinusoidal",
+                "target_selection_policy": "full_denorm_then_task_select",
+            })
         scientific = {
-            "implementation_variant": summary.ENHANCED_IMPLEMENTATION_VARIANT,
+            "implementation_variant": implementation_variant,
             "source_sha256": "source-hash",
-            "dataset": {
-                "id": "UrbanEV",
-                "sha256": "data-hash",
-                "task_mode": "target_exogenous",
-                "target": "volume",
-                "fold": 1,
-                "label_horizon": 3,
-                "model_pred_len": 1,
-                "artifact_horizon": 3,
-            },
+            "dataset": dataset,
             "model": {
                 "model_class": "AMDEnhanced",
                 "seq_len": 12,
@@ -137,6 +164,7 @@ class SummaryTests(unittest.TestCase):
                 "model_pred_len": 1,
                 "use_pmcr": False,
                 "use_teb": True,
+                "teb": teb,
             },
             "optimization": {
                 "optimizer": "Adam",
@@ -155,14 +183,14 @@ class SummaryTests(unittest.TestCase):
                 "label_horizon": 3,
                 "model_pred_len": 1,
                 "artifact_horizon": 3,
-                "ablation_id": "U2",
+                "ablation_id": "M4_T2" if is_t2 else "U2",
             },
         }
         config_hash = summary._stable_hash(scientific)
         common = {
             "schema_version": summary.SCHEMA_VERSION,
             "artifact_schema_version": summary.ENHANCED_ARTIFACT_SCHEMA_VERSION,
-            "implementation_variant": summary.ENHANCED_IMPLEMENTATION_VARIANT,
+            "implementation_variant": implementation_variant,
         }
         config = {
             **common,
@@ -191,6 +219,24 @@ class SummaryTests(unittest.TestCase):
             "fold": 1,
             "seed": seed,
         }
+        if is_t2:
+            manifest["candidate_contract"] = {
+                "ablation_id": "M4_T2",
+                "teb_architecture": "patch_conditioned_v1",
+                "teb_patch_size": patch_size,
+                "teb_patch_padding": "right_zero_crop",
+                "teb_patch_position": "fixed_sinusoidal",
+                "teb_context_dim": 32,
+                "teb_heads": 4,
+                "teb_dropout": 0.1,
+                "teb_gamma_init": 1e-3,
+                "seq_len": 12,
+                "task_mode": "target_exogenous",
+                "target_idx": 0,
+                "aux_idx": [1],
+                "schema_fingerprint": "fixture-schema",
+                "target_selection_policy": "full_denorm_then_task_select",
+            }
         metrics = {
             **common,
             "run_id": run_id,
@@ -426,6 +472,113 @@ class SummaryTests(unittest.TestCase):
                 summary.load_completed_runs(
                     artifacts,
                     implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+                )
+
+    def test_t2_candidate_is_summarized_separately_from_global_v1(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "artifacts"
+            self._make_enhanced_run(artifacts, "global")
+            t2_dir = self._make_enhanced_run(
+                artifacts,
+                "t2",
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            rows = summary.load_completed_runs(
+                artifacts,
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(
+                rows[0]["implementation_variant"],
+                summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(rows[0]["run_id"], "t2")
+            config = json.loads(
+                (t2_dir / "config.resolved.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                config["scientific_config"]["model"]["teb"]["patch_size"],
+                3,
+            )
+
+    def test_t2_unsupported_patch_contract_and_manifest_tamper_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "unsupported"
+            run_dir = self._make_enhanced_run(
+                artifacts,
+                "t2",
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            config_path = run_dir / "config.resolved.json"
+            manifest_path = run_dir / "manifest.json"
+            metrics_path = run_dir / "metrics.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            config["scientific_config"]["model"]["teb"]["patch_position"] = "learnable"
+            config_hash = summary._stable_hash(config["scientific_config"])
+            config["config_hash"] = config_hash
+            manifest["config_hash"] = config_hash
+            metrics["config_hash"] = config_hash
+            config_path.write_text(
+                json.dumps(config, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            manifest_path.write_text(
+                json.dumps(manifest, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            metrics_path.write_text(
+                json.dumps(metrics, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(ValueError, "unsupported T2 patch config"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "manifest"
+            run_dir = self._make_enhanced_run(
+                artifacts,
+                "t2",
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            manifest_path = run_dir / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["candidate_contract"]["teb_patch_size"] = 4
+            manifest_path.write_text(
+                json.dumps(manifest, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(
+                ValueError,
+                "manifest candidate contract mismatch",
+            ):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+                )
+
+    def test_duplicate_t2_scientific_identity_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "duplicates"
+            for run_id in ("t2-a", "t2-b"):
+                self._make_enhanced_run(
+                    artifacts,
+                    run_id,
+                    implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+                )
+            with self.assertRaisesRegex(
+                ValueError,
+                "no run was selected automatically",
+            ):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
                 )
 
     def test_unsupported_variant_is_an_explicit_error(self):

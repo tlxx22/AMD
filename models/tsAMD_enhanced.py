@@ -6,6 +6,10 @@ import torch
 from models.modules.modern_conv_refinement import (
     PeakPreservingModernConvRefinement,
 )
+from models.modules.patch_conditioned_target_exogenous_bridge import (
+    PATCH_CONDITIONED_V1,
+    PatchConditionedTargetExogenousBridge,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     SUPPORTED_TASK_MODES,
@@ -13,6 +17,9 @@ from models.modules.target_exogenous_bridge import (
     TargetExogenousBridge,
 )
 from models.tsAMD import AMD
+
+
+GLOBAL_TEB_V1 = "global_v1"
 
 
 def _ordered_aux_idx(value) -> tuple[int, ...]:
@@ -63,6 +70,10 @@ class AMDEnhanced(AMD):
         teb_heads=4,
         teb_dropout=0.1,
         teb_gamma_init=1e-3,
+        teb_architecture=GLOBAL_TEB_V1,
+        teb_patch_size=None,
+        teb_patch_padding=None,
+        teb_patch_position=None,
     ):
         super().__init__(
             input_shape=input_shape,
@@ -171,6 +182,32 @@ class AMDEnhanced(AMD):
                 "AMDEnhanced teb_gamma_init is fixed at 1e-3, "
                 f"got {teb_gamma_init!r}"
             )
+        if teb_architecture not in {GLOBAL_TEB_V1, PATCH_CONDITIONED_V1}:
+            raise ValueError(
+                "AMDEnhanced teb_architecture must be global_v1 or "
+                f"patch_conditioned_v1, got {teb_architecture!r}"
+            )
+        patch_values = (teb_patch_size, teb_patch_padding, teb_patch_position)
+        if teb_architecture == GLOBAL_TEB_V1 and any(
+            value is not None for value in patch_values
+        ):
+            raise ValueError("Global TEB v1 does not accept patch parameters")
+        if teb_architecture == PATCH_CONDITIONED_V1:
+            if not use_teb:
+                raise ValueError("patch_conditioned_v1 requires use_teb=True")
+            required_patch = {
+                "teb_patch_size": teb_patch_size,
+                "teb_patch_padding": teb_patch_padding,
+                "teb_patch_position": teb_patch_position,
+            }
+            missing_patch = [
+                name for name, value in required_patch.items() if value is None
+            ]
+            if missing_patch:
+                raise ValueError(
+                    "patch_conditioned_v1 requires explicit "
+                    + ", ".join(missing_patch)
+                )
 
         self.target_idx = target_idx
         self.teb_context_dim = teb_context_dim
@@ -178,6 +215,10 @@ class AMDEnhanced(AMD):
         self.aux_idx = ordered_aux
         self.use_pmcr = use_pmcr
         self.use_teb = use_teb
+        self.teb_architecture = teb_architecture
+        self.teb_patch_size = teb_patch_size
+        self.teb_patch_padding = teb_patch_padding
+        self.teb_patch_position = teb_patch_position
 
         self.pmcr = None
         if self.use_pmcr:
@@ -211,17 +252,67 @@ class AMDEnhanced(AMD):
 
         self.teb = None
         if self.use_teb:
-            self.teb = TargetExogenousBridge(
-                seq_len=self.seq_len,
-                feature_num=self.feature_num,
-                task_mode=self.task_mode,
-                target_idx=self.target_idx,
-                aux_idx=self.aux_idx,
-                context_dim=self.teb_context_dim,
-                num_heads=teb_heads,
-                dropout=teb_dropout,
-                gamma_init=teb_gamma_init,
+            common_teb = {
+                "seq_len": self.seq_len,
+                "feature_num": self.feature_num,
+                "task_mode": self.task_mode,
+                "target_idx": self.target_idx,
+                "aux_idx": self.aux_idx,
+                "context_dim": self.teb_context_dim,
+                "num_heads": teb_heads,
+                "dropout": teb_dropout,
+                "gamma_init": teb_gamma_init,
+            }
+            if self.teb_architecture == GLOBAL_TEB_V1:
+                self.teb = TargetExogenousBridge(**common_teb)
+            else:
+                self.teb = PatchConditionedTargetExogenousBridge(
+                    **common_teb,
+                    patch_size=self.teb_patch_size,
+                    padding_policy=self.teb_patch_padding,
+                    position_policy=self.teb_patch_position,
+                )
+
+    def load_state_dict(self, state_dict, strict=True):
+        """Keep strict restores same-structure and non-polluting.
+
+        Global TEB v1 keeps its ordinary successful strict-load behavior. The
+        preflight adds only a failure atomicity guarantee, which is required
+        when rejecting cross-architecture Global/T2 checkpoints.
+        """
+
+        is_t2 = (
+            getattr(self, "teb_architecture", GLOBAL_TEB_V1)
+            == PATCH_CONDITIONED_V1
+        )
+        if is_t2 and strict is not True:
+            raise ValueError("T2 checkpoint restore requires strict=True")
+        if strict is not True:
+            return super().load_state_dict(state_dict, strict=strict)
+        if not isinstance(state_dict, Mapping):
+            raise TypeError("checkpoint state_dict must be a mapping")
+        current = self.state_dict()
+        incoming_keys = set(state_dict)
+        current_keys = set(current)
+        missing = sorted(current_keys - incoming_keys)
+        unexpected = sorted(incoming_keys - current_keys)
+        metadata_errors = []
+        for key in sorted(current_keys & incoming_keys):
+            incoming = state_dict[key]
+            expected = current[key]
+            if not torch.is_tensor(incoming):
+                metadata_errors.append(f"{key}: not a tensor")
+            elif incoming.shape != expected.shape:
+                metadata_errors.append(
+                    f"{key}: shape {tuple(incoming.shape)} != {tuple(expected.shape)}"
+                )
+        if missing or unexpected or metadata_errors:
+            raise RuntimeError(
+                "strict checkpoint contract failed before loading: "
+                f"missing={missing}, unexpected={unexpected}, "
+                f"tensor_errors={metadata_errors}"
             )
+        return super().load_state_dict(state_dict, strict=True)
 
     def _state_key_groups(self):
         current_keys = set(self.state_dict())
@@ -238,6 +329,10 @@ class AMDEnhanced(AMD):
         load_state_dict(strict=True) instead.
         """
 
+        if self.teb_architecture == PATCH_CONDITIONED_V1:
+            raise RuntimeError(
+                "T2 permits only from-scratch initialization or same-structure strict restore"
+            )
         if not isinstance(state_dict, Mapping):
             raise TypeError("enhancement source state_dict must be a mapping")
         if source_kind not in {"baseline", "pmcr_only", "teb_only"}:

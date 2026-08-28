@@ -4,12 +4,19 @@ import torch
 import torch.nn as nn
 from models.common import RevIN
 
+from models.modules.patch_conditioned_target_exogenous_bridge import (
+    FIXED_SINUSOIDAL,
+    PATCH_CONDITIONED_V1,
+    RIGHT_ZERO_CROP,
+    PatchConditionedTargetExogenousBridge,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     TARGET_EXOGENOUS,
+    TargetExogenousBridge,
 )
 from models.tsAMD import AMD
-from models.tsAMD_enhanced import AMDEnhanced
+from models.tsAMD_enhanced import AMDEnhanced, GLOBAL_TEB_V1
 
 
 def _capture_torch_rng_state():
@@ -731,6 +738,82 @@ class AMDEnhancedM3Tests(unittest.TestCase):
                             teb_dropout=0.0,
                             teb_gamma_init=gamma,
                         )
+    def test_t2_integration_preserves_routing_and_fixed_state_source_shape(self):
+        kwargs = self._backbone_kwargs()
+        model = AMDEnhanced(
+            **kwargs,
+            target_idx=1,
+            teb_context_dim=32,
+            task_mode=TARGET_EXOGENOUS,
+            aux_idx=(0, 2),
+            use_pmcr=False,
+            use_teb=True,
+            teb_heads=4,
+            teb_dropout=0.1,
+            teb_gamma_init=1e-3,
+            teb_architecture=PATCH_CONDITIONED_V1,
+            teb_patch_size=2,
+            teb_patch_padding=RIGHT_ZERO_CROP,
+            teb_patch_position=FIXED_SINUSOIDAL,
+        ).eval()
+        self.assertIsInstance(model.teb, PatchConditionedTargetExogenousBridge)
+
+        captured = {}
+
+        def capture_u(_module, _inputs, output):
+            captured["u_mdm"] = output.detach().clone()
+
+        def capture_teb(_module, _inputs, output):
+            captured["v_final"] = output[0].detach().clone()
+            captured["context"] = output[1].detach().clone()
+
+        handles = (
+            model.pastmixing.register_forward_hook(capture_u),
+            model.teb.register_forward_hook(capture_teb),
+        )
+        try:
+            torch.manual_seed(3451)
+            x = torch.randn(2, 4, 3)
+            with torch.no_grad():
+                prediction, moe_loss, state_source = model(
+                    x, return_state_source=True
+                )
+        finally:
+            for handle in handles:
+                handle.remove()
+
+        self.assertEqual(prediction.shape, (2, 2, 1))
+        self.assertEqual(moe_loss.ndim, 0)
+        self.assertEqual(state_source.shape, (2, 2 * 4 + 32))
+        self.assertTrue(
+            torch.equal(state_source[:, :4], captured["v_final"][:, 1, :])
+        )
+        self.assertTrue(
+            torch.equal(state_source[:, 4:8], captured["u_mdm"][:, 1, :])
+        )
+        self.assertTrue(torch.equal(state_source[:, 8:], captured["context"]))
+
+    def test_global_v1_public_class_and_state_keys_remain_patch_free(self):
+        global_model = self._enhanced(use_teb=True)
+        self.assertEqual(global_model.teb_architecture, GLOBAL_TEB_V1)
+        self.assertIsInstance(global_model.teb, TargetExogenousBridge)
+        global_keys = {
+            key[len("teb."):]
+            for key in global_model.state_dict()
+            if key.startswith("teb.")
+        }
+        expected = {
+            "gamma_teb", "query_projection.weight", "query_projection.bias",
+            "query_norm.weight", "query_norm.bias",
+            "exogenous_projection.weight", "exogenous_projection.bias",
+            "exogenous_norm.weight", "exogenous_norm.bias",
+            "cross_attention.in_proj_weight", "cross_attention.in_proj_bias",
+            "cross_attention.out_proj.weight", "cross_attention.out_proj.bias",
+            "output_projection.weight", "output_projection.bias",
+        }
+        self.assertEqual(global_keys, expected)
+        self.assertFalse(any("patch" in key for key in global_keys))
+
 
     def test_checkpoint_rejections_never_pollute_parameters(self):
         baseline = dict(AMD(**self._backbone_kwargs()).state_dict())

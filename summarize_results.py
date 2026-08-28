@@ -15,9 +15,11 @@ from pathlib import Path
 
 IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
+T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
+    T2_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 ENHANCED_CHECKSUM_FILES = (
@@ -115,6 +117,86 @@ def _validate_variant_contract(scientific, run_dir):
                 f"optimization contract mismatch for {field} in {run_dir}: "
                 f"expected {expected!r}, got {optimization.get(field)!r}"
             )
+
+
+def _validate_enhanced_variant_contract(scientific, implementation_variant, run_dir):
+    """Keep Global v1 and T2 candidate artifacts distinct and explicit."""
+
+    model = scientific.get("model")
+    experiment = scientific.get("experiment")
+    if not isinstance(model, dict) or not isinstance(experiment, dict):
+        raise ValueError(f"enhanced variant contract is incomplete: {run_dir}")
+    teb = model.get("teb")
+    if not isinstance(teb, dict):
+        raise ValueError(f"enhanced TEB contract is missing: {run_dir}")
+
+    patch_fields = {
+        "architecture",
+        "patch_size",
+        "patch_padding",
+        "patch_position",
+        "target_selection_policy",
+    }
+    if implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
+        unexpected = sorted(patch_fields & set(teb))
+        if unexpected:
+            raise ValueError(
+                f"Global TEB v1 artifact contains T2 patch fields {unexpected}: {run_dir}"
+            )
+        return None
+
+    expected = {
+        "architecture": "patch_conditioned_v1",
+        "context_dim": 32,
+        "heads": 4,
+        "dropout": 0.1,
+        "gamma_init": 1e-3,
+        "patch_padding": "right_zero_crop",
+        "patch_position": "fixed_sinusoidal",
+        "target_selection_policy": "full_denorm_then_task_select",
+    }
+    mismatches = {
+        field: (expected_value, teb.get(field))
+        for field, expected_value in expected.items()
+        if teb.get(field) != expected_value
+    }
+    patch_size = teb.get("patch_size")
+    seq_len = model.get("seq_len")
+    if (
+        isinstance(patch_size, bool)
+        or not isinstance(patch_size, int)
+        or isinstance(seq_len, bool)
+        or not isinstance(seq_len, int)
+        or not 0 < patch_size <= seq_len
+    ):
+        mismatches["patch_size"] = ("0 < patch_size <= seq_len", patch_size)
+    if model.get("use_pmcr") is not False or model.get("use_teb") is not True:
+        mismatches["module_switches"] = ((False, True), (model.get("use_pmcr"), model.get("use_teb")))
+    if experiment.get("ablation_id") != "M4_T2":
+        mismatches["ablation_id"] = ("M4_T2", experiment.get("ablation_id"))
+    if mismatches:
+        raise ValueError(f"unsupported T2 patch config {mismatches}: {run_dir}")
+
+    dataset = scientific.get("dataset")
+    if not isinstance(dataset, dict):
+        raise ValueError(f"enhanced dataset contract is missing: {run_dir}")
+    return {
+        "ablation_id": experiment.get("ablation_id"),
+        "teb_architecture": teb.get("architecture"),
+        "teb_patch_size": teb.get("patch_size"),
+        "teb_patch_padding": teb.get("patch_padding"),
+        "teb_patch_position": teb.get("patch_position"),
+        "teb_context_dim": teb.get("context_dim"),
+        "teb_heads": teb.get("heads"),
+        "teb_dropout": teb.get("dropout"),
+        "teb_gamma_init": teb.get("gamma_init"),
+        "seq_len": model.get("seq_len"),
+        "task_mode": dataset.get("task_mode"),
+        "target_idx": dataset.get("target_idx"),
+        "aux_idx": dataset.get("aux_idx"),
+        "schema_fingerprint": dataset.get("schema_fingerprint"),
+        "target_selection_policy": teb.get("target_selection_policy"),
+    }
 
 
 def _load_legacy_completed_runs(artifact_root):
@@ -384,8 +466,8 @@ def _enhanced_path_identity(variant_root, run_dir):
     }
 
 
-def _load_enhanced_completed_runs(artifact_root):
-    variant_root = Path(artifact_root).resolve() / ENHANCED_IMPLEMENTATION_VARIANT
+def _load_enhanced_completed_runs(artifact_root, implementation_variant):
+    variant_root = Path(artifact_root).resolve() / implementation_variant
     if not variant_root.exists():
         return []
 
@@ -426,7 +508,7 @@ def _load_enhanced_completed_runs(artifact_root):
                 raise ValueError(
                     f"enhanced {label} artifact schema version mismatch: {run_dir}"
                 )
-            if value.get("implementation_variant") != ENHANCED_IMPLEMENTATION_VARIANT:
+            if value.get("implementation_variant") != implementation_variant:
                 raise ValueError(f"enhanced {label} variant mismatch: {run_dir}")
         if manifest.get("status") != "completed" or metrics.get("status") != "completed":
             raise ValueError(f"enhanced final artifact is not completed: {run_dir}")
@@ -462,7 +544,7 @@ def _load_enhanced_completed_runs(artifact_root):
             or manifest.get("config_hash") != config_hash
         ):
             raise ValueError(f"enhanced config/manifest hash mismatch: {run_dir}")
-        if scientific.get("implementation_variant") != ENHANCED_IMPLEMENTATION_VARIANT:
+        if scientific.get("implementation_variant") != implementation_variant:
             raise ValueError(f"enhanced scientific variant mismatch: {run_dir}")
 
         dataset = scientific.get("dataset")
@@ -477,6 +559,16 @@ def _load_enhanced_completed_runs(artifact_root):
             raise ValueError(f"enhanced scientific contract is incomplete: {run_dir}")
         if model.get("model_class") != "AMDEnhanced":
             raise ValueError(f"enhanced model_class mismatch: {run_dir}")
+        expected_candidate_contract = _validate_enhanced_variant_contract(
+            scientific, implementation_variant, run_dir
+        )
+        observed_candidate_contract = manifest.get("candidate_contract")
+        if observed_candidate_contract != expected_candidate_contract:
+            raise ValueError(
+                "enhanced manifest candidate contract mismatch: "
+                f"expected {expected_candidate_contract!r}, "
+                f"got {observed_candidate_contract!r}: {run_dir}"
+            )
         if (
             optimization.get("optimizer") != "Adam"
             or optimization.get("weight_decay") != 1e-7
@@ -563,7 +655,7 @@ def _load_enhanced_completed_runs(artifact_root):
             )
         seen_scientific_seed.add(duplicate_identity)
         rows.append({
-            "implementation_variant": ENHANCED_IMPLEMENTATION_VARIANT,
+            "implementation_variant": implementation_variant,
             "dataset_id": identity["dataset_id"],
             "task_mode": identity["task_mode"],
             "target": identity["target"],
@@ -616,7 +708,9 @@ def load_completed_runs(
         )
     if implementation_variant == IMPLEMENTATION_VARIANT:
         return _load_legacy_completed_runs(artifact_root)
-    return _load_enhanced_completed_runs(artifact_root)
+    return _load_enhanced_completed_runs(
+        artifact_root, implementation_variant
+    )
 
 
 

@@ -6,6 +6,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.common import DDI, MDM
+from models.modules.patch_conditioned_target_exogenous_bridge import (
+    FIXED_SINUSOIDAL,
+    RIGHT_ZERO_CROP,
+    PatchConditionedTargetExogenousBridge,
+)
+from models.modules.target_exogenous_bridge import (
+    TARGET_EXOGENOUS,
+    TargetExogenousBridge,
+)
 from models.tsAMD import AMD
 from models.tsmoe import AMS, TopKGating
 
@@ -357,6 +366,44 @@ class ArchitectureContractTests(unittest.TestCase):
         self.assertEqual(output.shape, (1, 4, 3))
         self.assertTrue(torch.isfinite(output).all().item())
         self.assertTrue(torch.isfinite(auxiliary_loss).item())
+
+    def test_t2_is_an_independent_lightweight_public_bridge(self):
+        self.assertFalse(
+            issubclass(PatchConditionedTargetExogenousBridge, TargetExogenousBridge)
+        )
+        module = PatchConditionedTargetExogenousBridge(
+            seq_len=12,
+            feature_num=3,
+            task_mode=TARGET_EXOGENOUS,
+            target_idx=0,
+            aux_idx=(1, 2),
+            context_dim=32,
+            num_heads=4,
+            dropout=0.1,
+            patch_size=3,
+            padding_policy=RIGHT_ZERO_CROP,
+            position_policy=FIXED_SINUSOIDAL,
+        )
+        self.assertEqual(
+            set(dict(module.named_children())),
+            {
+                "patch_query_projection",
+                "patch_query_norm",
+                "global_query_projection",
+                "global_query_norm",
+                "exogenous_projection",
+                "exogenous_norm",
+                "cross_attention",
+                "patch_output_projection",
+            },
+        )
+        self.assertFalse(
+            any(
+                isinstance(child, (nn.TransformerEncoder, nn.Embedding))
+                for child in module.modules()
+            )
+        )
+        self.assertFalse(any("position" in key for key in module.state_dict()))
 
 
 if __name__ == "__main__":
