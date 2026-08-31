@@ -26,6 +26,7 @@ SUPPORTED_IMPLEMENTATION_VARIANTS = (
     T3_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
+TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
 ENHANCED_CHECKSUM_FILES = (
     "best.pt", "last.pt", "config.resolved.json", "history.jsonl",
     "metrics.json", "manifest.json", "sys.argv.json", "command.txt",
@@ -51,6 +52,7 @@ EXPECTED_OPTIMIZATION_CONTRACT = {
 RUN_FIELDS = (
     "implementation_variant", "dataset_id", "task_mode", "target",
     "label_horizon", "fold", "seq_len", "pred_len", "seed",
+    "target_exogenous_schema_contract",
     "run_id", "best_epoch", "val_mse", "val_mae", "test_mse", "test_mae",
     "parameter_count", "train_epochs", "duration_seconds", "config_hash",
     "comparison_config_hash", "data_sha256", "completed_at", "artifact_dir",
@@ -281,6 +283,106 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
             "teb_global_prediction_role": teb.get("global_prediction_role"),
         })
     return contract
+
+
+_TARGET_EXOGENOUS_SCHEMA_FIELDS = {
+    "contract_version",
+    "feature_type",
+    "feature_names",
+    "target_feature_name",
+    "target_idx",
+    "target_indices",
+    "aux_idx",
+    "aux_feature_names",
+    "schema_fingerprint",
+}
+
+
+def _validate_target_exogenous_schema(scientific, manifest, run_dir):
+    dataset = scientific.get("dataset")
+    if not isinstance(dataset, dict):
+        raise ValueError(f"enhanced dataset contract is missing: {run_dir}")
+    task_mode = dataset.get("task_mode")
+    version = dataset.get("target_exogenous_schema_contract_version")
+    observed = manifest.get("target_exogenous_schema")
+
+    if task_mode != "target_exogenous":
+        if version is not None or observed is not None:
+            raise ValueError(
+                "parallel/non-target artifact must not carry "
+                f"target_exogenous_schema_v1: {run_dir}"
+            )
+        return "not_applicable"
+
+    if version is None:
+        if observed is not None:
+            raise ValueError(
+                "manifest has target_exogenous schema but config has no version: "
+                f"{run_dir}"
+            )
+        return "legacy"
+    if version != TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION:
+        raise ValueError(
+            f"unsupported target_exogenous schema version {version!r}: {run_dir}"
+        )
+
+    expected = {
+        "contract_version": version,
+        "feature_type": dataset.get("feature_type"),
+        "feature_names": dataset.get("feature_names"),
+        "target_feature_name": dataset.get("target_feature_name"),
+        "target_idx": dataset.get("target_idx"),
+        "target_indices": dataset.get("target_indices"),
+        "aux_idx": dataset.get("aux_idx"),
+        "aux_feature_names": dataset.get("aux_feature_names"),
+        "schema_fingerprint": dataset.get("schema_fingerprint"),
+    }
+    if not isinstance(observed, dict):
+        raise ValueError(
+            f"target_exogenous_schema_v1 manifest block is missing: {run_dir}"
+        )
+    if set(observed) != _TARGET_EXOGENOUS_SCHEMA_FIELDS:
+        raise ValueError(
+            f"target_exogenous schema field set mismatch: {run_dir}"
+        )
+    feature_names = expected["feature_names"]
+    target_idx = expected["target_idx"]
+    target_indices = expected["target_indices"]
+    aux_idx = expected["aux_idx"]
+    if (
+        expected["feature_type"] != "MS"
+        or dataset.get("target") != expected["target_feature_name"]
+        or not isinstance(feature_names, list)
+        or not feature_names
+        or any(not isinstance(name, str) or not name for name in feature_names)
+        or len(set(feature_names)) != len(feature_names)
+        or isinstance(target_idx, bool)
+        or not isinstance(target_idx, int)
+        or not 0 <= target_idx < len(feature_names)
+        or target_indices != [target_idx]
+        or expected["target_feature_name"] != feature_names[target_idx]
+        or not isinstance(aux_idx, list)
+        or any(
+            isinstance(index, bool) or not isinstance(index, int)
+            for index in aux_idx
+        )
+        or len(aux_idx) != len(set(aux_idx))
+        or any(not 0 <= index < len(feature_names) for index in aux_idx)
+        or target_idx in aux_idx
+        or expected["aux_feature_names"]
+        != [feature_names[index] for index in aux_idx]
+        or not isinstance(expected["schema_fingerprint"], str)
+        or not expected["schema_fingerprint"]
+    ):
+        raise ValueError(
+            f"target_exogenous scientific schema is invalid: {run_dir}"
+        )
+    if observed != expected:
+        raise ValueError(
+            "target_exogenous config/manifest schema mismatch: "
+            f"expected {expected!r}, got {observed!r}: {run_dir}"
+        )
+    return version
 
 
 
@@ -644,6 +746,9 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             raise ValueError(f"enhanced scientific contract is incomplete: {run_dir}")
         if model.get("model_class") != "AMDEnhanced":
             raise ValueError(f"enhanced model_class mismatch: {run_dir}")
+        target_schema_identity = _validate_target_exogenous_schema(
+            scientific, manifest, run_dir
+        )
         expected_candidate_contract = _validate_enhanced_variant_contract(
             scientific, implementation_variant, run_dir
         )
@@ -748,6 +853,7 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             "fold": identity["fold"],
             "seq_len": int(metrics.get("seq_len", -1)),
             "pred_len": int(metrics.get("pred_len", -1)),
+            "target_exogenous_schema_contract": target_schema_identity,
             "seed": int(identity["seed"]),
             "run_id": run_id,
             "best_epoch": best_epoch,

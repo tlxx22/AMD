@@ -89,6 +89,7 @@ SUPPORTED_IMPLEMENTATION_VARIANTS = (
 GLOBAL_TEB_V1 = "global_v1"
 SCHEMA_VERSION = 1
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
+TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
 PAPER_WEIGHT_DECAY = 1e-7
 METRIC_SPACE = "train-standardized"
 ENHANCED_CHECKSUM_FILES = (
@@ -1621,12 +1622,31 @@ def _resolve_device(specification):
 
 def _prediction_for_loss(outputs, targets, task_mode=None):
     if task_mode == TARGET_EXOGENOUS:
-        if outputs.ndim != targets.ndim + 1 or outputs.shape[-1] != 1:
+        if outputs.ndim != 3 or outputs.shape[-1] != 1:
             raise RuntimeError(
-                "target_exogenous prediction must be [B,H,1] while target is [B,H], "
+                "target_exogenous prediction must be [B,H,1], "
                 f"got {tuple(outputs.shape)} and {tuple(targets.shape)}"
             )
-        prediction = outputs.squeeze(-1)
+        if targets.ndim == 2:
+            if outputs.shape[:2] != targets.shape:
+                raise RuntimeError(
+                    "target_exogenous prediction/target shape mismatch: "
+                    f"{tuple(outputs.shape)} != {tuple(targets.shape)}"
+                )
+            prediction = outputs.squeeze(-1)
+        elif targets.ndim == 3:
+            if targets.shape[-1] != 1 or outputs.shape != targets.shape:
+                raise RuntimeError(
+                    "target_exogenous 3D target must be [B,H,1] and exactly "
+                    "match prediction: "
+                    f"{tuple(outputs.shape)} != {tuple(targets.shape)}"
+                )
+            prediction = outputs
+        else:
+            raise RuntimeError(
+                "target_exogenous target must be [B,H] or [B,H,1], "
+                f"got prediction={tuple(outputs.shape)} target={tuple(targets.shape)}"
+            )
     else:
         prediction = outputs
     if prediction.shape != targets.shape:
@@ -1752,7 +1772,7 @@ def should_update_best(candidate_mse, best_mse):
 
 
 def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
-                       environment):
+                       environment, target_exogenous_schema=None):
     """Return fields that must match exactly when resuming a run."""
 
     dataset_config = {
@@ -1808,6 +1828,30 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
             "model_pred_len": args.model_pred_len,
             "artifact_horizon": args.artifact_horizon,
         })
+        if args.task_mode == TARGET_EXOGENOUS:
+            if target_exogenous_schema is None:
+                target_exogenous_schema = _build_target_exogenous_schema_contract(
+                    args, preprocessing
+                )
+            dataset_config.update({
+                "feature_type": target_exogenous_schema["feature_type"],
+                "feature_names": list(target_exogenous_schema["feature_names"]),
+                "target_feature_name": target_exogenous_schema[
+                    "target_feature_name"
+                ],
+                "target_idx": target_exogenous_schema["target_idx"],
+                "target_indices": list(target_exogenous_schema["target_indices"]),
+                "aux_idx": list(target_exogenous_schema["aux_idx"]),
+                "aux_feature_names": list(
+                    target_exogenous_schema["aux_feature_names"]
+                ),
+                "schema_fingerprint": target_exogenous_schema[
+                    "schema_fingerprint"
+                ],
+                "target_exogenous_schema_contract_version": (
+                    TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+                ),
+            })
         model_config.update({
             "target_idx": args.target_idx,
             "target_slice": None,
@@ -1975,6 +2019,7 @@ def _load_resume_checkpoint(
     *,
     run_id=None,
     artifact_dir=None,
+    target_exogenous_schema=None,
 ):
     run_dir = Path(run_dir)
     run_id = run_dir.name if run_id is None else str(run_id)
@@ -2023,6 +2068,12 @@ def _load_resume_checkpoint(
         raise RuntimeError("resume manifest configuration hash mismatch")
     if manifest.get("data_sha256") != data_sha256:
         raise RuntimeError("resume manifest data fingerprint mismatch")
+    if (
+        _is_enhanced_variant(implementation_variant)
+        and manifest.get("target_exogenous_schema")
+        != target_exogenous_schema
+    ):
+        raise RuntimeError("resume target_exogenous schema contract mismatch")
     if previous_config.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("resume resolved config schema version mismatch")
     if (
@@ -2040,6 +2091,11 @@ def _load_resume_checkpoint(
         raise RuntimeError("resume resolved config has no scientific_config object")
     if stable_hash(previous_scientific) != config_hash:
         raise RuntimeError("resume resolved scientific configuration was modified")
+    if (
+        _target_exogenous_schema_from_scientific(previous_scientific)
+        != target_exogenous_schema
+    ):
+        raise RuntimeError("resume resolved target_exogenous schema mismatch")
     previous_run = previous_config.get("run")
     if not isinstance(previous_run, dict):
         raise RuntimeError("resume resolved config has no run object")
@@ -2345,6 +2401,7 @@ def _build_urbanev_runtime_data(args, train_generator):
     }
     preprocessing = {
         "loader_kind": "urbanev_m1_temporal_region",
+        "feature_type": "MS",
         "data_root": str(raw.data_root),
         "data_fingerprint": raw.data_fingerprint,
         "source_file_sha256": raw.file_sha256,
@@ -2454,6 +2511,152 @@ def _build_runtime_data(args, train_generator):
         return _build_urbanev_runtime_data(args, train_generator)
     return _build_generic_runtime_data(args, train_generator)
 
+
+_TARGET_EXOGENOUS_SCHEMA_FIELDS = {
+    "contract_version",
+    "feature_type",
+    "feature_names",
+    "target_feature_name",
+    "target_idx",
+    "target_indices",
+    "aux_idx",
+    "aux_feature_names",
+    "schema_fingerprint",
+}
+
+
+def _validate_target_exogenous_schema_contract(contract):
+    if not isinstance(contract, dict):
+        raise ValueError("target_exogenous schema contract must be a JSON object")
+    if set(contract) != _TARGET_EXOGENOUS_SCHEMA_FIELDS:
+        raise ValueError(
+            "target_exogenous schema fields mismatch: "
+            f"expected {sorted(_TARGET_EXOGENOUS_SCHEMA_FIELDS)}, "
+            f"got {sorted(contract)}"
+        )
+    if contract["contract_version"] != TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION:
+        raise ValueError("target_exogenous schema contract version mismatch")
+    if contract["feature_type"] != "MS":
+        raise ValueError("target_exogenous schema feature_type must be 'MS'")
+    feature_names = contract["feature_names"]
+    if (
+        not isinstance(feature_names, list)
+        or not feature_names
+        or any(not isinstance(name, str) or not name for name in feature_names)
+        or len(set(feature_names)) != len(feature_names)
+    ):
+        raise ValueError("target_exogenous feature_names must be ordered unique names")
+    target_idx = contract["target_idx"]
+    if (
+        isinstance(target_idx, bool)
+        or not isinstance(target_idx, int)
+        or not 0 <= target_idx < len(feature_names)
+    ):
+        raise ValueError("target_exogenous target_idx is invalid")
+    if contract["target_indices"] != [target_idx]:
+        raise ValueError("target_indices must equal [target_idx]")
+    if contract["target_feature_name"] != feature_names[target_idx]:
+        raise ValueError("target_feature_name does not match target_idx")
+    aux_idx = contract["aux_idx"]
+    if (
+        not isinstance(aux_idx, list)
+        or any(
+            isinstance(index, bool) or not isinstance(index, int)
+            for index in aux_idx
+        )
+        or len(aux_idx) != len(set(aux_idx))
+        or any(not 0 <= index < len(feature_names) for index in aux_idx)
+        or target_idx in aux_idx
+    ):
+        raise ValueError("target_exogenous aux_idx is invalid")
+    expected_aux_names = [feature_names[index] for index in aux_idx]
+    if contract["aux_feature_names"] != expected_aux_names:
+        raise ValueError("aux_feature_names do not match ordered aux_idx")
+    fingerprint = contract["schema_fingerprint"]
+    if not isinstance(fingerprint, str) or not fingerprint:
+        raise ValueError("target_exogenous schema_fingerprint must be non-empty")
+    return deepcopy(contract)
+
+
+def _build_target_exogenous_schema_contract(args, preprocessing):
+    if (
+        not _is_enhanced_variant(args.implementation_variant)
+        or args.task_mode != TARGET_EXOGENOUS
+    ):
+        return None
+    if not isinstance(preprocessing, dict):
+        raise ValueError("target_exogenous runtime preprocessing must be a mapping")
+    feature_names = [str(name) for name in preprocessing.get("columns", [])]
+    feature_type = preprocessing.get("feature_type")
+    target_indices = preprocessing.get("target_indices")
+    resolved_target = preprocessing.get(
+        "resolved_target", preprocessing.get("target")
+    )
+    schema_fingerprint = preprocessing.get(
+        "feature_schema_fingerprint", stable_hash(feature_names)
+    )
+    runtime_facts = {
+        "feature_type": feature_type,
+        "feature_names": feature_names,
+        "target_feature_name": resolved_target,
+        "target_indices": target_indices,
+        "schema_fingerprint": schema_fingerprint,
+    }
+    expected_facts = {
+        "feature_type": args.feature_type,
+        "feature_names": list(args.feature_names),
+        "target_feature_name": args.target_feature_name,
+        "target_indices": [args.target_idx],
+        "schema_fingerprint": args.schema_fingerprint,
+    }
+    if runtime_facts != expected_facts:
+        raise ValueError(
+            "target_exogenous CLI/config does not match resolved runtime schema: "
+            f"expected {expected_facts!r}, observed {runtime_facts!r}"
+        )
+    aux_idx = list(args.aux_idx)
+    resolved_aux_names = [feature_names[index] for index in aux_idx]
+    if resolved_aux_names != list(args.aux_feature_names):
+        raise ValueError(
+            "target_exogenous aux schema does not match resolved feature order"
+        )
+    return _validate_target_exogenous_schema_contract({
+        "contract_version": TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+        "feature_type": feature_type,
+        "feature_names": feature_names,
+        "target_feature_name": resolved_target,
+        "target_idx": int(target_indices[0]),
+        "target_indices": list(target_indices),
+        "aux_idx": aux_idx,
+        "aux_feature_names": resolved_aux_names,
+        "schema_fingerprint": schema_fingerprint,
+    })
+
+
+def _target_exogenous_schema_from_scientific(scientific):
+    if not isinstance(scientific, dict):
+        return None
+    dataset = scientific.get("dataset")
+    if not isinstance(dataset, dict):
+        return None
+    version = dataset.get("target_exogenous_schema_contract_version")
+    if version is None:
+        return None
+    if version != TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION:
+        raise RuntimeError("unsupported target_exogenous schema contract version")
+    return _validate_target_exogenous_schema_contract({
+        "contract_version": version,
+        "feature_type": dataset.get("feature_type"),
+        "feature_names": dataset.get("feature_names"),
+        "target_feature_name": dataset.get("target_feature_name"),
+        "target_idx": dataset.get("target_idx"),
+        "target_indices": dataset.get("target_indices"),
+        "aux_idx": dataset.get("aux_idx"),
+        "aux_feature_names": dataset.get("aux_feature_names"),
+        "schema_fingerprint": dataset.get("schema_fingerprint"),
+    })
+
+
 def _validate_loader_contract(args, data_loader, preprocessing):
     if not _is_enhanced_variant(args.implementation_variant):
         return
@@ -2548,9 +2751,13 @@ def _main_impl(args, transcript=None):
     data_sha256 = data_loader.data_fingerprint
     preprocessing = data_loader.preprocessing
     _validate_loader_contract(args, data_loader, preprocessing)
+    target_exogenous_schema = _build_target_exogenous_schema_contract(
+        args, preprocessing
+    )
     environment = environment_metadata(device)
     scientific = _scientific_config(
-        args, data_sha256, source_sha256, preprocessing, device, environment
+        args, data_sha256, source_sha256, preprocessing, device, environment,
+        target_exogenous_schema=target_exogenous_schema,
     )
     config_hash = stable_hash(scientific)
     artifact_paths = _artifact_paths(args)
@@ -2603,6 +2810,10 @@ def _main_impl(args, transcript=None):
             "fold": args.fold,
             "seed": args.seed,
         })
+        if target_exogenous_schema is not None:
+            manifest["target_exogenous_schema"] = deepcopy(
+                target_exogenous_schema
+            )
     resume_checkpoint = None
     if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _t2_candidate_contract(args)
@@ -2630,6 +2841,7 @@ def _main_impl(args, transcript=None):
                 implementation_variant=args.implementation_variant,
                 run_id=run_id,
                 artifact_dir=final_run_dir,
+                target_exogenous_schema=target_exogenous_schema,
             )
             manifest["status"] = "running"
             manifest["updated_at"] = _utc_now()
@@ -2889,6 +3101,17 @@ def _main_impl(args, transcript=None):
             f"test_mse={test_metrics['mse']:.8g} test_mae={test_metrics['mae']:.8g}"
         )
         if artifact_paths.is_enhanced:
+            if (
+                completed_manifest.get("target_exogenous_schema")
+                != target_exogenous_schema
+            ):
+                raise RuntimeError(
+                    "completed manifest target_exogenous schema mismatch before seal"
+                )
+            if target_exogenous_schema is not None:
+                _validate_target_exogenous_schema_contract(
+                    completed_manifest["target_exogenous_schema"]
+                )
             completed_manifest["checksum_contract"] = {
                 "algorithm": "sha256",
                 "file": "checksums.sha256",

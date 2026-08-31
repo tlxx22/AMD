@@ -106,6 +106,7 @@ class SummaryTests(unittest.TestCase):
         status="completed",
         implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
         patch_size=3,
+        legacy_schema=False,
     ):
         run_dir = (
             Path(root)
@@ -127,14 +128,36 @@ class SummaryTests(unittest.TestCase):
             "sha256": "data-hash",
             "task_mode": "target_exogenous",
             "target": "volume",
+            "feature_type": "MS",
+            "feature_names": ["volume", "speed", "temperature"],
+            "target_feature_name": "volume",
             "target_idx": 0,
-            "aux_idx": [1],
+            "aux_idx": [1, 2],
+            "aux_feature_names": ["speed", "temperature"],
             "schema_fingerprint": "fixture-schema",
             "fold": 1,
             "label_horizon": 3,
             "model_pred_len": 1,
             "artifact_horizon": 3,
         }
+        target_schema = {
+            "contract_version": summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+            "feature_type": "MS",
+            "feature_names": ["volume", "speed", "temperature"],
+            "target_feature_name": "volume",
+            "target_idx": 0,
+            "target_indices": [0],
+            "aux_idx": [1, 2],
+            "aux_feature_names": ["speed", "temperature"],
+            "schema_fingerprint": "fixture-schema",
+        }
+        if not legacy_schema:
+            dataset.update({
+                "target_indices": [0],
+                "target_exogenous_schema_contract_version": (
+                    summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+                ),
+            })
         teb = {
             "context_dim": 32,
             "heads": 4,
@@ -252,6 +275,8 @@ class SummaryTests(unittest.TestCase):
             "fold": 1,
             "seed": seed,
         }
+        if not legacy_schema:
+            manifest["target_exogenous_schema"] = target_schema
         if is_t2 or is_t2g or is_t3:
             manifest["candidate_contract"] = {
                 "ablation_id": (
@@ -278,7 +303,7 @@ class SummaryTests(unittest.TestCase):
                 "seq_len": 12,
                 "task_mode": "target_exogenous",
                 "target_idx": 0,
-                "aux_idx": [1],
+                "aux_idx": [1, 2],
                 "schema_fingerprint": "fixture-schema",
                 "target_selection_policy": "full_denorm_then_task_select",
             }
@@ -463,6 +488,10 @@ class SummaryTests(unittest.TestCase):
             self.assertEqual(rows[0]["run_id"], "run-a")
             self.assertEqual(rows[0]["label_horizon"], 3)
             self.assertEqual(rows[0]["fold"], "1")
+            self.assertEqual(
+                rows[0]["target_exogenous_schema_contract"],
+                summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+            )
 
             output = Path(directory) / "summaries"
             run_path, aggregate_path, run_count, group_count = summary.write_summaries(
@@ -476,6 +505,162 @@ class SummaryTests(unittest.TestCase):
                 f"{summary.ENHANCED_IMPLEMENTATION_VARIANT}.csv",
             )
             self.assertTrue(aggregate_path.is_file())
+
+    def test_target_schema_legacy_is_accepted_and_explicitly_marked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "artifacts"
+            self._make_enhanced_run(
+                artifacts, "legacy", legacy_schema=True
+            )
+            rows = summary.load_completed_runs(
+                artifacts,
+                implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(
+                rows[0]["target_exogenous_schema_contract"], "legacy"
+            )
+
+    def test_target_schema_missing_and_misplaced_blocks_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "missing"
+            run_dir = self._make_enhanced_run(artifacts, "v1")
+            manifest_path = run_dir / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest.pop("target_exogenous_schema")
+            manifest_path.write_text(
+                json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(ValueError, "manifest block is missing"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "misplaced"
+            run_dir = self._make_enhanced_run(
+                artifacts, "legacy", legacy_schema=True
+            )
+            manifest_path = run_dir / "manifest.json"
+            config = json.loads(
+                (run_dir / "config.resolved.json").read_text(encoding="utf-8")
+            )
+            dataset = config["scientific_config"]["dataset"]
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["target_exogenous_schema"] = {
+                "contract_version": (
+                    summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+                ),
+                "feature_type": dataset["feature_type"],
+                "feature_names": dataset["feature_names"],
+                "target_feature_name": dataset["target_feature_name"],
+                "target_idx": dataset["target_idx"],
+                "target_indices": [dataset["target_idx"]],
+                "aux_idx": dataset["aux_idx"],
+                "aux_feature_names": dataset["aux_feature_names"],
+                "schema_fingerprint": dataset["schema_fingerprint"],
+            }
+            manifest_path.write_text(
+                json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(ValueError, "config has no version"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+                )
+
+    def test_target_schema_tamper_and_parallel_conflict_are_rejected(self):
+        mutations = {
+            "aux_order": lambda block: block.update({
+                "aux_idx": list(reversed(block["aux_idx"])),
+                "aux_feature_names": list(reversed(block["aux_feature_names"])),
+            }),
+            "target_indices": lambda block: block.update({
+                "target_indices": [2],
+            }),
+            "aux_names_order": lambda block: block.update({
+                "aux_feature_names": list(reversed(block["aux_feature_names"])),
+            }),
+            "feature_order": lambda block: block.update({
+                "feature_names": [
+                    block["feature_names"][0],
+                    block["feature_names"][2],
+                    block["feature_names"][1],
+                ],
+            }),
+            "target_idx": lambda block: block.update({
+                "target_idx": 1,
+                "target_indices": [1],
+                "target_feature_name": block["feature_names"][1],
+            }),
+            "fingerprint": lambda block: block.update({
+                "schema_fingerprint": "tampered",
+            }),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(tamper=name), tempfile.TemporaryDirectory() as directory:
+                artifacts = Path(directory) / "artifacts"
+                run_dir = self._make_enhanced_run(artifacts, "v1")
+                manifest_path = run_dir / "manifest.json"
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                mutate(manifest["target_exogenous_schema"])
+                manifest_path.write_text(
+                    json.dumps(manifest, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                self._write_enhanced_checksums(run_dir)
+                with self.assertRaisesRegex(ValueError, "schema mismatch"):
+                    summary.load_completed_runs(
+                        artifacts,
+                        implementation_variant=(
+                            summary.ENHANCED_IMPLEMENTATION_VARIANT
+                        ),
+                    )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "version"
+            run_dir = self._make_enhanced_run(artifacts, "v1")
+            config_path = run_dir / "config.resolved.json"
+            manifest_path = run_dir / "manifest.json"
+            metrics_path = run_dir / "metrics.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            config["scientific_config"]["dataset"][
+                "target_exogenous_schema_contract_version"
+            ] = "unsupported-v2"
+            config_hash = summary._stable_hash(config["scientific_config"])
+            config["config_hash"] = config_hash
+            manifest["config_hash"] = config_hash
+            metrics["config_hash"] = config_hash
+            for path, value in (
+                (config_path, config), (manifest_path, manifest),
+                (metrics_path, metrics),
+            ):
+                path.write_text(
+                    json.dumps(value, sort_keys=True) + "\n", encoding="utf-8"
+                )
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(ValueError, "unsupported.*schema version"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+                )
+
+        with self.assertRaisesRegex(ValueError, "must not carry"):
+            summary._validate_target_exogenous_schema(
+                {"dataset": {
+                    "task_mode": "parallel_multivariate",
+                    "target_exogenous_schema_contract_version": (
+                        summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+                    ),
+                }},
+                {"target_exogenous_schema": {}},
+                Path("/tmp/parallel-fixture"),
+            )
 
     def test_enhanced_tamper_missing_checksum_and_noncompleted_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -641,6 +641,46 @@ class AMDEnhancedM3Tests(unittest.TestCase):
         self.assertEqual(parallel_prediction.shape, (2, 2, 3))
         torch.testing.assert_close(parallel_prediction, expected_all)
 
+    def test_u1_target_output_is_frozen_amd_slice_without_enhancement_state(self):
+        target_idx = 2
+        kwargs = self._backbone_kwargs()
+        frozen_kwargs = dict(kwargs)
+        frozen_kwargs["target_slice"] = slice(None)
+        frozen = AMD(**frozen_kwargs).eval()
+        u1 = AMDEnhanced(
+            **kwargs,
+            target_idx=target_idx,
+            teb_context_dim=4,
+            task_mode=TARGET_EXOGENOUS,
+            aux_idx=(0, 1),
+            use_pmcr=False,
+            use_teb=False,
+            teb_gamma_init=1e-3,
+        ).eval()
+        u1.load_state_dict(frozen.state_dict(), strict=True)
+        self.assertIsNone(u1.pmcr)
+        self.assertIsNone(u1.teb)
+        self.assertFalse(
+            any(
+                key.startswith(("pmcr.", "teb."))
+                for key in u1.state_dict()
+            )
+        )
+
+        torch.manual_seed(591)
+        x = torch.randn(2, 4, 3)
+        shared_rng = _capture_torch_rng_state()
+        _restore_torch_rng_state(shared_rng)
+        with torch.no_grad():
+            frozen_prediction, frozen_moe = frozen(x)
+        _restore_torch_rng_state(shared_rng)
+        with torch.no_grad():
+            u1_prediction, u1_moe = u1(x)
+        expected = frozen_prediction[:, :, target_idx : target_idx + 1]
+        self.assertEqual(u1_prediction.shape, (2, kwargs["pred_len"], 1))
+        self.assertLess(_max_abs_error(u1_prediction, expected), 1e-6)
+        self.assertLess(_max_abs_error(u1_moe, frozen_moe), 1e-6)
+
     def test_formal_off_off_revin_parity_matrix(self):
         cases = [
             (torch.device("cpu"), torch.float32, True, True, 0, PARALLEL_MULTIVARIATE),

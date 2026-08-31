@@ -1739,3 +1739,77 @@ artifact 继续使用 schema-v2、既有路径、13-file checksum、staging/atom
 实现范围只允许 `main.py`、`summarize_results.py`、`tests/test_runner.py`、`tests/test_summarize_results.py`、`tests/test_tsAMD_enhanced.py` 与本 milestone；不得新增测试文件。三份测试均为 `permanent_regression_test`，将长期保护正式 runner、双合法 target shape、无 broadcasting、artifact provenance、U1/frozen AMD OT parity、U2/T2 单目标合同及 legacy/parallel 兼容。一次性 probe 只位于 `/tmp/m4_target_exogenous_repair_<timestamp>/` 并在结束前删除。
 
 本 repair 不改变 U1、T2、T2G、T3、PMCR、Global TEB 或 frozen AMD 数学结构，不改变 ETTm1 数据/split/scaler/window/label，不改变 UrbanEV M1 数据合同。本轮不训练 U1/U2，不执行 validation epoch 或 final test，不创建真实 artifact，不实现 warm-start、新 TEB 或 P2，不进入 M5/M7，不实现空间模块。通过测试和 smoke 只构成 runner/provenance 工程证据，不形成 TEB performance 结论；M4 状态继续 `In Progress`，TEB adequacy gate 仍未通过。
+## 34. 第十三轮 Stage B：runner/provenance repair 实现与验证
+
+### 34.1 Stage A 文档 closure
+
+第十二轮 capability audit 与第十三轮 repair 合同已由唯一文档 commit `2172b83b6631f74b14913aadc2ba6b517336d315` 提交并推送；parent=`6638d36336b9f46ed4d636c2b9d88bac80640b34`，title=`docs(m4): authorize target-exogenous runner repair`。推送后 local/tracking/live remote 一致、ahead/behind=`0/0`、worktree/index clean。阶段 A canonical SHA-256=`55defcfba6c52cc94201bc44d7a26714f32790a74bfda56cdb191d50bf82a2a6`；本 milestone 的 docs-closure SHA-256=`bcd47a91cef6f09dfec922b385f4557d54f9be84c291b5b545341bc4582e7212`。
+
+### 34.2 Production loss shape repair
+
+`main.py::_prediction_for_loss` 是唯一 adapter，`_assert_prediction_batch` 直接委托它；`train_one_epoch`、validation `evaluate` 与 final-test `evaluate` 均走同一调用链。实现后的严格行为为：
+
+- prediction 必须为 `[B,H,1]`；
+- target 为 `[B,H]` 时，只对 prediction 执行 `squeeze(-1)`，criterion 前双方严格为 `[B,H]`；
+- target 为 `[B,H,1]` 时，prediction/target 均保持三维，criterion 前严格为 `[B,H,1]`；
+- prediction/target rank、channel、batch 或 horizon 不符均在 criterion/metric 前拒绝并报告真实 shape，不允许 broadcasting；
+- `_accumulate_errors` 只接收 adapter 后严格同形张量，按全部目标元素累计 SSE/SAE；
+- generic MS 的 target-only inverse transform 仍使用 loader 的目标 scaler；UrbanEV 二维 target 行为不变；`parallel_multivariate` 分支未改变。
+
+实际 call site：`train_one_epoch`（adapter + MSE + selector auxiliary）、`evaluate`（adapter + 全元素 metric），主循环分别用于 train、validation 与 validation-best checkpoint 载入后的 final test。本轮未修改 `CustomDataLoader`。
+
+### 34.3 Schema-v1、resume 与 summarizer
+
+新增版本常量 `target_exogenous_schema_v1`。仅当 `enhanced variant AND task_mode=target_exogenous` 时，runtime preprocessing 生成公共块：
+
+`contract_version / feature_type / feature_names / target_feature_name / target_idx / target_indices / aux_idx / aux_feature_names / schema_fingerprint`。
+
+Generic ETT 的事实来源是 `CustomDataLoader.metadata()` 的实际 columns、resolved target 与 target indices；UrbanEV 的事实来源是 M1 FoldBundle/FeatureSchema 及其 fingerprint。CLI 只作为 expected value；不一致在 artifact path/staging 创建前拒绝。该版本与全部 schema 字段进入 resolved scientific config，checkpoint 通过内嵌 resolved config 携带；completed manifest 在 checksum/seal 前再次执行字段集和内部一致性校验。U1 与 T2 synthetic artifacts 的公共块逐元素相同，U1 无 candidate contract，T2 同时保留自身 candidate contract；schema-v2 的 13-file checksum、目录与 atomic publish 未改变。
+
+Resume 先比较 manifest 公共块，再比较 resolved scientific schema，之后才允许 checkpoint deserialization/参数写入；legacy↔v1、字段或顺序 mismatch 均拒绝。Summarizer 对 v1 严格校验 config/manifest/path/task/target/schema/candidate/checksum/completed status；无版本且无 block 的历史 schema-v2 继续读取并显式标记为 `legacy`；有版本无 block、无版本有 block、version/target/indices/aux order/names/feature order/fingerprint 篡改及 parallel 错带 v1 均拒绝。Parallel 既有 scientific/comparison hash fixture 保持不变，真实 parallel synthetic artifact 也明确不含 version/block。
+
+### 34.4 修改范围与永久回归
+
+实现修改精确为 `main.py`、`summarize_results.py`、`tests/test_runner.py`、`tests/test_summarize_results.py`、`tests/test_tsAMD_enhanced.py` 和本 milestone；没有新增测试文件。三份既有测试继续分类为 `permanent_regression_test`，分别保护双合法 target shape/无广播/train-evaluate 共用 adapter/runtime schema 与原子 artifact、v1/legacy/tamper/parallel/duplicate summarizer 合同、U1/frozen AMD OT-slice parity 与 enhancement-empty state。
+
+最终验证结果：
+
+| 组 | passed/total | failed | skipped | wall-clock |
+|---|---:|---:|---:|---:|
+| runner + summarizer + AMDEnhanced | 80/80 | 0 | 0 | 5.676 s |
+| Global/T2/T2G/T3 TEB 保护 | 71/71 | 0 | 0 | 0.642 s |
+| PMCR + M1 保护 | 36/36 | 0 | 0 | 3.205 s |
+| 完整 discovery | 220/220 | 0 | 0 | 9.586 s |
+
+repair 前既有 212 项全部保留，新增 8 项；既有 `1e-6` parity 门槛未放宽。CUDA 可用且 T2/T2G/T3、PMCR 与 M0 equivalence 的 CUDA 路径均实际执行。
+
+### 34.5 真实 ETTm1 MS 与 UrbanEV smoke
+
+真实 ETTm1（MS、OT、target_idx=6、aux_idx=`[0,1,2,3,4,5]`、seq=512、pred=96）：
+
+| 项目 | 实际值 |
+|---|---|
+| train sample x / y | `[512,7]` / `[96,1]` |
+| train/validation batch x / y | `[4,512,7]` / `[4,96,1]` |
+| U1 prediction / adapter / target | `[4,96,1]` / `[4,96,1]` / `[4,96,1]` |
+| T2 prediction / adapter / target | `[4,96,1]` / `[4,96,1]` / `[4,96,1]` |
+| state_source | U1/T2 均为 `[4,1056]` |
+| U1 vs frozen AMD OT slice | prediction max abs=`0`、MoE max abs=`0`、两者均 `torch.equal=True` |
+| U1 enhancement keys | `0` |
+| target inverse-transform shape | `[2,96,1]` |
+
+T2 使用真实 train batch 和 production `MSE + selector auxiliary` 仅 backward 一次；loss=`4.939964771270752` 且有限，未创建 optimizer、未调用 `optimizer.step()`。梯度 L2：patch-query=`2.8418864896048054e-07`（1120/1120 非零）、exogenous projector/norm=`6.4224020117987575e-06`（16480/16480 非零）、gamma=`3.598617040552199e-04`（1/1 非零）、AMD backbone=`78.06347028950478`（10243941/10244742 非零），全部有限。T2 global-query 专属参数有 raw grad tensor 但严格全零（L2=`0`、0/16480 非零），继续符合第八轮的 forecast-loss-disconnected 合同。
+
+真实 UrbanEV M1 production pipeline（F4、fold=1、history=12、label horizon=3、model pred_len=1）只取一个 train batch：x=`[4,12,11]`、target=`[4,1]`、prediction=`[4,1,1]`、adapter=`[4,1]`、state_source=`[4,28]`，target_idx=`0`，aux_idx=`[1,2,3,4,5,6,7,8,9,10]`；criterion 前严格同形、prediction/loss 有限、无 broadcasting。FoldBundle preprocessing fingerprint=`8a90c280e2aa0a78e25ef014478ca914768562d24d3364966ecf22dbcb085a19`，FeatureSchema fingerprint=`8e43cc3835b913f43357d98573c57c902e3c42d38024df32b6ea93735c00a0f8`；未遍历 UrbanEV test。
+
+### 34.6 Synthetic artifact、source 与停止点
+
+现有 tiny fixture 在 `TemporaryDirectory` 内生成并回收 U1/T2 schema-v1 artifacts：两者 completed manifest 公共 block 完全相同，T2 candidate contract 保留，13/13 checksum 与 system `sha256sum -c` 通过，summarizer 接受合法 v1；legacy fixture 可读且标记 `legacy`，各类 tamper 被拒绝。仓库内和正式 artifact root 均未产生真实 ETTm1/UrbanEV artifact。
+
+实现后 source fingerprint：
+
+`sha256_length_prefixed_relative_path_and_content_v1`，20 个文件，`bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e`。
+
+一次性目录 `/tmp/m4_target_exogenous_repair_20260831T1938silDum/` 已确认为空并删除。Frozen AMD、PMCR、Global TEB、T2、T2G、T3、M0-M3 与 baseline 均未修改；`utils/dataloader.py`、任何模型模块和数据均未修改。
+
+本轮没有 U1/U2 production training、development validation epoch 或 final-test evaluation，没有真实 development artifact，没有新增 TEB、warm-start 或 P2，没有进入 M5/M7，也没有实现空间模块。工程 repair 通过不构成 TEB performance evidence；TEB adequacy gate 仍为 `not yet passed`，M4 继续 `In Progress`。本节将随唯一 implementation commit `fix(m4): support generic target-exogenous runner` 提交，最终 commit SHA 由 Codex closure 回执报告。

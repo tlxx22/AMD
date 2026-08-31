@@ -804,6 +804,16 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
         }).to_csv(path, index=False)
 
     @staticmethod
+    def _toy_preprocessing():
+        return {
+            "columns": ["a", "b"],
+            "feature_type": "MS",
+            "target": "b",
+            "resolved_target": "b",
+            "target_indices": [1],
+        }
+
+    @staticmethod
     def _args(
         data_path,
         artifact_root,
@@ -844,7 +854,7 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
             "--feature_names", "a", "b",
             "--target_feature_name", "b",
             "--aux_feature_names", "a",
-            "--schema_fingerprint", "synthetic-v1",
+            "--schema_fingerprint", runner.stable_hash(["a", "b"]),
             "--fold", "official",
             "--horizon", "2",
             "--ablation_id", ablation_id,
@@ -1077,10 +1087,7 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
             self.assertEqual(u1.display_name, "AMD-Concat")
             self.assertEqual(u2.display_name, "AMD-Concat + TEB")
 
-            preprocessing = {
-                "columns": ["a", "b"],
-                "target_indices": [1],
-            }
+            preprocessing = self._toy_preprocessing()
             scientific = []
             for args in (u1, u2):
                 scientific.append(runner._scientific_config(
@@ -1098,6 +1105,25 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
             left["experiment"]["ablation_id"] = right["experiment"]["ablation_id"]
             left["experiment"]["display_name"] = right["experiment"]["display_name"]
             self.assertEqual(left, right)
+
+    def test_target_schema_runtime_mismatch_is_rejected_before_staging(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            artifact_root = root / "artifacts"
+            self._write_dataset(data_path)
+            args = self._args(
+                data_path,
+                artifact_root,
+                use_teb=False,
+                ablation_id="U1",
+            )
+            args.schema_fingerprint = "not-the-runtime-schema"
+            with self.assertRaisesRegex(
+                ValueError, "does not match resolved runtime schema"
+            ):
+                runner.main(args)
+            self.assertFalse(artifact_root.exists())
 
     def test_contradictory_enhanced_contracts_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1155,7 +1181,7 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 prepared,
                 "data-hash",
                 "source-hash",
-                {"columns": ["a", "b"], "target_indices": [1]},
+                self._toy_preprocessing(),
                 torch.device("cpu"),
                 _runtime_metadata(),
             )
@@ -1227,7 +1253,7 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 prepared,
                 "data-hash",
                 "source-hash",
-                {"columns": ["a", "b"], "target_indices": [1]},
+                self._toy_preprocessing(),
                 torch.device("cpu"),
                 _runtime_metadata(),
             )
@@ -1247,7 +1273,7 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 t2,
                 "data-hash",
                 "source-hash",
-                {"columns": ["a", "b"], "target_indices": [1]},
+                self._toy_preprocessing(),
                 torch.device("cpu"),
                 _runtime_metadata(),
             )
@@ -1295,7 +1321,7 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 prepared,
                 "data-hash",
                 "source-hash",
-                {"columns": ["a", "b"], "target_indices": [1]},
+                self._toy_preprocessing(),
                 torch.device("cpu"),
                 _runtime_metadata(),
             )
@@ -1536,6 +1562,82 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                     implementation_variant=runner.ENHANCED_IMPLEMENTATION_VARIANT,
                 ),
                 [],
+            )
+
+    def test_u1_and_t2_publish_identical_runtime_schema_v1_blocks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+            stable_git = {"commit": "test", "dirty": False, "status": []}
+            with mock.patch.object(
+                runner, "environment_metadata", return_value=_runtime_metadata()
+            ), mock.patch.object(
+                runner, "git_metadata", return_value=stable_git
+            ), mock.patch.object(
+                runner, "AMDEnhanced", _TinyCheckpointModel
+            ), mock.patch.object(
+                runner, "train_one_epoch", side_effect=self._fake_train
+            ), mock.patch.object(
+                runner, "evaluate", side_effect=self._fake_evaluate
+            ):
+                runner.main(self._args(
+                    data_path,
+                    root / "u1",
+                    use_teb=False,
+                    ablation_id="U1",
+                ))
+                runner.main(self._t2_args(data_path, root / "t2"))
+
+            u1_run = self._single_run_dir(root / "u1")
+            t2_run = self._single_t2_run_dir(root / "t2")
+            u1_manifest = json.loads((u1_run / "manifest.json").read_text())
+            t2_manifest = json.loads((t2_run / "manifest.json").read_text())
+            u1_config = json.loads(
+                (u1_run / "config.resolved.json").read_text()
+            )
+            t2_config = json.loads(
+                (t2_run / "config.resolved.json").read_text()
+            )
+            expected = {
+                "contract_version": (
+                    runner.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+                ),
+                "feature_type": "MS",
+                "feature_names": ["a", "b"],
+                "target_feature_name": "b",
+                "target_idx": 1,
+                "target_indices": [1],
+                "aux_idx": [0],
+                "aux_feature_names": ["a"],
+                "schema_fingerprint": runner.stable_hash(["a", "b"]),
+            }
+            self.assertEqual(u1_manifest["target_exogenous_schema"], expected)
+            self.assertEqual(t2_manifest["target_exogenous_schema"], expected)
+            self.assertNotIn("candidate_contract", u1_manifest)
+            self.assertIn("candidate_contract", t2_manifest)
+            for config in (u1_config, t2_config):
+                dataset = config["scientific_config"]["dataset"]
+                self.assertEqual(
+                    dataset["target_exogenous_schema_contract_version"],
+                    runner.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+                )
+                self.assertEqual(dataset["target_indices"], [1])
+            u1_rows = summary.load_completed_runs(
+                root / "u1",
+                implementation_variant=runner.ENHANCED_IMPLEMENTATION_VARIANT,
+            )
+            t2_rows = summary.load_completed_runs(
+                root / "t2",
+                implementation_variant=runner.T2_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(
+                u1_rows[0]["target_exogenous_schema_contract"],
+                runner.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+            )
+            self.assertEqual(
+                t2_rows[0]["target_exogenous_schema_contract"],
+                runner.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
             )
 
     def test_t2g_synthetic_schema_v2_artifact_and_summarizer_identity(self):
@@ -1942,13 +2044,19 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 self.assertEqual((run_dir / name).read_bytes(), content, name)
             mismatch_args = []
 
+            schema_data_path = root / "toy-schema-v2.csv"
+            schema_frame = pd.read_csv(data_path).rename(columns={"b": "c"})
+            schema_frame.to_csv(schema_data_path, index=False)
             schema_changed = self._args(
-                data_path,
+                schema_data_path,
                 artifact_root,
                 train_epochs=2,
                 resume=run_dir,
             )
-            schema_changed.schema_fingerprint = "synthetic-v2"
+            schema_changed.target = "c"
+            schema_changed.target_feature_name = "c"
+            schema_changed.feature_names = ["a", "c"]
+            schema_changed.schema_fingerprint = runner.stable_hash(["a", "c"])
             mismatch_args.append(("schema", schema_changed))
 
             horizon_changed = self._args(
@@ -2020,6 +2128,70 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                             content,
                             filename,
                         )
+
+    def test_resume_target_schema_mismatch_precedes_checkpoint_deserialization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+            prepared = runner.prepare_args(self._args(
+                data_path,
+                root / "artifacts",
+                use_teb=False,
+                ablation_id="U1",
+            ))
+            expected = runner._build_target_exogenous_schema_contract(
+                prepared, self._toy_preprocessing()
+            )
+            run_dir = root / "run-id"
+            run_dir.mkdir()
+            (run_dir / "last.pt").write_bytes(b"must-not-be-deserialized")
+            (run_dir / "config.resolved.json").write_text(
+                json.dumps({}), encoding="utf-8"
+            )
+            base_manifest = {
+                "schema_version": runner.SCHEMA_VERSION,
+                "artifact_schema_version": (
+                    runner.ENHANCED_ARTIFACT_SCHEMA_VERSION
+                ),
+                "implementation_variant": runner.ENHANCED_IMPLEMENTATION_VARIANT,
+                "run_id": run_dir.name,
+                "status": "running",
+                "artifact_dir": str(run_dir.resolve()),
+                "config_hash": "config-hash",
+                "data_sha256": "data-hash",
+            }
+            mismatches = (
+                None,
+                {
+                    **expected,
+                    "aux_idx": [],
+                },
+                {
+                    **expected,
+                    "contract_version": "legacy",
+                },
+            )
+            for observed in mismatches:
+                with self.subTest(observed=observed):
+                    manifest = dict(base_manifest)
+                    if observed is not None:
+                        manifest["target_exogenous_schema"] = observed
+                    (run_dir / "manifest.json").write_text(
+                        json.dumps(manifest), encoding="utf-8"
+                    )
+                    with mock.patch.object(torch, "load") as load:
+                        with self.assertRaisesRegex(
+                            RuntimeError, "target_exogenous schema contract mismatch"
+                        ):
+                            runner._load_resume_checkpoint(
+                                run_dir, "config-hash", "data-hash", 2,
+                                implementation_variant=(
+                                    runner.ENHANCED_IMPLEMENTATION_VARIANT
+                                ),
+                                target_exogenous_schema=expected,
+                            )
+                        load.assert_not_called()
 
     def test_urbanev_f1_production_bundle_single_batch_and_horizon_identity(self):
         data_root = runner.ROOT / "data" / "UrbanEV" / "data"
@@ -2242,21 +2414,58 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                         runner.prepare_args(args)
                     self.assertFalse(artifact_root.exists())
 
-    def test_prediction_loss_adapter_rejects_all_broadcasting(self):
-        target_prediction = torch.zeros(2, 1, 1)
-        target = torch.zeros(2, 1)
-        adapted = runner._prediction_for_loss(
-            target_prediction,
-            target,
-            task_mode=runner.TARGET_EXOGENOUS,
+    def test_prediction_loss_adapter_accepts_only_two_exact_target_shapes(self):
+        prediction = torch.arange(6, dtype=torch.float32).reshape(2, 3, 1)
+        target_2d = prediction[..., 0].clone()
+        target_2d_before = target_2d.clone()
+        adapted_2d = runner._prediction_for_loss(
+            prediction, target_2d, task_mode=runner.TARGET_EXOGENOUS
         )
-        self.assertEqual(adapted.shape, target.shape)
-        with self.assertRaisesRegex(RuntimeError, "must be \[B,H,1\]"):
-            runner._prediction_for_loss(
-                target_prediction,
-                target.unsqueeze(-1),
-                task_mode=runner.TARGET_EXOGENOUS,
-            )
+        self.assertEqual(adapted_2d.shape, (2, 3))
+        self.assertTrue(torch.equal(adapted_2d, prediction[..., 0]))
+        self.assertTrue(torch.equal(target_2d, target_2d_before))
+
+        target_3d = prediction.clone()
+        target_3d_before = target_3d.clone()
+        adapted_3d = runner._prediction_for_loss(
+            prediction, target_3d, task_mode=runner.TARGET_EXOGENOUS
+        )
+        self.assertIs(adapted_3d, prediction)
+        self.assertEqual(adapted_3d.shape, (2, 3, 1))
+        self.assertTrue(torch.equal(target_3d, target_3d_before))
+
+        singleton = torch.tensor([[[2.0]]])
+        for singleton_target in (singleton[..., 0], singleton.clone()):
+            with self.subTest(target_shape=tuple(singleton_target.shape)):
+                adapted = runner._prediction_for_loss(
+                    singleton,
+                    singleton_target,
+                    task_mode=runner.TARGET_EXOGENOUS,
+                )
+                self.assertEqual(tuple(adapted.shape), tuple(singleton_target.shape))
+
+        invalid_pairs = (
+            (torch.zeros(2, 3), torch.zeros(2, 3)),
+            (torch.zeros(2, 3, 2), torch.zeros(2, 3, 2)),
+            (prediction, torch.zeros(2, 3, 2)),
+            (prediction, torch.zeros(3)),
+            (prediction, torch.zeros(2, 3, 1, 1)),
+            (prediction, torch.zeros(2, 3, 0)),
+            (prediction, torch.zeros(1, 3)),
+            (prediction, torch.zeros(2, 2)),
+            (prediction, torch.zeros(2, 2, 1)),
+        )
+        for invalid_prediction, invalid_target in invalid_pairs:
+            with self.subTest(
+                prediction=tuple(invalid_prediction.shape),
+                target=tuple(invalid_target.shape),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "target_exogenous"):
+                    runner._prediction_for_loss(
+                        invalid_prediction,
+                        invalid_target,
+                        task_mode=runner.TARGET_EXOGENOUS,
+                    )
 
         parallel_prediction = torch.zeros(2, 1, 3)
         parallel_target = torch.zeros(2, 1, 3)
@@ -2274,6 +2483,45 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 torch.zeros(2, 1, 1),
                 task_mode=runner.PARALLEL_MULTIVARIATE,
             )
+
+    def test_train_and_evaluate_share_the_strict_target_adapter(self):
+        class TinyTargetModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.weight = torch.nn.Parameter(torch.tensor(0.25))
+
+            def forward(self, inputs):
+                prediction = self.weight.expand(inputs.shape[0], 2, 1)
+                return prediction, self.weight * 0.0
+
+        model = TinyTargetModel()
+        batch = (
+            torch.ones(2, 4, 2),
+            torch.zeros(2, 2, 1),
+        )
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+        original = runner._assert_prediction_batch
+        with mock.patch.object(
+            runner, "_assert_prediction_batch", wraps=original
+        ) as adapter:
+            runner.train_one_epoch(
+                model,
+                [batch],
+                optimizer,
+                torch.nn.MSELoss(),
+                torch.device("cpu"),
+                1,
+                1,
+                show_progress=False,
+                task_mode=runner.TARGET_EXOGENOUS,
+            )
+            runner.evaluate(
+                model, [batch], torch.device("cpu"), show_progress=False,
+                task_mode=runner.TARGET_EXOGENOUS,
+            )
+        self.assertEqual(adapter.call_count, 2)
+        self.assertTrue(all(call.kwargs["task_mode"] == runner.TARGET_EXOGENOUS
+                            for call in adapter.call_args_list))
 
     def test_atomic_publication_fault_windows_and_success(self):
         class ClosedTranscript:
@@ -2529,6 +2777,17 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
             self.assertIn("completed run=", train_text)
             runner.verify_checksums(run_dir)
             self.assertIn("OK", runner.verify_checksums_with_sha256sum(run_dir))
+            config = json.loads(
+                (run_dir / "config.resolved.json").read_text(encoding="utf-8")
+            )
+            manifest = json.loads(
+                (run_dir / "manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertNotIn(
+                "target_exogenous_schema_contract_version",
+                config["scientific_config"]["dataset"],
+            )
+            self.assertNotIn("target_exogenous_schema", manifest)
 
 
 
