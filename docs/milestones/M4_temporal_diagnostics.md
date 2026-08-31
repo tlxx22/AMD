@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第八轮，TEB-first 顺序修订与 T2 global-query 梯度路径审计
+当前轮次：第九轮，T2G Global-Mediated Patch-Conditioned TEB 工程实现
 
 canonical 内部版本：v2.1-R1
 
@@ -890,3 +890,124 @@ d=32 时增加 `2*d*d + d + 1 = 2,081` parameters（含 bias 与 beta）。同�
 本轮只修改 canonical 与本 milestone；未修改任何 Python、测试、shell、配置模板、数据或 artifact，未创建 optimizer，未执行 optimizer step，未训练新候选，未访问 UrbanEV test。未启动 P2/T3，T4/T5 继续排除；未进入 M5/M7，未实现 StateAdapter、Graph Mode 或空间模块。
 
 审计使用 `/public/home/yueweiting/miniconda/envs/amd/bin/python -B`，临时目录为 `/tmp/m4_t2_global_gradient_audit_9oO8pV`，仅包含一次性审计脚本/终端结果，完成最终核验后删除。M4 状态保持 `In Progress`；两份文档均不 stage、不 commit、不 push，等待用户与 ChatGPT 审核。
+
+## 26. 第九轮：T2G Global-Mediated Patch-Conditioned TEB 工程实现
+
+### 26.1 第八轮文档 closure
+
+第八轮 canonical 与本 milestone 在保持字节不变的前提下完成一个文档 commit：
+
+```text
+commit: daa8b2685a419d0e59cb4f4d184ea77cb3c2ad16
+parent: 4979e5fd9738da28e2999edf8a6b7dc1ff0266d9
+title: docs(m4): record T2 global gradient audit
+push: origin/AMD-paper-repro-custom-modules-v1 succeeded
+```
+
+提交范围精确为两份文档；提交后 local/tracking/live remote 相同、ahead/behind=`0/0`、worktree/index clean。closure 版本 canonical SHA-256 为 `56cca7ccece13b7556a59c284d153750e2ffecda59bb1f6607d94779b9346764`，本 milestone SHA-256 为 `0f639b995e4602401ac7e0b0834c20aaa0f90afff86cd8a0b2c0f975a6437a6a`。当时 source fingerprint 仍为 `883bbbef80d5a7a13d5353d3dc08e549159dcfbf3beed40a307759db4e20a117`（18 files）；M0-M3、baseline 及冻结源码未变化。
+
+### 26.2 用户决定、来源边界与候选身份
+
+用户决定实现 T2G，并固定：global cross-attention 使用 `q_global + A_global` residual 后接 LayerNorm；patch 直接查询外生变量后不增加 `Q_patch` residual；不把 patch residual 与 global-mediated interaction 捆绑在同一候选。T3 confidence gate 继续暂缓，T4/T5 继续排除，TEB-first 顺序不变，P2 不启动。
+
+TimeXer 的 target patch/global endogenous tokens 先做带 residual+LayerNorm 的 endogenous self-attention，global token 查询 exogenous variate tokens 后也使用 global residual+LayerNorm；原结构不让各 patch 直接查询外生 tokens。T2/T2G 的 patch-direct-query 路径属于 TimeXer-inspired 改造。T2G 固定身份：
+
+```text
+class = GlobalMediatedPatchTargetExogenousBridge
+variant = el-amd-m4-t2g-global-mediated-patch-teb-v1
+ablation_id = M4_T2G
+teb_architecture = global_mediated_patch_v1
+```
+
+它是 T2 的单因素 M4 工程候选，不是 T3、最终 TEB 或最终 EL-AMD，不覆盖 Global v1/T2/M3 variant。
+
+### 26.3 精确结构、初始化和参数
+
+实现严格遵循：
+
+```text
+A_patch,A_global = MHA(concat(Q_patch,q_global),E,E)
+G_global = LayerNorm_global_bridge(q_global + A_global)
+a_patch = 2*sigmoid(Linear_gate([A_patch;broadcast(G_global)]))
+F_patch = A_patch + beta_global*a_patch*broadcast(G_global)
+delta = crop(unpatch(Linear(d,P)(F_patch)))
+H_out = H + gamma_teb*delta
+exo_context = G_global（parallel 由 target_idx 选择）
+```
+
+`A_patch` 是 raw MHA response；不存在 `Q_patch+A_patch`、patch post-cross norm、patch FFN/self-attention/to-patch attention 或 target-only gate shortcut。gate Linear weight/bias 零初始化，初始 gate 逐元素严格等于 1；`beta_global=1e-3`，`gamma_teb=1e-3`。新增 keys 仅 `global_bridge_norm.weight/bias`、`global_injection_gate.weight/bias`、`beta_global`，合计 130 parameters。实测模块参数为 ETTm1 `39,491`、UrbanEV `5,606`；fixed sinusoidal buffer 不进入 state dict。
+
+`beta_global=0`、相同 T2 base weights 时，T2G hidden output 与 patch-output projection input 对 T2 的误差均通过 `atol/rtol=1e-6`。production `beta=1e-3` 的真实 ETTm1 validation batch 初始差异为：prediction `4.47034836e-7`、MoE `0`、raw `A_patch=0`、raw `A_global=0`、patch projection input `0.00384790450`、delta patch `0.00238600373`，全部 finite；state source 因 `G_global` 语义变化而最大差 `3.17841768`。
+
+### 26.4 工程接入与文件范围
+
+- 新增 `models/modules/global_mediated_patch_target_exogenous_bridge.py`：独立 T2G class；T2 文件不改。
+- 修改 `models/modules/__init__.py`：公开 T2G class 与固定合同常量。
+- 修改 `models/tsAMD_enhanced.py`：条件实例化 T2G，保持 DDI/PMCR/AMS/state-source 路由，限制 strict same-structure restore。
+- 修改 `main.py`：增加独立 variant/ablation/architecture、六个显式 T2G-only 字段、scientific/comparison/checkpoint/manifest/resume/artifact identity；旧 Global/T2 字段与 hash 语义不变。
+- 修改 `summarize_results.py`：严格核验 T2G candidate contract、checksum、path/config/manifest 和 duplicate identity，与 Global/T2 分组隔离。
+- 新增 `tests/test_global_mediated_patch_teb.py`、`tests/test_global_mediated_patch_teb_parallel.py`、`tests/test_global_mediated_patch_teb_checkpoint.py`。
+- 修改 `tests/test_tsAMD_enhanced.py`、`tests/test_public_architecture.py`、`tests/test_runner.py`、`tests/test_summarize_results.py`，覆盖路由、旧 identity/hash、schema-v2 synthetic artifact、resume/duplicate/tamper。
+- 修改 canonical 与本 milestone，且未创建第二份 M4 文档。
+
+T2G-only fields 为 global residual、patch residual=`none`、scalar-per-patch gate、gate input、identity gate init 与 beta init；它们条件进入 T2G scientific/comparison config、manifest candidate contract、checkpoint/resume mismatch 和 summarizer。Global/T2 的 historical scientific/comparison fixture 原值通过。T2G 只允许 from scratch 或同结构 `strict=True`；Global↔T2G、T2↔T2G、partial/unexpected/shape/patch mismatch、`strict=False` 与全部 source-kind importer 均在写参前拒绝，失败不污染 parameter/buffer。
+
+### 26.5 真实 batch smoke 与 production-loss 梯度
+
+两项均为真实 production loader、固定 seed、`model.train()` 下单次 `MSE(prediction,y)+selector auxiliary` backward；未创建 optimizer，未执行 `optimizer.step()`，未训练 epoch，未写 artifact。
+
+| 项目 | ETTm1 parallel | UrbanEV F4 single |
+|---|---:|---:|
+| input / target | `[128,512,7]` / `[128,96,7]` | `[4,12,11]` / `[4,1]` |
+| prediction | `[128,96,7]` | `[4,1,1]` |
+| state_source | `[128,1056]` | `[4,56]` |
+| target_idx / aux_idx | `6 / []` | `0 / [1,...,10]` |
+| prediction MSE / auxiliary / total | `0.521593213 / 0.111157767 / 0.632750988` | `2.445301294 / 7.524266243 / 9.969567299` |
+
+全部输出 finite。下表为 raw backward 的 `L2 / max_abs / exact_nonzero/total`，所有列均 `grad_is_none=False`、finite=True：
+
+| 梯度对象 | ETTm1 parallel | UrbanEV single |
+|---|---:|---:|
+| q_global | `4.33190e-10 / 3.97319e-11 / 28672/28672` | `8.07252e-8 / 2.36768e-8 / 128/128` |
+| A_global | `4.32921e-10 / 3.96727e-11 / 28672/28672` | `8.10313e-8 / 2.30965e-8 / 128/128` |
+| G_global（forecast fusion tensor） | `4.51643e-10 / 4.31116e-11 / 28672/28672` | `8.30049e-8 / 2.45561e-8 / 128/128` |
+| gate | `4.59203e-10 / 6.61888e-11 / 14336/14336` | `4.17723e-8 / 2.93940e-8 / 16/16` |
+| A_patch | `4.44308e-7 / 1.13514e-8 / 458752/458752` | `1.15847e-4 / 2.16127e-5 / 512/512` |
+
+返回给 `state_source` 的 squeezed `exo_context` 视图未被 production loss 直接消费，因此其 retained grad 为 None；这不影响 forecast fusion 使用的 pre-squeeze `G_global` 获得非零梯度。关键参数组均 finite/nonzero：
+
+| 参数组 | ETTm1 L2 / nonzero | UrbanEV L2 / nonzero |
+|---|---:|---:|
+| global query projection+norm | `3.50539e-8 / 16480` | `3.32218e-7 / 480` |
+| global bridge norm | `1.47190e-9 / 64` | `1.17490e-7 / 64` |
+| gate Linear | `2.24847e-9 / 65` | `1.39323e-7 / 65` |
+| beta_global | `9.52255e-8 / 1` | `3.67939e-6 / 1` |
+| patch query | `4.10442e-7 / 1120` | `2.91526e-5 / 192` |
+| patch output | `2.51531e-6 / 1056` | `3.20917e-4 / 99` |
+| gamma_teb | `1.82245e-4 / 1` | `1.49014e-2 / 1` |
+| AMD backbone | `2.21932 / 10244742` | `21.62726 / 229573` |
+
+UrbanEV 的四个 `fc_blocks.0` 参数属于该配置未使用分支，grad=None，与 T2G 路径无关。ETTm1/UrbanEV 的 global、gate、beta 和 patch 路径均在真实 production forecast loss 下立即获得任务梯度，修复了 T2 第八轮确认的 global-query 专属断开。
+
+公共 AMD 初始化 parity：同 seed/config 下 T2 与 T2G 的 60 个 AMD parameter/persistent-buffer keys 逐元素一致，`max_abs_error=0`、mismatch 为空。现有 T2 h96 `best.pt` 对第八轮 closure class 与当前 class 均同结构 `strict=True`、missing/unexpected 为空；同一真实 validation batch的 prediction、MoE loss、state_source 均 `max_abs_error=0` 且 `torch.equal=True`。
+
+### 26.6 测试结果
+
+| 测试组 | 结果 | failed | skipped | unittest time / wall |
+|---|---:|---:|---:|---:|
+| T2G module/parallel/checkpoint | 16/16 | 0 | 0 | `0.298 / 1.91 s` |
+| T2 保护 | 19/19 | 0 | 0 | `0.376 / 2.41 s` |
+| Global TEB v1 保护 | 17/17 | 0 | 0 | `0.375 / 2.09 s` |
+| AMDEnhanced/architecture/runner/summarizer | 82/82 | 0 | 0 | `5.258 / 7.81 s` |
+| PMCR/M1 保护 | 36/36 | 0 | 0 | `3.251 / 4.92 s` |
+| 完整 discover 回归 | **188/188** | **0** | **0** | `9.228 / 17.98 s` |
+
+CUDA 可用，设备为 NVIDIA A800 80GB PCIe；T2G、T2、Global、PMCR 和 AMD CUDA 分支实际执行。既有 165 个测试全部保留，未删除、放宽或改写失败测试；新完整回归增加到 188。既有 parity `1e-6` 门槛未放宽。
+
+### 26.7 Source fingerprint、保护资产与阶段边界
+
+实现后 source fingerprint 为 `221c049a20ee17aa5ca806bf3e4e59e66361128df55c1c0572a65322a48844bb`，算法 `sha256_length_prefixed_relative_path_and_content_v1`，19 files；新 T2G module 已纳入，模块 SHA-256 为 `6a6a6d1ab6f8b4b7d8f79c188049e8b89baafcfbb45ccb1b89195af4bac5e32d`。
+
+冻结 `models/tsAMD.py`、Global TEB v1、PMCR v1、T2 module、M0-M3 与 baseline tag 均未修改；旧 T2 state keys、参数量、strict restore、prediction/state parity 和 Global/T2 scientific identity 保护通过。UrbanEV/ModernTCN/TimeXer 参考仓库保持 clean。
+
+第九轮没有训练 T2G，没有生成真实 T2G artifact，没有运行任何正式评价数据集 test，没有实现 P2/T3/T4/T5，没有进入 M5，也没有实现空间模块。未来 T2G development 必须执行已预登记的 normal exogenous、batch permutation 与 `A_global` bypass 诊断，不得将 target shortcut 带来的改善直接归因于外生变量。M4 状态继续为 `In Progress`；T2G 代码、测试、canonical 与本 milestone 均保持未 stage、未 commit、未 push，等待 review。

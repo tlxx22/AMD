@@ -31,6 +31,14 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from models.modules.global_mediated_patch_target_exogenous_bridge import (
+    GLOBAL_GATE_IDENTITY_INIT,
+    GLOBAL_GATE_INPUT_CONTRACT,
+    GLOBAL_GATE_SCALAR_PER_PATCH,
+    GLOBAL_MEDIATED_PATCH_V1,
+    GLOBAL_RESIDUAL_CONTRACT,
+    PATCH_ATTENTION_RESIDUAL_NONE,
+)
 from models.modules.patch_conditioned_target_exogenous_bridge import (
     FIXED_SINUSOIDAL,
     PATCH_CONDITIONED_V1,
@@ -57,10 +65,12 @@ from utils.general import capture_rng_state, restore_rng_state, set_seed
 BASELINE_IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
 T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
+T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 IMPLEMENTATION_VARIANT = BASELINE_IMPLEMENTATION_VARIANT
 ENHANCED_IMPLEMENTATION_VARIANTS = (
     ENHANCED_IMPLEMENTATION_VARIANT,
     T2_IMPLEMENTATION_VARIANT,
+    T2G_IMPLEMENTATION_VARIANT,
 )
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
@@ -112,6 +122,21 @@ def _t2_candidate_contract(args):
         "schema_fingerprint": args.schema_fingerprint,
         "target_selection_policy": args.target_selection_policy,
     }
+
+
+def _t2g_candidate_contract(args):
+    """Return the explicit T2G identity duplicated into its manifest."""
+
+    contract = _t2_candidate_contract(args)
+    contract.update({
+        "teb_global_residual": args.teb_global_residual,
+        "teb_patch_attention_residual": args.teb_patch_attention_residual,
+        "teb_global_gate": args.teb_global_gate,
+        "teb_global_gate_input": args.teb_global_gate_input,
+        "teb_global_gate_init": args.teb_global_gate_init,
+        "teb_beta_global_init": args.teb_beta_global_init,
+    })
+    return contract
 
 
 def str2bool(value):
@@ -208,7 +233,7 @@ def parse_args(argv=None):
         choices=[
             "U0", "U1", "U2", "U3", "U4", "target_only_pmcr",
             "M0", "M1", "M2", "M3",
-            "M4_T2",
+            "M4_T2", "M4_T2G",
         ],
     )
 
@@ -252,6 +277,36 @@ def parse_args(argv=None):
         "--teb_patch_position",
         default=None,
         choices=[FIXED_SINUSOIDAL],
+    )
+    parser.add_argument(
+        "--teb_global_residual",
+        default=None,
+        choices=[GLOBAL_RESIDUAL_CONTRACT],
+    )
+    parser.add_argument(
+        "--teb_patch_attention_residual",
+        default=None,
+        choices=[PATCH_ATTENTION_RESIDUAL_NONE],
+    )
+    parser.add_argument(
+        "--teb_global_gate",
+        default=None,
+        choices=[GLOBAL_GATE_SCALAR_PER_PATCH],
+    )
+    parser.add_argument(
+        "--teb_global_gate_input",
+        default=None,
+        choices=[GLOBAL_GATE_INPUT_CONTRACT],
+    )
+    parser.add_argument(
+        "--teb_global_gate_init",
+        default=None,
+        choices=[GLOBAL_GATE_IDENTITY_INIT],
+    )
+    parser.add_argument(
+        "--teb_beta_global_init",
+        type=float,
+        default=None,
     )
     parser.add_argument(
         "--teb_query_policy",
@@ -604,14 +659,26 @@ def _prepare_enhanced_contract(args):
         args.teb_patch_padding,
         args.teb_patch_position,
     )
+    t2g_values = (
+        args.teb_global_residual,
+        args.teb_patch_attention_residual,
+        args.teb_global_gate,
+        args.teb_global_gate_input,
+        args.teb_global_gate_init,
+        args.teb_beta_global_init,
+    )
     if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
-        if any(value is not None for value in patch_values):
+        if any(value is not None for value in patch_values + t2g_values):
             raise ValueError(
-                "el-amd-pmcr-teb-v1 does not accept T2 patch parameters"
+                "el-amd-pmcr-teb-v1 does not accept T2/T2G parameters"
             )
         args.teb_architecture = GLOBAL_TEB_V1
     else:
-        args.teb_architecture = PATCH_CONDITIONED_V1
+        args.teb_architecture = (
+            PATCH_CONDITIONED_V1
+            if args.implementation_variant == T2_IMPLEMENTATION_VARIANT
+            else GLOBAL_MEDIATED_PATCH_V1
+        )
         required_patch = {
             "teb_patch_size": args.teb_patch_size,
             "teb_patch_padding": args.teb_patch_padding,
@@ -634,8 +701,17 @@ def _prepare_enhanced_contract(args):
             raise ValueError(f"T2 requires teb_patch_padding={RIGHT_ZERO_CROP}")
         if args.teb_patch_position != FIXED_SINUSOIDAL:
             raise ValueError(f"T2 requires teb_patch_position={FIXED_SINUSOIDAL}")
-        expected_t2 = {
-            "ablation_id": "M4_T2",
+        candidate_name = (
+            "T2"
+            if args.implementation_variant == T2_IMPLEMENTATION_VARIANT
+            else "T2G"
+        )
+        expected_candidate = {
+            "ablation_id": (
+                "M4_T2"
+                if args.implementation_variant == T2_IMPLEMENTATION_VARIANT
+                else "M4_T2G"
+            ),
             "use_pmcr": False,
             "use_teb": True,
             "teb_context_dim": 32,
@@ -644,16 +720,41 @@ def _prepare_enhanced_contract(args):
             "teb_gamma_init": 1e-3,
         }
         mismatches = [
-            name for name, expected in expected_t2.items()
+            name for name, expected in expected_candidate.items()
             if getattr(args, name) != expected
         ]
         if mismatches:
             raise ValueError(
-                "T2 variant contract mismatch for " + ", ".join(mismatches)
+                f"{candidate_name} variant contract mismatch for "
+                + ", ".join(mismatches)
             )
+        if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
+            if any(value is not None for value in t2g_values):
+                raise ValueError("T2 does not accept T2G contract parameters")
+        else:
+            expected_t2g = {
+                "teb_global_residual": GLOBAL_RESIDUAL_CONTRACT,
+                "teb_patch_attention_residual": PATCH_ATTENTION_RESIDUAL_NONE,
+                "teb_global_gate": GLOBAL_GATE_SCALAR_PER_PATCH,
+                "teb_global_gate_input": GLOBAL_GATE_INPUT_CONTRACT,
+                "teb_global_gate_init": GLOBAL_GATE_IDENTITY_INIT,
+                "teb_beta_global_init": 1e-3,
+            }
+            t2g_mismatches = [
+                name for name, expected in expected_t2g.items()
+                if getattr(args, name) != expected
+            ]
+            if t2g_mismatches:
+                raise ValueError(
+                    "T2G variant contract mismatch for "
+                    + ", ".join(t2g_mismatches)
+                )
 
     aux_nonempty = bool(args.aux_idx)
-    if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
+    if args.implementation_variant in {
+        T2_IMPLEMENTATION_VARIANT,
+        T2G_IMPLEMENTATION_VARIANT,
+    }:
         if args.task_mode == TARGET_EXOGENOUS:
             if args.feature_type != "MS":
                 raise ValueError("target_exogenous requires feature_type='MS'")
@@ -672,7 +773,11 @@ def _prepare_enhanced_contract(args):
                 )
             if len(args.feature_names) < 2:
                 raise ValueError("Parallel TEB requires at least two variables.")
-        args.display_name = "T2 Patch-Conditioned TEB"
+        args.display_name = (
+            "T2 Patch-Conditioned TEB"
+            if args.implementation_variant == T2_IMPLEMENTATION_VARIANT
+            else "T2G Global-Mediated Patch-Conditioned TEB"
+        )
         return args
 
     if args.task_mode == TARGET_EXOGENOUS:
@@ -830,6 +935,12 @@ def prepare_args(args):
             "teb_patch_size": args.teb_patch_size,
             "teb_patch_padding": args.teb_patch_padding,
             "teb_patch_position": args.teb_patch_position,
+            "teb_global_residual": args.teb_global_residual,
+            "teb_patch_attention_residual": args.teb_patch_attention_residual,
+            "teb_global_gate": args.teb_global_gate,
+            "teb_global_gate_input": args.teb_global_gate_input,
+            "teb_global_gate_init": args.teb_global_gate_init,
+            "teb_beta_global_init": args.teb_beta_global_init,
         }
         configured = [
             name for name, value in baseline_only_values.items()
@@ -1655,6 +1766,20 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
                 "patch_position": args.teb_patch_position,
                 "target_selection_policy": args.target_selection_policy,
             })
+        elif args.implementation_variant == T2G_IMPLEMENTATION_VARIANT:
+            model_config["teb"].update({
+                "architecture": GLOBAL_MEDIATED_PATCH_V1,
+                "patch_size": args.teb_patch_size,
+                "patch_padding": args.teb_patch_padding,
+                "patch_position": args.teb_patch_position,
+                "target_selection_policy": args.target_selection_policy,
+                "global_residual": args.teb_global_residual,
+                "patch_attention_residual": args.teb_patch_attention_residual,
+                "global_gate": args.teb_global_gate,
+                "global_gate_input": args.teb_global_gate_input,
+                "global_gate_init": args.teb_global_gate_init,
+                "beta_global_init": args.teb_beta_global_init,
+            })
         experiment = {
             "ablation_id": args.ablation_id,
             "display_name": args.display_name,
@@ -2292,6 +2417,12 @@ def _build_model(args, data_loader):
         teb_patch_size=args.teb_patch_size,
         teb_patch_padding=args.teb_patch_padding,
         teb_patch_position=args.teb_patch_position,
+        teb_global_residual=args.teb_global_residual,
+        teb_patch_attention_residual=args.teb_patch_attention_residual,
+        teb_global_gate=args.teb_global_gate,
+        teb_global_gate_input=args.teb_global_gate_input,
+        teb_global_gate_init=args.teb_global_gate_init,
+        teb_beta_global_init=args.teb_beta_global_init,
     )
 
 
@@ -2374,6 +2505,8 @@ def _main_impl(args, transcript=None):
     resume_checkpoint = None
     if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _t2_candidate_contract(args)
+    elif args.implementation_variant == T2G_IMPLEMENTATION_VARIANT:
+        manifest["candidate_contract"] = _t2g_candidate_contract(args)
     previous_config = None
     manifest_is_mutable = False
     artifact_sealed = False

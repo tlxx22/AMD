@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.common import DDI, MDM
+from models.modules.global_mediated_patch_target_exogenous_bridge import (
+    GlobalMediatedPatchTargetExogenousBridge,
+)
 from models.modules.patch_conditioned_target_exogenous_bridge import (
     FIXED_SINUSOIDAL,
     RIGHT_ZERO_CROP,
@@ -403,6 +406,43 @@ class ArchitectureContractTests(unittest.TestCase):
                 for child in module.modules()
             )
         )
+        self.assertFalse(any("position" in key for key in module.state_dict()))
+
+
+    def test_t2g_is_a_minimal_t2_extension_without_patch_residual_modules(self):
+        self.assertTrue(issubclass(
+            GlobalMediatedPatchTargetExogenousBridge,
+            PatchConditionedTargetExogenousBridge,
+        ))
+        module = GlobalMediatedPatchTargetExogenousBridge(
+            seq_len=12,
+            feature_num=3,
+            task_mode=TARGET_EXOGENOUS,
+            target_idx=0,
+            aux_idx=(1, 2),
+            context_dim=32,
+            num_heads=4,
+            dropout=0.1,
+            patch_size=3,
+        )
+        children = set(dict(module.named_children()))
+        self.assertEqual(
+            children,
+            {
+                "patch_query_projection",
+                "patch_query_norm",
+                "global_query_projection",
+                "global_query_norm",
+                "exogenous_projection",
+                "exogenous_norm",
+                "cross_attention",
+                "patch_output_projection",
+                "global_bridge_norm",
+                "global_injection_gate",
+            },
+        )
+        self.assertNotIn("patch_post_norm", children)
+        self.assertNotIn("patch_residual_norm", children)
         self.assertFalse(any("position" in key for key in module.state_dict()))
 
 

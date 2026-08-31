@@ -120,6 +120,7 @@ class SummaryTests(unittest.TestCase):
         )
         run_dir.mkdir(parents=True)
         is_t2 = implementation_variant == summary.T2_IMPLEMENTATION_VARIANT
+        is_t2g = implementation_variant == summary.T2G_IMPLEMENTATION_VARIANT
         dataset = {
             "id": "UrbanEV",
             "sha256": "data-hash",
@@ -145,14 +146,27 @@ class SummaryTests(unittest.TestCase):
             "query_residual": False,
             "post_attention_ffn": False,
         }
-        if is_t2:
+        if is_t2 or is_t2g:
             teb.update({
-                "architecture": "patch_conditioned_v1",
+                "architecture": (
+                    "global_mediated_patch_v1"
+                    if is_t2g
+                    else "patch_conditioned_v1"
+                ),
                 "patch_size": patch_size,
                 "patch_padding": "right_zero_crop",
                 "patch_position": "fixed_sinusoidal",
                 "target_selection_policy": "full_denorm_then_task_select",
             })
+            if is_t2g:
+                teb.update({
+                    "global_residual": "query_plus_attention_post_layernorm",
+                    "patch_attention_residual": "none",
+                    "global_gate": "scalar_per_patch",
+                    "global_gate_input": "patch_attention_and_global_bridge",
+                    "global_gate_init": "identity",
+                    "beta_global_init": 1e-3,
+                })
         scientific = {
             "implementation_variant": implementation_variant,
             "source_sha256": "source-hash",
@@ -183,7 +197,11 @@ class SummaryTests(unittest.TestCase):
                 "label_horizon": 3,
                 "model_pred_len": 1,
                 "artifact_horizon": 3,
-                "ablation_id": "M4_T2" if is_t2 else "U2",
+                "ablation_id": (
+                    "M4_T2G"
+                    if is_t2g
+                    else ("M4_T2" if is_t2 else "U2")
+                ),
             },
         }
         config_hash = summary._stable_hash(scientific)
@@ -219,10 +237,10 @@ class SummaryTests(unittest.TestCase):
             "fold": 1,
             "seed": seed,
         }
-        if is_t2:
+        if is_t2 or is_t2g:
             manifest["candidate_contract"] = {
-                "ablation_id": "M4_T2",
-                "teb_architecture": "patch_conditioned_v1",
+                "ablation_id": "M4_T2G" if is_t2g else "M4_T2",
+                "teb_architecture": "global_mediated_patch_v1" if is_t2g else "patch_conditioned_v1",
                 "teb_patch_size": patch_size,
                 "teb_patch_padding": "right_zero_crop",
                 "teb_patch_position": "fixed_sinusoidal",
@@ -237,6 +255,15 @@ class SummaryTests(unittest.TestCase):
                 "schema_fingerprint": "fixture-schema",
                 "target_selection_policy": "full_denorm_then_task_select",
             }
+            if is_t2g:
+                manifest["candidate_contract"].update({
+                    "teb_global_residual": "query_plus_attention_post_layernorm",
+                    "teb_patch_attention_residual": "none",
+                    "teb_global_gate": "scalar_per_patch",
+                    "teb_global_gate_input": "patch_attention_and_global_bridge",
+                    "teb_global_gate_init": "identity",
+                    "teb_beta_global_init": 1e-3,
+                })
         metrics = {
             **common,
             "run_id": run_id,
@@ -500,6 +527,82 @@ class SummaryTests(unittest.TestCase):
                 config["scientific_config"]["model"]["teb"]["patch_size"],
                 3,
             )
+
+    def test_t2g_candidate_is_separate_and_exact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "artifacts"
+            self._make_enhanced_run(artifacts, "global")
+            self._make_enhanced_run(
+                artifacts,
+                "t2",
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            t2g_dir = self._make_enhanced_run(
+                artifacts,
+                "t2g",
+                implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+            )
+            rows = summary.load_completed_runs(
+                artifacts,
+                implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["run_id"], "t2g")
+            config = json.loads(
+                (t2g_dir / "config.resolved.json").read_text(encoding="utf-8")
+            )
+            teb = config["scientific_config"]["model"]["teb"]
+            self.assertEqual(teb["architecture"], "global_mediated_patch_v1")
+            self.assertEqual(teb["global_residual"], "query_plus_attention_post_layernorm")
+            self.assertEqual(teb["patch_attention_residual"], "none")
+            self.assertEqual(teb["global_gate"], "scalar_per_patch")
+            self.assertEqual(teb["beta_global_init"], 1e-3)
+
+    def test_t2g_contract_tamper_and_duplicate_identity_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "tamper"
+            run_dir = self._make_enhanced_run(
+                artifacts,
+                "t2g",
+                implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+            )
+            config_path = run_dir / "config.resolved.json"
+            manifest_path = run_dir / "manifest.json"
+            metrics_path = run_dir / "metrics.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            config["scientific_config"]["model"]["teb"]["global_gate"] = "vector"
+            config_hash = summary._stable_hash(config["scientific_config"])
+            config["config_hash"] = config_hash
+            manifest["config_hash"] = config_hash
+            metrics["config_hash"] = config_hash
+            for path, value in (
+                (config_path, config),
+                (manifest_path, manifest),
+                (metrics_path, metrics),
+            ):
+                path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(ValueError, "unsupported T2G patch config"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "duplicates"
+            for run_id in ("t2g-a", "t2g-b"):
+                self._make_enhanced_run(
+                    artifacts,
+                    run_id,
+                    implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+                )
+            with self.assertRaisesRegex(ValueError, "no run was selected automatically"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+                )
 
     def test_t2_unsupported_patch_contract_and_manifest_tamper_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

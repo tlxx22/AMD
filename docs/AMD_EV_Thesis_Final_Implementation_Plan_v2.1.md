@@ -936,6 +936,103 @@ AMS selector 与 selector auxiliary loss 仍只依赖原始 `u_mdm`；production
 
 本轮只确认事实并保留无代码方案比较，不提前批准下一 TEB architecture。后续可以由用户在保留 T2、用 forecast-supervised `C_patch` pooling 导出状态 context、或建立最小 global-mediated patch interaction 等方向之间另行决定；作出该决定前不得启动 P2。
 
+## 7.7 M4 工程候选：T2G Global-Mediated Patch-Conditioned TEB
+
+用户在 M4 第九轮明确批准实现 T2G；其身份固定为：
+
+```text
+candidate = T2G
+public class = GlobalMediatedPatchTargetExogenousBridge
+implementation_variant = el-amd-m4-t2g-global-mediated-patch-teb-v1
+ablation_id = M4_T2G
+teb_architecture = global_mediated_patch_v1
+```
+
+T2G 是 T2 的单因素 M4 工程扩展，不是原 T3、最终 TEB 或最终 EL-AMD；它不覆盖 Global TEB v1、T2 或 `el-amd-pmcr-teb-v1`。是否进入 TEB 的 M4 候选终点仍须由后续 development 证据和用户决定。TEB-first 顺序继续有效，T2G 未完成 development 判断前不得启动 P2；T3 confidence gate 继续暂缓，T4/T5 继续排除。
+
+### 7.7.1 来源边界与唯一结构变化
+
+TimeXer 的 endogenous patch/global token self-attention 使用 residual + LayerNorm；global token 查询 exogenous variate tokens 后还使用 global residual + LayerNorm，且原结构不让各 patch 直接查询 exogenous tokens。T2 保留其 TimeXer-inspired 层级表示语义，但改为每个 target patch 直接查询 whole-series exogenous variate tokens。T2G 继续保留该 T2 patch 路径，只新增：
+
+```text
+global cross-attention response
+-> q_global residual + post-cross LayerNorm
+-> patch-conditioned global injection
+-> temporal residual
+```
+
+T2G v1 明确不使用 `LayerNorm(Q_patch + A_patch)`、`Q_patch + A_patch`、额外 patch post-cross LayerNorm、patch FFN、patch self-attention 或 patch-to-patch attention。`Q_patch` 只能作为 patch cross-attention query，并经 raw `A_patch` 影响预测；gate 只能使用 `[A_patch;G_global]`，不得直接引入 `Q_patch`。这样保持 T2 已验证 patch-to-exogenous 路径不变，避免额外 target-only shortcut，也不把 patch residual 与 global-mediated interaction 捆绑为同一候选。
+
+### 7.7.2 精确张量合同
+
+沿用 T2 的 patchify、fixed sinusoidal position、shared exogenous projector、一次向量化 cross-attention、right-zero-pad/crop、owner diagonal mask、patch output projection、`gamma_teb` 和 AMD 外层 residual。MHA 输出命名必须是 raw response：
+
+```text
+A_patch, A_global = MHA(concat(Q_patch,q_global), E, E)
+
+G_global = LayerNorm_global_bridge(q_global + A_global)
+
+gate_input = concat(
+    A_patch,
+    broadcast_N(G_global),
+    dim=-1,
+)
+a_patch = 2 * sigmoid(Linear_gate(2*d,1)(gate_input))
+
+F_patch = A_patch
+        + beta_global * a_patch * broadcast_N(G_global)
+
+delta_patch = shared Linear(d,P)(F_patch)
+delta = unpatch(delta_patch) -> crop to T
+H_out = H + gamma_teb * delta
+```
+
+Single-target shapes 为 `A_patch/F_patch [B,N,d]`、`A_global/G_global [B,1,d]`、`a_patch [B,N,1]`。只修改 `target_idx` 通道，其他通道逐元素不变；`exo_context=G_global.squeeze(1) [B,d]`。
+
+Parallel shapes 为 `Q_flat [B,C*(N+1),d]`、一次 MHA、`A_patch/F_patch [B,C,N,d]`、`A_global/G_global [B,C,1,d]`、`a_patch [B,C,N,1]`。mask `[C*(N+1),C]` 中 `True` 禁止 query owner 查询自身 key；所有变量产生 residual，`target_idx` 只选择 `G_global[:,target_idx,0,:]` 作为 `exo_context [B,d]`，`C=1` 继续拒绝。AMS experts 使用 `v_final`，selector 仍只使用 `u_mdm`；状态源固定为：
+
+```text
+state_source = concat(
+    v_final[:,target_idx,:],
+    u_mdm[:,target_idx,:],
+    exo_context,
+) # [B,2*T+d]
+```
+
+### 7.7.3 初始化、参数与解释边界
+
+`global_bridge_norm=LayerNorm(d,eps=1e-5)`，weight=1、bias=0。`global_injection_gate=Linear(2*d,1,bias=True)`，weight=0、bias=0，因此初始 `a_patch=1`。`beta_global` 是所有变量共享、无约束 scalar parameter，固定初始化 `1e-3`；既有 `gamma_teb` 仍初始化 `1e-3`，所以 global-mediated 分支在 AMD hidden 上的初始有效系数量级约为 `1e-6`。禁止将 beta 初始化为 0，也禁止 sigmoid/softplus/非负约束，因为 beta=0 会让 global query、global bridge norm 与 gate 的首个 forecast backward 继续缺少或延迟梯度。
+
+T2G 在 T2 上仅新增：
+
+```text
+global_bridge_norm.weight/bias       2*d
+global_injection_gate.weight/bias    2*d+1
+beta_global                          1
+新增合计                              4*d+2
+```
+
+`d=32` 时新增 130；`T=512,P=32` 总参数 39,491，`T=12,P=3` 总参数 5,606。fixed positional buffer 继续 `persistent=False`，不进入 state dict。不得增加 learnable position、patch residual norm、FFN、target/exogenous self-attention、Hidden-KV、top-k、variable embedding、第二 selector、PMCR/P2 或空间模块。
+
+因为 `G_global` 含 `q_global` target shortcut，后续 T2G development 必须同时登记正常外生输入、固定 checkpoint 后 batch 内确定性 exogenous permutation、`A_global` 旁路，并分别观察 prediction、`A_patch`、`G_global` 与 gate；任何改善都不得未经该诊断直接归因于外生变量。
+
+### 7.7.4 Config、checkpoint、artifact 与恢复合同
+
+T2G variant 强制 `use_pmcr=False,use_teb=True,d=32,heads=4,dropout=0.1,gamma=1e-3`，patch size 显式配置，padding=`right_zero_crop`，position=`fixed_sinusoidal`。以下 T2G-only 字段必须进入 resolved/scientific/comparison config、checkpoint metadata、manifest candidate contract、resume mismatch 与 summarizer identity，但不得改变旧 Global v1/T2 historical identity：
+
+```text
+teb_global_residual = query_plus_attention_post_layernorm
+teb_patch_attention_residual = none
+teb_global_gate = scalar_per_patch
+teb_global_gate_input = patch_attention_and_global_bridge
+teb_global_gate_init = identity
+teb_beta_global_init = 0.001
+```
+
+T2G 只允许 from scratch，或完全同结构的普通 `load_state_dict(strict=True)`。必须拒绝 Global↔T2G、T2↔T2G、partial new keys、patch/beta/gate/global-residual mismatch、`strict=False` 和所有 source-kind importer；完整 key、shape 与 config 必须在任何参数写入前通过，失败后 parameter/buffer 逐元素不变。T2G 使用独立 schema-v2 identity；summarizer 必须检查 candidate contract、13-file checksum 与重复科学身份，不得与 Global v1 或 T2 混分组。
+
+第九轮只完成工程实现、真实单 batch production-gradient 门禁和测试，不训练 T2G、不生成真实 T2G artifact、不把它写成性能已通过候选。
+
 # 8. M3 工程候选 forward 与时间状态接口
 
 ## 8.1 前向流程

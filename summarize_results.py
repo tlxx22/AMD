@@ -16,10 +16,12 @@ from pathlib import Path
 IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
 T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
+T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
     T2_IMPLEMENTATION_VARIANT,
+    T2G_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 ENHANCED_CHECKSUM_FILES = (
@@ -137,16 +139,29 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         "patch_position",
         "target_selection_policy",
     }
+    t2g_fields = {
+        "global_residual",
+        "patch_attention_residual",
+        "global_gate",
+        "global_gate_input",
+        "global_gate_init",
+        "beta_global_init",
+    }
     if implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
-        unexpected = sorted(patch_fields & set(teb))
+        unexpected = sorted((patch_fields | t2g_fields) & set(teb))
         if unexpected:
             raise ValueError(
-                f"Global TEB v1 artifact contains T2 patch fields {unexpected}: {run_dir}"
+                f"Global TEB v1 artifact contains candidate fields "
+                f"{unexpected}: {run_dir}"
             )
         return None
 
     expected = {
-        "architecture": "patch_conditioned_v1",
+        "architecture": (
+            "global_mediated_patch_v1"
+            if implementation_variant == T2G_IMPLEMENTATION_VARIANT
+            else "patch_conditioned_v1"
+        ),
         "context_dim": 32,
         "heads": 4,
         "dropout": 0.1,
@@ -155,6 +170,15 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         "patch_position": "fixed_sinusoidal",
         "target_selection_policy": "full_denorm_then_task_select",
     }
+    if implementation_variant == T2G_IMPLEMENTATION_VARIANT:
+        expected.update({
+            "global_residual": "query_plus_attention_post_layernorm",
+            "patch_attention_residual": "none",
+            "global_gate": "scalar_per_patch",
+            "global_gate_input": "patch_attention_and_global_bridge",
+            "global_gate_init": "identity",
+            "beta_global_init": 1e-3,
+        })
     mismatches = {
         field: (expected_value, teb.get(field))
         for field, expected_value in expected.items()
@@ -170,17 +194,30 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         or not 0 < patch_size <= seq_len
     ):
         mismatches["patch_size"] = ("0 < patch_size <= seq_len", patch_size)
+    if implementation_variant == T2_IMPLEMENTATION_VARIANT:
+        unexpected_t2g = sorted(t2g_fields & set(teb))
+        if unexpected_t2g:
+            mismatches["unexpected_t2g_fields"] = ([], unexpected_t2g)
+
     if model.get("use_pmcr") is not False or model.get("use_teb") is not True:
         mismatches["module_switches"] = ((False, True), (model.get("use_pmcr"), model.get("use_teb")))
-    if experiment.get("ablation_id") != "M4_T2":
-        mismatches["ablation_id"] = ("M4_T2", experiment.get("ablation_id"))
+    expected_ablation = (
+        "M4_T2G"
+        if implementation_variant == T2G_IMPLEMENTATION_VARIANT
+        else "M4_T2"
+    )
+    if experiment.get("ablation_id") != expected_ablation:
+        mismatches["ablation_id"] = (expected_ablation, experiment.get("ablation_id"))
     if mismatches:
-        raise ValueError(f"unsupported T2 patch config {mismatches}: {run_dir}")
+        label = "T2G" if implementation_variant == T2G_IMPLEMENTATION_VARIANT else "T2"
+        raise ValueError(
+            f"unsupported {label} patch config {mismatches}: {run_dir}"
 
+        )
     dataset = scientific.get("dataset")
     if not isinstance(dataset, dict):
         raise ValueError(f"enhanced dataset contract is missing: {run_dir}")
-    return {
+    contract = {
         "ablation_id": experiment.get("ablation_id"),
         "teb_architecture": teb.get("architecture"),
         "teb_patch_size": teb.get("patch_size"),
@@ -197,6 +234,17 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         "schema_fingerprint": dataset.get("schema_fingerprint"),
         "target_selection_policy": teb.get("target_selection_policy"),
     }
+    if implementation_variant == T2G_IMPLEMENTATION_VARIANT:
+        contract.update({
+            "teb_global_residual": teb.get("global_residual"),
+            "teb_patch_attention_residual": teb.get("patch_attention_residual"),
+            "teb_global_gate": teb.get("global_gate"),
+            "teb_global_gate_input": teb.get("global_gate_input"),
+            "teb_global_gate_init": teb.get("global_gate_init"),
+            "teb_beta_global_init": teb.get("beta_global_init"),
+        })
+    return contract
+
 
 
 def _load_legacy_completed_runs(artifact_root):

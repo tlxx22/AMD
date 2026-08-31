@@ -4,6 +4,15 @@ import torch
 import torch.nn as nn
 from models.common import RevIN
 
+from models.modules.global_mediated_patch_target_exogenous_bridge import (
+    GLOBAL_GATE_IDENTITY_INIT,
+    GLOBAL_GATE_INPUT_CONTRACT,
+    GLOBAL_GATE_SCALAR_PER_PATCH,
+    GLOBAL_MEDIATED_PATCH_V1,
+    GLOBAL_RESIDUAL_CONTRACT,
+    PATCH_ATTENTION_RESIDUAL_NONE,
+    GlobalMediatedPatchTargetExogenousBridge,
+)
 from models.modules.patch_conditioned_target_exogenous_bridge import (
     FIXED_SINUSOIDAL,
     PATCH_CONDITIONED_V1,
@@ -791,6 +800,66 @@ class AMDEnhancedM3Tests(unittest.TestCase):
         self.assertTrue(
             torch.equal(state_source[:, 4:8], captured["u_mdm"][:, 1, :])
         )
+        self.assertTrue(torch.equal(state_source[:, 8:], captured["context"]))
+
+    def test_t2g_integration_preserves_routing_and_state_source_shape(self):
+        model = AMDEnhanced(
+            **self._backbone_kwargs(),
+            target_idx=1,
+            teb_context_dim=32,
+            task_mode=TARGET_EXOGENOUS,
+            aux_idx=(0, 2),
+            use_pmcr=False,
+            use_teb=True,
+            teb_heads=4,
+            teb_dropout=0.1,
+            teb_gamma_init=1e-3,
+            teb_architecture=GLOBAL_MEDIATED_PATCH_V1,
+            teb_patch_size=2,
+            teb_patch_padding=RIGHT_ZERO_CROP,
+            teb_patch_position=FIXED_SINUSOIDAL,
+            teb_global_residual=GLOBAL_RESIDUAL_CONTRACT,
+            teb_patch_attention_residual=PATCH_ATTENTION_RESIDUAL_NONE,
+            teb_global_gate=GLOBAL_GATE_SCALAR_PER_PATCH,
+            teb_global_gate_input=GLOBAL_GATE_INPUT_CONTRACT,
+            teb_global_gate_init=GLOBAL_GATE_IDENTITY_INIT,
+            teb_beta_global_init=1e-3,
+        ).eval()
+        self.assertIsInstance(
+            model.teb, GlobalMediatedPatchTargetExogenousBridge
+        )
+        captured = {}
+        handles = (
+            model.pastmixing.register_forward_hook(
+                lambda _module, _inputs, output: captured.__setitem__(
+                    "u_mdm", output.detach().clone()
+                )
+            ),
+            model.teb.register_forward_hook(
+                lambda _module, _inputs, output: captured.update({
+                    "v_final": output[0].detach().clone(),
+                    "context": output[1].detach().clone(),
+                })
+            ),
+        )
+        try:
+            torch.manual_seed(3463)
+            with torch.no_grad():
+                prediction, moe_loss, state_source = model(
+                    torch.randn(2, 4, 3), return_state_source=True
+                )
+        finally:
+            for handle in handles:
+                handle.remove()
+        self.assertEqual(prediction.shape, (2, 2, 1))
+        self.assertEqual(moe_loss.ndim, 0)
+        self.assertEqual(state_source.shape, (2, 2 * 4 + 32))
+        self.assertTrue(torch.equal(
+            state_source[:, :4], captured["v_final"][:, 1, :]
+        ))
+        self.assertTrue(torch.equal(
+            state_source[:, 4:8], captured["u_mdm"][:, 1, :]
+        ))
         self.assertTrue(torch.equal(state_source[:, 8:], captured["context"]))
 
     def test_global_v1_public_class_and_state_keys_remain_patch_free(self):
