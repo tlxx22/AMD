@@ -65,7 +65,7 @@ M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭�
 
 M4 只处理第三章时间模块诊断与候选迭代。M4 可以形成诊断结论，并在用户另行确认后实现保持论文来源边界的候选；不得据此静默选择结构或超参数。Patch-conditioned TEB 可在 M4 诊断后由用户另行授权，不再固定延期到 M5 之后。在 M4 尚未形成足够证据前，不得实现 M7 或任何空间模块。
 
-自 M4 第八轮起，M4 内部开发顺序固定为 **TEB 候选路线先收敛，再处理 PMCR/P2 候选路线**。T2 development 完成后必须先核验 global-query 的真实梯度与功能路径；在 TEB 分支形成 M4 候选终点，或用户明确停止 TEB 继续迭代之前，不得启动 P2 或其他 PMCR 新候选。这里的“TEB 分支候选终点”只表示 M4 不再继续改动 TEB 结构，不等于 M5 最终冻结。T3 confidence-gate proposal 暂缓，未经用户再次明确授权不得实现、训练或登记为已批准候选；T4 Hidden-KV 与 T5 sparse/top-k 继续排除。
+自 M4 第八轮起，M4 内部开发顺序固定为 **TEB 候选路线先收敛，再处理 PMCR/P2 候选路线**。T2 development 完成后必须先核验 global-query 的真实梯度与功能路径；在 TEB 分支形成 M4 候选终点之前，不得启动 P2 或其他 PMCR 新候选。这里的“TEB 分支候选终点”只表示 M4 不再继续新增 TEB 结构，不等于 M5 最终冻结。用户已在第十一轮明确授权最后一个 TEB 结构候选 T3 Selective Patch TEB；T3 直接由 T2 派生且不继承 T2G。T3 development 后按预登记规则在 T2/T3 中确定 TEB 的 M4 领先候选并停止 TEB 结构迭代；T4 Hidden-KV 与 T5 sparse/top-k 继续排除。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -1031,7 +1031,83 @@ teb_beta_global_init = 0.001
 
 T2G 只允许 from scratch，或完全同结构的普通 `load_state_dict(strict=True)`。必须拒绝 Global↔T2G、T2↔T2G、partial new keys、patch/beta/gate/global-residual mismatch、`strict=False` 和所有 source-kind importer；完整 key、shape 与 config 必须在任何参数写入前通过，失败后 parameter/buffer 逐元素不变。T2G 使用独立 schema-v2 identity；summarizer 必须检查 candidate contract、13-file checksum 与重复科学身份，不得与 Global v1 或 T2 混分组。
 
-第九轮只完成工程实现、真实单 batch production-gradient 门禁和测试，不训练 T2G、不生成真实 T2G artifact、不把它写成性能已通过候选。
+第九轮完成 T2G 工程实现、真实单 batch production-gradient 门禁和测试。第十轮在同源码 T2-refresh 控制下完成 ETTm1 development：T2G 四个 test horizon 的 MSE/MAE 均轻微退化，test MSE/MAE macro 分别相对 T2 退化约 `+0.08982%/+0.06270%`，validation 接近数值平局，因此分类为 **negative-or-negligible development signal**。global/gate/beta 参数均实际移动，故该结果不能解释为“结构没有训练起来”；它只说明简单 global-mediated patch injection 在当前 ETTm1 development 配置下没有额外收益。T2G 保留为可追溯负向工程候选，但退出当前领先候选；M4 不再围绕 T2G 搜索 beta、gate、MLP 或更复杂 global injection。该证据不能扩大为所有数据集、所有 global/patch interaction 或 TimeXer global token 设计均无效，也不构成 M5 淘汰。
+
+
+## 7.8 M4 最后一个 TEB 结构候选：T3 Selective Patch TEB
+
+用户在 M4 第十一轮明确授权 T3；其固定工程身份为：
+
+```text
+candidate = T3
+public class = SelectivePatchTargetExogenousBridge
+implementation_variant = el-amd-m4-t3-selective-patch-teb-v1
+ablation_id = M4_T3
+teb_architecture = selective_patch_v1
+```
+
+T3 直接从 T2 Patch-Conditioned TEB 派生，不继承 T2G，也不包含 T2G 的 `q_global` residual、`global_bridge_norm`、global-to-patch injection、`beta_global` 或 `global_injection_gate`。它是当前 M4 规划中的最后一个 TEB 结构候选，不是最终 TEB、最终 EL-AMD 或 M5 frozen variant，也不覆盖 Global v1、T2、T2G。
+
+### 7.8.1 唯一结构变化与 post-projection gate
+
+T3 完整沿用 T2 的 non-overlap target patch、fixed sinusoidal position、whole-series exogenous variate tokens、patch/global queries、一次向量化 MHA、parallel owner mask、patch output projection、right-zero-pad/crop、`gamma_teb`、AMD 外层 residual、`exo_context` 与 `state_source`。仅对 T2 raw patch attention response 的投影结果增加共享的 scalar-per-patch confidence gate：
+
+```text
+Q_patch = T2 patch query
+A_patch = T2 raw patch cross-attention response
+D_patch = patch_output_projection(A_patch)
+
+gate_input = concat(Q_patch, A_patch, dim=-1)
+gate_logits = F.linear(
+    gate_input,
+    patch_confidence_gate_weight,
+    patch_confidence_gate_bias,
+)
+g_patch = 2 * sigmoid(gate_logits)
+
+D_effective = g_patch * D_patch
+unpatch/crop(D_effective) -> delta
+H_out = H + gamma_teb * delta
+```
+
+Gate 必须在含 bias 的 patch output projection **之后**相乘；禁止 `patch_output_projection(g_patch*A_patch)`，以确保 gate 接近 0 时同时抑制 projection weight contribution 与 bias。Gate 输入固定为 `[Q_patch;A_patch]`：`Q_patch` 表示目标局部状态，`A_patch` 表示来自其他变量的外生响应；gate 只决定外生 residual 写回量，不直接生成预测内容，不把 `Q_patch` 加入 residual，也不形成 target-only output shortcut。
+
+Single shapes 为 `Q_patch/A_patch [B,N,d]`、`D_patch/D_effective [B,N,P]`、`g_patch [B,N,1]`；只更新 `target_idx`，其他通道逐元素不变。Parallel shapes 为 `Q_patch/A_patch [B,C,N,d]`、`D_patch/D_effective [B,C,N,P]`、`g_patch [B,C,N,1]`；所有变量产生 residual，一次 MHA 的 owner mask 仍为 `[C*(N+1),C]`，`target_idx` 只选择 global context，`C=1` 继续拒绝。所有变量和 patch positions 共享同一组 gate 参数；禁止 per-time/per-feature/per-variable 参数、两层 MLP、attention gate、第二 selector、top-k 或 Hidden-KV。
+
+### 7.8.2 初始化、RNG 与参数合同
+
+为保证 T2/T3 公共初始化和构造后 RNG 完全一致，gate 不得先构造随机初始化的普通 `nn.Linear` 再清零，而须显式创建：
+
+```python
+patch_confidence_gate_weight = nn.Parameter(torch.zeros(1, 2*d))
+patch_confidence_gate_bias = nn.Parameter(torch.zeros(1))
+```
+
+正式计算使用 `F.linear`，因此初始 `gate_logits=0`、`g_patch=1`，相同 T2 base state 下 T3 prediction、MoE、state source、raw/effective patch residual 初始严格退化为 T2。新增参数只允许 `2*d+1`；`d=32` 时为 65，ETTm1 `T=512,P=32` 模块参数固定 39,426，UrbanEV `T=12,P=3` 固定 5,541。不得出现 T2G-only keys、patch norm/FFN、learnable position 或其他未授权组件。
+
+### 7.8.3 Global query 与分析接口
+
+T3 完全沿用 T2 的 `q_global -> A_global -> exo_context -> state_source` 路径，不让 global query 进入预测 residual。其专属 projection/norm 在 production forecast loss 下预计仍为零任务梯度；这不是 T3 实现失败，也不表示 `exo_context` 已受预测损失直接监督。该状态接口留到 M7 处理，本轮不实现 StateAdapter、patch-context pooling 或其他 global repair。
+
+T3 必须能明确分析 `A_patch`、raw `D_patch`、`g_patch`、effective `D_effective` 与 global `exo_context`。`compute_patch_confidence_gate(Q_patch,A_patch)` 返回 gate；`compute_raw_patch_delta(A_patch)` 只返回未门控投影；`compute_effective_patch_delta(Q_patch,A_patch)` 返回 gate 后结果；正式 forward 只消费 `D_effective`，分析接口不得改变正常 forward。
+
+### 7.8.4 Config、checkpoint 与 artifact identity
+
+T3 强制 `use_pmcr=False,use_teb=True,d=32,heads=4,dropout=0.1,gamma=1e-3`，patch size 显式配置，padding=`right_zero_crop`，position=`fixed_sinusoidal`。以下 T3-only fields 条件进入 resolved/scientific/comparison config、checkpoint metadata、manifest candidate contract、resume mismatch 与 summarizer identity，不得改变 Global/T2/T2G historical identity：
+
+```text
+teb_patch_confidence_gate = scalar_per_patch_post_projection
+teb_patch_gate_input = query_and_attention_response
+teb_patch_gate_activation = two_sigmoid
+teb_patch_gate_init = explicit_zero_identity
+teb_global_prediction_role = state_only_forecast_disconnected
+```
+
+T3 训练只允许 from scratch；恢复只允许完全同结构 T3 的普通 `load_state_dict(strict=True)`。必须在写参前拒绝 Global/T2/T2G↔T3、partial gate keys、unexpected/shape/patch/gate-contract mismatch、`strict=False` 与所有 source-kind importer，失败后 parameter/buffer 逐元素不变。“从 T2 派生”只表示结构继承，不授权加载 T2 checkpoint。
+
+### 7.8.5 TEB 分支 endpoint 预登记
+
+T3 development 后采用固定规则：若 T3 为 `positive development signal`，TEB 的 M4 leading candidate 为 T3；若为 `mixed development signal` 或 `negative-or-negligible development signal`，leading candidate 为 T2。T2G 保留工程可追溯性但不参与领先候选竞争。裁决后固定登记 `TEB branch reaches M4 candidate endpoint`，只表示 M4 不再新增 TEB architecture，不等于 M5 freeze、最终 TEB、正式 EL-AMD variant 或正式数据集性能通过。本轮裁决完成后必须停止，不自动启动 P2；后续 PMCR/P2 只能由用户审核后另行授权。
 
 # 8. M3 工程候选 forward 与时间状态接口
 

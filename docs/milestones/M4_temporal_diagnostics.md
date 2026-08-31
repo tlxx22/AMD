@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第九轮，T2G Global-Mediated Patch-Conditioned TEB 工程实现
+当前轮次：第十一轮，T2G 结果 closure、T3 Selective Patch TEB 与 TEB 候选终点
 
 canonical 内部版本：v2.1-R1
 
@@ -1011,3 +1011,267 @@ CUDA 可用，设备为 NVIDIA A800 80GB PCIe；T2G、T2、Global、PMCR 和 AMD
 冻结 `models/tsAMD.py`、Global TEB v1、PMCR v1、T2 module、M0-M3 与 baseline tag 均未修改；旧 T2 state keys、参数量、strict restore、prediction/state parity 和 Global/T2 scientific identity 保护通过。UrbanEV/ModernTCN/TimeXer 参考仓库保持 clean。
 
 第九轮没有训练 T2G，没有生成真实 T2G artifact，没有运行任何正式评价数据集 test，没有实现 P2/T3/T4/T5，没有进入 M5，也没有实现空间模块。未来 T2G development 必须执行已预登记的 normal exogenous、batch permutation 与 `A_global` bypass 诊断，不得将 target shortcut 带来的改善直接归因于外生变量。M4 状态继续为 `In Progress`；T2G 代码、测试、canonical 与本 milestone 均保持未 stage、未 commit、未 push，等待 review。
+
+
+## 27. 第十轮：T2G Git closure、同源码 T2 对照与 ETTm1 development 实验
+
+### 27.1 T2G closure、测试资产与最终回归
+
+第九轮已审核的 14 文件 T2G 实现以一个 commit 完成 closure 并推送：
+
+```text
+commit: 636cb09e7a446350050db36f1be72ff609df58b8
+parent: daa8b2685a419d0e59cb4f4d184ea77cb3c2ad16
+title: feat(m4): implement global-mediated patch TEB candidate
+push: origin/AMD-paper-repro-custom-modules-v1 succeeded
+```
+
+提交范围精确为第九轮批准的 14 个代码、测试和文档文件；提交后 local/tracking/live remote 相同，ahead/behind=`0/0`，worktree/index clean。closure 版本 canonical SHA-256 为 `28a17672e1b9dbf4ba66db666382e36271140f957e3257661ffae5e2204bb42c`，本 milestone SHA-256 为 `8baf43438aa35aa2c40aae6c826347b6a6ecb13d02693c9b3142d5f75fa95323`。source fingerprint 为 `221c049a20ee17aa5ca806bf3e4e59e66361128df55c1c0572a65322a48844bb`（算法 `sha256_length_prefixed_relative_path_and_content_v1`，19 files）。
+
+以下三个新增测试固定为 `permanent_regression_test` 并随实现提交，未删除或改写：
+
+- `tests/test_global_mediated_patch_teb.py`：保护 T2G 数学、初始化、无 patch residual、beta=0 T2 parity 和 forecast gradient。
+- `tests/test_global_mediated_patch_teb_parallel.py`：保护 parallel owner mask、一次向量化 MHA、变量置换等变和 target context 选择。
+- `tests/test_global_mediated_patch_teb_checkpoint.py`：保护同结构 strict restore、候选隔离、失败无参数污染和 artifact identity。
+
+一次性初始化、命令构造、artifact 汇总、full-pass wrapper 与 counterfactual 脚本仅位于 `/tmp/m4_t2g_development_GBjEYgL5/`，不进入 `tests/` 或 Git；最终保护核验后已删除该目录。最终回归是在 closure 前、未修改实现字节的条件下重新执行：
+
+| 测试组 | 结果 | failed | skipped | wall |
+|---|---:|---:|---:|---:|
+| T2G module/parallel/checkpoint | 16/16 | 0 | 0 | `2.17 s` |
+| T2 保护 | 19/19 | 0 | 0 | `1.72 s` |
+| Global TEB v1 保护 | 17/17 | 0 | 0 | `1.71 s` |
+| AMDEnhanced/architecture/runner/summarizer | 82/82 | 0 | 0 | `7.81 s` |
+| PMCR/M1 保护 | 36/36 | 0 | 0 | `5.05 s` |
+| 完整 discover 回归 | **188/188** | **0** | **0** | `11.08 s` |
+
+CUDA 可用，T2G/T2/PMCR CUDA 测试实际执行；既有 165 tests 与 `1e-6` parity 门槛均保留。
+
+### 27.2 同源码初始化与命令公平性
+
+四个 horizon 均按 production runner 的 seed/config/factory 从 scratch 构造 T2-refresh 与 T2G。公共 AMD 的 60 个 parameter/persistent-buffer keys 以及两者共享的 19 个 T2-base keys（patch/global query projection/norm、exogenous projection/norm、MHA、patch output、gamma）均为相同 key/shape/dtype/value：
+
+| Horizon | AMD keys / max error / mismatch | T2-base keys / max error / mismatch | fixed PE |
+|---:|---|---|---|
+| 96 | `60 / 0 / none` | `19 / 0 / none` | `[1,16,32]`, exact |
+| 192 | `60 / 0 / none` | `19 / 0 / none` | `[1,16,32]`, exact |
+| 336 | `60 / 0 / none` | `19 / 0 / none` | `[1,16,32]`, exact |
+| 720 | `60 / 0 / none` | `19 / 0 / none` | `[1,16,32]`, exact |
+
+T2G 额外 state keys 精确为 `teb.beta_global`、`teb.global_bridge_norm.{weight,bias}`、`teb.global_injection_gate.{weight,bias}`。因此本轮 T2/T2G 差异不来自公共初始化漂移。
+
+命令逐 horizon 从第七轮 T2 `command.txt` 解析。T2-refresh 仅改变 artifact root；T2G 相对 refresh 仅改变 variant、ablation、派生 architecture/display name 和六个 T2G-only contract fields。dataset/data/split/scaler/feature order、task/target、T/horizon、seed/epochs/batch/optimizer、AMD 主干、Global/Patch TEB 共用参数、best rule 与 metric aggregation 均无未授权差异。
+
+### 27.3 八个 completed artifacts
+
+共同合同：ETTm1、parallel multivariate、all 7 variables、`T=512`、seed 2024、10 epochs、schema-v2；source fingerprint `221c049a...844bb`，data fingerprint `6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`。每个 run 均 `status=completed`、history=10、best/last present、metrics finite、manifest/config/path identity 一致、13/13 checksums 且系统 `sha256sum -c` passed；不存在残留 staging 或重复 identity。
+
+Artifact root：`/public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-c-t2g-v1/`。
+
+| Model | H | run_id | best epoch | config hash | best / last SHA-256 | wall / size |
+|---|---:|---|---:|---|---|---:|
+| T2-refresh | 96 | `20260831T125614.088680Z-28c264dc` | 10 | `7db5ee38...c89404` | `91d68322...25eb2` / `638c93f2...06ce52` | `184.159 s / 197.075 MiB` |
+| T2-refresh | 192 | `20260831T125946.781047Z-d356c00a` | 7 | `8b15bf66...598e52` | `067ea9ab...2afc8c` / `1cd5bf16...6d3645` | `202.728 s / 227.095 MiB` |
+| T2-refresh | 336 | `20260831T130339.244629Z-cd81fda5` | 6 | `24951e61...1af01` | `ed96ecf3...6ee02` / `1e8f4146...f4327e` | `198.628 s / 272.144 MiB` |
+| T2-refresh | 720 | `20260831T130809.284851Z-fe91d1e1` | 6 | `08d774ff...f09dc` | `e504b6de...d6dc7` / `c29e927f...40104` | `193.971 s / 392.187 MiB` |
+| T2G | 96 | `20260831T131316.843353Z-28429be0` | 10 | `6a3c2040...a1b4` | `e70d13e4...67c0b` / `5e3eb192...84cd2` | `203.548 s / 197.129 MiB` |
+| T2G | 192 | `20260831T131718.867739Z-a96e5e00` | 7 | `8d89d06b...d28b0` | `4f53f936...e7cea` / `55eb36ee...aa295` | `195.997 s / 227.115 MiB` |
+| T2G | 336 | `20260831T132101.766850Z-23f16d8c` | 6 | `fd1f9bba...c7e0` | `3706d784...c37282` / `7eb9b9ce...5523c` | `203.194 s / 272.134 MiB` |
+| T2G | 720 | `20260831T132455.900770Z-65ee2812` | 6 | `28190d49...891a` | `32c94a8a...e0342` / `7fc7f2b8...eff1` | `191.253 s / 392.206 MiB` |
+
+完整路径由上述 root 依次接：`<variant>/ETTm1/parallel_multivariate/all/horizon_<H>/fold_official/seed_2024/<run_id>`。T2-refresh 总 wall/space 为 `779.486 s / 1088.502 MiB`，T2G 为 `793.992 s / 1088.584 MiB`；T2G 每个 horizon 仅多 130 parameters，模型总参数依次为 `10,284,233 / 11,857,865 / 14,218,313 / 20,512,841`。
+
+### 27.4 Normal performance：T2G vs 同源码 T2-refresh
+
+以下均为 **ETTm1 development-only；test used for candidate development；not a formal paper result**。负相对值表示 T2G 误差下降。
+
+| H | Val MSE T2 / T2G / rel% | Val MAE T2 / T2G / rel% | Test MSE T2 / T2G / rel% | Test MAE T2 / T2G / rel% |
+|---:|---:|---:|---:|---:|
+| 96 | `0.37115965 / 0.37139266 / +0.06278` | `0.40300325 / 0.40304378 / +0.01006` | `0.29777238 / 0.29870051 / +0.31169` | `0.35107041 / 0.35167332 / +0.17174` |
+| 192 | `0.50013897 / 0.49992212 / -0.04336` | `0.46881942 / 0.46879847 / -0.00447` | `0.33464689 / 0.33472641 / +0.02376` | `0.37234873 / 0.37242933 / +0.02165` |
+| 336 | `0.64641350 / 0.64621341 / -0.03095` | `0.52858440 / 0.52855252 / -0.00603` | `0.36694654 / 0.36708114 / +0.03668` | `0.38916411 / 0.38927930 / +0.02960` |
+| 720 | `0.95247168 / 0.95236755 / -0.01093` | `0.63922116 / 0.63920692 / -0.00223` | `0.42190152 / 0.42203582 / +0.03183` | `0.41770466 / 0.41786549 / +0.03850` |
+| Macro | `0.61754595 / 0.61747393 / -0.01166` | `0.50990705 / 0.50990042 / -0.00130` | `0.35531683 / 0.35563597 / +0.08982` | `0.38257198 / 0.38281186 / +0.06270` |
+| mean horizon rel% | `-0.00562` | `-0.00067` | `+0.10099` | `+0.06537` |
+
+固定 development primary（test MSE macro）与 secondary（test MAE macro）均小幅变差，且四个 test horizon 的 MSE/MAE 全部同向变差；validation 只有接近数值平局的微小改善。最后三轮 validation MSE：
+
+| H | T2-refresh epochs 8-10 | T2G epochs 8-10 |
+|---:|---|---|
+| 96 | `0.37340881,0.37270323,0.37115965` | `0.37317685,0.37268224,0.37139266` |
+| 192 | `0.50175004,0.50462597,0.50097802` | `0.50143894,0.50398372,0.50025376` |
+| 336 | `0.64734166,0.64712390,0.64862325` | `0.64707475,0.64687374,0.64817753` |
+| 720 | `0.95743055,0.95832105,0.96076194` | `0.95764866,0.95848619,0.96110287` |
+
+T2-refresh 与第七轮旧 T2 的 4 horizons × 4 metrics、macro、best epoch 均逐值完全相同，所有 relative changes=`0`；这既验证同源码 refresh，也排除 refresh 自身漂移。
+
+### 27.5 补充对照：Global TEB v1 与 AMD
+
+下表为 T2G 相对既有对照的每-horizon百分比变化；AMD 是 legacy cross-source 补充证据，不具有本轮同源码 T2-refresh 的控制强度。
+
+| 对照 | H | Val MSE% | Val MAE% | Test MSE% | Test MAE% |
+|---|---:|---:|---:|---:|---:|
+| Global v1 | 96 | `-1.23081` | `-0.42795` | `-1.02827` | `-0.31267` |
+| Global v1 | 192 | `+1.43720` | `+1.47334` | `-0.46202` | `-0.16393` |
+| Global v1 | 336 | `-0.68942` | `-0.40988` | `-0.96358` | `-0.66710` |
+| Global v1 | 720 | `+0.05458` | `-0.00135` | `-0.82384` | `-0.21816` |
+| Global v1 macro | — | `-0.06116` | `+0.14192` | `-0.81814` | `-0.34120` |
+| Global v1 mean-horizon | — | `-0.10711` | `+0.15854` | `-0.81943` | `-0.34046` |
+| AMD | 96 | `+0.35646` | `+0.13345` | `+2.81228` | `+1.99588` |
+| AMD | 192 | `+0.75779` | `+1.15107` | `+1.72347` | `+1.46013` |
+| AMD | 336 | `-0.22476` | `-0.00638` | `+0.90948` | `+0.72101` |
+| AMD | 720 | `-0.35048` | `-0.04040` | `-0.01943` | `+0.45128` |
+| AMD macro | — | `+0.01109` | `+0.27433` | `+1.21440` | `+1.11634` |
+| AMD mean-horizon | — | `+0.13475` | `+0.30943` | `+1.35645` | `+1.15707` |
+
+T2G 的 Global-v1 test macro 较低，但其同源码、单因素 T2-refresh 对照优先级更高；对 AMD 的 development primary/secondary 均较差。本节不把跨源码补充比较升级为正式性能结论。
+
+### 27.6 T2G 参数训练动力学
+
+初始值统一为 `gamma=0.001`、`beta=0.001`、gate weight/bias=0、bridge-norm weight=1/bias=0。表中 q-proj/q-norm 为 checkpoint 相对同 seed/factory 初始参数的 L2；bridge 列为 weight-vs-one/bias L2。
+
+| H | epoch best/last | gamma best/last | beta best/last | gate W L2 best/last | gate bias best/last | bridge W/B best/last | q proj / q norm best→last |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 96 | `10/10` | `.085178/.085178` | `.128975/.128975` | `.467343/.467343` | `.125871/.125871` | `.360106/.255264 → same` | `1.205312/.165088 → same` |
+| 192 | `7/10` | `.075040/.084526` | `.097404/.125887` | `.318294/.407148` | `.093994/.121567` | `.192930/.219875 → .341179/.328401` | `1.042862/.151909 → 1.150183/.156248` |
+| 336 | `6/10` | `.066730/.082290` | `.087039/.125917` | `.340425/.467806` | `.081717/.113904` | `.136797/.116822 → .306465/.186592` | `1.013722/.151015 → 1.183779/.124957` |
+| 720 | `6/10` | `.068672/.082270` | `.087872/.124193` | `.390356/.500924` | `.072907/.091427` | `.154193/.131322 → .324529/.143432` | `.990252/.161216 → 1.114232/.161030` |
+
+Raw gradient 非零不等于参数产生有意义移动；本轮端点证明 beta、gate、bridge norm、global query 与 gamma 均已明显离开初始化，初始约 `1e-6` 的 global 写回路径确实参与了训练，而不是只在理论上可导。
+
+### 27.7 Gate、表示范数与 global contribution
+
+每行统计完整 split 的样本×变量×patch（norm 统计按相应 token）。`r_global=||beta*gate*G_global||/(||A_patch||+eps)`。
+
+| H/split | gate mean/median/p10/p90/p99/min/max | `<.1 / >1.9` | r_global mean/median/p10/p90/p99/max |
+|---|---|---:|---|
+| 96/val | `1.4428/1.5775/.7514/1.8976/1.9583/.0464/1.9903` | `.0541%/9.5867%` | `.2149/.2017/.1022/.3411/.5325/1.7747` |
+| 96/test | `1.4101/1.5541/.6573/1.8990/1.9581/.0423/1.9918` | `.0634%/9.8274%` | `.2113/.1992/.0855/.3424/.5401/1.5259` |
+| 192/val | `1.1875/1.2454/.6932/1.5756/1.7160/.2441/1.8333` | `0/0` | `.1253/.1056/.0400/.2372/.3866/1.9209` |
+| 192/test | `1.1942/1.2574/.7097/1.5641/1.7036/.2551/1.8294` | `0/0` | `.1313/.1109/.0400/.2499/.4026/1.0581` |
+| 336/val | `1.3266/1.3493/.9818/1.6401/1.7735/.2922/1.9113` | `0/.0003%` | `.1223/.1043/.0647/.2058/.3174/.8167` |
+| 336/test | `1.3190/1.3421/.9717/1.6321/1.7818/.2894/1.9223` | `0/.0004%` | `.1290/.1128/.0698/.2115/.3198/.8972` |
+| 720/val | `1.5531/1.7571/.7649/1.9502/1.9800/.0414/1.9938` | `.1652%/25.6461%` | `.1204/.1136/.0717/.1814/.2828/.8475` |
+| 720/test | `1.5461/1.7349/.7971/1.9457/1.9787/.0368/1.9938` | `.1195%/23.3997%` | `.1226/.1161/.0730/.1835/.2763/.6937` |
+
+| H/split | mean ||A_patch|| / ||q|| / ||A_global|| / ||G|| / ||injection|| | mean A_global/q | mean cosine(q,A_global) |
+|---|---|---:|---:|
+| 96/val | `6.0483/5.5734/5.9127/6.0878/1.1343` | `1.0607` | `.0110` |
+| 96/test | `6.0501/5.5703/5.7004/6.0822/1.1080` | `1.0232` | `-.0263` |
+| 192/val | `7.3077/5.5605/6.7743/5.9298/.6889` | `1.2181` | `.0401` |
+| 192/test | `7.1302/5.5585/6.4962/5.9265/.6923` | `1.1686` | `.0383` |
+| 336/val | `6.5186/5.5288/6.1361/5.7958/.6698` | `1.1098` | `-.1212` |
+| 336/test | `6.1079/5.5288/5.8665/5.7951/.6659` | `1.0611` | `-.0723` |
+| 720/val | `7.4314/5.5465/6.9218/5.8321/.7966` | `1.2474` | `.0587` |
+| 720/test | `7.2413/5.5445/6.8063/5.8305/.7927` | `1.2272` | `.1040` |
+
+变量顺序为 `[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]`；以下为 gate mean（变量列表；随后为 patch positions 0-15）：
+
+| H/split | variable means | patch-position means |
+|---|---|---|
+| 96/val | `[1.4319,1.4739,1.4295,1.4683,1.4477,1.4395,1.4086]` | `[1.3930,1.4252,1.4117,1.4477,1.4825,1.4603,1.4767,1.4873,1.4698,1.4763,1.5205,1.4546,1.4012,1.4121,1.4173,1.3484]` |
+| 96/test | `[1.4159,1.4433,1.4143,1.4388,1.4186,1.3860,1.3537]` | `[1.3567,1.3850,1.3491,1.4080,1.4407,1.3980,1.4552,1.4561,1.4132,1.4655,1.4932,1.4193,1.4041,1.3929,1.3725,1.3518]` |
+| 192/val | `[1.2556,1.1827,1.2674,1.1972,1.1527,1.1303,1.1267]` | `[1.1840,1.1871,1.1566,1.1416,1.1373,1.1498,1.1654,1.1745,1.1785,1.1713,1.1792,1.2159,1.2578,1.2613,1.2363,1.2033]` |
+| 192/test | `[1.2334,1.1910,1.2349,1.1928,1.2058,1.1567,1.1448]` | `[1.1957,1.1967,1.1688,1.1500,1.1449,1.1607,1.1748,1.1779,1.1827,1.1760,1.1822,1.2198,1.2576,1.2644,1.2446,1.2106]` |
+| 336/val | `[1.3175,1.3476,1.3097,1.3433,1.3500,1.3093,1.3088]` | `[1.2889,1.3167,1.3397,1.3730,1.3725,1.3758,1.3677,1.3704,1.3861,1.3729,1.3570,1.3156,1.2586,1.2328,1.2301,1.2679]` |
+| 336/test | `[1.3322,1.3348,1.3251,1.3361,1.3235,1.3036,1.2779]` | `[1.2759,1.3171,1.3331,1.3529,1.3716,1.3676,1.3458,1.3647,1.3752,1.3570,1.3507,1.3103,1.2465,1.2320,1.2333,1.2710]` |
+| 720/val | `[1.5530,1.5783,1.5397,1.5709,1.5650,1.5448,1.5199]` | `[1.6006,1.5786,1.5888,1.6548,1.6885,1.6801,1.6689,1.6560,1.6420,1.6574,1.6376,1.5482,1.4479,1.3147,1.2084,1.2772]` |
+| 720/test | `[1.5697,1.5740,1.5625,1.5689,1.5484,1.5448,1.4541]` | `[1.5896,1.5739,1.5758,1.6319,1.6682,1.6703,1.6534,1.6425,1.6340,1.6463,1.6274,1.5576,1.4594,1.3170,1.2106,1.2794]` |
+
+Gate 没有整体停留在 1；h720 有明显高端集中。global injection 相对 raw patch response 的平均范数比例约 12.0%-21.5%，说明 learned global path 数值上并非消失，但不能据此推断它改善了误差。
+
+### 27.8 同 checkpoint 归因诊断
+
+每个 best checkpoint 的 formal forward 与 diagnostic wrapper 在 prediction、MoE、A_patch、A_global、G_global、gate、delta 上最大误差均为 `0`。Normal 指标与 artifact 精确相同；所有四个 checkpoint 均以同结构 `strict=True` 恢复，missing/unexpected 为空。每个状态从同一 loader/RNG 起点完整遍历；loader `num_workers=0`、无独立 generator、无随机 transform/collate。诊断后完整 state dict 的 84 keys 逐元素 `torch.equal`，没有 parameter/buffer 变化。表内为 `changed MSE/MAE (相对 Normal MSE%/MAE%)`：
+
+| Split/H | beta=0 | A_global=0 | q residual=0 | 3 cyclic exogenous permutations mean |
+|---|---|---|---|---|
+| val/96 | `.36957485/.40209290 (-.48946/-.23592)` | `.36960690/.40214270 (-.48083/-.22357)` | `.37195030/.40341179 (+.15015/+.09131)` | `.37200341/.40353747 (+.16445/+.12249)` |
+| val/192 | `.49985033/.46859615 (-.01436/-.04316)` | `.49967321/.46856373 (-.04979/-.05007)` | `.50005275/.46886355 (+.02613/+.01388)` | `.50032300/.46895893 (+.08019/+.03423)` |
+| val/336 | `.64682085/.52884255 (+.09400/+.05487)` | `.64622236/.52859670 (+.00138/+.00836)` | `.64640498/.52862573 (+.02964/+.01385)` | `.64642026/.52865378 (+.03201/+.01916)` |
+| val/720 | `.95268318/.63929828 (+.03314/+.01429)` | `.95233615/.63918756 (-.00330/-.00303)` | `.95253636/.63927669 (+.01773/+.01092)` | `.95251586/.63931865 (+.01557/+.01748)` |
+| test/96 | `.29975946/.35273438 (+.35452/+.30172)` | `.29947864/.35261144 (+.26050/+.26676)` | `.29890542/.35169634 (+.06860/+.00654)` | `.29921720/.35194066 (+.17298/+.07602)` |
+| test/192 | `.33474987/.37220388 (+.00701/-.06053)` | `.33456404/.37218740 (-.04851/-.06496)` | `.33482153/.37248480 (+.02842/+.01489)` | `.33492142/.37251134 (+.05826/+.02202)` |
+| test/336 | `.36706822/.38925604 (-.00352/-.00598)` | `.36707138/.38929777 (-.00266/+.00474)` | `.36706977/.38927334 (-.00310/-.00153)` | `.36715356/.38928560 (+.01973/+.00162)` |
+| test/720 | `.42197853/.41774580 (-.01358/-.02864)` | `.42197845/.41778599 (-.01359/-.01903)` | `.42209515/.41789440 (+.01406/+.00692)` | `.42202666/.41789482 (-.00217/+.00702)` |
+
+三个 permutation 的 MSE/MAE ranges：val h96 `[.37167412,.37232798]/[.40327706,.40379924]`，h192 `[.50011811,.50052663]/[.46887610,.46904150]`，h336 `[.64630769,.64653544]/[.52859653,.52871379]`，h720 `[.95243086,.95260721]/[.63925904,.63938091]`；test h96 `[.29893705,.29949676]/[.35178953,.35209118]`，h192 `[.33480798,.33504393]/[.37245988,.37257084]`，h336 `[.36710637,.36720722]/[.38927553,.38929984]`，h720 `[.42201950,.42203890]/[.41787348,.41792088]`。所有 split 的不可置换 B=1 batch 数为 0。
+
+各状态对内部张量/预测的全 split 最大绝对变化，tuple 顺序为 `prediction/A_patch/A_global/G_global/gate`：
+
+| Split/H | beta=0 | A_global=0 | q residual=0 | permutation max over shifts |
+|---|---|---|---|---|
+| val/96 | `.17467/0/0/0/0` | `.14778/0/6.51910/4.06700/.67458` | `.13318/0/0/5.20290/.95425` | `.96340/7.52427/6.31766/3.96637/1.78759` |
+| val/192 | `.05240/0/0/0/0` | `.06842/0/5.87030/3.56853/.72656` | `.05064/0/0/5.28228/.83853` | `.84711/7.02210/6.29703/3.43142/1.01883` |
+| val/336 | `.03533/0/0/0/0` | `.04557/0/6.37727/4.07178/.29909` | `.04334/0/0/5.59749/.58023` | `.43661/7.10389/5.87279/4.02733/.85362` |
+| val/720 | `.04511/0/0/0/0` | `.04032/0/5.87905/4.04695/.44353` | `.03911/0/0/5.30544/.51181` | `.76478/8.10504/6.30310/3.89410/1.89221` |
+| test/96 | `.12780/0/0/0/0` | `.16836/0/6.01151/3.81889/.66707` | `.10675/0/0/5.48224/.99900` | `.78328/8.05981/6.27515/3.91950/1.87382` |
+| test/192 | `.05433/0/0/0/0` | `.04993/0/5.79388/3.67948/.74198` | `.03210/0/0/4.89092/.79981` | `.79639/7.89504/6.90600/3.39083/.88304` |
+| test/336 | `.03106/0/0/0/0` | `.04056/0/5.52199/3.78859/.31836` | `.03897/0/0/5.20538/.51361` | `.41032/6.82280/6.89836/3.92455/.88814` |
+| test/720 | `.04338/0/0/0/0` | `.05347/0/6.14384/3.72501/.43321` | `.03221/0/0/4.98694/.54124` | `.53046/7.49647/7.02561/3.42424/1.82184` |
+
+解释边界：`beta=0` 是整个 global-mediated writeback 的同-checkpoint bypass；`A_global=0` 保留 `LayerNorm(q_global)`；q-residual bypass 保留 `LayerNorm(A_global)`；permutation 同时破坏 patch/global K/V 对齐。结果显示 global path 被使用但贡献方向依 horizon/split 而变：beta bypass 在 test h96 明显恶化，却在 val h96 改善；A_global bypass 同样不稳定；q residual bypass在多数行造成微小退化；外生 permutation 在全部 validation 以及 test h96/h192/h336 增加 MSE，test h720 MSE 轻微下降而 MAE上升。它证明可测的外生依赖，但不是独立训练消融、可加性分解或因果证明。
+
+### 27.9 Development signal、证据边界与停止点
+
+事实：T2-refresh 精确复现旧 T2；T2G 公共初始化完全公平；T2G global/gate/beta 参数显著移动，global injection 不是数值零路径，外生 permutation 可改变表示与预测。但在最高优先级的同源码单因素比较中，T2G 四个 test horizons 的 MSE/MAE 全部比 T2-refresh 略差，test MSE/MAE macro 分别退化 `+0.08982%/+0.06270%`；validation 仅有 `-0.01166%/-0.00130%` 的近零改善，且同-checkpoint bypass方向不稳定。
+
+因此本轮分类为：**negative-or-negligible development signal**。这是 ETTm1、single seed、10 epochs 的 development 判断，不冻结或淘汰 T2G，不把 T2G 声明为最终 TEB，也不构成正式论文性能结果。它不能回答 EV 场景、多 seed 可重复性或 M5 最终结构；等待用户与 ChatGPT 决定 T2G 是否为 TEB 的 M4 候选终点、是否退回 T2、是否仅做一个有限 TEB repair，以及何时转入 PMCR/P2。
+
+本轮没有实现或启动 P2/T3/T4/T5，没有进入 M5，没有运行 UrbanEV、EPF-PJM、ETTh1、Weather、ECL 或 Exchange test，没有实现 StateAdapter/Graph Mode/空间模块。M0-M3、frozen AMD、Global TEB v1、PMCR v1、T2 与 baseline tag 均未变化。M4 状态保持 `In Progress`；canonical 保持 closure SHA `28a17672e1b9dbf4ba66db666382e36271140f957e3257661ffae5e2204bb42c` 且实验阶段未改。本节作为唯一 M4 milestone 的实验追加保持未 stage、未 commit、未 push，等待 review。
+
+## 28. 第十一轮 Stage A：T2G 结果 closure 与 T3 合同锁定
+
+### 28.1 第十轮结果审查结论
+
+第十轮 T2-refresh 精确复现旧 T2；T2G 相对同源码 T2-refresh 的四个 test horizon MSE/MAE 均轻微退化，test MSE/MAE macro 分别退化 `+0.08982%/+0.06270%`，validation 仅接近数值平局，因此固定分类为 **negative-or-negligible development signal**。T2G 的 global/gate/beta 参数明显离开初始化，global writeback 和外生 permutation 均能改变预测，故结论不是“结构没有训练起来”；它只说明当前简单 global-mediated patch injection 未带来额外 ETTm1 development 收益。
+
+T2G 保留代码、永久测试、strict-restorable artifacts 和独立候选身份，作为可追溯负向工程候选；不删除、不在 M5 前宣称正式淘汰，也不把该结果扩展为其他数据集、所有 global/patch interaction 或 TimeXer global token 设计无效。用户决定不再围绕 T2G 搜索 beta、gate、MLP 或更复杂 global injection，T2G 退出当前 leading-candidate 竞争。
+
+### 28.2 用户授权与 T3 身份
+
+用户正式解除 T3 暂缓并明确授权最后一个 TEB 结构候选：
+
+```text
+candidate = T3 Selective Patch TEB
+class = SelectivePatchTargetExogenousBridge
+variant = el-amd-m4-t3-selective-patch-teb-v1
+ablation_id = M4_T3
+teb_architecture = selective_patch_v1
+```
+
+T3 直接从 T2 派生，不继承 T2G，不含 `q_global` residual、global bridge norm、global-to-patch injection、`beta_global` 或 global injection gate。它不是最终 TEB、最终 EL-AMD 或 M5 frozen variant，不覆盖 Global v1/T2/T2G。
+
+### 28.3 精确 gate 合同
+
+T3 沿用 T2 全部 patch/global token、fixed PE、whole-series exogenous K/V、一次向量化 MHA、owner mask、projection、padding/crop、gamma residual、exo context 与 state source。唯一变化为：
+
+```text
+D_patch = patch_output_projection(A_patch)
+gate_input = concat(Q_patch,A_patch,-1)
+gate_logits = F.linear(gate_input, gate_weight, gate_bias)
+g_patch = 2*sigmoid(gate_logits)
+D_effective = g_patch*D_patch
+```
+
+Gate 固定在含 bias 的 output projection **之后**；禁止 `output_projection(g*A_patch)`。Gate 是 `[B,N,1]` 或 `[B,C,N,1]` 的 shared scalar-per-patch gate，只控制外生 residual 写回量，不把 `Q_patch` 加进 residual。Gate 参数必须显式零 Parameter 初始化，不允许先随机构造 Linear 再清零；初始 gate 严格等于 1，且新增参数不消费 CPU/CUDA RNG。新增 keys 只允许 `teb.patch_confidence_gate_weight/bias`，`d=32` 时增加 65，模块总参数必须为 ETTm1 39,426、UrbanEV 5,541。
+
+T3 的 global query 完全保持 T2 的 state-only、forecast-loss-disconnected 语义；其专属参数在 production forecast loss 下预计零梯度，但 state-control 应证明图未 detach。T3 不实现 StateAdapter、pooling 或其他 global repair。
+
+### 28.4 Identity、恢复与 endpoint 规则
+
+T3-only candidate contract fields 固定为：
+
+```text
+teb_patch_confidence_gate = scalar_per_patch_post_projection
+teb_patch_gate_input = query_and_attention_response
+teb_patch_gate_activation = two_sigmoid
+teb_patch_gate_init = explicit_zero_identity
+teb_global_prediction_role = state_only_forecast_disconnected
+```
+
+这些字段条件进入 T3 config/hash/checkpoint/manifest/resume/summarizer identity，不改变旧 Global/T2/T2G identity。T3 训练 from scratch；只允许同结构 T3 `strict=True` restore，拒绝所有跨候选、partial、mismatch、`strict=False` 和 source-kind importer，失败不污染模型。
+
+Endpoint 规则已预登记：T3 为 positive 时 T3 成为 TEB M4 leading candidate；T3 为 mixed 或 negative-or-negligible 时 T2 保持 leading candidate。无论哪一种，随后登记 `TEB branch reaches M4 candidate endpoint`，但不等于 M5 freeze。本轮完成 T3 证据与裁决后必须停止，不自动启动 P2；T4/T5 继续排除。
+
+本节为 Stage A 文档 closure 前状态；第十轮所有 artifact、指标与诊断原值完整保留。M4 状态继续 `In Progress`。
