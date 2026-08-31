@@ -19,6 +19,15 @@ from models.modules.patch_conditioned_target_exogenous_bridge import (
     RIGHT_ZERO_CROP,
     PatchConditionedTargetExogenousBridge,
 )
+from models.modules.selective_patch_target_exogenous_bridge import (
+    GLOBAL_PREDICTION_ROLE_STATE_ONLY,
+    PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION,
+    PATCH_GATE_ACTIVATION_TWO_SIGMOID,
+    PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY,
+    PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
+    SELECTIVE_PATCH_V1,
+    SelectivePatchTargetExogenousBridge,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     TARGET_EXOGENOUS,
@@ -844,6 +853,70 @@ class AMDEnhancedM3Tests(unittest.TestCase):
         )
         try:
             torch.manual_seed(3463)
+            with torch.no_grad():
+                prediction, moe_loss, state_source = model(
+                    torch.randn(2, 4, 3), return_state_source=True
+                )
+        finally:
+            for handle in handles:
+                handle.remove()
+        self.assertEqual(prediction.shape, (2, 2, 1))
+        self.assertEqual(moe_loss.ndim, 0)
+        self.assertEqual(state_source.shape, (2, 2 * 4 + 32))
+        self.assertTrue(torch.equal(
+            state_source[:, :4], captured["v_final"][:, 1, :]
+        ))
+        self.assertTrue(torch.equal(
+            state_source[:, 4:8], captured["u_mdm"][:, 1, :]
+        ))
+        self.assertTrue(torch.equal(state_source[:, 8:], captured["context"]))
+
+    def test_t3_integration_preserves_routing_and_state_source_shape(self):
+        model = AMDEnhanced(
+            **self._backbone_kwargs(),
+            target_idx=1,
+            teb_context_dim=32,
+            task_mode=TARGET_EXOGENOUS,
+            aux_idx=(0, 2),
+            use_pmcr=False,
+            use_teb=True,
+            teb_heads=4,
+            teb_dropout=0.1,
+            teb_gamma_init=1e-3,
+            teb_architecture=SELECTIVE_PATCH_V1,
+            teb_patch_size=2,
+            teb_patch_padding=RIGHT_ZERO_CROP,
+            teb_patch_position=FIXED_SINUSOIDAL,
+            teb_patch_confidence_gate=(
+                PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION
+            ),
+            teb_patch_gate_input=PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
+            teb_patch_gate_activation=PATCH_GATE_ACTIVATION_TWO_SIGMOID,
+            teb_patch_gate_init=PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY,
+            teb_global_prediction_role=GLOBAL_PREDICTION_ROLE_STATE_ONLY,
+        ).eval()
+        self.assertIsInstance(model.teb, SelectivePatchTargetExogenousBridge)
+        self.assertFalse(any(
+            token in key
+            for key in model.teb.state_dict()
+            for token in ("beta_global", "global_bridge", "global_injection")
+        ))
+        captured = {}
+        handles = (
+            model.pastmixing.register_forward_hook(
+                lambda _module, _inputs, output: captured.__setitem__(
+                    "u_mdm", output.detach().clone()
+                )
+            ),
+            model.teb.register_forward_hook(
+                lambda _module, _inputs, output: captured.update({
+                    "v_final": output[0].detach().clone(),
+                    "context": output[1].detach().clone(),
+                })
+            ),
+        )
+        try:
+            torch.manual_seed(3467)
             with torch.no_grad():
                 prediction, moe_loss, state_source = model(
                     torch.randn(2, 4, 3), return_state_source=True

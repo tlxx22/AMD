@@ -17,11 +17,13 @@ IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
 T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
+T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
     T2_IMPLEMENTATION_VARIANT,
     T2G_IMPLEMENTATION_VARIANT,
+    T3_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 ENHANCED_CHECKSUM_FILES = (
@@ -147,8 +149,15 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         "global_gate_init",
         "beta_global_init",
     }
+    t3_fields = {
+        "patch_confidence_gate",
+        "patch_gate_input",
+        "patch_gate_activation",
+        "patch_gate_init",
+        "global_prediction_role",
+    }
     if implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
-        unexpected = sorted((patch_fields | t2g_fields) & set(teb))
+        unexpected = sorted((patch_fields | t2g_fields | t3_fields) & set(teb))
         if unexpected:
             raise ValueError(
                 f"Global TEB v1 artifact contains candidate fields "
@@ -157,11 +166,11 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         return None
 
     expected = {
-        "architecture": (
-            "global_mediated_patch_v1"
-            if implementation_variant == T2G_IMPLEMENTATION_VARIANT
-            else "patch_conditioned_v1"
-        ),
+        "architecture": {
+            T2_IMPLEMENTATION_VARIANT: "patch_conditioned_v1",
+            T2G_IMPLEMENTATION_VARIANT: "global_mediated_patch_v1",
+            T3_IMPLEMENTATION_VARIANT: "selective_patch_v1",
+        }[implementation_variant],
         "context_dim": 32,
         "heads": 4,
         "dropout": 0.1,
@@ -179,6 +188,14 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
             "global_gate_init": "identity",
             "beta_global_init": 1e-3,
         })
+    elif implementation_variant == T3_IMPLEMENTATION_VARIANT:
+        expected.update({
+            "patch_confidence_gate": "scalar_per_patch_post_projection",
+            "patch_gate_input": "query_and_attention_response",
+            "patch_gate_activation": "two_sigmoid",
+            "patch_gate_init": "explicit_zero_identity",
+            "global_prediction_role": "state_only_forecast_disconnected",
+        })
     mismatches = {
         field: (expected_value, teb.get(field))
         for field, expected_value in expected.items()
@@ -195,21 +212,33 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
     ):
         mismatches["patch_size"] = ("0 < patch_size <= seq_len", patch_size)
     if implementation_variant == T2_IMPLEMENTATION_VARIANT:
-        unexpected_t2g = sorted(t2g_fields & set(teb))
-        if unexpected_t2g:
-            mismatches["unexpected_t2g_fields"] = ([], unexpected_t2g)
+        unexpected = sorted((t2g_fields | t3_fields) & set(teb))
+        if unexpected:
+            mismatches["unexpected_candidate_fields"] = ([], unexpected)
+    elif implementation_variant == T2G_IMPLEMENTATION_VARIANT:
+        unexpected = sorted(t3_fields & set(teb))
+        if unexpected:
+            mismatches["unexpected_t3_fields"] = ([], unexpected)
+    else:
+        unexpected = sorted(t2g_fields & set(teb))
+        if unexpected:
+            mismatches["unexpected_t2g_fields"] = ([], unexpected)
 
     if model.get("use_pmcr") is not False or model.get("use_teb") is not True:
         mismatches["module_switches"] = ((False, True), (model.get("use_pmcr"), model.get("use_teb")))
-    expected_ablation = (
-        "M4_T2G"
-        if implementation_variant == T2G_IMPLEMENTATION_VARIANT
-        else "M4_T2"
-    )
+    expected_ablation = {
+        T2_IMPLEMENTATION_VARIANT: "M4_T2",
+        T2G_IMPLEMENTATION_VARIANT: "M4_T2G",
+        T3_IMPLEMENTATION_VARIANT: "M4_T3",
+    }[implementation_variant]
     if experiment.get("ablation_id") != expected_ablation:
         mismatches["ablation_id"] = (expected_ablation, experiment.get("ablation_id"))
     if mismatches:
-        label = "T2G" if implementation_variant == T2G_IMPLEMENTATION_VARIANT else "T2"
+        label = {
+            T2_IMPLEMENTATION_VARIANT: "T2",
+            T2G_IMPLEMENTATION_VARIANT: "T2G",
+            T3_IMPLEMENTATION_VARIANT: "T3",
+        }[implementation_variant]
         raise ValueError(
             f"unsupported {label} patch config {mismatches}: {run_dir}"
 
@@ -242,6 +271,14 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
             "teb_global_gate_input": teb.get("global_gate_input"),
             "teb_global_gate_init": teb.get("global_gate_init"),
             "teb_beta_global_init": teb.get("beta_global_init"),
+        })
+    elif implementation_variant == T3_IMPLEMENTATION_VARIANT:
+        contract.update({
+            "teb_patch_confidence_gate": teb.get("patch_confidence_gate"),
+            "teb_patch_gate_input": teb.get("patch_gate_input"),
+            "teb_patch_gate_activation": teb.get("patch_gate_activation"),
+            "teb_patch_gate_init": teb.get("patch_gate_init"),
+            "teb_global_prediction_role": teb.get("global_prediction_role"),
         })
     return contract
 

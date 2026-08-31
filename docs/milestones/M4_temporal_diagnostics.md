@@ -1275,3 +1275,105 @@ teb_global_prediction_role = state_only_forecast_disconnected
 Endpoint 规则已预登记：T3 为 positive 时 T3 成为 TEB M4 leading candidate；T3 为 mixed 或 negative-or-negligible 时 T2 保持 leading candidate。无论哪一种，随后登记 `TEB branch reaches M4 candidate endpoint`，但不等于 M5 freeze。本轮完成 T3 证据与裁决后必须停止，不自动启动 P2；T4/T5 继续排除。
 
 本节为 Stage A 文档 closure 前状态；第十轮所有 artifact、指标与诊断原值完整保留。M4 状态继续 `In Progress`。
+
+## 29. 第十一轮 Stage B：T3 implementation review
+
+### 29.1 Stage A 文档 closure
+
+T2G development 结论与 T3 exact contract 已通过单独文档 closure：
+
+```text
+commit = 953dfaf514be4d5a5c669b42978de72d3f5bdbcd
+parent = 636cb09e7a446350050db36f1be72ff609df58b8
+title = docs(m4): conclude T2G development and lock T3 contract
+push = origin/AMD-paper-repro-custom-modules-v1
+local/tracking/live remote = equal
+ahead/behind = 0/0
+canonical SHA-256 = bdcb154429463ee75bdbf46dbb83b0e277a0cb267decc87ad5a705c8b2d1af01
+M4 closure SHA-256 = ae8390cee192f7e99263327bfee3ec204b670decfb9a9d0458e9ea546d46da6c
+```
+
+该 closure 只包含 canonical 与唯一 M4 milestone；M0-M3、baseline tag 与 19-file source fingerprint 未变化。
+
+### 29.2 实现范围与合同核验
+
+T3 以独立 `SelectivePatchTargetExogenousBridge` 实现，直接继承 T2，未继承或组合 T2G。新增模块之外，只修改模块公开出口、`AMDEnhanced`、runner、summarizer 以及四个长期集成测试；新增三个 `permanent_regression_test`。T2、T2G、Global TEB v1、PMCR v1 与 frozen AMD 文件字节未改。
+
+实现的唯一结构变化为 post-projection scalar gate：
+
+```text
+D_patch = patch_output_projection(A_patch)
+g_patch = 2*sigmoid(F.linear([Q_patch;A_patch], gate_weight, gate_bias))
+D_effective = g_patch*D_patch
+```
+
+Gate weight/bias 以显式零 Parameter 创建，不消费 RNG；初始 gate 严格为 1。新增 state keys 精确为 `teb.patch_confidence_gate_weight` 和 `teb.patch_confidence_gate_bias`，`d=32` 时增加 65 参数；模块参数量 ETTm1 `39,426`、UrbanEV `5,541`。不存在 T2G keys、patch residual/norm/FFN、learnable position、top-k、Hidden-KV 或第二 selector。T2 common state、fixed PE、CPU/CUDA RNG 与初始 eval/train output parity 均由永久测试保护。
+
+Runner 接受且只接受：
+
+```text
+variant = el-amd-m4-t3-selective-patch-teb-v1
+ablation = M4_T3
+architecture = selective_patch_v1
+```
+
+五个 T3-only fields 条件进入 scientific/comparison identity、checkpoint metadata、manifest candidate contract、resume mismatch 和 summarizer。Global/T2/T2G 携带 T3 fields、T3 携带 T2G fields、缺失/错误 gate contract、partial/unexpected/shape mismatch、跨候选恢复、`strict=False` 与 source-kind importer 均被拒绝；失败恢复保持目标 parameter/buffer 逐元素不变。Synthetic schema-v2 artifact 与 duplicate/tamper 拒绝测试通过，没有创建真实 T3 artifact。
+
+### 29.3 测试结果
+
+统一使用 `/public/home/yueweiting/miniconda/envs/amd/bin/python -B`，设置 `GIT_OPTIONAL_LOCKS=0` 与 `PYTHONDONTWRITEBYTECODE=1`：
+
+| 测试组 | 结果 | failed | skipped |
+|---|---:|---:|---:|
+| T3 permanent regression | 19/19 passed | 0 | 0 |
+| T2 protection | 19/19 passed | 0 | 0 |
+| T2G protection | 16/16 passed | 0 | 0 |
+| Global TEB v1 | 17/17 passed | 0 | 0 |
+| AMDEnhanced/architecture/runner/summarizer | 87/87 passed | 0 | 0 |
+| PMCR/M1 protection | 36/36 passed | 0 | 0 |
+| full discovery | 212/212 passed | 0 | 0 |
+
+T2、T2G、T3 的 CUDA float32 tests 均实际执行；既有 188 tests 全部保留，既有 `1e-6` parity 门槛未放宽。
+
+### 29.4 真实数据单 batch production-loss smoke
+
+仅在 `/tmp/m4_t3_development_3Lcaeu2C/` 执行一次性诊断；没有构造 optimizer、没有 `optimizer.step()`、没有 checkpoint/artifact 写入。总目标严格为 production `MSE(prediction,label) + selector auxiliary loss`。
+
+ETTm1 parallel h96：
+
+```text
+x = [128,512,7]
+y = [128,96,7]
+prediction = [128,96,7]
+state_source = [128,1056]
+gate = [128,7,16,1]
+objective = 0.6327509880
+```
+
+UrbanEV M1 production pipeline，F4/fold1/label-horizon3：
+
+```text
+x = [128,12,11]
+y = [128,1]
+prediction = [128,1,1]
+state_source = [128,56]
+gate = [128,4,1]
+target_idx = 0
+aux_idx = [1,2,3,4,5,6,7,8,9,10]
+objective = 3.6380765438
+```
+
+两条路径的 prediction/state/auxiliary 均 finite。ETTm1 与 UrbanEV 的 gate weight/bias、`Q_patch`、`A_patch`、`D_patch`、`D_effective`、`gamma_teb` 与 AMD backbone raw backward gradients 均 finite、nonzero。ETTm1 gate weight/bias L2 分别为 `7.9087433e-7/9.1074583e-8`；UrbanEV 为 `1.6191830e-5/3.7283808e-6`。Global-query projection/norm 的 production task gradient 在两条路径均为严格零，符合预登记的 state-only、forecast-loss-disconnected 合同，不构成实现失败。
+
+### 29.5 Implementation gate 与停止点
+
+Implementation review：**Passed**。当前 executable source fingerprint 为：
+
+```text
+algorithm = sha256_length_prefixed_relative_path_and_content_v1
+file_count = 20
+sha256 = a3766cbc4f79eef2cc6db19020131abfc7f8eb8e4c56677c6eab5e995d952910
+new included file = models/modules/selective_patch_target_exogenous_bridge.py
+```
+
+T3 尚未完成 performance/development 验收。本阶段未训练 T3、未生成真实 T3 artifact、未实现或启动 P2/T4/T5、未进入 M5/M7，M4 状态继续为 `In Progress`。

@@ -14,6 +14,9 @@ from models.modules.patch_conditioned_target_exogenous_bridge import (
     RIGHT_ZERO_CROP,
     PatchConditionedTargetExogenousBridge,
 )
+from models.modules.selective_patch_target_exogenous_bridge import (
+    SelectivePatchTargetExogenousBridge,
+)
 from models.modules.target_exogenous_bridge import (
     TARGET_EXOGENOUS,
     TargetExogenousBridge,
@@ -444,6 +447,61 @@ class ArchitectureContractTests(unittest.TestCase):
         self.assertNotIn("patch_post_norm", children)
         self.assertNotIn("patch_residual_norm", children)
         self.assertFalse(any("position" in key for key in module.state_dict()))
+
+    def test_t3_is_a_public_t2_extension_without_t2g_or_patch_residual_modules(self):
+        self.assertTrue(issubclass(
+            SelectivePatchTargetExogenousBridge,
+            PatchConditionedTargetExogenousBridge,
+        ))
+        self.assertFalse(issubclass(
+            SelectivePatchTargetExogenousBridge,
+            GlobalMediatedPatchTargetExogenousBridge,
+        ))
+        module = SelectivePatchTargetExogenousBridge(
+            seq_len=12,
+            feature_num=3,
+            task_mode=TARGET_EXOGENOUS,
+            target_idx=0,
+            aux_idx=(1, 2),
+            context_dim=32,
+            num_heads=4,
+            dropout=0.1,
+            patch_size=3,
+        )
+        children = set(dict(module.named_children()))
+        self.assertEqual(
+            children,
+            {
+                "patch_query_projection",
+                "patch_query_norm",
+                "global_query_projection",
+                "global_query_norm",
+                "exogenous_projection",
+                "exogenous_norm",
+                "cross_attention",
+                "patch_output_projection",
+            },
+        )
+        state_keys = set(module.state_dict())
+        self.assertEqual(
+            {
+                key for key in state_keys
+                if key.startswith("patch_confidence_gate_")
+            },
+            {
+                "patch_confidence_gate_weight",
+                "patch_confidence_gate_bias",
+            },
+        )
+        self.assertFalse(any(
+            token in key
+            for key in state_keys
+            for token in (
+                "beta_global", "global_bridge", "global_injection",
+                "patch_post_norm", "patch_residual_norm", "patch_ffn",
+                "position",
+            )
+        ))
 
 
 if __name__ == "__main__":

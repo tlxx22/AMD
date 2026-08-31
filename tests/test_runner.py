@@ -892,6 +892,21 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
         args.teb_global_gate_init = runner.GLOBAL_GATE_IDENTITY_INIT
         args.teb_beta_global_init = 1e-3
         return args
+    def _t3_args(self, data_path, artifact_root, *, train_epochs=1, resume=None):
+        args = self._t2_args(
+            data_path, artifact_root, train_epochs=train_epochs, resume=resume
+        )
+        args.implementation_variant = runner.T3_IMPLEMENTATION_VARIANT
+        args.ablation_id = "M4_T3"
+        args.teb_patch_confidence_gate = (
+            runner.PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION
+        )
+        args.teb_patch_gate_input = runner.PATCH_GATE_INPUT_QUERY_AND_ATTENTION
+        args.teb_patch_gate_activation = runner.PATCH_GATE_ACTIVATION_TWO_SIGMOID
+        args.teb_patch_gate_init = runner.PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY
+        args.teb_global_prediction_role = runner.GLOBAL_PREDICTION_ROLE_STATE_ONLY
+        return args
+
 
 
 
@@ -995,6 +1010,26 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
         if len(runs) != 1:
             raise AssertionError(f"expected one T2G run, got {runs}")
         return runs[0]
+    @staticmethod
+    def _t3_run_parent(artifact_root):
+        return (
+            Path(artifact_root)
+            / runner.T3_IMPLEMENTATION_VARIANT
+            / "toy"
+            / "target_exogenous"
+            / "b"
+            / "horizon_2"
+            / "fold_official"
+            / "seed_123"
+        )
+
+    @classmethod
+    def _single_t3_run_dir(cls, artifact_root):
+        runs = list(cls._t3_run_parent(artifact_root).iterdir())
+        if len(runs) != 1:
+            raise AssertionError(f"expected one T3 run, got {runs}")
+        return runs[0]
+
 
 
     @staticmethod
@@ -1222,6 +1257,109 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                     "global_gate_input", "global_gate_init", "beta_global_init",
                 } & set(t2_scientific["model"]["teb"])
             )
+    def test_t3_contract_is_explicit_and_isolated_from_t2_and_t2g(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+            prepared = runner.prepare_args(
+                self._t3_args(data_path, root / "artifacts")
+            )
+            self.assertEqual(
+                prepared.implementation_variant,
+                runner.T3_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(prepared.ablation_id, "M4_T3")
+            self.assertEqual(prepared.teb_architecture, runner.SELECTIVE_PATCH_V1)
+            self.assertEqual(
+                prepared.teb_patch_confidence_gate,
+                runner.PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION,
+            )
+            self.assertEqual(
+                prepared.teb_patch_gate_input,
+                runner.PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
+            )
+            self.assertEqual(
+                prepared.teb_patch_gate_activation,
+                runner.PATCH_GATE_ACTIVATION_TWO_SIGMOID,
+            )
+            self.assertEqual(
+                prepared.teb_patch_gate_init,
+                runner.PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY,
+            )
+            self.assertEqual(
+                prepared.teb_global_prediction_role,
+                runner.GLOBAL_PREDICTION_ROLE_STATE_ONLY,
+            )
+            scientific = runner._scientific_config(
+                prepared,
+                "data-hash",
+                "source-hash",
+                {"columns": ["a", "b"], "target_indices": [1]},
+                torch.device("cpu"),
+                _runtime_metadata(),
+            )
+            teb = scientific["model"]["teb"]
+            self.assertEqual(teb["architecture"], runner.SELECTIVE_PATCH_V1)
+            self.assertEqual(
+                teb["patch_confidence_gate"],
+                runner.PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION,
+            )
+            self.assertEqual(
+                teb["patch_gate_input"],
+                runner.PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
+            )
+            self.assertEqual(
+                teb["patch_gate_activation"],
+                runner.PATCH_GATE_ACTIVATION_TWO_SIGMOID,
+            )
+            self.assertEqual(
+                teb["patch_gate_init"],
+                runner.PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY,
+            )
+            self.assertEqual(
+                teb["global_prediction_role"],
+                runner.GLOBAL_PREDICTION_ROLE_STATE_ONLY,
+            )
+            self.assertEqual(
+                runner._t3_candidate_contract(prepared),
+                {
+                    **runner._t2_candidate_contract(prepared),
+                    "teb_patch_confidence_gate": (
+                        runner.PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION
+                    ),
+                    "teb_patch_gate_input": (
+                        runner.PATCH_GATE_INPUT_QUERY_AND_ATTENTION
+                    ),
+                    "teb_patch_gate_activation": (
+                        runner.PATCH_GATE_ACTIVATION_TWO_SIGMOID
+                    ),
+                    "teb_patch_gate_init": (
+                        runner.PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY
+                    ),
+                    "teb_global_prediction_role": (
+                        runner.GLOBAL_PREDICTION_ROLE_STATE_ONLY
+                    ),
+                },
+            )
+
+            t2_with_t3 = self._t2_args(data_path, root / "t2")
+            t2_with_t3.teb_patch_gate_init = (
+                runner.PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY
+            )
+            with self.assertRaisesRegex(ValueError, "T2 does not accept"):
+                runner.prepare_args(t2_with_t3)
+
+            missing = self._t3_args(data_path, root / "missing")
+            missing.teb_patch_gate_input = None
+            with self.assertRaisesRegex(ValueError, "T3 variant contract mismatch"):
+                runner.prepare_args(missing)
+
+            t3_with_t2g = self._t3_args(data_path, root / "t2g-field")
+            t3_with_t2g.teb_beta_global_init = 1e-3
+            with self.assertRaisesRegex(ValueError, "T3 does not accept T2G"):
+                runner.prepare_args(t3_with_t2g)
+
     def test_real_p0_t0_h96_scientific_and_comparison_hash_fixtures_are_stable(self):
         data_path = runner.ROOT / "data" / "ETTm1.csv"
         self.assertTrue(data_path.is_file())
@@ -1466,6 +1604,76 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 ),
                 [],
             )
+    def test_t3_synthetic_schema_v2_artifact_and_summarizer_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            artifact_root = root / "artifacts"
+            self._write_dataset(data_path)
+            stable_git = {"commit": "test", "dirty": False, "status": []}
+            with mock.patch.object(
+                runner, "environment_metadata", return_value=_runtime_metadata()
+            ), mock.patch.object(
+                runner, "git_metadata", return_value=stable_git
+            ), mock.patch.object(
+                runner, "AMDEnhanced", _TinyCheckpointModel
+            ), mock.patch.object(
+                runner, "train_one_epoch", side_effect=self._fake_train
+            ), mock.patch.object(
+                runner, "evaluate", side_effect=self._fake_evaluate
+            ):
+                metrics = runner.main(self._t3_args(data_path, artifact_root))
+
+            run_dir = self._single_t3_run_dir(artifact_root)
+            self.assertEqual(metrics["status"], "completed")
+            config = json.loads((run_dir / "config.resolved.json").read_text())
+            manifest = json.loads((run_dir / "manifest.json").read_text())
+            self.assertEqual(
+                config["implementation_variant"],
+                runner.T3_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(
+                config["scientific_config"]["model"]["teb"]["architecture"],
+                runner.SELECTIVE_PATCH_V1,
+            )
+            prepared = runner.prepare_args(
+                self._t3_args(data_path, artifact_root)
+            )
+            self.assertEqual(
+                manifest["candidate_contract"],
+                runner._t3_candidate_contract(prepared),
+            )
+            self.assertEqual(
+                set(runner.verify_checksums(run_dir)),
+                set(runner.ENHANCED_CHECKSUM_FILES),
+            )
+            source = json.loads((run_dir / "source_fingerprint.json").read_text())
+            source_paths = [entry["path"] for entry in source["files"]]
+            self.assertIn(
+                "models/modules/selective_patch_target_exogenous_bridge.py",
+                source_paths,
+            )
+            rows = summary.load_completed_runs(
+                artifact_root,
+                implementation_variant=runner.T3_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["run_id"], manifest["run_id"])
+            self.assertEqual(
+                summary.load_completed_runs(
+                    artifact_root,
+                    implementation_variant=runner.T2_IMPLEMENTATION_VARIANT,
+                ),
+                [],
+            )
+            self.assertEqual(
+                summary.load_completed_runs(
+                    artifact_root,
+                    implementation_variant=runner.T2G_IMPLEMENTATION_VARIANT,
+                ),
+                [],
+            )
+
 
     def test_t2_resume_rejects_patch_contract_mismatch_without_mutation(self):
         with tempfile.TemporaryDirectory() as directory:

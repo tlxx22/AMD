@@ -121,6 +121,7 @@ class SummaryTests(unittest.TestCase):
         run_dir.mkdir(parents=True)
         is_t2 = implementation_variant == summary.T2_IMPLEMENTATION_VARIANT
         is_t2g = implementation_variant == summary.T2G_IMPLEMENTATION_VARIANT
+        is_t3 = implementation_variant == summary.T3_IMPLEMENTATION_VARIANT
         dataset = {
             "id": "UrbanEV",
             "sha256": "data-hash",
@@ -146,12 +147,16 @@ class SummaryTests(unittest.TestCase):
             "query_residual": False,
             "post_attention_ffn": False,
         }
-        if is_t2 or is_t2g:
+        if is_t2 or is_t2g or is_t3:
             teb.update({
                 "architecture": (
-                    "global_mediated_patch_v1"
-                    if is_t2g
-                    else "patch_conditioned_v1"
+                    "selective_patch_v1"
+                    if is_t3
+                    else (
+                        "global_mediated_patch_v1"
+                        if is_t2g
+                        else "patch_conditioned_v1"
+                    )
                 ),
                 "patch_size": patch_size,
                 "patch_padding": "right_zero_crop",
@@ -166,6 +171,14 @@ class SummaryTests(unittest.TestCase):
                     "global_gate_input": "patch_attention_and_global_bridge",
                     "global_gate_init": "identity",
                     "beta_global_init": 1e-3,
+                })
+            elif is_t3:
+                teb.update({
+                    "patch_confidence_gate": "scalar_per_patch_post_projection",
+                    "patch_gate_input": "query_and_attention_response",
+                    "patch_gate_activation": "two_sigmoid",
+                    "patch_gate_init": "explicit_zero_identity",
+                    "global_prediction_role": "state_only_forecast_disconnected",
                 })
         scientific = {
             "implementation_variant": implementation_variant,
@@ -198,9 +211,11 @@ class SummaryTests(unittest.TestCase):
                 "model_pred_len": 1,
                 "artifact_horizon": 3,
                 "ablation_id": (
-                    "M4_T2G"
-                    if is_t2g
-                    else ("M4_T2" if is_t2 else "U2")
+                    "M4_T3"
+                    if is_t3
+                    else (
+                        "M4_T2G" if is_t2g else ("M4_T2" if is_t2 else "U2")
+                    )
                 ),
             },
         }
@@ -237,10 +252,22 @@ class SummaryTests(unittest.TestCase):
             "fold": 1,
             "seed": seed,
         }
-        if is_t2 or is_t2g:
+        if is_t2 or is_t2g or is_t3:
             manifest["candidate_contract"] = {
-                "ablation_id": "M4_T2G" if is_t2g else "M4_T2",
-                "teb_architecture": "global_mediated_patch_v1" if is_t2g else "patch_conditioned_v1",
+                "ablation_id": (
+                    "M4_T3"
+                    if is_t3
+                    else ("M4_T2G" if is_t2g else "M4_T2")
+                ),
+                "teb_architecture": (
+                    "selective_patch_v1"
+                    if is_t3
+                    else (
+                        "global_mediated_patch_v1"
+                        if is_t2g
+                        else "patch_conditioned_v1"
+                    )
+                ),
                 "teb_patch_size": patch_size,
                 "teb_patch_padding": "right_zero_crop",
                 "teb_patch_position": "fixed_sinusoidal",
@@ -263,6 +290,14 @@ class SummaryTests(unittest.TestCase):
                     "teb_global_gate_input": "patch_attention_and_global_bridge",
                     "teb_global_gate_init": "identity",
                     "teb_beta_global_init": 1e-3,
+                })
+            elif is_t3:
+                manifest["candidate_contract"].update({
+                    "teb_patch_confidence_gate": "scalar_per_patch_post_projection",
+                    "teb_patch_gate_input": "query_and_attention_response",
+                    "teb_patch_gate_activation": "two_sigmoid",
+                    "teb_patch_gate_init": "explicit_zero_identity",
+                    "teb_global_prediction_role": "state_only_forecast_disconnected",
                 })
         metrics = {
             **common,
@@ -602,6 +637,106 @@ class SummaryTests(unittest.TestCase):
                 summary.load_completed_runs(
                     artifacts,
                     implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+                )
+
+    def test_t3_candidate_is_exact_and_rejects_tamper_and_duplicates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "exact"
+            self._make_enhanced_run(artifacts, "global")
+            self._make_enhanced_run(
+                artifacts,
+                "t2",
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            self._make_enhanced_run(
+                artifacts,
+                "t2g",
+                implementation_variant=summary.T2G_IMPLEMENTATION_VARIANT,
+            )
+            t3_dir = self._make_enhanced_run(
+                artifacts,
+                "t3",
+                implementation_variant=summary.T3_IMPLEMENTATION_VARIANT,
+            )
+            rows = summary.load_completed_runs(
+                artifacts,
+                implementation_variant=summary.T3_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["run_id"], "t3")
+            config = json.loads(
+                (t3_dir / "config.resolved.json").read_text(encoding="utf-8")
+            )
+            teb = config["scientific_config"]["model"]["teb"]
+            self.assertEqual(teb["architecture"], "selective_patch_v1")
+            self.assertEqual(
+                teb["patch_confidence_gate"],
+                "scalar_per_patch_post_projection",
+            )
+            self.assertEqual(
+                teb["patch_gate_input"], "query_and_attention_response"
+            )
+            self.assertEqual(teb["patch_gate_activation"], "two_sigmoid")
+            self.assertEqual(teb["patch_gate_init"], "explicit_zero_identity")
+            self.assertEqual(
+                teb["global_prediction_role"],
+                "state_only_forecast_disconnected",
+            )
+            self.assertFalse({
+                "global_residual", "patch_attention_residual", "global_gate",
+                "global_gate_input", "global_gate_init", "beta_global_init",
+            } & set(teb))
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "tamper"
+            run_dir = self._make_enhanced_run(
+                artifacts,
+                "t3",
+                implementation_variant=summary.T3_IMPLEMENTATION_VARIANT,
+            )
+            config_path = run_dir / "config.resolved.json"
+            manifest_path = run_dir / "manifest.json"
+            metrics_path = run_dir / "metrics.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            config["scientific_config"]["model"]["teb"][
+                "patch_gate_activation"
+            ] = "relu"
+            config_hash = summary._stable_hash(config["scientific_config"])
+            config["config_hash"] = config_hash
+            manifest["config_hash"] = config_hash
+            metrics["config_hash"] = config_hash
+            for path, value in (
+                (config_path, config),
+                (manifest_path, manifest),
+                (metrics_path, metrics),
+            ):
+                path.write_text(
+                    json.dumps(value, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            self._write_enhanced_checksums(run_dir)
+            with self.assertRaisesRegex(ValueError, "unsupported T3 patch config"):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T3_IMPLEMENTATION_VARIANT,
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "duplicates"
+            for run_id in ("t3-a", "t3-b"):
+                self._make_enhanced_run(
+                    artifacts,
+                    run_id,
+                    implementation_variant=summary.T3_IMPLEMENTATION_VARIANT,
+                )
+            with self.assertRaisesRegex(
+                ValueError, "no run was selected automatically"
+            ):
+                summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T3_IMPLEMENTATION_VARIANT,
                 )
 
     def test_t2_unsupported_patch_contract_and_manifest_tamper_are_rejected(self):

@@ -19,6 +19,15 @@ from models.modules.patch_conditioned_target_exogenous_bridge import (
     PATCH_CONDITIONED_V1,
     PatchConditionedTargetExogenousBridge,
 )
+from models.modules.selective_patch_target_exogenous_bridge import (
+    GLOBAL_PREDICTION_ROLE_STATE_ONLY,
+    PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION,
+    PATCH_GATE_ACTIVATION_TWO_SIGMOID,
+    PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY,
+    PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
+    SELECTIVE_PATCH_V1,
+    SelectivePatchTargetExogenousBridge,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     SUPPORTED_TASK_MODES,
@@ -89,6 +98,11 @@ class AMDEnhanced(AMD):
         teb_global_gate_input=None,
         teb_global_gate_init=None,
         teb_beta_global_init=None,
+        teb_patch_confidence_gate=None,
+        teb_patch_gate_input=None,
+        teb_patch_gate_activation=None,
+        teb_patch_gate_init=None,
+        teb_global_prediction_role=None,
     ):
         super().__init__(
             input_shape=input_shape,
@@ -201,10 +215,12 @@ class AMDEnhanced(AMD):
             GLOBAL_TEB_V1,
             PATCH_CONDITIONED_V1,
             GLOBAL_MEDIATED_PATCH_V1,
+            SELECTIVE_PATCH_V1,
         }:
             raise ValueError(
                 "AMDEnhanced teb_architecture must be global_v1, "
-                "patch_conditioned_v1, or global_mediated_patch_v1, "
+                "patch_conditioned_v1, global_mediated_patch_v1, or "
+                "selective_patch_v1, "
                 f"got {teb_architecture!r}"
             )
         patch_values = (teb_patch_size, teb_patch_padding, teb_patch_position)
@@ -216,13 +232,24 @@ class AMDEnhanced(AMD):
             teb_global_gate_init,
             teb_beta_global_init,
         )
+        t3_values = (
+            teb_patch_confidence_gate,
+            teb_patch_gate_input,
+            teb_patch_gate_activation,
+            teb_patch_gate_init,
+            teb_global_prediction_role,
+        )
         if teb_architecture == GLOBAL_TEB_V1 and any(
-            value is not None for value in patch_values + t2g_values
+            value is not None for value in patch_values + t2g_values + t3_values
         ):
             raise ValueError(
-                "Global TEB v1 does not accept patch or T2G parameters"
+                "Global TEB v1 does not accept patch, T2G, or T3 parameters"
             )
-        if teb_architecture in {PATCH_CONDITIONED_V1, GLOBAL_MEDIATED_PATCH_V1}:
+        if teb_architecture in {
+            PATCH_CONDITIONED_V1,
+            GLOBAL_MEDIATED_PATCH_V1,
+            SELECTIVE_PATCH_V1,
+        }:
             if not use_teb:
                 raise ValueError(f"{teb_architecture} requires use_teb=True")
             required_patch = {
@@ -239,10 +266,14 @@ class AMDEnhanced(AMD):
                     + ", ".join(missing_patch)
                 )
         if teb_architecture == PATCH_CONDITIONED_V1 and any(
-            value is not None for value in t2g_values
+            value is not None for value in t2g_values + t3_values
         ):
-            raise ValueError("patch_conditioned_v1 does not accept T2G parameters")
+            raise ValueError("patch_conditioned_v1 does not accept T2G/T3 parameters")
         if teb_architecture == GLOBAL_MEDIATED_PATCH_V1:
+            if any(value is not None for value in t3_values):
+                raise ValueError(
+                    "global_mediated_patch_v1 does not accept T3 parameters"
+                )
             required_t2g = {
                 "teb_global_residual": (
                     teb_global_residual,
@@ -276,6 +307,43 @@ class AMDEnhanced(AMD):
                     "global_mediated_patch_v1 contract mismatch for "
                     + ", ".join(mismatches)
                 )
+        if teb_architecture == SELECTIVE_PATCH_V1:
+            if any(value is not None for value in t2g_values):
+                raise ValueError(
+                    "selective_patch_v1 does not accept T2G parameters"
+                )
+            required_t3 = {
+                "teb_patch_confidence_gate": (
+                    teb_patch_confidence_gate,
+                    PATCH_CONFIDENCE_GATE_SCALAR_POST_PROJECTION,
+                ),
+                "teb_patch_gate_input": (
+                    teb_patch_gate_input,
+                    PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
+                ),
+                "teb_patch_gate_activation": (
+                    teb_patch_gate_activation,
+                    PATCH_GATE_ACTIVATION_TWO_SIGMOID,
+                ),
+                "teb_patch_gate_init": (
+                    teb_patch_gate_init,
+                    PATCH_GATE_INIT_EXPLICIT_ZERO_IDENTITY,
+                ),
+                "teb_global_prediction_role": (
+                    teb_global_prediction_role,
+                    GLOBAL_PREDICTION_ROLE_STATE_ONLY,
+                ),
+            }
+            mismatches = [
+                name
+                for name, (actual, expected) in required_t3.items()
+                if actual != expected
+            ]
+            if mismatches:
+                raise ValueError(
+                    "selective_patch_v1 contract mismatch for "
+                    + ", ".join(mismatches)
+                )
 
         self.target_idx = target_idx
         self.teb_context_dim = teb_context_dim
@@ -293,6 +361,11 @@ class AMDEnhanced(AMD):
         self.teb_global_gate_input = teb_global_gate_input
         self.teb_global_gate_init = teb_global_gate_init
         self.teb_beta_global_init = teb_beta_global_init
+        self.teb_patch_confidence_gate = teb_patch_confidence_gate
+        self.teb_patch_gate_input = teb_patch_gate_input
+        self.teb_patch_gate_activation = teb_patch_gate_activation
+        self.teb_patch_gate_init = teb_patch_gate_init
+        self.teb_global_prediction_role = teb_global_prediction_role
 
         self.pmcr = None
         if self.use_pmcr:
@@ -346,7 +419,7 @@ class AMDEnhanced(AMD):
                     padding_policy=self.teb_patch_padding,
                     position_policy=self.teb_patch_position,
                 )
-            else:
+            elif self.teb_architecture == GLOBAL_MEDIATED_PATCH_V1:
                 self.teb = GlobalMediatedPatchTargetExogenousBridge(
                     **common_teb,
                     patch_size=self.teb_patch_size,
@@ -359,6 +432,18 @@ class AMDEnhanced(AMD):
                     global_gate_init=self.teb_global_gate_init,
                     beta_global_init=self.teb_beta_global_init,
                 )
+            else:
+                self.teb = SelectivePatchTargetExogenousBridge(
+                    **common_teb,
+                    patch_size=self.teb_patch_size,
+                    padding_policy=self.teb_patch_padding,
+                    position_policy=self.teb_patch_position,
+                    patch_confidence_gate=self.teb_patch_confidence_gate,
+                    patch_gate_input=self.teb_patch_gate_input,
+                    patch_gate_activation=self.teb_patch_gate_activation,
+                    patch_gate_init=self.teb_patch_gate_init,
+                    global_prediction_role=self.teb_global_prediction_role,
+                )
 
     def load_state_dict(self, state_dict, strict=True):
         """Keep strict restores same-structure and non-polluting.
@@ -370,10 +455,14 @@ class AMDEnhanced(AMD):
 
         is_from_scratch_candidate = (
             getattr(self, "teb_architecture", GLOBAL_TEB_V1)
-            in {PATCH_CONDITIONED_V1, GLOBAL_MEDIATED_PATCH_V1}
+            in {
+                PATCH_CONDITIONED_V1,
+                GLOBAL_MEDIATED_PATCH_V1,
+                SELECTIVE_PATCH_V1,
+            }
         )
         if is_from_scratch_candidate and strict is not True:
-            raise ValueError("T2/T2G checkpoint restore requires strict=True")
+            raise ValueError("T2/T2G/T3 checkpoint restore requires strict=True")
         if strict is not True:
             return super().load_state_dict(state_dict, strict=strict)
         if not isinstance(state_dict, Mapping):
@@ -419,9 +508,10 @@ class AMDEnhanced(AMD):
         if self.teb_architecture in {
             PATCH_CONDITIONED_V1,
             GLOBAL_MEDIATED_PATCH_V1,
+            SELECTIVE_PATCH_V1,
         }:
             raise RuntimeError(
-                "T2/T2G permit only from-scratch initialization or "
+                "T2/T2G/T3 permit only from-scratch initialization or "
                 "same-structure strict restore"
             )
         if not isinstance(state_dict, Mapping):
