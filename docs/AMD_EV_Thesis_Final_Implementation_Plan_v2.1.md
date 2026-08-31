@@ -1141,6 +1141,56 @@ U1/U2 必须使用完全相同的七变量历史输入、feature order、OT targ
 
 本轮 U2 只有在以下条件全部满足时才记为 `positive development signal`：full-precision test MSE macro 低于 U1、test MAE macro 不高于 U1、至少 3/4 test MSE horizon 改善、validation MSE macro 不高于 U1，且收益不是舍入假象或单一 horizon 驱动。若仍非 positive，不得自动创建 T4/T5/T6、调整 patch size/d/heads/gate、启动 P2 或继续大规模 ETTm1 test 搜索；下一步只能由用户另行确认一个严格匹配计算预算的 warm-start/adapter-style rescue，或更换来源模块。
 
+### 7.8.7 第十三轮 generic target-exogenous runner / provenance repair 合同
+
+第十二轮 capability audit 的事实继续有效：generic ETTm1 `feature_type=M` 返回七变量标签，不满足 OT-only 任务；`feature_type=MS` 返回七变量历史输入与 `[B,H,1]` OT 标签，是唯一正确的数据语义；repair 前 production adapter 拒绝 prediction `[B,H,1]` 与 target `[B,H,1]` 的合法组合；standard U1 manifest 缺少公共 target/aux schema block；第十二轮没有训练、forward 或 artifact，TEB adequacy gate 仍未通过。第十三轮用户只授权最小 runner/provenance repair，不授权 U1/U2 训练、warm-start、新 TEB、P2、M5/M7 或空间模块。
+
+对于 `task_mode=target_exogenous`，正式 prediction 固定为 `[B,H,1]`。合法 target 只允许以下两种，且 criterion 前 prediction 与 target 的 shape 必须逐元组完全相同：
+
+```text
+A. prediction [B,H,1] + target [B,H]
+   prediction_for_loss = prediction.squeeze(-1)
+   target_for_loss = target
+   criterion shapes = [B,H] / [B,H]
+
+B. prediction [B,H,1] + target [B,H,1]
+   prediction_for_loss = prediction
+   target_for_loss = target
+   criterion shapes = [B,H,1] / [B,H,1]
+```
+
+除这两种外全部拒绝：prediction rank 不是 3、prediction 最后一维不是 1、target rank 不是 2/3、三维 target 最后一维不是 1、batch 或 horizon 不一致，以及任何依赖 PyTorch broadcasting 的组合。只允许 `squeeze(-1)`，禁止无维度 `squeeze()`；不得改变 target 的 rank、内容、顺序或数值，不得修改 `CustomDataLoader` 的 MS `[B,H,1]` 标签合同。train、validation 与 final test 必须复用同一个严格 adapter，shape 错误必须在 criterion、metric 或 inverse-transform 前拒绝。Generic MS 的 loss/MSE/MAE 仅聚合 OT 的全部元素且不得二次切片；UrbanEV 原有二维 `[B,H]` target 继续仅将 prediction 显式 squeeze 为 `[B,H]`，其 loss、metric 与目标 scaler 语义不变。`parallel_multivariate` 行为保持不变。
+
+所有 repair 后新生成且满足 `enhanced variant AND task_mode=target_exogenous` 的 artifact，必须在 resolved scientific config 与 checkpoint metadata 中条件登记：
+
+```text
+target_exogenous_schema_contract_version = target_exogenous_schema_v1
+```
+
+completed manifest 必须在 seal/checksum 前写入并验证公共块：
+
+```json
+"target_exogenous_schema": {
+  "contract_version": "target_exogenous_schema_v1",
+  "feature_type": "<runtime resolved value>",
+  "feature_names": ["...runtime order..."],
+  "target_feature_name": "<runtime target>",
+  "target_idx": 0,
+  "target_indices": [0],
+  "aux_idx": [1, 2],
+  "aux_feature_names": ["...runtime order..."],
+  "schema_fingerprint": "<runtime fingerprint>"
+}
+```
+
+示例索引只说明字段形式，实际内容必须来自已验证的运行时 schema。Generic ETT 以 `CustomDataLoader`/runtime preprocessing metadata、真实 feature order、真实 target indices 和 resolved aux schema 为事实来源；UrbanEV 以 M1 `UrbanEVFoldBundle`/`FeatureSchema` 的真实 target/aux/name/fingerprint 为事实来源。CLI/config 只作为 expected value 交叉核验，不得覆盖 runtime facts；任何不一致必须在训练或 artifact staging 前拒绝。索引序列序列化为 list；`target_indices` 在当前单目标合同中必须恰为 `[target_idx]`；`aux_idx` 保留调用方顺序，非空、有序、无重复、不含 target，names 必须逐项对应且所有索引在范围内。
+
+ETTm1 U1/U2 的公共块固定为 `feature_type=MS`、`feature_names=[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]`、`target_feature_name=OT`、`target_idx=6`、`target_indices=[6]`、`aux_idx=[0,1,2,3,4,5]` 与对应六个 aux names；两者必须逐元素相同。U1 即使没有 architecture candidate contract 也必须具有该公共块；U2 同时具有公共块与自身 T2 candidate contract，二者不得互相替代。
+
+schema 继续使用 schema-v2 的原目录、13-file checksum、staging/atomic publish 和 candidate contract，不升级 schema-v3。summarizer 必须以显式 version 区分新合同与 legacy：config 声明 v1 时，manifest block、version、path/task/target、feature/target/aux 顺序与 schema fingerprint 必须严格一致，任何缺失或篡改拒绝；历史 config 没有 version 时继续按原 legacy schema-v2 读取，不补写、不重算 hash，并显式标记 `legacy`。config 有 version 但 manifest 无 block、manifest 有 v1 block但 config 无 version、version 或字段不一致，以及 `parallel_multivariate` 错带 v1 contract，均必须拒绝。resume 不得跨越 legacy/v1 schema contract，且 mismatch 必须在参数写入前拒绝；旧 parallel scientific/comparison identity 不得因本 repair 改变。
+
+该 repair 不改变 U1、T2 或 frozen AMD 的数学结构，不改变 ETTm1 数据、split、scaler、窗口或标签，不改变 UrbanEV M1 数据合同，也不构成 TEB performance evidence。repair 后仍须另轮、另经审核才能运行 U1/U2；本轮 TEB adequacy gate 仍未通过，P2 继续阻塞。
+
 # 8. M3 工程候选 forward 与时间状态接口
 
 ## 8.1 前向流程

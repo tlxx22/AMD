@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十二轮，撤销旧 TEB endpoint 与 ETTm1 target_exogenous 对照
+当前轮次：第十三轮，Generic target_exogenous runner/artifact 最小 repair
 
 canonical 内部版本：v2.1-R1
 
@@ -1613,3 +1613,129 @@ U1/U2 必须共享七变量历史输入、feature type、feature order、OT targ
 在任何训练前必须只读审计 generic ETTm1 runner 的 CLI、数据/标签、模型输出、criterion shape、artifact/checkpoint/manifest 和 summarizer。只有 verdict 为 `Supported without code changes`，并通过 212/212 回归、真实数据 U1/U2 shape/data parity、U1/frozen AMD OT-slice parity 和公共 AMD 初始化门禁，才可启动八个 run。若不支持，本轮只记录具体阻塞项，不修改代码、不创建 workaround、不训练。
 
 U2 仅在 full-precision test MSE macro 低于 U1、test MAE macro 不高于 U1、至少 3/4 test MSE horizon 改善、validation MSE macro 不高于 U1，且收益非舍入假象或单一 horizon 驱动时分类为 `positive development signal`。否则按证据分类为 mixed 或 negative-or-negligible，并登记 `TEB M4 development adequacy gate remains failed`。本轮不得自动执行 warm-start rescue、更换来源模块、新建 T4/T5/T6、调 patch/d/heads/gate、实现 P2、进入 M5/M7 或实现空间模块。
+
+## 32. 第十二轮 Stage B：generic ETTm1 target-exogenous capability audit
+
+### 32.1 审计范围与结论
+
+从阶段 A 文档 closure 后的 clean HEAD `6638d36336b9f46ed4d636c2b9d88bac80640b34` 只读审计了 `parse_args`、`prepare_args`、`_prepare_enhanced_contract`、generic runtime 构造、`CustomDataLoader`、`CustomDataset.__getitem__`、`AMDEnhanced.forward`、T2 single-target forward、`_prediction_for_loss`/`_assert_prediction_batch`、`train_one_epoch`、`evaluate`、inverse-transform/metric space、scientific config、checkpoint/resume、artifact path/manifest 和 `summarize_results.py`。本轮 capability verdict 固定为：
+
+```text
+Not supported without code changes
+```
+
+该结论由 criterion 前的真实 label/prediction shape 冲突触发；因此按第 31.3 节门禁，本轮没有运行完整回归、模型 forward/backward smoke、U1/U2 训练或归因诊断，也没有创建本轮 artifact。
+
+### 32.2 已具备的身份、数据与模型能力
+
+- CLI 和 `_prepare_enhanced_contract` 已允许 generic ETTm1 的 `U1`：`el-amd-pmcr-teb-v1`、`target_exogenous`、`feature_type=MS`、`use_pmcr=False`、`use_teb=False`、非空有序 aux schema；U1 构造语义为 `pmcr=None`、`teb=None`，零 `exo_context` 只保留 state 接口。
+- T2 variant 已允许相同 generic target task 的 `M4_T2`，并强制 PMCR off、TEB on、d=32、heads=4、dropout=0.1、gamma=0.001 与显式 patch 合同。T2 single-target 路径只更新 `target_idx=6` 的 OT hidden；`aux_idx=(0,1,2,3,4,5)` 按顺序从 RevIN 后的七变量输入抽取六个 K/V，aux 不产生未来标签或独立预测损失，global context 只进入 `state_source`。
+- schema-v2 path 已能表达 `ETTm1/target_exogenous/OT/horizon_<H>/fold_official/seed_2024`；scientific config 保存 feature order、target/aux schema、task、fold/horizon、模型开关和 T2 patch fields。checkpoint/resume 绑定完整 scientific hash并使用同结构 `strict=True`；manifest 保留 task/target/horizon/fold/seed，T2 另有 candidate contract。
+- summarizer 的 enhanced path identity 显式包含 dataset/task/target/horizon/fold/seed；comparison hash 覆盖 scientific config（仅移除 seed，并加入完成 epoch），所以 U1/U2 及 target/parallel 不会被静默混组，重复 scientific identity + seed 会被拒绝。
+
+### 32.3 真实 loader 事实与确定 blocker
+
+真实 `data/ETTm1.csv` 探针结果：
+
+| feature_type | input sample | label sample | target indices | 是否满足 OT-only 语义 |
+|---|---:|---:|---|---|
+| `M` | `[512,7]` | `[96,7]` | `[0,1,2,3,4,5,6]` | 否，标签包含全部七变量 |
+| `MS` | `[512,7]` | `[96,1]` | `[6]` | 是，唯一语义正确的 feature type |
+
+`MS` 的 batch 标签因此为 `[B,H,1]`。与此同时，`AMDEnhanced(target_exogenous)` 的 prediction 为 `[B,H,1]`，但 `_prediction_for_loss` 当前只接受 prediction `[B,H,1]` 配对 target `[B,H]`，先把 prediction squeeze 为 `[B,H]`；当真实 generic MS target 同为 `[B,H,1]` 时，它在 criterion 前抛出：
+
+```text
+RuntimeError: target_exogenous prediction must be [B,H,1] while target is [B,H],
+got (1, 96, 1) and (1, 96, 1)
+```
+
+因此：
+
+- `feature_type=M` 不能作为 workaround，因为它改变为七变量标签和七变量 metric；
+- `feature_type=MS` 是唯一正确数据语义，却无法通过现有 production loss adapter；
+- 不允许在模型外事后 squeeze/cut、把 parallel 指标切 OT、包装 runner 或利用 PyTorch broadcasting；
+- U1/U2 无法到达 production criterion，后续 validation-best/test/artifact 生命周期因而不能安全启动。
+
+探针同时确认 ETTm1 used rows=`57,600`，split endpoints=`34,560/46,080/57,600`，window counts（h96）=`33,953/11,425/11,425`，列顺序为 `[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]`。训练 scaler 仍仅 fit train split；M/MS 共用同一 generic backend，但这一数据公平性事实不能绕过 shape blocker。
+
+### 32.4 最小代码缺口与停止点
+
+最小安全 repair 是让正式 task adapter 显式兼容两种合法、非广播目标形态：
+
+```text
+prediction [B,H,1] + target [B,H]   -> 显式 squeeze prediction
+prediction [B,H,1] + target [B,H,1] -> 保持二者三维并严格同形
+其他 shape                           -> 拒绝
+```
+
+相较于修改 `CustomDataLoader` 的既有 MS label 维度，优先修正 `_prediction_for_loss`/`_assert_prediction_batch` 可以保留 loader、scaler 和 inverse-transform 合同；但任何 repair 都必须另经用户授权，并补充 generic MS target-exogenous runner/integration 测试、无 broadcasting 断言、U1 frozen-AMD OT parity 及 U1/U2 artifact/summarizer 测试。本轮没有执行这些改动。
+
+Stage B 到此停止：TEB adequacy gate 仍为 `not yet passed`；T2 仍只是 `best among tested TEB variants`。P2、新 TEB、warm-start rescue、来源替换、M5/M7 和空间模块均未启动。M4 状态继续 `In Progress`；本节保持未 stage、未 commit、未 push，等待用户与 ChatGPT 审核。
+
+### 32.5 独立 artifact metadata 缺口
+
+除 criterion shape blocker 外，standard U1 的 manifest 还有一个独立治理缺口：U1 的 `config.resolved.json` 及 checkpoint 内嵌 resolved scientific config 会保存 `target_idx=6`、有序 `aux_idx`/feature names/schema；T2 的 manifest 也会通过 candidate contract 保存 target/aux schema。但 U1 不生成 candidate contract，当前 enhanced manifest 顶层只保存 task、target、horizon、fold、seed 等字段，不保存 `target_idx` 或 `aux_idx`。因此它不能满足本轮“config/manifest/checkpoint 均显式登记 target_idx 与 aux 顺序”的 artifact 合同，即使 shape adapter 另行修复也仍需处理。
+
+最小治理 repair 是在所有 enhanced manifest 的共同身份区显式写入并由 summarizer 校验 `target_idx`、`aux_idx`、feature/aux names 与 schema fingerprint，同时保持旧 schema-v2 artifact 的兼容边界清晰；这需要 runner/summarizer 与永久测试的另行授权修改，本轮未实施。该 metadata 缺口与首要 shape blocker 均属于 `Not supported without code changes` 的依据。
+
+## 33. 第十三轮 Stage A：Generic target-exogenous 最小 repair 授权与预登记
+
+### 33.1 用户授权、继承事实与边界
+
+用户授权修复 generic ETTm1 `feature_type=MS` 的合法 `[B,H,1]` 单目标标签无法通过 production loss adapter 的问题，并为 repair 后新生成的 enhanced `target_exogenous` artifact 增加公共、显式、可校验的 target/aux schema 身份。授权同时覆盖既有三份永久回归测试、真实 ETTm1 MS/UrbanEV 无训练 smoke、synthetic artifact smoke，以及全部门禁通过后的 implementation Git closure；本轮不训练 U1/U2，不生成真实 development artifact。
+
+第十二轮事实原样保留：`feature_type=M` 返回七变量标签而不满足 OT-only；`feature_type=MS` 返回七变量历史输入和 `[B,H,1]` OT 标签，是唯一正确的数据语义；repair 前 adapter 拒绝 prediction `[B,H,1]` + target `[B,H,1]`；U1 manifest 缺少公共 target/aux schema block；第十二轮没有训练、forward 或 artifact；TEB development adequacy gate 仍为 `not yet passed`。
+
+### 33.2 Production loss 的唯一 shape adapter 合同
+
+`task_mode=target_exogenous` 的 prediction 必须为 `[B,H,1]`。合法组合只允许：
+
+```text
+prediction [B,H,1] + target [B,H]
+  -> prediction.squeeze(-1) / target，criterion 前均为 [B,H]
+
+prediction [B,H,1] + target [B,H,1]
+  -> prediction / target 原样保留，criterion 前均为 [B,H,1]
+```
+
+统一 adapter 必须由 `train_one_epoch`、validation `evaluate` 和 final test `evaluate` 共同调用；criterion 前 shape 必须逐元组完全相同。只允许 `squeeze(-1)`，不得裸 `squeeze()`，不得改变 target rank、内容、顺序或数值。prediction channel >1、三维 target channel >1、batch/horizon mismatch、target rank 1/4、prediction rank 非 3 以及任何需要 broadcasting 的组合均须在 criterion/metric 前报错并打印实际 shape。Generic MS 指标只聚合 OT；UrbanEV 原二维 `[B,H]` target 行为、inverse-transform 与 scaler 语义保持不变；`parallel_multivariate` 行为不变；`CustomDataLoader` 不修改。
+
+### 33.3 `target_exogenous_schema_v1` provenance 合同
+
+所有 repair 后新生成且满足 `enhanced variant AND task_mode=target_exogenous` 的 resolved scientific config 与 checkpoint metadata，条件增加：
+
+```text
+target_exogenous_schema_contract_version = target_exogenous_schema_v1
+```
+
+completed manifest 在 seal/checksum 前必须写入并验证：
+
+```json
+"target_exogenous_schema": {
+  "contract_version": "target_exogenous_schema_v1",
+  "feature_type": "<runtime resolved value>",
+  "feature_names": ["...runtime order..."],
+  "target_feature_name": "<runtime target>",
+  "target_idx": 0,
+  "target_indices": [0],
+  "aux_idx": [1, 2],
+  "aux_feature_names": ["...runtime order..."],
+  "schema_fingerprint": "<runtime fingerprint>"
+}
+```
+
+实际值必须来自已验证的 runtime schema，而非照抄 CLI。Generic ETT 使用 `CustomDataLoader`/runtime preprocessing metadata；UrbanEV 使用 M1 `FoldBundle`/`FeatureSchema`。CLI/config 只做 expected-value 交叉核验，不一致须在训练或 staging 前拒绝。当前单目标下 `target_indices=[target_idx]`；`aux_idx` 保留原顺序、无重复、不含 target，names 与索引逐项对应；索引序列写 JSON list。
+
+ETTm1 U1/U2 公共块必须逐元素相同：`feature_type=MS`、feature order `[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]`、target `OT`/`6`/`[6]`、aux `[0,1,2,3,4,5]` 与对应六个名称。U1 必须拥有公共 block；U2 同时拥有公共 block 与 T2 candidate contract，candidate contract 不得替代公共数据 schema。
+
+### 33.4 Legacy、summarizer、checkpoint 与 artifact 边界
+
+artifact 继续使用 schema-v2、既有路径、13-file checksum、staging/atomic publish 和 candidate contract。summarizer 对 config 声明 v1 的 artifact 严格核验 manifest block、version、path/task/target、feature type/name/order、target indices、aux index/name order、fingerprint、candidate contract（如适用）、checksum 与 completed status；任何 mismatch 拒绝整个 run。历史 config 没有 version 时按现有 legacy schema-v2 规则读取，不回写、不补齐、不重算 hash，并显式标记 schema contract 为 `legacy`。
+
+以下冲突必须拒绝：config 有 version 但 manifest 无 block；manifest 有 v1 block但 config 无 version；version 不一致；target/aux/name/order/fingerprint 篡改；`parallel_multivariate` 错带 v1 contract。U1/U2 公共 block 必须一致，target/parallel 不得混组，duplicate scientific identity + seed 继续拒绝。resume 不得跨 legacy/v1 contract，mismatch 必须在写参数前拒绝；parallel historical scientific/comparison identity 不变。
+
+### 33.5 实现与测试预登记、停止点
+
+实现范围只允许 `main.py`、`summarize_results.py`、`tests/test_runner.py`、`tests/test_summarize_results.py`、`tests/test_tsAMD_enhanced.py` 与本 milestone；不得新增测试文件。三份测试均为 `permanent_regression_test`，将长期保护正式 runner、双合法 target shape、无 broadcasting、artifact provenance、U1/frozen AMD OT parity、U2/T2 单目标合同及 legacy/parallel 兼容。一次性 probe 只位于 `/tmp/m4_target_exogenous_repair_<timestamp>/` 并在结束前删除。
+
+本 repair 不改变 U1、T2、T2G、T3、PMCR、Global TEB 或 frozen AMD 数学结构，不改变 ETTm1 数据/split/scaler/window/label，不改变 UrbanEV M1 数据合同。本轮不训练 U1/U2，不执行 validation epoch 或 final test，不创建真实 artifact，不实现 warm-start、新 TEB 或 P2，不进入 M5/M7，不实现空间模块。通过测试和 smoke 只构成 runner/provenance 工程证据，不形成 TEB performance 结论；M4 状态继续 `In Progress`，TEB adequacy gate 仍未通过。
