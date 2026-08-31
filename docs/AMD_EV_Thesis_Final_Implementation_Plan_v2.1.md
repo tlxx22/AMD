@@ -65,6 +65,8 @@ M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭�
 
 M4 只处理第三章时间模块诊断与候选迭代。M4 可以形成诊断结论，并在用户另行确认后实现保持论文来源边界的候选；不得据此静默选择结构或超参数。Patch-conditioned TEB 可在 M4 诊断后由用户另行授权，不再固定延期到 M5 之后。在 M4 尚未形成足够证据前，不得实现 M7 或任何空间模块。
 
+自 M4 第八轮起，M4 内部开发顺序固定为 **TEB 候选路线先收敛，再处理 PMCR/P2 候选路线**。T2 development 完成后必须先核验 global-query 的真实梯度与功能路径；在 TEB 分支形成 M4 候选终点，或用户明确停止 TEB 继续迭代之前，不得启动 P2 或其他 PMCR 新候选。这里的“TEB 分支候选终点”只表示 M4 不再继续改动 TEB 结构，不等于 M5 最终冻结。T3 confidence-gate proposal 暂缓，未经用户再次明确授权不得实现、训练或登记为已批准候选；T4 Hidden-KV 与 T5 sparse/top-k 继续排除。
+
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
 ETTm1 test 已被纳入模型开发反馈，因此不得作为 M6 正式未见测试集结果，不得进入第三章正式性能主表，也不得用于最终无偏泛化主张。pre-M4 ETTm1 test 已查看并触发 M4 的事实继续保留，但不再被解释为“永久禁止参与后续 M4 开发决策”。论文可将 ETTm1 记录为开发集、诊断集或结构搜索数据集。
@@ -911,7 +913,28 @@ T2 只允许 from-scratch 初始化和完全同结构的普通 `load_state_dict(
 
 T2 使用现有 schema-v2 完整 artifact，路径以 `el-amd-m4-t2-patch-teb-v1` 为 variant 根；summarizer 必须保留该候选身份、核验完整 patch 合同和 13-file checksum、拒绝重复科学身份，不得把 T2 归入 `el-amd-pmcr-teb-v1`。旧 v1 scientific/comparison config 不得无条件增加 patch 字段，历史 hash 语义保持不变。
 
-T2 明确不包含 T3 confidence gate、T4 Hidden-KV、T5 sparse/top-k、外生 patchify、外生或目标 self-attention、完整 Transformer encoder、attention 后 FFN、variable identity embedding、未来真实外生输入、第二套 selector、PMCR/P2/MDM-bypass 或任何空间模块。本轮只完成工程实现和测试，不训练 T2；实现 review 通过前不得启动 T2 实验。
+T2 明确不包含 T3 confidence gate、T4 Hidden-KV、T5 sparse/top-k、外生 patchify、外生或目标 self-attention、完整 Transformer encoder、attention 后 FFN、variable identity embedding、未来真实外生输入、第二套 selector、PMCR/P2/MDM-bypass 或任何空间模块。第六轮完成工程实现与测试，第七轮完成 ETTm1 development 实验；这些结果均不把 T2 冻结为最终结构。T3 继续暂缓，T4/T5 继续排除，任何后续 TEB architecture 都必须由用户另行确认。
+
+### 7.6.5 第八轮 global-query 梯度语义
+
+标准 `MultiheadAttention(Q,K,V)` 对每个 query row 独立计算 cross-attention；把 `Q_patch` 与 `q_global` 拼接后一次调用 MHA，只共享 K/V 与投影参数，不产生 query-row 间交互。当前 T2 的 production 时间路径严格为：
+
+```text
+Q_patch -> C_patch -> patch output projection -> temporal residual
+        -> v_final -> AMS experts -> prediction -> prediction MSE
+
+q_global -> C_global -> exo_context -> state_source
+```
+
+AMS selector 与 selector auxiliary loss 仍只依赖原始 `u_mdm`；production runner 调用 `model(x)`，不请求 `state_source`，总目标固定为 `MSE(prediction,y) + selector_auxiliary_loss`。因此当前源码没有 `C_global -> C_patch`、`q_global -> temporal residual` 或 `state_source -> 第三章训练目标` 的路径。
+
+第八轮在四个 ETTm1 T2 best checkpoint 和 UrbanEV F4 single-target 真实 train batch 上各执行一次 production-loss backward，未执行 `optimizer.step()`。五个案例中，`C_global`、MHA global query rows 与 `q_global` 的 raw gradient 均为有限的严格全零张量，`exo_context.grad is None`；`global_query_projection.{weight,bias}` 与 `global_query_norm.{weight,bias}` 的 raw gradient 也全部严格为零。与此同时，patch query、`C_patch`、exogenous projector、共享 MHA、patch output projection、`gamma_teb` 与 AMD 主干均获得非零梯度。Global TEB v1 h96 正控制的 query projection/norm 则获得非零 production gradient。
+
+独立 state-control loss 只使用 `exo_context` 时，single 与 parallel 的 `q_global/C_global` 及其专属 Linear/LayerNorm 参数均获得有限非零梯度，证明该图没有 detach。只扰动 global-query 专属 Linear/LayerNorm 参数时，ETTm1 h96 与 UrbanEV single 的 prediction、MoE loss、`C_patch` 和 temporal delta 均逐元素不变，而 `C_global`、`exo_context` 和 `state_source` 最后 `d` 维发生变化。
+
+因此当前 T2 的 global-query 专属分支是 **state-output-live，但 forecast-loss-disconnected**。共享的 exogenous/MHA 参数仍可通过 patch residual 获得任务梯度；不得把这一事实扩大解释为整个 T2 无梯度、整个 `exo_context` 完全静止、T2 development 结果无效、T2 必须废弃，或已证明某一修复结构必然更好。既有“所有逻辑参数组梯度非零”测试使用 `hidden_out` 与 `context` 的联合 synthetic loss，只证明模块两个输出联合可导，不证明 production forecast loss 会训练全部逻辑参数。
+
+本轮只确认事实并保留无代码方案比较，不提前批准下一 TEB architecture。后续可以由用户在保留 T2、用 forecast-supervised `C_patch` pooling 导出状态 context、或建立最小 global-mediated patch interaction 等方向之间另行决定；作出该决定前不得启动 P2。
 
 # 8. M3 工程候选 forward 与时间状态接口
 
