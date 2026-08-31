@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十一轮，T2G 结果 closure、T3 Selective Patch TEB 与 TEB 候选终点
+当前轮次：第十二轮，撤销旧 TEB endpoint 与 ETTm1 target_exogenous 对照
 
 canonical 内部版本：v2.1-R1
 
@@ -1377,3 +1377,239 @@ new included file = models/modules/selective_patch_target_exogenous_bridge.py
 ```
 
 T3 尚未完成 performance/development 验收。本阶段未训练 T3、未生成真实 T3 artifact、未实现或启动 P2/T4/T5、未进入 M5/M7，M4 状态继续为 `In Progress`。
+
+## 30. 第十一轮 Stage D-F：T3 development 与 TEB M4 候选终点
+
+### 30.1 T3 implementation closure、测试资产与公平门禁
+
+T3 implementation review 通过后，以一个 commit 完成工程 closure 并推送：
+
+```text
+commit = 82da6d0198652dc725b867656b0cf9bc2dc955c2
+parent = 953dfaf514be4d5a5c669b42978de72d3f5bdbcd
+title = feat(m4): implement selective patch TEB candidate
+push = origin/AMD-paper-repro-custom-modules-v1 succeeded
+local/tracking/live remote = equal
+ahead/behind = 0/0
+source fingerprint = a3766cbc4f79eef2cc6db19020131abfc7f8eb8e4c56677c6eab5e995d952910 (20 files)
+```
+
+三个 T3 新测试均固定为 `permanent_regression_test` 并保留：
+
+- `tests/test_selective_patch_teb.py`：保护精确 post-projection gate、显式零初始化、参数量、forecast/state gradient 与 single 路径。
+- `tests/test_selective_patch_teb_parallel.py`：保护一次向量化 MHA、owner mask、变量置换等变与 shared gate。
+- `tests/test_selective_patch_teb_checkpoint.py`：保护同结构 strict restore、跨候选隔离与失败无污染。
+
+一次性命令构造、初始化、artifact 校验、checkpoint dynamics 和 full-split wrapper 仅位于 `/tmp/m4_t3_development_3Lcaeu2C/`，不进入 `tests/` 或 Git；最终保护核验后删除。closure 前定向组和完整回归为 212/212 passed、failed=0、skipped=0，CUDA float32 实际执行。
+
+四个 horizon 的 T2/T3 公共 AMD 60 keys、公共 T2-base 19 keys、fixed PE、模型构造后 CPU/CUDA RNG、冻结真实 batch 均逐元素一致；eval/train matched-RNG 的 prediction/MoE/state/Q/A/raw/effective 最大误差均为 0，T3 gate 严格为 1。T3 额外 keys 精确为 gate weight/bias。
+
+### 30.2 八个 completed artifacts
+
+共同合同为 ETTm1 development-only、parallel multivariate、all 7 variables、T=512、seed 2024、10 epochs、schema-v2；source fingerprint `a3766cbc...52910`，data fingerprint `6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`。全部 8 runs 均 completed、history=10、best/last present、metrics finite、13/13 checksums 且系统 `sha256sum -c` passed，无残留 staging 或 duplicate identity。
+
+Artifact root：`/public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-d-t3-v1/`。
+
+| Model | H | run_id | best epoch | config hash | best / last SHA-256 | wall / size / params |
+|---|---:|---|---:|---|---|---:|
+| T2-refresh | 96 | `20260831T160647.766907Z-7fa4da04` | 10 | `edddb313...f2228c` | `d7c0a395...24d59c` / `bc9a68d8...95b8ab` | `204.231 s / 197.007 MiB / 10,284,103` |
+| T2-refresh | 192 | `20260831T161201.439116Z-8d4956cf` | 7 | `e575b0dd...998e71` | `0601b418...2efb63` / `2439182d...e7c716` | `194.238 s / 227.015 MiB / 11,857,735` |
+| T2-refresh | 336 | `20260831T161551.521593Z-4a8d44b6` | 6 | `173733f3...34b400` | `c0e86311...1d4906` / `444fddb3...6a8e55` | `208.341 s / 272.062 MiB / 14,218,183` |
+| T2-refresh | 720 | `20260831T161955.811343Z-3e44c62b` | 6 | `dad5e7e6...46e19a` | `2ea6ed40...bd7fc1` / `111e730c...d5deda` | `201.487 s / 392.118 MiB / 20,512,711` |
+| T3 | 96 | `20260831T162524.130527Z-fd0774fb` | 10 | `45550eab...5e9bbb` | `072047e6...808c9a` / `2934bfb7...68350f` | `172.012 s / 196.977 MiB / 10,284,168` |
+| T3 | 192 | `20260831T162900.454117Z-cb403993` | 7 | `aebc7673...4a4581` | `d4e1fbc2...fea46e` / `91ee6aad...7d590f` | `174.476 s / 227.003 MiB / 11,857,800` |
+| T3 | 336 | `20260831T163235.556343Z-bd670d7d` | 5 | `b078d635...3abbb0` | `8e5ecbf6...39fdf3` / `9117fb9f...6b66f5` | `184.738 s / 272.030 MiB / 14,218,248` |
+| T3 | 720 | `20260831T163608.458436Z-cb95d420` | 4 | `71405431...4e31b6` | `df239c66...ef51bb` / `21e37a6d...7f0626` | `193.289 s / 392.128 MiB / 20,512,776` |
+
+T2_refresh 合计：`808.297 s / 1088.203 MiB`。
+
+T3 合计：`724.514 s / 1088.138 MiB`。
+
+### 30.3 Normal performance：T3 vs 同源码 T2-refresh
+
+以下均为 **ETTm1 development-only；test used for candidate development；not a formal paper result**。负值表示 T3 误差下降。
+
+| H | Val MSE control / T3 / rel | Val MAE control / T3 / rel | Test MSE control / T3 / rel | Test MAE control / T3 / rel |
+|---:|---:|---:|---:|---:|
+| 96 | `0.37115965 / 0.37002611 / -0.30541%` | `0.40300325 / 0.40246724 / -0.13300%` | `0.29777238 / 0.29869404 / +0.30952%` | `0.35107041 / 0.35189844 / +0.23586%` |
+| 192 | `0.50013897 / 0.49987798 / -0.05218%` | `0.46881942 / 0.46867267 / -0.03130%` | `0.33464689 / 0.33517127 / +0.15670%` | `0.37234873 / 0.37291844 / +0.15300%` |
+| 336 | `0.64641350 / 0.64731730 / +0.13982%` | `0.52858440 / 0.52896106 / +0.07126%` | `0.36694654 / 0.36821109 / +0.34461%` | `0.38916411 / 0.38995937 / +0.20435%` |
+| 720 | `0.95247168 / 0.95256170 / +0.00945%` | `0.63922116 / 0.63950634 / +0.04461%` | `0.42190152 / 0.42413013 / +0.52823%` | `0.41770466 / 0.41763543 / -0.01657%` |
+| Macro | `0.61754595 / 0.61744577 / -0.01622%` | `0.50990705 / 0.50990183 / -0.00103%` | `0.35531683 / 0.35655163 / +0.34752%` | `0.38257198 / 0.38310292 / +0.13878%` |
+| mean horizon rel | `-0.05208%` | `-0.01211%` | `+0.33477%` | `+0.14416%` |
+
+T2-refresh 与第十轮旧 T2 在 4 horizons × 4 metrics、macro 与 best epoch 上逐值完全相同，所有 relative changes=0，排除 refresh 自身漂移。固定 development primary（test MSE macro）退化 `+0.34752%`，secondary（test MAE macro）退化 `+0.13878%`；test MSE 四个 horizon 全部退化，validation macro 仅为接近数值平局的 `-0.01622%/-0.00103%`。
+
+补充比较（均为 T3 相对对照的 macro-mean relative；AMD 为 legacy cross-source 补充证据）：
+
+| Control | Val MSE | Val MAE | Test MSE | Test MAE |
+|---|---:|---:|---:|---:|
+| Global TEB v1 | `-0.06572%` | `+0.14220%` | `-0.56277%` | `-0.26543%` |
+| T2G | `-0.00456%` | `+0.00028%` | `+0.25747%` | `+0.07603%` |
+| AMD | `+0.00652%` | `+0.27460%` | `+1.47500%` | `+1.19322%` |
+
+### 30.4 Gate 与 gamma 训练动力学
+
+初始统一为 gamma=0.001、gate weight L2=0、gate bias=0。best/last checkpoint 均以完全同结构 `strict=True` 恢复：
+
+| H | epoch best/last | gamma init/best/last | gate W L2 init/best/last | gate bias init/best/last | T3-vs-T2 best common parameter L2 / max |
+|---:|---:|---:|---:|---:|---:|
+| 96 | `10/10` | `0.001000/0.076264/0.076264` | `0/0.410775/0.410775` | `0/0.071992/0.071992` | `1.327351/0.045904` |
+| 192 | `7/10` | `0.001000/0.068132/0.075767` | `0/0.350725/0.376888` | `0/0.071506/0.077075` | `1.060403/0.045295` |
+| 336 | `5/10` | `0.001000/0.056968/0.074652` | `0/0.326615/0.377537` | `0/0.055644/0.052491` | `2.064275/0.038630` |
+| 720 | `4/10` | `0.001000/0.049966/0.071145` | `0/0.308644/0.405742` | `0/0.050997/0.077225` | `4.594041/0.037886` |
+
+Gate 与 gamma 均明显离开初始化，故 T3 不是未训练起来。T2/T3 是独立训练模型，公共参数的 checkpoint 差异只描述联合优化轨迹，不能被解释为 gate 的单独因果效果。h336/h720 的 BN `num_batches_tracked` 因双方 selected-best epoch 不同而不同，未混入上表 parameter-only 统计。
+
+### 30.5 完整 split gate 与 residual 分布
+
+Formal forward 与 diagnostic wrapper 在每个 horizon/split 的 prediction、MoE、Q_patch、A_patch、D_patch、gate、D_effective、delta、exo_context/state 上最大误差均为 0；Normal 与 artifact 指标仅有 float64 聚合末位差。诊断后 81 个 state keys 和全部 tensor 逐元素不变。
+
+| H/split | gate mean/median/p10/p90/p99/min/max | `<.1 / >1.9` | effective/raw mean/median/p10/p90/p99/max | gamma-delta/hidden mean/median/p10/p90/p99/max |
+|---|---|---:|---|---|
+| 96/val | `1.6433/1.6893/1.3661/1.8528/1.9103/0.2929/1.9566` | `0.0000%/1.9030%` | `1.7135/1.7366/1.5832/1.8112/1.8525/1.8971` | `0.1876/0.1841/0.1241/0.2546/0.3219/0.3959` |
+| 96/test | `1.6294/1.6813/1.3305/1.8494/1.9088/0.3203/1.9576` | `0.0000%/1.7097%` | `1.6921/1.7226/1.5266/1.8125/1.8529/1.8827` | `0.1783/0.1736/0.1105/0.2530/0.3226/0.4054` |
+| 192/val | `1.6104/1.6453/1.3358/1.8351/1.9021/0.4377/1.9503` | `0.0000%/1.1398%` | `1.6229/1.6479/1.3941/1.8008/1.8473/1.8838` | `0.2451/0.2327/0.1184/0.3889/0.5131/0.5957` |
+| 192/test | `1.6208/1.6603/1.3367/1.8484/1.9120/0.3946/1.9578` | `0.0000%/2.0077%` | `1.6372/1.6770/1.3831/1.8127/1.8576/1.8941` | `0.2482/0.2287/0.1106/0.4191/0.5535/0.6597` |
+| 336/val | `1.4069/1.4390/1.0465/1.7177/1.8266/0.4824/1.8988` | `0.0000%/0.0000%` | `1.4212/1.4517/1.1004/1.6836/1.7885/1.8415` | `0.1135/0.1143/0.0700/0.1539/0.1953/0.2639` |
+| 336/test | `1.4181/1.4392/1.1285/1.6783/1.7924/0.4233/1.8927` | `0.0000%/0.0000%` | `1.4337/1.4455/1.2085/1.6432/1.7395/1.8108` | `0.1043/0.1035/0.0608/0.1487/0.1827/0.2132` |
+| 720/val | `1.6750/1.7313/1.3842/1.8787/1.9248/0.4850/1.9543` | `0.0000%/4.8782%` | `1.7381/1.7846/1.5664/1.8578/1.8876/1.9053` | `0.1291/0.1303/0.0570/0.1969/0.2364/0.2686` |
+| 720/test | `1.6661/1.7158/1.3875/1.8709/1.9257/0.4404/1.9586` | `0.0000%/4.1922%` | `1.7290/1.7669/1.5675/1.8542/1.8908/1.9108` | `0.1224/0.1215/0.0542/0.1889/0.2319/0.2623` |
+
+Raw/effective/gamma-delta/hidden 的按样本 L2 mean（其余 quantiles 保留于本轮临时诊断输出，结束时删除）：
+
+| H/split | D_patch | D_effective | gamma*delta | hidden |
+|---|---:|---:|---:|---:|
+| 96/val | `91.2997` | `157.3240` | `11.9981` | `63.9698` |
+| 96/test | `88.4602` | `151.0470` | `11.5194` | `64.6136` |
+| 192/val | `135.3606` | `224.1622` | `15.2726` | `62.3167` |
+| 192/test | `136.1017` | `229.1621` | `15.6133` | `62.9375` |
+| 336/val | `89.8088` | `123.7502` | `7.0498` | `62.1551` |
+| 336/test | `81.9582` | `114.9739` | `6.5499` | `62.8184` |
+| 720/val | `90.0999` | `160.2201` | `8.0055` | `61.9955` |
+| 720/test | `86.8189` | `153.5601` | `7.6727` | `62.7125` |
+
+变量顺序 `[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]`。Gate 已明显偏离恒等 1；h96/h720 的 gate 更强、h720 高端集中更明显，但所有 split 的 `<0.1` 比例为 0，`>1.9` 最高约 4.88%，不存在大规模双端饱和。各变量/patch mean：
+
+| H/split | per-variable mean | patch-position mean (0-15) |
+|---|---|---|
+| 96/val | `[1.6315,1.6483,1.6299,1.6432,1.6418,1.6553,1.6526]` | `[1.5178,1.5729,1.6007,1.6361,1.6524,1.6357,1.6660,1.6659,1.6685,1.6911,1.7061,1.6626,1.6390,1.6512,1.6774,1.6484]` |
+| 96/test | `[1.6384,1.6269,1.6385,1.6244,1.6197,1.6215,1.6365]` | `[1.5060,1.5553,1.5717,1.6179,1.6348,1.6106,1.6552,1.6509,1.6462,1.6844,1.6936,1.6478,1.6390,1.6447,1.6618,1.6505]` |
+| 192/val | `[1.6192,1.6150,1.6158,1.6126,1.6171,1.6000,1.5933]` | `[1.5066,1.5327,1.6081,1.6478,1.6600,1.6407,1.6251,1.6294,1.6661,1.6861,1.6539,1.6160,1.5574,1.5297,1.5810,1.6260]` |
+| 192/test | `[1.6399,1.6310,1.6387,1.6297,1.6203,1.6165,1.5698]` | `[1.5193,1.5468,1.6141,1.6494,1.6597,1.6419,1.6314,1.6413,1.6767,1.6945,1.6635,1.6259,1.5722,1.5518,1.5994,1.6456]` |
+| 336/val | `[1.3975,1.4095,1.3968,1.4047,1.4077,1.4180,1.4137]` | `[1.3338,1.3605,1.3969,1.4560,1.4856,1.5019,1.4796,1.4786,1.4734,1.4671,1.4568,1.4068,1.3318,1.2886,1.2713,1.3209]` |
+| 336/test | `[1.4245,1.4124,1.4249,1.4103,1.4123,1.4073,1.4351]` | `[1.3476,1.3737,1.4055,1.4653,1.4954,1.5087,1.4888,1.4872,1.4792,1.4770,1.4653,1.4168,1.3470,1.3044,1.2870,1.3410]` |
+| 720/val | `[1.6753,1.6839,1.6713,1.6807,1.6774,1.6727,1.6636]` | `[1.6425,1.6387,1.6646,1.7251,1.7579,1.7542,1.7468,1.7434,1.7480,1.7602,1.7421,1.6769,1.6079,1.5431,1.4995,1.5489]` |
+| 720/test | `[1.6775,1.6772,1.6758,1.6746,1.6643,1.6644,1.6287]` | `[1.6297,1.6331,1.6513,1.7088,1.7432,1.7383,1.7301,1.7303,1.7337,1.7497,1.7316,1.6729,1.6070,1.5431,1.5027,1.5513]` |
+
+### 30.6 同-checkpoint identity/bypass/permutation 诊断
+
+表内为 `MSE/MAE (相对 Normal MSE%/MAE%)`。Permutation 为三个 deterministic cyclic shifts 的均值；所有 batch 均 B>1，不可置换 batch=0。
+
+| H/split | Normal | identity gate | TEB residual bypass | exogenous permutation mean [MSE range; MAE range] |
+|---|---:|---:|---:|---:|
+| 96/val | `0.37002611/0.40246724` | `0.36865937/0.40132666 (-0.36936%/-0.28340%)` | `0.37856803/0.40829895 (+2.30847%/+1.44899%)` | `0.37417622/0.40515866 (+1.12157%/+0.66873%) [0.37034361,0.37905389; 0.40271107,0.40787389]` |
+| 96/test | `0.29869404/0.35189844` | `0.29561581/0.35054864 (-1.03056%/-0.38358%)` | `0.30047419/0.35553930 (+0.59598%/+1.03464%)` | `0.29883349/0.35216151 (+0.04669%/+0.07476%) [0.29854793,0.29901461; 0.35175487,0.35273795]` |
+| 192/val | `0.49987798/0.46867267` | `0.50049780/0.46721342 (+0.12399%/-0.31136%)` | `0.51073205/0.47153012 (+2.17134%/+0.60969%)` | `0.50193360/0.46980618 (+0.41123%/+0.24186%) [0.50007221,0.50467623; 0.46874611,0.47118828]` |
+| 192/test | `0.33517127/0.37291844` | `0.33619850/0.37404438 (+0.30648%/+0.30193%)` | `0.34986974/0.38527388 (+4.38536%/+3.31317%)` | `0.33706690/0.37402538 (+0.56557%/+0.29683%) [0.33530801,0.33854695; 0.37296557,0.37474061]` |
+| 336/val | `0.64731730/0.52896106` | `0.64777183/0.52917553 (+0.07022%/+0.04055%)` | `0.65052880/0.53087697 (+0.49612%/+0.36220%)` | `0.64817906/0.52941874 (+0.13313%/+0.08652%) [0.64741581,0.64884984; 0.52900980,0.52975431]` |
+| 336/test | `0.36821109/0.38995937` | `0.36777101/0.38983405 (-0.11952%/-0.03214%)` | `0.36918858/0.39128040 (+0.26547%/+0.33876%)` | `0.36881768/0.39020023 (+0.16474%/+0.06177%) [0.36823063,0.36929701; 0.38995115,0.39053658]` |
+| 720/val | `0.95256170/0.63950634` | `0.95307753/0.63943757 (+0.05415%/-0.01075%)` | `0.95529608/0.64031048 (+0.28706%/+0.12574%)` | `0.95321983/0.63980143 (+0.06909%/+0.04614%) [0.95259303,0.95362112; 0.63953611,0.64002424]` |
+| 720/test | `0.42413013/0.41763543` | `0.42360197/0.41750444 (-0.12453%/-0.03136%)` | `0.42424048/0.41845119 (+0.02602%/+0.19533%)` | `0.42454723/0.41789978 (+0.09834%/+0.06330%) [0.42409070,0.42502370; 0.41762122,0.41814203]` |
+
+全 split 最大绝对变化 tuple=`prediction/A_patch/gate/D_patch/D_effective`；permutation 取三个 shifts 的最大值：
+
+| H/split | identity | residual bypass | permutation |
+|---|---|---|---|
+| 96/val | `0.68497/0.00000/0.95662/0.00000/8.68132` | `1.52188/0.00000/0.00000/0.00000/17.77885` | `1.33291/8.67469/1.15232/11.57911/19.66361` |
+| 96/test | `0.57394/0.00000/0.95757/0.00000/8.18635` | `1.18984/0.00000/0.00000/0.00000/16.80619` | `1.40545/9.07153/1.16340/12.69410/19.63291` |
+| 192/val | `0.45230/0.00000/0.95028/0.00000/9.99701` | `0.94619/0.00000/0.00000/0.00000/20.68417` | `1.22004/7.01565/1.00130/13.86351/21.96820` |
+| 192/test | `0.57598/0.00000/0.95782/0.00000/10.73243` | `1.19720/0.00000/0.00000/0.00000/22.04968` | `1.43519/7.24636/1.20941/13.57427/23.53697` |
+| 336/val | `0.22863/0.00000/0.89878/0.00000/4.92275` | `0.52785/0.00000/0.00000/0.00000/10.44240` | `0.91693/6.83113/0.79714/9.07475/15.94980` |
+| 336/test | `0.14913/0.00000/0.89270/0.00000/4.79981` | `0.39989/0.00000/0.00000/0.00000/10.36489` | `0.53212/6.47166/0.85515/9.30732/15.22577` |
+| 720/val | `0.24018/0.00000/0.95429/0.00000/6.32349` | `0.51516/0.00000/0.00000/0.00000/12.95222` | `0.56317/6.12194/1.20840/7.93113/13.87164` |
+| 720/test | `0.22230/0.00000/0.95856/0.00000/6.65238` | `0.45832/0.00000/0.00000/0.00000/13.61181` | `0.48340/6.46848/1.20635/8.67705/14.47310` |
+
+Identity gate 在 test h96/h336/h720 以及 val h96 降低 MSE，在 test h192 与其余 validation 行不稳定；特别是 test h96，强制 gate=1 将 MSE 降低约 1.03%。因此 learned gate 的确移动并产生功能影响，但没有形成稳定选择性收益。TEB residual bypass 在所有 horizon/split 提高误差，说明各 T3 checkpoint 仍依赖 patch TEB residual。三个外生 permutation 的平均 MSE 在所有 horizon/split 均高于 Normal，表示可测的外生依赖；这仍是同-checkpoint 扰动，不是独立训练消融或因果证明。
+
+### 30.7 T3 development signal 与 TEB M4 候选终点
+
+事实：T2-refresh 完全复现旧 T2；T3 与 T2 公共初始化/RNG 完全公平；T3 gate/gamma 已实际移动，gate 分布有变量/patch 差异，外生 permutation 可改变 A_patch、gate、residual 与 prediction。另一方面，最高优先级同源码单因素比较中，T3 四个 test horizon MSE 全部退化，test MSE/MAE macro 分别 `+0.34752%/+0.13878%`；validation macro 近零，identity-gate 反事实还显示 learned gate 在若干关键行不如恒等 gate。
+
+因此 T3 固定分类为：**negative-or-negligible development signal**。按预登记 endpoint 规则：
+
+```text
+TEB M4 leading candidate = T2 Patch-Conditioned TEB
+TEB branch reaches M4 candidate endpoint
+not M5 freeze
+```
+
+T2G 与 T3 均保留为可追溯工程候选、永久测试和 strict-restorable artifacts，但不作为当前 leading candidate。本结论只适用于 ETTm1、single seed、10 epochs 的 development 证据；不等同于 M5 frozen TEB，不构成正式论文性能主张，也不能外推到 EV、多 seed 或其他正式数据集。
+
+本轮没有实现或启动 P2，没有新增 TEB candidate，没有调整 gate 维度/激活/位置/输入，没有实现 T4/T5、完整 TimeXer self-attention、StateAdapter/Graph Mode/空间模块，没有进入 M5。下一工程方向必须等待用户审核后才可转入 PMCR/P2。M4 状态继续 `In Progress`；本节结果追加保持未 stage、未 commit、未 push。
+
+### 30.8 补充对照的逐 horizon 相对变化
+
+下表为 T3 相对各既有对照的逐 horizon 百分比变化，列顺序为 Validation MSE / Validation MAE / Test MSE / Test MAE；负值表示 T3 误差更低。Global TEB v1 与 AMD 属既有开发对照，其中 AMD 仍是 legacy cross-source 补充证据；同源码 T2-refresh 始终是最高优先级控制。
+
+| Control | H96 | H192 | H336 | H720 | Macro-mean relative | Mean-horizon relative |
+|---|---|---|---|---|---|---|
+| Global TEB v1 | `-1.59424/-0.57038/-1.03041/-0.24885%` | `+1.42825/+1.44611/-0.32973/-0.03282%` | `-0.51978/-0.33290/-0.65873/-0.49357%` | `+0.07498/+0.04549/-0.33169/-0.27310%` | `-0.06572/+0.14220/-0.56277/-0.26543%` | `-0.15270/+0.14708/-0.58764/-0.26208%` |
+| T2G | `-0.36795/-0.14305/-0.00217/+0.06401%` | `-0.00883/-0.02683/+0.13290/+0.13133%` | `+0.17082/+0.07729/+0.30782/+0.17470%` | `+0.02039/+0.04684/+0.49624/-0.05506%` | `-0.00456/+0.00028/+0.25747/+0.07603%` | `-0.04639/-0.01144/+0.23370/+0.07875%` |
+| AMD | `-0.01280/-0.00979/+2.81005/+2.06118%` | `+0.74890/+1.12392/+1.85866/+1.59337%` | `-0.05432/+0.07091/+1.22010/+0.89697%` | `-0.33017/+0.00642/+0.47672/+0.39597%` | `+0.00652/+0.27460/+1.47500/+1.19322%` | `+0.08790/+0.29787/+1.59138/+1.23687%` |
+
+该补充表不改变第 30.7 节裁决：T3 对同源码 T2-refresh 的 development primary/secondary 均退化，故 T3 为 `negative-or-negligible development signal`，T2 仍为 TEB M4 leading candidate。
+## 31. 第十二轮 Stage A：撤销旧 TEB endpoint 与目标任务预登记
+
+### 31.1 用户最新决定对第十一轮历史判断的取代
+
+第十一轮的原始指标、artifact、T3 `negative-or-negligible development signal`、T2G `negative-or-negligible development signal` 以及“T2 是已测试 TEB 中表现最好者”等事实继续有效。第十一轮第 30.7 节按当时预登记规则形成的：
+
+```text
+TEB M4 leading candidate = T2 Patch-Conditioned TEB
+TEB branch reaches M4 candidate endpoint
+not M5 freeze
+```
+
+是可追溯的历史判断，但已被第十二轮用户最新治理决定正式取代。当前状态修正为：
+
+```text
+T2 = best among tested TEB variants
+TEB development adequacy gate = not yet passed
+TEB branch endpoint = withdrawn
+```
+
+T2 相对 Global TEB v1 虽有改善，但相对同输入 AMD baseline 仍是负向 development signal，因而不得把“若干负收益候选中最好的一个”解释为 TEB 已通过。转入 PMCR/P2 前，必须有一个 TimeXer-inspired TEB 候选在同输入、同输出、同源码 AMD control 下取得明确正向 development signal，或由用户明确停止当前路线并授权更换另一篇近三年外生变量模块来源。在此之前 P2 继续阻塞，也不得用 PMCR 潜在收益掩盖 TEB 负收益。
+
+### 31.2 ETTm1 target-exogenous U1/U2 公平合同
+
+本轮不新增 TEB architecture，只对现有 T2 做功能定位一致的目标—外生任务检查。ETTm1 仍为 development-only benchmark；train/validation/test 可用于本轮开发，但不进入 M6 正式主表，不构成未见测试泛化证据，也不表示正式 ETTh1/Weather/ECL/Exchange 改用 `target_exogenous`。
+
+```text
+dataset = ETTm1
+feature order = [HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]
+task_mode = target_exogenous
+target = OT
+target_idx = 6
+aux_idx = [0,1,2,3,4,5]
+aux_feature_names = [HUFL,HULL,MUFL,MULL,LUFL,LULL]
+seq_len = 512
+horizons = [96,192,336,720]
+seed = 2024
+epochs = 10
+```
+
+公平对照固定为：
+
+```text
+U1 = AMD-Concat; implementation_variant=el-amd-pmcr-teb-v1; ablation_id=U1; PMCR off; TEB off
+U2 = AMD-Concat + T2; implementation_variant=el-amd-m4-t2-patch-teb-v1; ablation_id=M4_T2; PMCR off; TEB on
+```
+
+U1/U2 必须共享七变量历史输入、feature type、feature order、OT target、aux 顺序、数据 SHA、57,600 used rows、split、train-only scaler、窗口、seed、batch、optimizer、AMD 主干、target-only 输出、metric space 和 validation-best checkpoint 规则。只允许 implementation/ablation/TEB architecture 及其结构参数、参数量、identity/hash/path 不同；不得用 parallel 七变量输出后切 OT 的 workaround。
+
+### 31.3 Zero-code runner capability gate 与 development 判定
+
+在任何训练前必须只读审计 generic ETTm1 runner 的 CLI、数据/标签、模型输出、criterion shape、artifact/checkpoint/manifest 和 summarizer。只有 verdict 为 `Supported without code changes`，并通过 212/212 回归、真实数据 U1/U2 shape/data parity、U1/frozen AMD OT-slice parity 和公共 AMD 初始化门禁，才可启动八个 run。若不支持，本轮只记录具体阻塞项，不修改代码、不创建 workaround、不训练。
+
+U2 仅在 full-precision test MSE macro 低于 U1、test MAE macro 不高于 U1、至少 3/4 test MSE horizon 改善、validation MSE macro 不高于 U1，且收益非舍入假象或单一 horizon 驱动时分类为 `positive development signal`。否则按证据分类为 mixed 或 negative-or-negligible，并登记 `TEB M4 development adequacy gate remains failed`。本轮不得自动执行 warm-start rescue、更换来源模块、新建 T4/T5/T6、调 patch/d/heads/gate、实现 P2、进入 M5/M7 或实现空间模块。

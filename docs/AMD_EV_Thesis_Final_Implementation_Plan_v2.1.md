@@ -65,7 +65,7 @@ M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭�
 
 M4 只处理第三章时间模块诊断与候选迭代。M4 可以形成诊断结论，并在用户另行确认后实现保持论文来源边界的候选；不得据此静默选择结构或超参数。Patch-conditioned TEB 可在 M4 诊断后由用户另行授权，不再固定延期到 M5 之后。在 M4 尚未形成足够证据前，不得实现 M7 或任何空间模块。
 
-自 M4 第八轮起，M4 内部开发顺序固定为 **TEB 候选路线先收敛，再处理 PMCR/P2 候选路线**。T2 development 完成后必须先核验 global-query 的真实梯度与功能路径；在 TEB 分支形成 M4 候选终点之前，不得启动 P2 或其他 PMCR 新候选。这里的“TEB 分支候选终点”只表示 M4 不再继续新增 TEB 结构，不等于 M5 最终冻结。用户已在第十一轮明确授权最后一个 TEB 结构候选 T3 Selective Patch TEB；T3 直接由 T2 派生且不继承 T2G。T3 development 后按预登记规则在 T2/T3 中确定 TEB 的 M4 领先候选并停止 TEB 结构迭代；T4 Hidden-KV 与 T5 sparse/top-k 继续排除。
+自 M4 第八轮起，M4 内部开发顺序固定为 **TEB 候选路线先满足 development adequacy gate，再处理 PMCR/P2 候选路线**。第十一轮按当时规则曾登记 T2 为领先候选并认为 TEB 分支达到候选终点；第十二轮用户最新决定已正式撤销该 endpoint。T2 目前只能称为 `best among tested TEB variants`，因为 T2G、T3 均为 `negative-or-negligible`，且 T2 相对同输入 AMD baseline 仍为负向 development signal。转入 PMCR/P2 前，必须有一个 TimeXer-inspired TEB 候选相对同输入、同输出、同源码 AMD control 获得明确正向 development signal，或由用户明确停止当前 TimeXer-inspired 路线并授权更换另一篇近三年来源模块。满足该条件前不得启动 P2，也不得以 PMCR 潜在收益掩盖 TEB 负收益；T4 Hidden-KV 与 T5 sparse/top-k 继续排除。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -913,7 +913,7 @@ T2 只允许 from-scratch 初始化和完全同结构的普通 `load_state_dict(
 
 T2 使用现有 schema-v2 完整 artifact，路径以 `el-amd-m4-t2-patch-teb-v1` 为 variant 根；summarizer 必须保留该候选身份、核验完整 patch 合同和 13-file checksum、拒绝重复科学身份，不得把 T2 归入 `el-amd-pmcr-teb-v1`。旧 v1 scientific/comparison config 不得无条件增加 patch 字段，历史 hash 语义保持不变。
 
-T2 明确不包含 T3 confidence gate、T4 Hidden-KV、T5 sparse/top-k、外生 patchify、外生或目标 self-attention、完整 Transformer encoder、attention 后 FFN、variable identity embedding、未来真实外生输入、第二套 selector、PMCR/P2/MDM-bypass 或任何空间模块。第六轮完成工程实现与测试，第七轮完成 ETTm1 development 实验；这些结果均不把 T2 冻结为最终结构。T3 继续暂缓，T4/T5 继续排除，任何后续 TEB architecture 都必须由用户另行确认。
+T2 明确不包含 T3 confidence gate、T4 Hidden-KV、T5 sparse/top-k、外生 patchify、外生或目标 self-attention、完整 Transformer encoder、attention 后 FFN、variable identity embedding、未来真实外生输入、第二套 selector、PMCR/P2/MDM-bypass 或任何空间模块。第六轮完成工程实现与测试，第七轮完成 ETTm1 development 实验；这些结果均不把 T2 冻结为最终结构。第七轮时 T3 尚处于暂缓状态；其后第十一轮已获用户授权、完成实现与 development，但为 `negative-or-negligible`。T4/T5 继续排除，任何后续 TEB architecture 仍须由用户另行确认。
 
 ### 7.6.5 第八轮 global-query 梯度语义
 
@@ -948,7 +948,7 @@ ablation_id = M4_T2G
 teb_architecture = global_mediated_patch_v1
 ```
 
-T2G 是 T2 的单因素 M4 工程扩展，不是原 T3、最终 TEB 或最终 EL-AMD；它不覆盖 Global TEB v1、T2 或 `el-amd-pmcr-teb-v1`。是否进入 TEB 的 M4 候选终点仍须由后续 development 证据和用户决定。TEB-first 顺序继续有效，T2G 未完成 development 判断前不得启动 P2；T3 confidence gate 继续暂缓，T4/T5 继续排除。
+T2G 是 T2 的单因素 M4 工程扩展，不是原 T3、最终 TEB 或最终 EL-AMD；它不覆盖 Global TEB v1、T2 或 `el-amd-pmcr-teb-v1`。第九轮批准 T2G 时，是否进入 TEB 候选终点仍待 development 证据，T3 confidence gate 也处于暂缓状态；随后 T2G/T3 均已完成且为 `negative-or-negligible`，第十一轮旧 endpoint 又在第十二轮被撤销。TEB-first adequacy 顺序继续有效，T4/T5 继续排除。
 
 ### 7.7.1 来源边界与唯一结构变化
 
@@ -1105,9 +1105,41 @@ teb_global_prediction_role = state_only_forecast_disconnected
 
 T3 训练只允许 from scratch；恢复只允许完全同结构 T3 的普通 `load_state_dict(strict=True)`。必须在写参前拒绝 Global/T2/T2G↔T3、partial gate keys、unexpected/shape/patch/gate-contract mismatch、`strict=False` 与所有 source-kind importer，失败后 parameter/buffer 逐元素不变。“从 T2 派生”只表示结构继承，不授权加载 T2 checkpoint。
 
-### 7.8.5 TEB 分支 endpoint 预登记
+### 7.8.5 第十一轮历史 endpoint 与第十二轮治理取代
 
-T3 development 后采用固定规则：若 T3 为 `positive development signal`，TEB 的 M4 leading candidate 为 T3；若为 `mixed development signal` 或 `negative-or-negligible development signal`，leading candidate 为 T2。T2G 保留工程可追溯性但不参与领先候选竞争。裁决后固定登记 `TEB branch reaches M4 candidate endpoint`，只表示 M4 不再新增 TEB architecture，不等于 M5 freeze、最终 TEB、正式 EL-AMD variant 或正式数据集性能通过。本轮裁决完成后必须停止，不自动启动 P2；后续 PMCR/P2 只能由用户审核后另行授权。
+第十一轮按当时预登记规则形成了历史判断：T3 为 `negative-or-negligible development signal`，T2G 同样为 `negative-or-negligible`，T2 因而是已测试 TEB 中的领先候选，并曾登记 `TEB branch reaches M4 candidate endpoint`。第十二轮用户最新决定正式取代该治理结论：历史指标和 artifact 继续有效，但 endpoint 撤销。T2 只能称为 `best among tested TEB variants`，尚未通过 M4 TEB development adequacy gate，也不是最终 TEB、M5 frozen TEB 或正式 EL-AMD variant。
+
+TEB-first 的退出条件现固定为以下二者至少满足一项：
+
+1. 一个 TimeXer-inspired TEB 候选在与其功能定位一致、同输入、同输出、同源码的 AMD control 下取得明确 `positive development signal`；
+2. 用户明确停止当前 TimeXer-inspired 路线，并授权更换另一篇近三年外生变量模块来源。
+
+在此之前不得启动 P2，不得把 PMCR 潜在收益用于掩盖 TEB 负收益，也不得把“若干负收益候选中最好的一个”解释为 TEB 已通过。
+
+### 7.8.6 第十二轮 ETTm1 target-exogenous adequacy 协议
+
+本轮不新增 TEB architecture，只用现有 T2 验证其 target–exogenous 功能定位。ETTm1 仍为 development-only benchmark，允许使用 train/validation/test，但结果不进入 M6 正式主表，也不构成未见测试集泛化证据。本协议不表示正式 ETTh1、Weather、ECL 或 Exchange 的任务模式改为 `target_exogenous`。
+
+固定输入 schema 为：
+
+```text
+feature order = [HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]
+target = OT
+target_idx = 6
+aux_idx = [0,1,2,3,4,5]
+aux_feature_names = [HUFL,HULL,MUFL,MULL,LUFL,LULL]
+```
+
+公平对照固定为：
+
+```text
+U1 = AMD-Concat; PMCR off; TEB off
+U2 = AMD-Concat + T2 Patch-Conditioned TEB; PMCR off; TEB on
+```
+
+U1/U2 必须使用完全相同的七变量历史输入、feature order、OT target、aux 顺序、split、train-only scaler、窗口、seed、batch、optimizer、AMD 主干、输出范围、metric space 和 best-checkpoint 规则；仅对 OT 未来标签计算 loss 和指标。现有 generic runner 必须先通过 zero-code capability audit；若不能安全表达该合同，本轮停止且不实现 workaround。
+
+本轮 U2 只有在以下条件全部满足时才记为 `positive development signal`：full-precision test MSE macro 低于 U1、test MAE macro 不高于 U1、至少 3/4 test MSE horizon 改善、validation MSE macro 不高于 U1，且收益不是舍入假象或单一 horizon 驱动。若仍非 positive，不得自动创建 T4/T5/T6、调整 patch size/d/heads/gate、启动 P2 或继续大规模 ETTm1 test 搜索；下一步只能由用户另行确认一个严格匹配计算预算的 warm-start/adapter-style rescue，或更换来源模块。
 
 # 8. M3 工程候选 forward 与时间状态接口
 
