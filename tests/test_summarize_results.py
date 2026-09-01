@@ -2,7 +2,10 @@ import csv
 import json
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
+
+import torch
 
 import summarize_results as summary
 
@@ -1011,6 +1014,493 @@ class SummaryTests(unittest.TestCase):
                     Path(directory),
                     implementation_variant="unknown-variant",
                 )
+
+
+class WarmStartSummaryTests(unittest.TestCase):
+    """Permanent sealed-lineage and warm epoch-zero summarizer tests."""
+
+    FEATURE_NAMES = ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+    AUX_IDX = [0, 1, 2, 3, 4, 5]
+    T2_MISSING = [
+        "teb.gamma_teb",
+        "teb.patch_query_projection.weight",
+        "teb.patch_query_projection.bias",
+        "teb.patch_query_norm.weight",
+        "teb.patch_query_norm.bias",
+        "teb.global_query_projection.weight",
+        "teb.global_query_projection.bias",
+        "teb.global_query_norm.weight",
+        "teb.global_query_norm.bias",
+        "teb.exogenous_projection.weight",
+        "teb.exogenous_projection.bias",
+        "teb.exogenous_norm.weight",
+        "teb.exogenous_norm.bias",
+        "teb.cross_attention.in_proj_weight",
+        "teb.cross_attention.in_proj_bias",
+        "teb.cross_attention.out_proj.weight",
+        "teb.cross_attention.out_proj.bias",
+        "teb.patch_output_projection.weight",
+        "teb.patch_output_projection.bias",
+    ]
+
+    @staticmethod
+    def _reseal(run_dir):
+        SummaryTests._write_enhanced_checksums(run_dir)
+
+    @classmethod
+    def _make_warm_run(
+        cls,
+        root,
+        run_id,
+        *,
+        protocol=summary.T2_ADAPTER_TRAINING_PROTOCOL,
+        completed_epochs=2,
+        best_epoch=0,
+        source_path="/machine-a/sealed-u1",
+    ):
+        adapter = protocol == summary.T2_ADAPTER_TRAINING_PROTOCOL
+        variant = (
+            summary.T2_IMPLEMENTATION_VARIANT
+            if adapter else summary.ENHANCED_IMPLEMENTATION_VARIANT
+        )
+        horizon = 96
+        source_identity = summary.M4_U1_SOURCE_IDENTITIES[horizon]
+        run_dir = (
+            Path(root) / variant / "ETTm1" / "target_exogenous" / "OT"
+            / "horizon_96" / "fold_official" / "seed_2024" / run_id
+        )
+        run_dir.mkdir(parents=True)
+        target_schema = {
+            "contract_version": summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+            "feature_type": "MS",
+            "feature_names": cls.FEATURE_NAMES,
+            "target_feature_name": "OT",
+            "target_idx": 6,
+            "target_indices": [6],
+            "aux_idx": cls.AUX_IDX,
+            "aux_feature_names": cls.FEATURE_NAMES[:6],
+            "schema_fingerprint": summary.M4_U1_SCHEMA_FINGERPRINT,
+        }
+        lineage = {
+            "source_artifact_path": source_path,
+            "source_run_id": source_identity["run_id"],
+            "source_implementation_variant": summary.ENHANCED_IMPLEMENTATION_VARIANT,
+            "source_ablation_id": "U1",
+            "source_checkpoint_role": "best",
+            "source_checkpoint_sha256": source_identity["checkpoint_sha256"],
+            "source_config_hash": source_identity["config_hash"],
+            "source_comparison_config_hash": source_identity[
+                "comparison_config_hash"
+            ],
+            "source_commit": summary.M4_U1_SOURCE_COMMIT,
+            "source_executable_fingerprint": summary.M4_U1_SOURCE_FINGERPRINT,
+            "source_data_fingerprint": summary.M4_U1_DATA_FINGERPRINT,
+            "source_best_epoch": source_identity["best_epoch"],
+            "source_task_mode": "target_exogenous",
+            "source_feature_type": "MS",
+            "source_target": "OT",
+            "source_target_idx": 6,
+            "source_target_indices": [6],
+            "source_aux_idx": cls.AUX_IDX,
+            "source_target_exogenous_schema_version": (
+                summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+            ),
+            "source_schema_fingerprint": summary.M4_U1_SCHEMA_FINGERPRINT,
+        }
+        stable_lineage = deepcopy(lineage)
+        stable_lineage.pop("source_artifact_path")
+        current_fingerprint = "c" * 64
+        missing = cls.T2_MISSING if adapter else []
+        proof = {
+            "contract_version": summary.SOURCE_COMPATIBILITY_PROOF_VERSION,
+            "source_executable_fingerprint": summary.M4_U1_SOURCE_FINGERPRINT,
+            "current_executable_fingerprint": current_fingerprint,
+            "global_fingerprint_equal": False,
+            "critical_files": [
+                {"path": path, "source_sha256": "d" * 64,
+                 "current_sha256": "d" * 64}
+                for path in summary.SOURCE_COMPATIBILITY_CRITICAL_FILES
+            ],
+            "source_state_key_count": 60,
+            "target_state_key_count": 79 if adapter else 60,
+            "mapped_key_count": 60,
+            "allowed_missing_keys": missing,
+            "unexpected_keys": [],
+            "shape_mismatches": [],
+            "dtype_mismatches": [],
+        }
+        training_protocol = summary._warm_start_protocol_expected(protocol)
+        teb = {
+            "context_dim": 32,
+            "heads": 4,
+            "dropout": 0.1,
+            "gamma_init": 1e-3,
+            "query_policy": "linear_full_sequence_then_feature_layernorm",
+            "projector_policy": "shared_linear_full_sequence_then_feature_layernorm",
+            "variable_identity_embedding": False,
+            "output_dropout": False,
+            "query_residual": False,
+            "post_attention_ffn": False,
+        }
+        if adapter:
+            teb.update({
+                "architecture": "patch_conditioned_v1",
+                "patch_size": 32,
+                "patch_padding": "right_zero_crop",
+                "patch_position": "fixed_sinusoidal",
+                "target_selection_policy": "full_denorm_then_task_select",
+            })
+        dataset = {
+            "id": "ETTm1",
+            "sha256": summary.M4_U1_DATA_FINGERPRINT,
+            "task_mode": "target_exogenous",
+            "feature_type": "MS",
+            "target": "OT",
+            "feature_names": cls.FEATURE_NAMES,
+            "target_feature_name": "OT",
+            "target_idx": 6,
+            "target_indices": [6],
+            "aux_idx": cls.AUX_IDX,
+            "aux_feature_names": cls.FEATURE_NAMES[:6],
+            "schema_fingerprint": summary.M4_U1_SCHEMA_FINGERPRINT,
+            "fold": "official",
+            "label_horizon": horizon,
+            "model_pred_len": horizon,
+            "artifact_horizon": horizon,
+            "target_exogenous_schema_contract_version": (
+                summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+            ),
+        }
+        scientific = {
+            "implementation_variant": variant,
+            "source_sha256": current_fingerprint,
+            "dataset": dataset,
+            "model": {
+                "model_class": "AMDEnhanced",
+                "seq_len": 512,
+                "pred_len": horizon,
+                "model_pred_len": horizon,
+                "use_pmcr": False,
+                "use_teb": adapter,
+                "teb": teb,
+            },
+            "optimization": {
+                "optimizer": "Adam",
+                "learning_rate": 3e-5,
+                "weight_decay": 0.0 if adapter else 1e-7,
+                "batch_size": 128,
+            },
+            "execution": {
+                "seed": 2024,
+                "device": "cpu",
+                "metric_space": summary.METRIC_SPACE,
+            },
+            "experiment": {
+                "task_mode": "target_exogenous",
+                "target": "OT",
+                "fold": "official",
+                "label_horizon": horizon,
+                "model_pred_len": horizon,
+                "artifact_horizon": horizon,
+                "ablation_id": (
+                    summary.T2_ADAPTER_ABLATION_ID
+                    if adapter else summary.U1_CONTINUATION_ABLATION_ID
+                ),
+            },
+            "training_protocol": training_protocol,
+            "source_lineage": stable_lineage,
+            "source_compatibility_proof": proof,
+        }
+        config_hash = summary._stable_hash(scientific)
+        common = {
+            "schema_version": summary.SCHEMA_VERSION,
+            "artifact_schema_version": summary.ENHANCED_ARTIFACT_SCHEMA_VERSION,
+            "implementation_variant": variant,
+        }
+        initialization = {"mse": 0.3, "mae": 0.2, "num_elements": 1,
+                          "num_batches": 1}
+        best_role = "epoch_zero_initialization" if best_epoch == 0 else "trained_epoch"
+        config = {
+            **common,
+            "config_hash": config_hash,
+            "scientific_config": scientific,
+            "run": {
+                "run_dir": str(run_dir.resolve()),
+                "train_epochs": 10,
+                "initialization_validation": initialization,
+                "epoch_zero_in_best_selection": True,
+                "epoch_zero_checkpoint_role": "source_equivalent_initialization",
+            },
+            "source": {"sha256": current_fingerprint},
+            "training_protocol": training_protocol,
+            "source_lineage": lineage,
+            "source_compatibility_proof": proof,
+        }
+        manifest = {
+            **common,
+            "run_id": run_id,
+            "status": "completed",
+            "config_hash": config_hash,
+            "data_sha256": summary.M4_U1_DATA_FINGERPRINT,
+            "artifact_dir": str(run_dir.resolve()),
+            "completed_epoch": completed_epochs,
+            "completed_epochs": completed_epochs,
+            "best_epoch": best_epoch,
+            "best_validation_mse": 0.3 if best_epoch == 0 else 0.25,
+            "test_mse": 0.4,
+            "test_mae": 0.25,
+            "task_mode": "target_exogenous",
+            "target": "OT",
+            "artifact_horizon": horizon,
+            "fold": "official",
+            "seed": 2024,
+            "target_exogenous_schema": target_schema,
+            "training_protocol": training_protocol,
+            "source_lineage": lineage,
+            "source_compatibility_proof": proof,
+            "initialization_validation": initialization,
+            "epoch_zero_in_best_selection": True,
+            "best_checkpoint_role": best_role,
+        }
+        if adapter:
+            manifest["candidate_contract"] = {
+                "ablation_id": summary.T2_ADAPTER_ABLATION_ID,
+                "teb_architecture": "patch_conditioned_v1",
+                "teb_patch_size": 32,
+                "teb_patch_padding": "right_zero_crop",
+                "teb_patch_position": "fixed_sinusoidal",
+                "teb_context_dim": 32,
+                "teb_heads": 4,
+                "teb_dropout": 0.1,
+                "teb_gamma_init": 1e-3,
+                "seq_len": 512,
+                "task_mode": "target_exogenous",
+                "target_idx": 6,
+                "aux_idx": cls.AUX_IDX,
+                "schema_fingerprint": summary.M4_U1_SCHEMA_FINGERPRINT,
+                "target_selection_policy": "full_denorm_then_task_select",
+            }
+        metrics = {
+            **common,
+            "run_id": run_id,
+            "status": "completed",
+            "dataset_id": "ETTm1",
+            "task_mode": "target_exogenous",
+            "target": "OT",
+            "seq_len": 512,
+            "pred_len": horizon,
+            "label_horizon": horizon,
+            "model_pred_len": horizon,
+            "artifact_horizon": horizon,
+            "fold": "official",
+            "seed": 2024,
+            "best_epoch": best_epoch,
+            "best_validation": {"mse": 0.3 if best_epoch == 0 else 0.25,
+                                "mae": 0.2},
+            "test": {"mse": 0.4, "mae": 0.25},
+            "parameter_count": 1,
+            "train_epochs": 10,
+            "completed_epochs": completed_epochs,
+            "duration_seconds": 1.0,
+            "metric_space": summary.METRIC_SPACE,
+            "config_hash": config_hash,
+            "data_sha256": summary.M4_U1_DATA_FINGERPRINT,
+            "completed_at": "2026-09-01T00:00:00Z",
+            "artifact_dir": str(run_dir.resolve()),
+            "training_protocol_id": protocol,
+            "warm_start_contract_version": summary.WARM_START_CONTRACT_VERSION,
+            "training_protocol": training_protocol,
+            "source_lineage": lineage,
+            "source_compatibility_proof": proof,
+            "initialization_validation": initialization,
+            "epoch_zero_in_best_selection": True,
+            "best_checkpoint_role": best_role,
+        }
+        best_checkpoint = {
+            "training_protocol": training_protocol,
+            "source_lineage": lineage,
+            "source_compatibility_proof": proof,
+            "initialization_validation": initialization,
+            "epoch_zero_in_best_selection": True,
+            "best_epoch": best_epoch,
+            "best_checkpoint_role": best_role,
+            "checkpoint_role": best_role,
+        }
+        last_checkpoint = {
+            **best_checkpoint,
+            "completed_epoch": completed_epochs,
+            "completed_epochs": completed_epochs,
+            "checkpoint_role": (
+                "epoch_zero_initialization"
+                if completed_epochs == 0 else "last_trained_epoch"
+            ),
+        }
+        for name, value in {
+            "config.resolved.json": config,
+            "manifest.json": manifest,
+            "metrics.json": metrics,
+            "sys.argv.json": {"argv": ["main.py"]},
+            "source_fingerprint.json": {"sha256": current_fingerprint},
+            "data_fingerprint.json": {"sha256": summary.M4_U1_DATA_FINGERPRINT},
+        }.items():
+            (run_dir / name).write_text(
+                json.dumps(value, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        torch.save(best_checkpoint, run_dir / "best.pt")
+        torch.save(last_checkpoint, run_dir / "last.pt")
+        (run_dir / "history.jsonl").write_text(
+            "".join(json.dumps({"epoch": epoch}) + "\n"
+                    for epoch in range(1, completed_epochs + 1)),
+            encoding="utf-8",
+        )
+        (run_dir / "command.txt").write_text("python main.py\n", encoding="utf-8")
+        (run_dir / "stdout.log").write_text("completed\n", encoding="utf-8")
+        (run_dir / "stderr.log").write_text("\n", encoding="utf-8")
+        (run_dir / "train.log").write_text("completed\n", encoding="utf-8")
+        cls._reseal(run_dir)
+        return run_dir
+
+    def test_valid_adapter_epoch_zero_and_trained_best_are_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for run_id, best_epoch in (("epoch-zero", 0), ("trained", 1)):
+                artifacts = root / run_id
+                self._make_warm_run(artifacts, run_id, best_epoch=best_epoch)
+                rows = summary.load_completed_runs(
+                    artifacts,
+                    implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+                )
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]["best_epoch"], best_epoch)
+                self.assertEqual(rows[0]["training_protocol_id"],
+                                 summary.T2_ADAPTER_TRAINING_PROTOCOL)
+
+    def test_valid_continuation_is_separate_from_standard_u1(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "continuation"
+            self._make_warm_run(
+                artifacts, "continuation",
+                protocol=summary.U1_CONTINUATION_TRAINING_PROTOCOL,
+                best_epoch=1,
+            )
+            rows = summary.load_completed_runs(
+                artifacts,
+                implementation_variant=summary.ENHANCED_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["training_protocol_id"],
+                             summary.U1_CONTINUATION_TRAINING_PROTOCOL)
+
+    def test_lineage_and_compatibility_tamper_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "lineage"
+            run_dir = self._make_warm_run(artifacts, "tampered")
+            manifest_path = run_dir / "manifest.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["source_lineage"]["source_checkpoint_sha256"] = "0" * 64
+            manifest_path.write_text(json.dumps(manifest) + "\n")
+            self._reseal(run_dir)
+            with self.assertRaisesRegex(ValueError, "lineage mismatch"):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "proof"
+            run_dir = self._make_warm_run(artifacts, "tampered")
+            metrics_path = run_dir / "metrics.json"
+            metrics = json.loads(metrics_path.read_text())
+            metrics["source_compatibility_proof"]["critical_files"][0][
+                "current_sha256"
+            ] = "0" * 64
+            metrics_path.write_text(json.dumps(metrics) + "\n")
+            self._reseal(run_dir)
+            with self.assertRaisesRegex(ValueError, "proof mismatch"):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
+    def test_epoch_zero_role_and_fake_history_rows_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "role"
+            run_dir = self._make_warm_run(artifacts, "bad-role")
+            best_path = run_dir / "best.pt"
+            best = torch.load(best_path, map_location="cpu")
+            best["checkpoint_role"] = "trained_epoch"
+            torch.save(best, best_path)
+            self._reseal(run_dir)
+            with self.assertRaisesRegex(ValueError, "role/epoch mismatch"):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "history"
+            run_dir = self._make_warm_run(artifacts, "fake-zero")
+            history = run_dir / "history.jsonl"
+            history.write_text('{"epoch": 0}\n' + history.read_text())
+            self._reseal(run_dir)
+            with self.assertRaisesRegex(ValueError, "epoch-zero rows"):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
+    def test_completed_epochs_and_absolute_source_path_do_not_evade_duplicates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "duplicates"
+            self._make_warm_run(
+                artifacts, "run-a", completed_epochs=2,
+                source_path="/machine-a/source",
+            )
+            self._make_warm_run(
+                artifacts, "run-b", completed_epochs=3,
+                source_path="/machine-b/source",
+            )
+            with self.assertRaisesRegex(ValueError, "no run was selected automatically"):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
+    def test_standard_best_epoch_zero_and_parallel_warm_spoof_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "standard"
+            run_dir = SummaryTests._make_enhanced_run(
+                artifacts, "standard-zero",
+                implementation_variant=summary.T2_IMPLEMENTATION_VARIANT,
+            )
+            for filename in ("manifest.json", "metrics.json"):
+                path = run_dir / filename
+                value = json.loads(path.read_text())
+                value["best_epoch"] = 0
+                path.write_text(json.dumps(value) + "\n")
+            self._reseal(run_dir)
+            with self.assertRaisesRegex(ValueError, "epoch metadata is invalid"):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts = Path(directory) / "parallel"
+            run_dir = self._make_warm_run(artifacts, "parallel-spoof")
+            config_path = run_dir / "config.resolved.json"
+            config = json.loads(config_path.read_text())
+            config["scientific_config"]["dataset"]["task_mode"] = "parallel_multivariate"
+            config["scientific_config"]["dataset"]["target"] = "all"
+            config["scientific_config"]["experiment"]["task_mode"] = "parallel_multivariate"
+            new_hash = summary._stable_hash(config["scientific_config"])
+            config["config_hash"] = new_hash
+            config_path.write_text(json.dumps(config) + "\n")
+            for filename in ("manifest.json", "metrics.json"):
+                path = run_dir / filename
+                value = json.loads(path.read_text())
+                value["config_hash"] = new_hash
+                path.write_text(json.dumps(value) + "\n")
+            self._reseal(run_dir)
+            with self.assertRaises(ValueError):
+                summary.load_completed_runs(
+                    artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
+                )
+
 
 
 if __name__ == "__main__":

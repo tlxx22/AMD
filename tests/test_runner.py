@@ -1,8 +1,11 @@
 import json
+import shlex
 import subprocess
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 import numpy as np
@@ -2788,6 +2791,634 @@ class EnhancedRunnerM3Tests(unittest.TestCase):
                 config["scientific_config"]["dataset"],
             )
             self.assertNotIn("target_exogenous_schema", manifest)
+
+
+
+class StateDictDigestContractTests(unittest.TestCase):
+    """Permanent production state-digest provenance contracts."""
+
+    def test_v1_version_empty_golden_determinism_order_and_clone(self):
+        self.assertEqual(
+            runner.STATE_DICT_DIGEST_CONTRACT_VERSION,
+            "sha256_length_prefixed_state_dict_v1",
+        )
+        self.assertEqual(
+            runner._state_dict_digest({}),
+            "94c6bea466a90ed7d1a7020f37a2b7287652a89dac218e639c694264a31b5e42",
+        )
+        first = {
+            "z.weight": torch.arange(6, dtype=torch.float32).reshape(2, 3),
+            "a.buffer": torch.tensor([7, 11], dtype=torch.int64),
+        }
+        second = {
+            "a.buffer": first["a.buffer"].detach().clone(),
+            "z.weight": first["z.weight"].detach().clone(),
+        }
+        digest = runner._state_dict_digest(first)
+        self.assertEqual(digest, runner._state_dict_digest(first))
+        self.assertEqual(digest, runner._state_dict_digest(second))
+
+    def test_v1_canonicalizes_contiguity_device_and_requires_grad(self):
+        noncontiguous = torch.arange(12, dtype=torch.float32).reshape(3, 4).t()
+        self.assertFalse(noncontiguous.is_contiguous())
+        contiguous = noncontiguous.contiguous().requires_grad_(True)
+        expected = runner._state_dict_digest({"weight": contiguous})
+        self.assertEqual(
+            expected, runner._state_dict_digest({"weight": noncontiguous})
+        )
+        if torch.cuda.is_available():
+            self.assertEqual(
+                expected,
+                runner._state_dict_digest({"weight": contiguous.detach().cuda()}),
+            )
+
+    def test_v1_distinguishes_value_dtype_shape_key_and_key_set(self):
+        tensor = torch.arange(6, dtype=torch.float32).reshape(2, 3)
+        base = runner._state_dict_digest({"weight": tensor})
+        changed_value = tensor.clone()
+        changed_value[0, 0] += 1
+        variants = (
+            {"weight": changed_value},
+            {"weight": tensor.double()},
+            {"weight": tensor.reshape(3, 2)},
+            {"module.weight": tensor},
+            {"weight": tensor, "buffer": torch.zeros(1)},
+            {},
+        )
+        for variant in variants:
+            with self.subTest(keys=tuple(variant), shape=tuple(
+                variant.get("weight", tensor).shape
+            )):
+                self.assertNotEqual(base, runner._state_dict_digest(variant))
+
+    def test_v1_rejects_noncanonical_inputs(self):
+        with self.assertRaisesRegex(TypeError, "must be a mapping"):
+            runner._state_dict_digest([("weight", torch.zeros(1))])
+        with self.assertRaisesRegex(TypeError, "keys must be strings"):
+            runner._state_dict_digest({1: torch.zeros(1)})
+        with self.assertRaisesRegex(TypeError, "not a tensor"):
+            runner._state_dict_digest({"weight": 1})
+        with self.assertRaisesRegex(TypeError, "not dense strided"):
+            runner._state_dict_digest({
+                "weight": torch.sparse_coo_tensor(
+                    torch.tensor([[0]]), torch.tensor([1.0]), (1,)
+                )
+            })
+        with self.assertRaisesRegex(TypeError, "meta"):
+            runner._state_dict_digest({
+                "weight": torch.empty(1, device="meta")
+            })
+        with self.assertRaisesRegex(TypeError, "quantized"):
+            runner._state_dict_digest({
+                "weight": torch.quantize_per_tensor(
+                    torch.tensor([1.0]), scale=0.1, zero_point=0,
+                    dtype=torch.qint8,
+                )
+            })
+
+
+class WarmStartAdapterRunnerTests(unittest.TestCase):
+    """Permanent M4 warm-start, frozen-adapter, and epoch-zero contracts."""
+
+    SOURCE_BASE = (
+        runner.ROOT
+        / "artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1"
+        / runner.ENHANCED_IMPLEMENTATION_VARIANT
+        / "ETTm1/target_exogenous/OT"
+    )
+
+    @classmethod
+    def _source_dir(cls, horizon=96):
+        identity = runner.M4_U1_SOURCE_IDENTITIES[horizon]
+        return (
+            cls.SOURCE_BASE
+            / f"horizon_{horizon}/fold_official/seed_2024"
+            / identity["run_id"]
+        )
+
+    @classmethod
+    def _protocol_args(cls, horizon=96, *, continuation=False, artifact_root=None):
+        source = cls._source_dir(horizon)
+        command = next(
+            line for line in (source / "command.txt").read_text(
+                encoding="utf-8"
+            ).splitlines() if line and not line.startswith("#")
+        )
+        argv = shlex.split(command)
+        args = runner.parse_args(argv[2:])
+        args.device = "cpu"
+        args.artifact_root = str(
+            artifact_root if artifact_root is not None else Path("/tmp/m4-warm-test")
+        )
+        args.source_artifact_path = str(source)
+        args.source_checkpoint_role = runner.SOURCE_CHECKPOINT_ROLE_BEST
+        args.source_checkpoint_sha256 = runner.M4_U1_SOURCE_IDENTITIES[horizon][
+            "checkpoint_sha256"
+        ]
+        args.warm_start_contract_version = runner.WARM_START_CONTRACT_VERSION
+        if continuation:
+            args.training_protocol_id = runner.U1_CONTINUATION_TRAINING_PROTOCOL
+            args.ablation_id = runner.U1_CONTINUATION_ABLATION_ID
+            args.weight_decay = runner.PAPER_WEIGHT_DECAY
+        else:
+            args.training_protocol_id = runner.T2_ADAPTER_TRAINING_PROTOCOL
+            args.implementation_variant = runner.T2_IMPLEMENTATION_VARIANT
+            args.ablation_id = runner.T2_ADAPTER_ABLATION_ID
+            args.use_pmcr = False
+            args.use_teb = True
+            args.teb_architecture = runner.PATCH_CONDITIONED_V1
+            args.teb_patch_size = 32
+            args.teb_patch_padding = runner.RIGHT_ZERO_CROP
+            args.teb_patch_position = runner.FIXED_SINUSOIDAL
+            args.weight_decay = 0.0
+        return runner.prepare_args(args)
+
+    @staticmethod
+    def _model(args):
+        return runner._build_model(
+            args, SimpleNamespace(n_feature=7, target_slice=None)
+        )
+
+    @classmethod
+    def _schema(cls, horizon=96):
+        return json.loads(
+            (cls._source_dir(horizon) / "manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )["target_exogenous_schema"]
+
+    @classmethod
+    def _preflight(cls, args, model, *, apply_mapping=True):
+        return runner._preflight_warm_start_source(
+            args,
+            model,
+            runner.M4_U1_DATA_FINGERPRINT,
+            cls._schema(args.artifact_horizon),
+            runner.source_fingerprint_metadata(),
+            apply_mapping=apply_mapping,
+        )
+
+    @classmethod
+    def _fake_runtime(cls):
+        source = cls._source_dir(96)
+        config = json.loads(
+            (source / "config.resolved.json").read_text(encoding="utf-8")
+        )
+        data_document = json.loads(
+            (source / "data_fingerprint.json").read_text(encoding="utf-8")
+        )
+        preprocessing = deepcopy(
+            config["scientific_config"]["dataset"]["preprocessing"]
+        )
+        dummy = [(torch.zeros(2, 512, 7), torch.zeros(2, 96, 1))]
+        return runner.RuntimeData(
+            n_feature=7,
+            target_slice=None,
+            train_data=dummy,
+            val_data=dummy,
+            test_data=dummy,
+            preprocessing=preprocessing,
+            data_fingerprint=runner.M4_U1_DATA_FINGERPRINT,
+            data_fingerprint_document=data_document,
+            backend=None,
+        )
+
+    @classmethod
+    def _fake_preflight(cls, args, target_model, *unused, **kwargs):
+        identity = runner.M4_U1_SOURCE_IDENTITIES[args.artifact_horizon]
+        lineage = {
+            "source_artifact_path": args.source_artifact_path,
+            "source_run_id": identity["run_id"],
+            "source_implementation_variant": runner.ENHANCED_IMPLEMENTATION_VARIANT,
+            "source_ablation_id": "U1",
+            "source_checkpoint_role": "best",
+            "source_checkpoint_sha256": identity["checkpoint_sha256"],
+            "source_config_hash": identity["config_hash"],
+            "source_comparison_config_hash": identity["comparison_config_hash"],
+            "source_commit": runner.M4_U1_SOURCE_COMMIT,
+            "source_executable_fingerprint": runner.M4_U1_SOURCE_FINGERPRINT,
+            "source_data_fingerprint": runner.M4_U1_DATA_FINGERPRINT,
+            "source_best_epoch": identity["best_epoch"],
+            "source_task_mode": "target_exogenous",
+            "source_feature_type": "MS",
+            "source_target": "OT",
+            "source_target_idx": 6,
+            "source_target_indices": [6],
+            "source_aux_idx": [0, 1, 2, 3, 4, 5],
+            "source_target_exogenous_schema_version": (
+                runner.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+            ),
+            "source_schema_fingerprint": runner.M4_U1_SCHEMA_FINGERPRINT,
+        }
+        proof = {
+            "contract_version": runner.SOURCE_COMPATIBILITY_PROOF_VERSION,
+            "source_executable_fingerprint": runner.M4_U1_SOURCE_FINGERPRINT,
+            "current_executable_fingerprint": runner.source_fingerprint(),
+            "global_fingerprint_equal": False,
+            "critical_files": [],
+            "source_state_key_count": 60,
+            "target_state_key_count": 79,
+            "mapped_key_count": 60,
+            "allowed_missing_keys": [f"teb.fixture_{index}" for index in range(19)],
+            "unexpected_keys": [],
+            "shape_mismatches": [],
+            "dtype_mismatches": [],
+        }
+        return {
+            "checksums": {},
+            "source_lineage": lineage,
+            "source_compatibility_proof": proof,
+            "state_mapping": {},
+        }
+
+    @staticmethod
+    def _fake_scope(model, protocol):
+        for parameter in model.parameters():
+            parameter.requires_grad_(True)
+        return {
+            "trainable_parameter_names": ["weight"],
+            "trainable_tensor_count": 1,
+            "trainable_parameter_count": 1,
+            "global_only_parameter_names": [],
+        }
+
+    @staticmethod
+    def _fake_optimizer(model, args, scope):
+        return torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+
+    @staticmethod
+    def _fake_train(model, *args, **kwargs):
+        with torch.no_grad():
+            model.weight.add_(1.0)
+        return {
+            "mse": 1.0,
+            "mae": 1.0,
+            "num_elements": 1,
+            "num_batches": 1,
+            "objective_mean_batches": 1.0,
+            "prediction_mean_batches": 0.75,
+            "auxiliary_mean_batches": 0.25,
+        }
+
+    def test_protocol_config_and_standard_artifact_metadata_are_isolated(self):
+        adapter = self._protocol_args()
+        continuation = self._protocol_args(continuation=True)
+        self.assertEqual(adapter.ablation_id, runner.T2_ADAPTER_ABLATION_ID)
+        self.assertEqual(adapter.weight_decay, 0.0)
+        self.assertEqual(
+            continuation.ablation_id, runner.U1_CONTINUATION_ABLATION_ID
+        )
+        self.assertFalse(continuation.use_teb)
+        self.assertFalse(continuation.use_pmcr)
+        adapter_block = runner._training_protocol_block(adapter)
+        self.assertEqual(adapter_block["adapter_trainable_tensor_count"], 15)
+        self.assertEqual(adapter_block["adapter_trainable_parameter_count"], 22881)
+        self.assertEqual(adapter_block["global_query_tensor_count"], 4)
+        self.assertEqual(adapter_block["global_query_parameter_count"], 16480)
+
+        standard = runner.prepare_args(runner.parse_args([]))
+        scientific = runner._scientific_config(
+            standard, "data", "source", {}, torch.device("cpu"), _runtime_metadata()
+        )
+        resolved = runner._resolved_config(
+            standard, scientific, runner.stable_hash(scientific), Path("/tmp/run"),
+            {"sha256": "source"}, _runtime_metadata(),
+            runner._training_protocol_block(standard),
+        )
+        self.assertNotIn("training_protocol", scientific)
+        self.assertNotIn("training_protocol", resolved)
+        self.assertNotIn("source_lineage", resolved)
+        self.assertNotIn("training_protocol", runner._checkpoint_common(
+            resolved, resolved["config_hash"], "data", {}
+        ))
+
+        warm_preflight = self._fake_preflight(adapter, None)
+        warm_scientific = runner._scientific_config(
+            adapter,
+            runner.M4_U1_DATA_FINGERPRINT,
+            runner.source_fingerprint(),
+            {},
+            torch.device("cpu"),
+            _runtime_metadata(),
+            self._schema(),
+            adapter_block,
+            warm_preflight["source_lineage"],
+            warm_preflight["source_compatibility_proof"],
+        )
+        identity_before = runner.stable_hash(warm_scientific)
+        diagnostic_state = {"weight": torch.zeros(1)}
+        diagnostic_before = runner._state_dict_digest(diagnostic_state)
+        diagnostic_state["weight"][0] = 1
+        diagnostic_after = runner._state_dict_digest(diagnostic_state)
+        self.assertNotEqual(diagnostic_before, diagnostic_after)
+        self.assertEqual(identity_before, runner.stable_hash(warm_scientific))
+        self.assertNotIn("state_digest", json.dumps(warm_scientific))
+
+        wrong = self._protocol_args()
+        wrong.ablation_id = "M4_T2"
+        with self.assertRaisesRegex(ValueError, "contract mismatch|contradicts"):
+            runner.prepare_args(wrong)
+
+    def test_four_locked_sources_preflight_and_atomic_mapping(self):
+        for horizon in (96, 192, 336, 720):
+            with self.subTest(horizon=horizon):
+                args = self._protocol_args(horizon)
+                runner.set_seed(2024)
+                model = self._model(args)
+                fresh = runner._cpu_state_dict(model.state_dict())
+                fresh_t2 = {
+                    key: value
+                    for key, value in fresh.items()
+                    if key.startswith("teb.")
+                }
+                fresh_t2_digest = runner._state_dict_digest(fresh_t2)
+                report = self._preflight(args, model)
+                mapping = report["state_mapping"]
+                self.assertEqual(
+                    mapping["state_digest_contract_version"],
+                    runner.STATE_DICT_DIGEST_CONTRACT_VERSION,
+                )
+                self.assertEqual(
+                    (mapping["source_state_key_count"],
+                     mapping["target_state_key_count"],
+                     mapping["mapped_key_count"],
+                     len(mapping["allowed_missing_keys"])),
+                    (60, 79, 60, 19),
+                )
+                source_state = torch.load(
+                    self._source_dir(horizon) / "best.pt", map_location="cpu"
+                )["model_state"]
+                mapped_amd = {
+                    key: model.state_dict()[key].detach().cpu()
+                    for key in source_state
+                }
+                mapped_t2 = {
+                    key: model.state_dict()[key].detach().cpu()
+                    for key in fresh_t2
+                }
+                for key, value in source_state.items():
+                    self.assertTrue(torch.equal(mapped_amd[key], value))
+                for key in mapping["allowed_missing_keys"]:
+                    self.assertTrue(torch.equal(mapped_t2[key], fresh[key]))
+                self.assertEqual(
+                    runner._state_dict_digest(source_state),
+                    runner._state_dict_digest(mapped_amd),
+                )
+                self.assertEqual(
+                    fresh_t2_digest, runner._state_dict_digest(mapped_t2)
+                )
+                self.assertEqual(report["checksums"].keys(), set(
+                    runner.ENHANCED_CHECKSUM_FILES
+                ))
+
+    def test_mapping_rejects_key_shape_dtype_and_cross_horizon_without_pollution(self):
+        args = self._protocol_args(96)
+        model = self._model(args)
+        source = torch.load(self._source_dir(96) / "best.pt", map_location="cpu")[
+            "model_state"
+        ]
+        original = runner._state_dict_digest(model.state_dict())
+        bad_cases = []
+        unexpected = deepcopy(source)
+        unexpected["unexpected.weight"] = torch.zeros(1)
+        bad_cases.append(unexpected)
+        key = next(name for name, value in source.items() if value.dtype.is_floating_point)
+        wrong_dtype = deepcopy(source)
+        wrong_dtype[key] = wrong_dtype[key].double()
+        bad_cases.append(wrong_dtype)
+        wrong_shape = deepcopy(source)
+        wrong_shape[key] = wrong_shape[key].reshape(-1)[:-1]
+        bad_cases.append(wrong_shape)
+        for bad in bad_cases:
+            with self.assertRaises(RuntimeError):
+                runner._validate_and_map_source_state(
+                    model, bad, runner.T2_ADAPTER_TRAINING_PROTOCOL
+                )
+            self.assertEqual(original, runner._state_dict_digest(model.state_dict()))
+
+        cross = self._protocol_args(96)
+        cross.source_artifact_path = str(self._source_dir(192))
+        cross.source_checkpoint_sha256 = runner.M4_U1_SOURCE_IDENTITIES[192][
+            "checkpoint_sha256"
+        ]
+        with self.assertRaisesRegex(RuntimeError, "locked U1 horizon identity"):
+            self._preflight(cross, model, apply_mapping=False)
+        self.assertEqual(original, runner._state_dict_digest(model.state_dict()))
+
+    def test_gamma_scope_optimizer_mixed_mode_and_two_steps(self):
+        args = self._protocol_args(96)
+        runner.set_seed(2024)
+        model = self._model(args)
+        self._preflight(args, model)
+        report = runner._zero_adapter_gamma(model)
+        self.assertEqual(report["changed_keys"], ["teb.gamma_teb"])
+        scope = runner._configure_protocol_parameters(
+            model, runner.T2_ADAPTER_TRAINING_PROTOCOL
+        )
+        optimizer = runner._build_optimizer(model, args, scope)
+        self.assertEqual(tuple(scope["trainable_parameter_names"]),
+                         runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES)
+        self.assertEqual(scope["trainable_tensor_count"], 15)
+        self.assertEqual(scope["trainable_parameter_count"], 22881)
+        self.assertEqual(scope["global_only_tensor_count"], 4)
+        self.assertEqual(scope["global_only_parameter_count"], 16480)
+        self.assertEqual(optimizer._amd_parameter_names,
+                         runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES)
+        self.assertEqual(optimizer.param_groups[0]["weight_decay"], 0.0)
+        runner._apply_training_mode(model, runner.T2_ADAPTER_TRAINING_PROTOCOL)
+        self.assertFalse(model.training)
+        self.assertTrue(model.teb.training)
+        for name, module in model.named_modules():
+            if name and not name.startswith("teb"):
+                self.assertFalse(module.training, name)
+
+        named = dict(model.named_parameters())
+        amd_names = [name for name in named if not name.startswith("teb.")]
+        amd_before = {name: named[name].detach().clone() for name in amd_names}
+        buffers_before = {
+            name: value.detach().clone() for name, value in model.named_buffers()
+            if not name.startswith("teb.")
+        }
+        global_before = {
+            name: named[name].detach().clone()
+            for name in runner.T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES
+        }
+        forecast_before = {
+            name: named[name].detach().clone()
+            for name in runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES
+        }
+        x = torch.randn(2, 512, 7)
+        y = torch.randn(2, 96, 1)
+        criterion = torch.nn.MSELoss()
+
+        rng = torch.get_rng_state().clone()
+        gradients = []
+        for include_auxiliary in (False, True):
+            model.zero_grad(set_to_none=True)
+            torch.set_rng_state(rng)
+            prediction, auxiliary = model(x)
+            loss = criterion(prediction, y)
+            if include_auxiliary:
+                loss = loss + auxiliary
+            loss.backward()
+            gradients.append({
+                name: named[name].grad.detach().clone()
+                for name in runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES
+            })
+        for name in runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES:
+            self.assertTrue(torch.equal(gradients[0][name], gradients[1][name]), name)
+        for name in amd_names:
+            self.assertIsNone(named[name].grad, name)
+        for name in runner.T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES:
+            self.assertIsNone(named[name].grad, name)
+
+        model.zero_grad(set_to_none=True)
+        torch.set_rng_state(rng)
+        prediction, auxiliary = model(x)
+        (criterion(prediction, y) + auxiliary).backward()
+        optimizer.step()
+        self.assertNotEqual(float(model.teb.gamma_teb.item()), 0.0)
+        for name, before in amd_before.items():
+            self.assertTrue(torch.equal(named[name], before), name)
+        for name, before in global_before.items():
+            self.assertTrue(torch.equal(named[name], before), name)
+        for name, before in buffers_before.items():
+            self.assertTrue(dict(model.named_buffers())[name].equal(before), name)
+
+        optimizer.zero_grad(set_to_none=True)
+        prediction, auxiliary = model(x)
+        (criterion(prediction, y) + auxiliary).backward()
+        optimizer.step()
+        changed_non_gamma = [
+            name for name in runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES
+            if name != "teb.gamma_teb"
+            and not torch.equal(named[name], forecast_before[name])
+        ]
+        self.assertTrue(changed_non_gamma)
+        for name, before in amd_before.items():
+            self.assertTrue(torch.equal(named[name], before), name)
+        for name, before in global_before.items():
+            self.assertTrue(torch.equal(named[name], before), name)
+
+    def _run_tiny_lifecycle(self, root, validation_values):
+        args = self._protocol_args(96, artifact_root=root)
+        evaluations = iter(validation_values)
+
+        def fake_evaluate(*unused, **kwargs):
+            value = next(evaluations)
+            return {"mse": value, "mae": value / 2, "num_elements": 1,
+                    "num_batches": 1}
+
+        patches = (
+            mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()),
+            mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()),
+            mock.patch.object(runner, "_preflight_warm_start_source", side_effect=self._fake_preflight),
+            mock.patch.object(runner, "_zero_adapter_gamma", return_value={"effective_teb_gamma_init": 0.0}),
+            mock.patch.object(runner, "_configure_protocol_parameters", side_effect=self._fake_scope),
+            mock.patch.object(runner, "_build_optimizer", side_effect=self._fake_optimizer),
+            mock.patch.object(runner, "train_one_epoch", side_effect=self._fake_train),
+            mock.patch.object(runner, "evaluate", side_effect=fake_evaluate),
+        )
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+            metrics = runner.main(args)
+        parent = (
+            Path(root) / runner.T2_IMPLEMENTATION_VARIANT / "ETTm1"
+            / "target_exogenous/OT/horizon_96/fold_official/seed_2024"
+        )
+        run_dir = next(path for path in parent.iterdir() if not path.name.startswith("."))
+        return run_dir, metrics
+
+    def test_epoch_zero_lifecycle_worse_and_improved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            worse, worse_metrics = self._run_tiny_lifecycle(
+                root / "worse", [0.1] + [0.2] * 10 + [0.3]
+            )
+            self.assertEqual(worse_metrics["best_epoch"], 0)
+            self.assertEqual(worse_metrics["best_checkpoint_role"],
+                             "epoch_zero_initialization")
+            self.assertEqual(worse_metrics["completed_epochs"], 10)
+            history = [json.loads(line) for line in
+                       (worse / "history.jsonl").read_text().splitlines()]
+            self.assertEqual([row["epoch"] for row in history], list(range(1, 11)))
+            self.assertEqual(torch.load(worse / "best.pt", map_location="cpu")[
+                "checkpoint_role"], "epoch_zero_initialization")
+            runner.verify_checksums(worse)
+
+            improved, improved_metrics = self._run_tiny_lifecycle(
+                root / "improved", [0.2, 0.1] + [0.15] * 9 + [0.3]
+            )
+            self.assertEqual(improved_metrics["best_epoch"], 1)
+            self.assertEqual(improved_metrics["best_checkpoint_role"], "trained_epoch")
+            self.assertEqual(torch.load(improved / "best.pt", map_location="cpu")[
+                "checkpoint_role"], "trained_epoch")
+            runner.verify_checksums(improved)
+
+    def test_preflight_failure_creates_no_artifact_and_warm_resume_skips_source_reload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args = self._protocol_args(96, artifact_root=root / "preflight-failure")
+            with mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()), \
+                 mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()), \
+                 mock.patch.object(runner, "_preflight_warm_start_source", side_effect=RuntimeError("source rejected")):
+                with self.assertRaisesRegex(RuntimeError, "source rejected"):
+                    runner.main(args)
+            self.assertFalse((root / "preflight-failure").exists())
+
+            resume_root = root / "resume"
+            args = self._protocol_args(96, artifact_root=resume_root)
+            eval_values = iter([0.1])
+            def initial_eval(*unused, **kwargs):
+                return {"mse": next(eval_values), "mae": 0.05,
+                        "num_elements": 1, "num_batches": 1}
+            with mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()), \
+                 mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()), \
+                 mock.patch.object(runner, "_preflight_warm_start_source", side_effect=self._fake_preflight), \
+                 mock.patch.object(runner, "_zero_adapter_gamma", return_value={}), \
+                 mock.patch.object(runner, "_configure_protocol_parameters", side_effect=self._fake_scope), \
+                 mock.patch.object(runner, "_build_optimizer", side_effect=self._fake_optimizer), \
+                 mock.patch.object(runner, "evaluate", side_effect=initial_eval), \
+                 mock.patch.object(runner, "train_one_epoch", side_effect=RuntimeError("interrupt")):
+                with self.assertRaisesRegex(RuntimeError, "interrupt"):
+                    runner.main(args)
+            staging = next(resume_root.rglob(".*.staging"))
+            args = self._protocol_args(96, artifact_root=resume_root)
+            args.resume = str(staging)
+            evaluations = iter([0.2] * 10 + [0.3])
+            def resumed_eval(*unused, **kwargs):
+                value = next(evaluations)
+                return {"mse": value, "mae": value / 2,
+                        "num_elements": 1, "num_batches": 1}
+            with mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()), \
+                 mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()), \
+                 mock.patch.object(runner, "_preflight_warm_start_source", side_effect=AssertionError("source reopened")), \
+                 mock.patch.object(runner, "_zero_adapter_gamma", side_effect=AssertionError("gamma reset")), \
+                 mock.patch.object(runner, "_configure_protocol_parameters", side_effect=self._fake_scope), \
+                 mock.patch.object(runner, "_build_optimizer", side_effect=self._fake_optimizer), \
+                 mock.patch.object(runner, "train_one_epoch", side_effect=self._fake_train), \
+                 mock.patch.object(runner, "evaluate", side_effect=resumed_eval):
+                metrics = runner.main(args)
+            self.assertEqual(metrics["best_epoch"], 0)
+            self.assertEqual(metrics["completed_epochs"], 10)
+
+    def test_continuation_strict_mapping_fresh_optimizer_and_epoch_zero_policy(self):
+        args = self._protocol_args(96, continuation=True)
+        model = self._model(args)
+        report = self._preflight(args, model)
+        self.assertEqual(report["state_mapping"]["target_state_key_count"], 60)
+        self.assertEqual(report["state_mapping"]["allowed_missing_keys"], [])
+        scope = runner._configure_protocol_parameters(
+            model, runner.U1_CONTINUATION_TRAINING_PROTOCOL
+        )
+        optimizer = runner._build_optimizer(model, args, scope)
+        self.assertEqual(len(optimizer.state), 0)
+        self.assertEqual(optimizer.param_groups[0]["weight_decay"], 1e-7)
+        self.assertFalse(any(name.startswith(("teb.", "pmcr."))
+                             for name in model.state_dict()))
+        protocol = runner._training_protocol_block(args)
+        self.assertEqual(protocol["epoch_zero_selection_policy"],
+                         "included_strict_improvement")
+        self.assertEqual(protocol["max_continuation_epochs"], 10)
 
 
 

@@ -1191,6 +1191,111 @@ schema 继续使用 schema-v2 的原目录、13-file checksum、staging/atomic p
 
 该 repair 不改变 U1、T2 或 frozen AMD 的数学结构，不改变 ETTm1 数据、split、scaler、窗口或标签，不改变 UrbanEV M1 数据合同，也不构成 TEB performance evidence。repair 后仍须另轮、另经审核才能运行 U1/U2；本轮 TEB adequacy gate 仍未通过，P2 继续阻塞。
 
+
+### 7.8.8 第十六轮 Frozen-AMD + Fresh-T2 warm-start adapter rescue 合同
+
+本节是用户已正式锁定的 M4 训练协议，不是新的 TEB architecture。T2 数学结构和 public class 保持 `patch_conditioned_v1`；不得新增 TEB class、architecture 或 implementation variant。Adapter 和可选 matched-budget continuation 的身份分别固定为：
+
+```text
+Adapter:
+implementation_variant = el-amd-m4-t2-patch-teb-v1
+ablation_id = M4_T2_ADAPTER
+training_protocol_id = m4_t2_u1_warmstart_frozen_adapter_v1
+warm_start_contract_version = warm_start_contract_v1
+
+Matched-budget continuation capability:
+implementation_variant = el-amd-pmcr-teb-v1
+ablation_id = M4_U1_CONTINUATION
+training_protocol_id = m4_u1_matched_budget_continuation_v1
+warm_start_contract_version = warm_start_contract_v1
+```
+
+Adapter 的 source 只允许对应 horizon 的第十四轮 completed U1 `best.pt`；source 必须为 PMCR off、TEB off、`ETTm1/MS/target_exogenous/OT`，`target_idx=6`、`target_indices=[6]`、`aux_idx=[0,1,2,3,4,5]`、`seq_len=512`、seed 2024、同 horizon 与同 data/schema fingerprint。目标为按 seed fresh 构造的 T2，不加载任何历史 T2/TEB 参数。四个唯一 source run、config hash、best epoch 与实际 64-hex checkpoint SHA 必须由 artifact 自身和 checksum 共同验证；h336 的实际 `best.pt` SHA 为 `89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530`。
+
+Source preflight 必须发生在 target staging、日志/provenance 写入和 optimizer 构造之前，且不得解析 source test 数值。它必须验证 completed schema-v2、精确 13-file checksum、系统 `sha256sum -c`、config/manifest/checkpoint/source/data metadata、dirty=false、source run/config/checkpoint/horizon/task/schema identity，以及 source state 无 `pmcr.*`/`teb.*`。全局 executable fingerprint 不相等时，不得只凭 strict load 接受；固定 `source_compatibility_proof_v1` 必须逐文件证明以下 critical source 与当前工作树相同：
+
+```text
+models/tsAMD.py
+models/common.py
+models/tsmoe.py
+models/tsAMD_enhanced.py
+models/modules/__init__.py
+models/modules/patch_conditioned_target_exogenous_bridge.py
+utils/dataloader.py
+```
+
+Compatibility proof 同时记录 source/current aggregate fingerprint、是否相等、critical file SHA、source/target/mapped key count、allowed missing、unexpected、shape mismatch 与 dtype mismatch。Adapter 映射固定为 source 60 keys、target 79 keys、映射 AMD 60 keys、allowed missing 精确为 fresh target 的 19 个 `teb.*` keys；continuation 为同结构 60→60。所有 metadata、key、shape 与 dtype 必须先完整验证，再从目标 fresh state 构造 merged state 并执行普通 `load_state_dict(strict=True)`；禁止 importer、`strict=False`、跨 horizon 或逐 key 边检查边写。失败必须恢复并以唯一 production helper 和逐 tensor `torch.equal` 共同证明完整 target parameter/buffer 未污染。
+
+State mapping 与 rollback 的 digest 固定使用：
+
+```text
+state_digest_contract_version =
+sha256_length_prefixed_state_dict_v1
+
+key_policy =
+exact_state_dict_keys_no_prefix_normalization
+```
+
+该 v1 输入仅允许 `Mapping[str, torch.Tensor]` 中的 dense strided、非 meta、非 quantized tensor；非字符串 key、非 tensor value、sparse/其他 layout、meta 或 quantized tensor全部拒绝。调用方传入的精确 key 不删除 `module.`/`teb.`、不补前缀、不重命名；key 按 UTF-8 bytes 升序。算法只在 little-endian production host 上定义，其他 host 明确拒绝。每个 tensor先 `detach()`、转 CPU、`contiguous()`；device 与 `requires_grad` 不编码。
+
+固定 SHA-256 byte stream 为 UTF-8 header `sha256_length_prefixed_state_dict_v1\0`，随后是 big-endian uint64 key count。每个排序后的 key 依次写入 `LP(key_utf8)`、`LP(str(tensor.dtype).encode("utf-8"))`、big-endian uint64 rank、每一维的 big-endian uint64 dimension、`LP(raw_tensor_bytes)`；`LP(payload)=big-endian uint64 len(payload)+payload`，raw bytes 等价于 `detach().to("cpu").contiguous().reshape(-1).view(torch.uint8).numpy().tobytes(order="C")`。禁止使用 `torch.save(state_dict)`、pickle、JSON 数值序列、NumPy 默认字符串、tensor repr 或无明确 framing 的字符串拼接。
+
+第十五轮临时审计值保留为 `legacy_unversioned_audit_digest`：保留 session 证据已恢复其实际 framing，即 key/dtype/raw length、rank 与 shape dimension 均使用 8-byte little-endian（dimension 为 signed），无 header/key count。第十六轮 repair 前的 production helper 则使用 key length=4-byte big-endian、dtype length/rank=2-byte big-endian、dimension/raw length=8-byte big-endian，也无 header/key count。相同 tensor 因上述 framing 与 endian 差异得到不同字符串，不表示 state 不同；历史未标版本的字符串不得与 production v1 做值相等判断。Fresh initialization digest 一般还受精确 RNG 起点与构造顺序影响，比较时必须另证这些条件一致。
+
+当前 `source_compatibility_proof_v1` 不存储 source/mapped/target state digest，因此本合同不新增 artifact 文件、不升级 schema-v2、不扩张 summarizer sealed field set。Digest version/value只属于 mapping/rollback 与审计的 provenance/integrity evidence，不进入 architecture、training hyperparameter、scientific/comparison hash 或 duplicate identity。
+
+Adapter 初始化顺序固定为：fresh T2 构造；只映射 source U1 AMD subset；使用 `torch.no_grad()` 将 `model.teb.gamma_teb` 精确置零；证明 CPU/全部 CUDA RNG 不变且除 gamma 外所有 T2 tensor 不变；再配置 freeze/mode/optimizer 和 epoch-0 validation。已有 architecture 字段 `teb_gamma_init=0.001` 继续表示 T2 constructor/default 合同；训练协议额外记录：
+
+```text
+gamma_initialization_policy = zero_after_fresh_t2_initialization
+effective_teb_gamma_init = 0.0
+```
+
+Adapter 参数、buffer 与 module mode 固定为：AMD parameters frozen；AMD persistent buffers frozen；AMD/root module `eval()`；仅 T2 module `train()`；该 mixed mode 在每个训练 epoch 开头重新应用。由此 AMD BatchNorm buffer不更新，AMS selector Gaussian noise与 AMD dropout关闭，T2 MHA dropout保持训练态；validation/test仍使用全模型 eval。冻结只按参数名和 persistent buffer验证，不以“未加入 optimizer”替代。
+
+Trainable allowlist 精确为以下 15 tensors / 22,881 parameters：
+
+```text
+teb.gamma_teb
+teb.patch_query_projection.weight
+teb.patch_query_projection.bias
+teb.patch_query_norm.weight
+teb.patch_query_norm.bias
+teb.exogenous_projection.weight
+teb.exogenous_projection.bias
+teb.exogenous_norm.weight
+teb.exogenous_norm.bias
+teb.cross_attention.in_proj_weight
+teb.cross_attention.in_proj_bias
+teb.cross_attention.out_proj.weight
+teb.cross_attention.out_proj.bias
+teb.patch_output_projection.weight
+teb.patch_output_projection.bias
+```
+
+Global-query-only 以下 4 tensors / 16,480 parameters 必须冻结且不进入 optimizer：
+
+```text
+teb.global_query_projection.weight
+teb.global_query_projection.bias
+teb.global_query_norm.weight
+teb.global_query_norm.bias
+```
+
+Adapter optimizer 固定为 fresh Adam，只接收上述 15 tensors，learning rate=`3e-5`、weight decay=`0`、无 source optimizer/scheduler state。训练 objective 继续为 `prediction MSE + frozen selector auxiliary`，但 history 必须分别记录 prediction、auxiliary 和 total；永久测试必须证明 auxiliary 对 adapter trainable parameters 的 raw gradient 为常数零影响，即 total-loss 与 prediction-only 的 adapter gradient 在相同 RNG/input 下逐元素一致。Validation best 只依据 prediction MSE。
+
+Epoch 0 表示 source-loaded、fresh-T2、effective gamma=0 的初始化 candidate，不表示已完成训练 epoch。它在训练前做完整 validation，进入 strict-improvement best selection，可保存为 `best.pt`/`last.pt`，其 `epoch_zero_checkpoint_role=source_equivalent_initialization`、`best_checkpoint_role=epoch_zero_initialization`。History 只允许 `1..completed_epochs`；`completed_epochs` 是实际执行的 adapter epoch 数，`best_epoch` 为 `0..completed_epochs`。相等不得替换 epoch 0；若所有训练 epoch 更差，最终 best 可保持 epoch 0，最终 test 仍只在全部预算结束并加载 best 后执行。Max adapter epochs=`10`，无 early stopping。
+
+Warm-start run 自身失败后可以 resume 自己的 hidden staging：必须严格恢复该 target run 的 `last.pt`、model/optimizer/RNG/generator/history/best/epoch-0 metadata，不重新打开或映射 source artifact，不重新 zero gamma；last epoch 0 从 epoch 1 开始，last epoch k 从 k+1 开始，best epoch 0 可继续保留。Completed source U1 不得用 `--resume` 冒充 initialization。Standard resume、standard best 从 epoch 1 开始及其 artifact字段保持不变。
+
+Warm artifact 继续使用 schema-v2、原路径后缀和 13-file checksum。受 checksum 保护的 config/checkpoint/manifest 写入完整 training protocol、稳定 source lineage 与 compatibility proof；runtime/manifest 可记录机器相关绝对 `source_artifact_path`，但该 path 不进入 scientific/comparison hash，summarizer也不得要求原机器路径可访问。稳定 lineage 至少包含 source run/variant/ablation/checkpoint role+SHA/config+comparison hash/commit/executable+data fingerprint/best epoch/task/feature/target/indices/schema。Standard from-scratch artifact 不携带 warm-start block，也无需迁移旧 artifact。
+
+Scientific identity 固定包含 max epochs、stopping/epoch-zero/source/protocol/optimizer/freeze/mode/parameter scope/adapter seed/gamma/objective等预先决定的合同；comparison identity只移除 adapter seed，duplicate identity使用 `comparison_config_hash + seed`。以下 runtime outcome **不得**进入 scientific/comparison/duplicate identity：`completed_epochs`、`best_epoch`、best role、wall-clock、artifact size和最终指标。同 protocol/source/seed 即使 completed epochs 不同仍是 duplicate，不得借此绕过拒绝。
+
+Matched-budget U1 continuation 本轮只提供 production capability，不自动执行：对应 horizon U1 best作为同结构source，PMCR/TEB off，普通 strict 60→60，fresh Adam、全部 AMD parameters、lr=`3e-5`、wd=`1e-7`、full model train、epoch 0纳入best、额外 epoch按1..10重新编号、无 early stopping；不恢复 source optimizer/epoch/history，不由 adapter runner 自动触发。
+
+Rescue 的第一阶段固定为四 horizon各一个 adapter run。只有其相对固定 U1 形成 `provisional positive adapter signal`，才允许用户另行授权四个 matched-budget continuation；最终 TEB adequacy pass 必须等待 continuation 后裁决。No-op frozen control不运行。一次预注册 rescue 仍非 positive时，正式停止当前 TimeXer-inspired路线；不得自动运行 R-min、continuation、P2或任何新 TEB。当前只实现和验证 production capability，不表示 rescue 已运行或 gate 已通过；M4 保持 In Progress，TEB adequacy gate remains failed。
+
 # 8. M3 工程候选 forward 与时间状态接口
 
 ## 8.1 前向流程

@@ -12,6 +12,8 @@ from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 
+import torch
+
 
 IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
@@ -35,6 +37,66 @@ ENHANCED_CHECKSUM_FILES = (
 )
 SCHEMA_VERSION = 1
 METRIC_SPACE = "train-standardized"
+STANDARD_TRAINING_PROTOCOL = "standard_from_scratch"
+T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
+U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
+WARM_START_TRAINING_PROTOCOLS = (
+    T2_ADAPTER_TRAINING_PROTOCOL,
+    U1_CONTINUATION_TRAINING_PROTOCOL,
+)
+WARM_START_CONTRACT_VERSION = "warm_start_contract_v1"
+SOURCE_COMPATIBILITY_PROOF_VERSION = "source_compatibility_proof_v1"
+T2_ADAPTER_ABLATION_ID = "M4_T2_ADAPTER"
+U1_CONTINUATION_ABLATION_ID = "M4_U1_CONTINUATION"
+M4_U1_SOURCE_COMMIT = "be2185c3382ec42c7287e4bcc9b2cad5c07fdbad"
+M4_U1_SOURCE_FINGERPRINT = (
+    "bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e"
+)
+M4_U1_DATA_FINGERPRINT = (
+    "6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e"
+)
+M4_U1_SCHEMA_FINGERPRINT = (
+    "f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc"
+)
+M4_U1_SOURCE_IDENTITIES = {
+    96: {
+        "run_id": "20260901T095811.286299Z-6e33fa77",
+        "config_hash": "fa2c4da41f34eca232907e4d6462305cb8ef3ef15fc8996f7c67baa0411ddb2d",
+        "comparison_config_hash": "4fbf51cca6fa7bad95bc8e35ddfc416d6dc45a78c331aead19e007f6d24ef74b",
+        "best_epoch": 7,
+        "checkpoint_sha256": "66458be335ac7948889156bf6a7a91af7221f3b75838a1522fd701e8e78b42d0",
+    },
+    192: {
+        "run_id": "20260901T100147.203364Z-f03509fd",
+        "config_hash": "1585152dbf1ff74d935f7404f8b2699881b85c7224252371e939db585f2611d0",
+        "comparison_config_hash": "771cdff549663c52cc213c5cfaf9ed731362ce5b544457776bf7653ff0c950bf",
+        "best_epoch": 3,
+        "checkpoint_sha256": "f8b0308578b10f09ade232cf2c6ac2e7826b1e28ceb994c2a321d44c4563be6a",
+    },
+    336: {
+        "run_id": "20260901T100520.627934Z-0c9f399c",
+        "config_hash": "45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5",
+        "comparison_config_hash": "8ccb82795987bd3df127f1cd087c8da7ff2cae53ee1d8c282fd565e730392d4b",
+        "best_epoch": 3,
+        "checkpoint_sha256": "89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530",
+    },
+    720: {
+        "run_id": "20260901T100834.831317Z-5f71979f",
+        "config_hash": "93ddc59a0879b435a4cf4742e76c75460c254283ca00b2138164c4fe735d51cd",
+        "comparison_config_hash": "3f5f973cd636b205f813ba4589845c5a5ffb91fdf86a379726dd2cc6d039c291",
+        "best_epoch": 7,
+        "checkpoint_sha256": "a13126522bb2cf8f5871c46272222242b8ebb6077145658558199c9473ba109b",
+    },
+}
+SOURCE_COMPATIBILITY_CRITICAL_FILES = (
+    "models/tsAMD.py",
+    "models/common.py",
+    "models/tsmoe.py",
+    "models/tsAMD_enhanced.py",
+    "models/modules/__init__.py",
+    "models/modules/patch_conditioned_target_exogenous_bridge.py",
+    "utils/dataloader.py",
+)
 EXPECTED_MODEL_CONTRACT = {
     "entry_normalization_impl": "torch_layernorm_last_dim_sequence",
     "entry_normalization_scope": "mdm_and_ddi_entries_controlled_by_layernorm_flag",
@@ -50,7 +112,8 @@ EXPECTED_OPTIMIZATION_CONTRACT = {
     "weight_decay": 1e-7,
 }
 RUN_FIELDS = (
-    "implementation_variant", "dataset_id", "task_mode", "target",
+    "implementation_variant", "training_protocol_id",
+    "dataset_id", "task_mode", "target",
     "label_horizon", "fold", "seq_len", "pred_len", "seed",
     "target_exogenous_schema_contract",
     "run_id", "best_epoch", "val_mse", "val_mae", "test_mse", "test_mae",
@@ -97,10 +160,20 @@ def _comparison_hash(resolved_config, path, train_epochs):
         del scientific["execution"]["seed"]
     except (KeyError, TypeError) as exc:
         raise ValueError(f"missing scientific_config.execution.seed in {path}") from exc
-    # The resume compatibility hash intentionally permits increasing the target
-    # epoch count.  Completed runs with different training budgets must still
-    # remain separate comparison groups.
-    scientific["completed_train_epochs"] = int(train_epochs)
+    protocol = scientific.get("training_protocol")
+    protocol_id = (
+        protocol.get("training_protocol_id")
+        if isinstance(protocol, dict)
+        else STANDARD_TRAINING_PROTOCOL
+    )
+    if protocol_id in WARM_START_TRAINING_PROTOCOLS:
+        # Adapter seed is scientific, but comparison grouping removes it and
+        # duplicate identity adds the path seed separately.  Runtime outcomes
+        # completed_epochs/best_epoch never enter this object.
+        protocol.pop("adapter_seed", None)
+    else:
+        # Preserve the exact historical comparison hash for standard runs.
+        scientific["completed_train_epochs"] = int(train_epochs)
     return _stable_hash(scientific)
 
 
@@ -135,6 +208,12 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
     teb = model.get("teb")
     if not isinstance(teb, dict):
         raise ValueError(f"enhanced TEB contract is missing: {run_dir}")
+    training_protocol = scientific.get("training_protocol")
+    protocol_id = (
+        training_protocol.get("training_protocol_id")
+        if isinstance(training_protocol, dict)
+        else STANDARD_TRAINING_PROTOCOL
+    )
 
     patch_fields = {
         "architecture",
@@ -164,6 +243,19 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
             raise ValueError(
                 f"Global TEB v1 artifact contains candidate fields "
                 f"{unexpected}: {run_dir}"
+            )
+        if protocol_id == U1_CONTINUATION_TRAINING_PROTOCOL:
+            if (
+                experiment.get("ablation_id") != U1_CONTINUATION_ABLATION_ID
+                or model.get("use_pmcr") is not False
+                or model.get("use_teb") is not False
+            ):
+                raise ValueError(
+                    f"continuation U1 structure/ablation mismatch: {run_dir}"
+                )
+        elif protocol_id != STANDARD_TRAINING_PROTOCOL:
+            raise ValueError(
+                f"unsupported protocol for Global v1 artifact: {protocol_id}"
             )
         return None
 
@@ -233,6 +325,11 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
         T2G_IMPLEMENTATION_VARIANT: "M4_T2G",
         T3_IMPLEMENTATION_VARIANT: "M4_T3",
     }[implementation_variant]
+    if (
+        implementation_variant == T2_IMPLEMENTATION_VARIANT
+        and protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+    ):
+        expected_ablation = T2_ADAPTER_ABLATION_ID
     if experiment.get("ablation_id") != expected_ablation:
         mismatches["ablation_id"] = (expected_ablation, experiment.get("ablation_id"))
     if mismatches:
@@ -283,6 +380,488 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
             "teb_global_prediction_role": teb.get("global_prediction_role"),
         })
     return contract
+
+
+def _warm_start_protocol_expected(protocol_id):
+    adapter = protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+    if not adapter and protocol_id != U1_CONTINUATION_TRAINING_PROTOCOL:
+        raise ValueError(f"unsupported warm-start protocol {protocol_id!r}")
+    return {
+        "training_protocol_id": protocol_id,
+        "warm_start_contract_version": WARM_START_CONTRACT_VERSION,
+        "initialization_policy": (
+            "source_u1_amd_plus_fresh_t2"
+            if adapter else "source_u1_same_structure"
+        ),
+        "backbone_parameter_policy": "frozen" if adapter else "trainable",
+        "backbone_buffer_policy": "frozen" if adapter else "train_updates",
+        "backbone_module_mode": "eval" if adapter else "train",
+        "adapter_module_mode": "train" if adapter else None,
+        "adapter_trainable_scope": (
+            "forecast_connected_t2_only" if adapter else None
+        ),
+        "adapter_trainable_parameter_names": (
+            [
+                "teb.gamma_teb",
+                "teb.patch_query_projection.weight",
+                "teb.patch_query_projection.bias",
+                "teb.patch_query_norm.weight",
+                "teb.patch_query_norm.bias",
+                "teb.exogenous_projection.weight",
+                "teb.exogenous_projection.bias",
+                "teb.exogenous_norm.weight",
+                "teb.exogenous_norm.bias",
+                "teb.cross_attention.in_proj_weight",
+                "teb.cross_attention.in_proj_bias",
+                "teb.cross_attention.out_proj.weight",
+                "teb.cross_attention.out_proj.bias",
+                "teb.patch_output_projection.weight",
+                "teb.patch_output_projection.bias",
+            ]
+            if adapter else None
+        ),
+        "adapter_trainable_tensor_count": 15 if adapter else None,
+        "adapter_trainable_parameter_count": 22881 if adapter else None,
+        "global_query_parameter_policy": "frozen" if adapter else None,
+        "global_query_parameter_names": (
+            [
+                "teb.global_query_projection.weight",
+                "teb.global_query_projection.bias",
+                "teb.global_query_norm.weight",
+                "teb.global_query_norm.bias",
+            ]
+            if adapter else None
+        ),
+        "global_query_tensor_count": 4 if adapter else None,
+        "global_query_parameter_count": 16480 if adapter else None,
+        "optimizer_state_policy": "fresh",
+        "optimizer_parameter_scope": (
+            "exact_forecast_connected_t2_only" if adapter else "all_amd_parameters"
+        ),
+        "optimizer_parameter_names": (
+            [
+                "teb.gamma_teb",
+                "teb.patch_query_projection.weight",
+                "teb.patch_query_projection.bias",
+                "teb.patch_query_norm.weight",
+                "teb.patch_query_norm.bias",
+                "teb.exogenous_projection.weight",
+                "teb.exogenous_projection.bias",
+                "teb.exogenous_norm.weight",
+                "teb.exogenous_norm.bias",
+                "teb.cross_attention.in_proj_weight",
+                "teb.cross_attention.in_proj_bias",
+                "teb.cross_attention.out_proj.weight",
+                "teb.cross_attention.out_proj.bias",
+                "teb.patch_output_projection.weight",
+                "teb.patch_output_projection.bias",
+            ]
+            if adapter else None
+        ),
+        "optimizer_name": "Adam",
+        "adapter_learning_rate": 3e-5 if adapter else None,
+        "adapter_weight_decay": 0.0 if adapter else None,
+        "adapter_seed": 2024 if adapter else None,
+        "continuation_learning_rate": 3e-5 if not adapter else None,
+        "continuation_weight_decay": 1e-7 if not adapter else None,
+        "teb_constructor_gamma_init": 1e-3 if adapter else None,
+        "gamma_initialization_policy": (
+            "zero_after_fresh_t2_initialization" if adapter else None
+        ),
+        "effective_teb_gamma_init": 0.0 if adapter else None,
+        "epoch_zero_selection_policy": "included_strict_improvement",
+        "epoch_zero_checkpoint_role": "source_equivalent_initialization",
+        "max_adapter_epochs": 10 if adapter else None,
+        "max_continuation_epochs": 10 if not adapter else None,
+        "stopping_policy": "fixed_budget_no_early_stopping",
+        "training_objective_policy": (
+            "prediction_mse_plus_frozen_selector_auxiliary"
+            if adapter else "prediction_mse_plus_selector_auxiliary"
+        ),
+    }
+
+
+def _read_history_records(path):
+    records = []
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise ValueError(f"cannot read history {path}: {exc}") from exc
+    for line_number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"invalid history JSON at {path}:{line_number}"
+            ) from exc
+        if not isinstance(record, dict):
+            raise ValueError(f"history record must be an object: {path}")
+        records.append(record)
+    return records
+
+
+def _stable_lineage(value, label):
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} source lineage is missing")
+    path = value.get("source_artifact_path")
+    if path is not None and (not isinstance(path, str) or not path):
+        raise ValueError(f"{label} source artifact path is invalid")
+    stable = deepcopy(value)
+    stable.pop("source_artifact_path", None)
+    return stable
+
+
+def _validate_warm_start_artifact(
+    scientific,
+    config,
+    manifest,
+    metrics,
+    run_dir,
+    implementation_variant,
+):
+    """Validate protocol, lineage, epoch-zero, history, and checkpoint sealing."""
+
+    scientific_protocol = scientific.get("training_protocol")
+    protocol_id = (
+        scientific_protocol.get("training_protocol_id")
+        if isinstance(scientific_protocol, dict)
+        else STANDARD_TRAINING_PROTOCOL
+    )
+    if protocol_id == STANDARD_TRAINING_PROTOCOL:
+        expected_default = {
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "warm_start_contract_version": None,
+        }
+        for label, document in (
+            ("config", config), ("manifest", manifest), ("metrics", metrics)
+        ):
+            observed = document.get("training_protocol")
+            if observed is not None and observed != expected_default:
+                raise ValueError(
+                    f"standard artifact carries a warm-start protocol: {run_dir}"
+                )
+            if document.get("source_lineage") is not None:
+                raise ValueError(
+                    f"standard artifact carries source lineage: {run_dir}"
+                )
+            if document.get("source_compatibility_proof") is not None:
+                raise ValueError(
+                    f"standard artifact carries compatibility proof: {run_dir}"
+                )
+        return {
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "warm_start": False,
+        }
+
+    if protocol_id not in WARM_START_TRAINING_PROTOCOLS:
+        raise ValueError(f"unsupported training protocol in {run_dir}: {protocol_id}")
+    expected_protocol = _warm_start_protocol_expected(protocol_id)
+    if scientific_protocol != expected_protocol:
+        raise ValueError(f"warm-start scientific protocol mismatch: {run_dir}")
+    for label, document in (
+        ("config", config), ("manifest", manifest), ("metrics", metrics)
+    ):
+        if document.get("training_protocol") != expected_protocol:
+            raise ValueError(f"{label} warm-start protocol mismatch: {run_dir}")
+
+    if protocol_id == T2_ADAPTER_TRAINING_PROTOCOL:
+        if implementation_variant != T2_IMPLEMENTATION_VARIANT:
+            raise ValueError(f"adapter is not a T2 artifact: {run_dir}")
+    elif implementation_variant != ENHANCED_IMPLEMENTATION_VARIANT:
+        raise ValueError(f"continuation is not an AMD-Concat artifact: {run_dir}")
+
+    scientific_lineage = _stable_lineage(
+        scientific.get("source_lineage"), "scientific"
+    )
+    lineage_documents = [
+        ("config", config.get("source_lineage")),
+        ("manifest", manifest.get("source_lineage")),
+        ("metrics", metrics.get("source_lineage")),
+    ]
+    for label, lineage in lineage_documents:
+        if _stable_lineage(lineage, label) != scientific_lineage:
+            raise ValueError(f"{label} source lineage mismatch: {run_dir}")
+    required_lineage = {
+        "source_run_id",
+        "source_implementation_variant",
+        "source_ablation_id",
+        "source_checkpoint_role",
+        "source_checkpoint_sha256",
+        "source_config_hash",
+        "source_comparison_config_hash",
+        "source_commit",
+        "source_executable_fingerprint",
+        "source_data_fingerprint",
+        "source_best_epoch",
+        "source_task_mode",
+        "source_feature_type",
+        "source_target",
+        "source_target_idx",
+        "source_target_indices",
+        "source_aux_idx",
+        "source_target_exogenous_schema_version",
+        "source_schema_fingerprint",
+    }
+    if set(scientific_lineage) != required_lineage:
+        raise ValueError(f"source lineage field set mismatch: {run_dir}")
+    if (
+        scientific_lineage["source_implementation_variant"]
+        != ENHANCED_IMPLEMENTATION_VARIANT
+        or scientific_lineage["source_ablation_id"] != "U1"
+        or scientific_lineage["source_checkpoint_role"] != "best"
+        or scientific_lineage["source_task_mode"] != "target_exogenous"
+        or scientific_lineage["source_feature_type"] != "MS"
+        or scientific_lineage["source_target"] != "OT"
+        or scientific_lineage["source_target_idx"] != 6
+        or scientific_lineage["source_target_indices"] != [6]
+        or scientific_lineage["source_aux_idx"] != [0, 1, 2, 3, 4, 5]
+        or scientific_lineage["source_target_exogenous_schema_version"]
+        != TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+    ):
+        raise ValueError(f"source lineage identity mismatch: {run_dir}")
+    dataset = scientific.get("dataset")
+    model = scientific.get("model")
+    experiment = scientific.get("experiment")
+    execution = scientific.get("execution")
+    if not all(
+        isinstance(value, dict)
+        for value in (dataset, model, experiment, execution)
+    ):
+        raise ValueError(f"warm-start scientific task contract is incomplete: {run_dir}")
+    horizon = dataset.get("artifact_horizon")
+    expected_source = M4_U1_SOURCE_IDENTITIES.get(horizon)
+    observed_source = {
+        "run_id": scientific_lineage.get("source_run_id"),
+        "config_hash": scientific_lineage.get("source_config_hash"),
+        "comparison_config_hash": scientific_lineage.get(
+            "source_comparison_config_hash"
+        ),
+        "best_epoch": scientific_lineage.get("source_best_epoch"),
+        "checkpoint_sha256": scientific_lineage.get(
+            "source_checkpoint_sha256"
+        ),
+    }
+    if expected_source is None or observed_source != expected_source:
+        raise ValueError(f"locked U1 source identity mismatch: {run_dir}")
+    expected_task = {
+        "dataset_id": "ETTm1",
+        "task_mode": "target_exogenous",
+        "feature_type": "MS",
+        "target": "OT",
+        "target_idx": 6,
+        "target_indices": [6],
+        "aux_idx": [0, 1, 2, 3, 4, 5],
+        "seq_len": 512,
+        "model_pred_len": horizon,
+        "label_horizon": horizon,
+        "seed": 2024,
+        "source_commit": M4_U1_SOURCE_COMMIT,
+        "source_fingerprint": M4_U1_SOURCE_FINGERPRINT,
+        "source_data": M4_U1_DATA_FINGERPRINT,
+        "source_schema": M4_U1_SCHEMA_FINGERPRINT,
+    }
+    observed_task = {
+        "dataset_id": dataset.get("id"),
+        "task_mode": dataset.get("task_mode"),
+        "feature_type": dataset.get("feature_type"),
+        "target": dataset.get("target"),
+        "target_idx": dataset.get("target_idx"),
+        "target_indices": dataset.get("target_indices"),
+        "aux_idx": dataset.get("aux_idx"),
+        "seq_len": model.get("seq_len"),
+        "model_pred_len": model.get("model_pred_len"),
+        "label_horizon": dataset.get("label_horizon"),
+        "seed": execution.get("seed"),
+        "source_commit": scientific_lineage.get("source_commit"),
+        "source_fingerprint": scientific_lineage.get(
+            "source_executable_fingerprint"
+        ),
+        "source_data": scientific_lineage.get("source_data_fingerprint"),
+        "source_schema": scientific_lineage.get("source_schema_fingerprint"),
+    }
+    if observed_task != expected_task:
+        raise ValueError(f"warm-start task/source contract mismatch: {run_dir}")
+    if protocol_id == T2_ADAPTER_TRAINING_PROTOCOL:
+        if (
+            experiment.get("ablation_id") != T2_ADAPTER_ABLATION_ID
+            or model.get("use_pmcr") is not False
+            or model.get("use_teb") is not True
+            or model.get("teb", {}).get("architecture")
+            != "patch_conditioned_v1"
+            or model.get("teb", {}).get("patch_size") != 32
+        ):
+            raise ValueError(f"adapter model/ablation contract mismatch: {run_dir}")
+    elif (
+        experiment.get("ablation_id") != U1_CONTINUATION_ABLATION_ID
+        or model.get("use_pmcr") is not False
+        or model.get("use_teb") is not False
+    ):
+        raise ValueError(f"continuation model/ablation contract mismatch: {run_dir}")
+
+    for field in (
+        "source_checkpoint_sha256", "source_config_hash",
+        "source_comparison_config_hash", "source_executable_fingerprint",
+        "source_data_fingerprint", "source_schema_fingerprint",
+    ):
+        value = scientific_lineage[field]
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise ValueError(f"invalid source lineage digest {field}: {run_dir}")
+
+    proof = scientific.get("source_compatibility_proof")
+    if not isinstance(proof, dict):
+        raise ValueError(f"source compatibility proof is missing: {run_dir}")
+    for label, document in (
+        ("config", config), ("manifest", manifest), ("metrics", metrics)
+    ):
+        if document.get("source_compatibility_proof") != proof:
+            raise ValueError(f"{label} compatibility proof mismatch: {run_dir}")
+    expected_proof_fields = {
+        "contract_version",
+        "source_executable_fingerprint",
+        "current_executable_fingerprint",
+        "global_fingerprint_equal",
+        "critical_files",
+        "source_state_key_count",
+        "target_state_key_count",
+        "mapped_key_count",
+        "allowed_missing_keys",
+        "unexpected_keys",
+        "shape_mismatches",
+        "dtype_mismatches",
+    }
+    if set(proof) != expected_proof_fields:
+        raise ValueError(f"compatibility proof field set mismatch: {run_dir}")
+    if (
+        proof["contract_version"] != SOURCE_COMPATIBILITY_PROOF_VERSION
+        or proof["source_executable_fingerprint"]
+        != scientific_lineage["source_executable_fingerprint"]
+        or proof["current_executable_fingerprint"]
+        != config.get("source", {}).get("sha256")
+        or proof["global_fingerprint_equal"]
+        != (
+            proof["source_executable_fingerprint"]
+            == proof["current_executable_fingerprint"]
+        )
+    ):
+        raise ValueError(f"compatibility proof fingerprint mismatch: {run_dir}")
+    critical = proof.get("critical_files")
+    if (
+        not isinstance(critical, list)
+        or [item.get("path") for item in critical if isinstance(item, dict)]
+        != list(SOURCE_COMPATIBILITY_CRITICAL_FILES)
+        or any(
+            item.get("source_sha256") != item.get("current_sha256")
+            for item in critical if isinstance(item, dict)
+        )
+    ):
+        raise ValueError(f"compatibility critical file proof mismatch: {run_dir}")
+    adapter = protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+    expected_counts = (60, 79, 60, 19) if adapter else (60, 60, 60, 0)
+    observed_counts = (
+        proof.get("source_state_key_count"),
+        proof.get("target_state_key_count"),
+        proof.get("mapped_key_count"),
+        len(proof.get("allowed_missing_keys", [])),
+    )
+    if (
+        observed_counts != expected_counts
+        or proof.get("unexpected_keys") != []
+        or proof.get("shape_mismatches") != []
+        or proof.get("dtype_mismatches") != []
+        or (
+            adapter and any(
+                not key.startswith("teb.")
+                for key in proof.get("allowed_missing_keys", [])
+            )
+        )
+    ):
+        raise ValueError(f"compatibility state mapping mismatch: {run_dir}")
+
+    history = _read_history_records(Path(run_dir) / "history.jsonl")
+    completed_epochs = metrics.get("completed_epochs")
+    best_epoch = metrics.get("best_epoch")
+    maximum_epochs = (
+        expected_protocol["max_adapter_epochs"]
+        if adapter else expected_protocol["max_continuation_epochs"]
+    )
+    if (
+        isinstance(completed_epochs, bool)
+        or not isinstance(completed_epochs, int)
+        or not 0 <= completed_epochs <= maximum_epochs
+        or isinstance(best_epoch, bool)
+        or not isinstance(best_epoch, int)
+        or not 0 <= best_epoch <= completed_epochs
+        or metrics.get("train_epochs") != maximum_epochs
+        or config.get("run", {}).get("train_epochs") != maximum_epochs
+        or manifest.get("completed_epoch") != completed_epochs
+        or manifest.get("completed_epochs") != completed_epochs
+    ):
+        raise ValueError(f"warm-start epoch metadata mismatch: {run_dir}")
+    if [record.get("epoch") for record in history] != list(
+        range(1, completed_epochs + 1)
+    ):
+        raise ValueError(f"warm-start history contains invalid/epoch-zero rows: {run_dir}")
+
+    initialization = metrics.get("initialization_validation")
+    if not isinstance(initialization, dict):
+        raise ValueError(f"initialization validation is missing: {run_dir}")
+    for field in ("mse", "mae"):
+        _finite_number(initialization.get(field), f"epoch-zero {field}")
+    expected_role = "epoch_zero_initialization" if best_epoch == 0 else "trained_epoch"
+    if (
+        metrics.get("epoch_zero_in_best_selection") is not True
+        or manifest.get("epoch_zero_in_best_selection") is not True
+        or metrics.get("best_checkpoint_role") != expected_role
+        or manifest.get("best_checkpoint_role") != expected_role
+        or manifest.get("initialization_validation") != initialization
+        or config.get("run", {}).get("initialization_validation") != initialization
+    ):
+        raise ValueError(f"warm-start epoch-zero lifecycle mismatch: {run_dir}")
+
+    try:
+        best_checkpoint = torch.load(Path(run_dir) / "best.pt", map_location="cpu")
+        last_checkpoint = torch.load(Path(run_dir) / "last.pt", map_location="cpu")
+    except Exception as exc:
+        raise ValueError(f"cannot read warm-start checkpoints: {run_dir}") from exc
+    if not isinstance(best_checkpoint, dict) or not isinstance(last_checkpoint, dict):
+        raise ValueError(f"warm-start checkpoints must be dictionaries: {run_dir}")
+    for label, checkpoint in (
+        ("best", best_checkpoint), ("last", last_checkpoint)
+    ):
+        if (
+            checkpoint.get("training_protocol") != expected_protocol
+            or _stable_lineage(
+                checkpoint.get("source_lineage"), f"{label} checkpoint"
+            ) != scientific_lineage
+            or checkpoint.get("source_compatibility_proof") != proof
+            or checkpoint.get("initialization_validation") != initialization
+            or checkpoint.get("epoch_zero_in_best_selection") is not True
+        ):
+            raise ValueError(f"{label} checkpoint warm-start metadata mismatch: {run_dir}")
+    if (
+        best_checkpoint.get("best_epoch") != best_epoch
+        or best_checkpoint.get("best_checkpoint_role") != expected_role
+        or best_checkpoint.get("checkpoint_role") != expected_role
+        or last_checkpoint.get("completed_epoch") != completed_epochs
+        or last_checkpoint.get("completed_epochs") != completed_epochs
+        or last_checkpoint.get("best_epoch") != best_epoch
+        or last_checkpoint.get("best_checkpoint_role") != expected_role
+        or last_checkpoint.get("checkpoint_role")
+        != ("epoch_zero_initialization" if completed_epochs == 0 else "last_trained_epoch")
+    ):
+        raise ValueError(f"warm-start checkpoint role/epoch mismatch: {run_dir}")
+    return {
+        "training_protocol_id": protocol_id,
+        "warm_start": True,
+        "completed_epochs": completed_epochs,
+        "best_checkpoint_role": expected_role,
+    }
 
 
 _TARGET_EXOGENOUS_SCHEMA_FIELDS = {
@@ -533,6 +1112,7 @@ def _load_legacy_completed_runs(artifact_root):
                 raise ValueError(f"manifest {field} mismatch in {run_dir}")
         row = {
             "implementation_variant": IMPLEMENTATION_VARIANT,
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
             "dataset_id": str(metrics["dataset_id"]),
             "seq_len": int(metrics["seq_len"]),
             "pred_len": int(metrics["pred_len"]),
@@ -759,9 +1339,23 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
                 f"expected {expected_candidate_contract!r}, "
                 f"got {observed_candidate_contract!r}: {run_dir}"
             )
+        protocol_info = _validate_warm_start_artifact(
+            scientific,
+            config,
+            manifest,
+            metrics,
+            run_dir,
+            implementation_variant,
+        )
+        expected_weight_decay = (
+            0.0
+            if protocol_info["training_protocol_id"]
+            == T2_ADAPTER_TRAINING_PROTOCOL
+            else 1e-7
+        )
         if (
             optimization.get("optimizer") != "Adam"
-            or optimization.get("weight_decay") != 1e-7
+            or optimization.get("weight_decay") != expected_weight_decay
         ):
             raise ValueError(f"enhanced optimization contract mismatch: {run_dir}")
 
@@ -811,14 +1405,28 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             raise ValueError(f"enhanced data fingerprint mismatch: {run_dir}")
         train_epochs = int(metrics.get("train_epochs", -1))
         best_epoch = int(metrics.get("best_epoch", -1))
-        if train_epochs <= 0 or not 1 <= best_epoch <= train_epochs:
-            raise ValueError(f"enhanced epoch metadata is invalid: {run_dir}")
-        if (
-            int(run_config.get("train_epochs", -1)) != train_epochs
-            or int(manifest.get("completed_epoch", -1)) != train_epochs
-            or int(manifest.get("best_epoch", -1)) != best_epoch
-        ):
-            raise ValueError(f"enhanced manifest/config epoch mismatch: {run_dir}")
+        if protocol_info["warm_start"]:
+            completed_epochs = protocol_info["completed_epochs"]
+            if (
+                train_epochs <= 0
+                or not 0 <= best_epoch <= completed_epochs
+                or int(run_config.get("train_epochs", -1)) != train_epochs
+                or int(manifest.get("best_epoch", -1)) != best_epoch
+            ):
+                raise ValueError(
+                    f"enhanced warm-start epoch metadata is invalid: {run_dir}"
+                )
+        else:
+            if train_epochs <= 0 or not 1 <= best_epoch <= train_epochs:
+                raise ValueError(f"enhanced epoch metadata is invalid: {run_dir}")
+            if (
+                int(run_config.get("train_epochs", -1)) != train_epochs
+                or int(manifest.get("completed_epoch", -1)) != train_epochs
+                or int(manifest.get("best_epoch", -1)) != best_epoch
+            ):
+                raise ValueError(
+                    f"enhanced manifest/config epoch mismatch: {run_dir}"
+                )
 
         validation = metrics.get("best_validation")
         test = metrics.get("test")
@@ -846,6 +1454,7 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
         seen_scientific_seed.add(duplicate_identity)
         rows.append({
             "implementation_variant": implementation_variant,
+            "training_protocol_id": protocol_info["training_protocol_id"],
             "dataset_id": identity["dataset_id"],
             "task_mode": identity["task_mode"],
             "target": identity["target"],

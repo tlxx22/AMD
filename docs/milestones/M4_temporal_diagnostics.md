@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十四轮，ETTm1 target_exogenous U1/U2 公平开发对照与 TEB adequacy gate
+当前轮次：第十六轮，warm-start/adapter-style T2 rescue production capability 实现
 
 canonical 内部版本：v2.1-R1
 
@@ -1876,7 +1876,7 @@ U1/U2 共同 AMD parameter 与 persistent buffer 共 60 keys；相同 runner see
 |---|---:|---|---|---:|---|---|---:|---:|
 | U1 | 96 | 20260901T095811.286299Z-6e33fa77 | fa2c4da41f34eca232907e4d6462305cb8ef3ef15fc8996f7c67baa0411ddb2d | 7 | 66458be335ac7948889156bf6a7a91af7221f3b75838a1522fd701e8e78b42d0 | 667ae4bba8becf458adc13cd218395780b63a9f3d2ac15e44fe3bea3a4d679a1 | 176.181 | 205064834 |
 | U1 | 192 | 20260901T100147.203364Z-f03509fd | 1585152dbf1ff74d935f7404f8b2699881b85c7224252371e939db585f2611d0 | 3 | f8b0308578b10f09ade232cf2c6ac2e7826b1e28ceb994c2a321d44c4563be6a | 48df0c13636db15006806d24a5e7f6181c844166a5db2c883c2baedfcb9e710d | 173.946 | 236537485 |
-| U1 | 336 | 20260901T100520.627934Z-0c9f399c | 45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5 | 3 | 89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb5302 | dba0f43a990ab2242ee212fd75383e6e32c37c3e2bf8092159c442158459dd98 | 162.284 | 283746640 |
+| U1 | 336 | 20260901T100520.627934Z-0c9f399c | 45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5 | 3 | 89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530 | dba0f43a990ab2242ee212fd75383e6e32c37c3e2bf8092159c442158459dd98 | 162.284 | 283746640 |
 | U1 | 720 | 20260901T100834.831317Z-5f71979f | 93ddc59a0879b435a4cf4742e76c75460c254283ca00b2138164c4fe735d51cd | 7 | a13126522bb2cf8f5871c46272222242b8ebb6077145658558199c9473ba109b | 403dabcf76d471efbc520c7da3cc915e1f3d0980b3ceb8bc9f7f43523068ea87 | 169.717 | 409637178 |
 | U2 | 96 | 20260901T101200.472821Z-265147d9 | 669772e9f8ac399465e510abe21ad269fdd8e030726f626cf58334dfd144853d | 3 | 058bfa02446e299a07849d4a8195eec8cb848d7f1e964d342e814f1e6fce5fd7 | ed0e837060cf4340f7ab74fca3279c5db207ae5b68bb8cbbf87939dc7ac5aa83 | 185.842 | 205887746 |
 | U2 | 192 | 20260901T101543.845343Z-954e54fd | f590a5a39a561378d2c7dfa22f77ab24a8530a027b234e6ea60cde95ad3a3b55 | 3 | ea81861b91f6a1ca160dd8a4c6af65b5088692db64dbd1c68c6d1dd66820d93f | 3120419bcb7104f5c7896fe345f1b1bd747aa453147e31ee5f6a6993ae9183bc | 185.017 | 237360421 |
@@ -1957,7 +1957,7 @@ U2 gamma_teb（init/best/last）依次为：h96=0.001/0.03187034/0.06876934，h1
 
 ### 35.8 T2 residual、同-checkpoint bypass 与 aux-K/V permutation
 
-在每个 U2 best checkpoint 的完整 validation/test 上，diagnostic wrapper 与 formal forward 的 prediction、MoE、A_patch、delta、exo_context/state 均最大误差=0；模型 state deterministic digest 前后相同。所有表示、ratio 和指标 finite，无 NaN/Inf。
+在每个 U2 best checkpoint 的完整 validation/test 上，diagnostic wrapper 与 formal forward 的 prediction、MoE、A_patch、delta、exo_context/state 均最大误差=0；模型 `legacy_unversioned_audit_digest` 前后相同。所有表示、ratio 和指标 finite，无 NaN/Inf。
 
 每样本 r_teb=||gamma*delta||/(||hidden||+eps)：
 
@@ -2003,3 +2003,258 @@ Aux-K/V permutation 对每个 batch 使用相同样本循环错配、保持 targ
 因此 **TEB development adequacy gate remains failed**。本结论只回答单数据集 ETTm1、单 seed=2024、10 epochs、OT-only target_exogenous 下 T2 相对 AMD-Concat 的开发信号；ETTm1 test 已用于 development，不能进入 M6 正式主表或解释为未见测试泛化。它不能证明 UrbanEV/其他正式数据集表现、多 seed 稳定性、warm-start 可行性、其他 TEB 结构或 PMCR/P2 的效果，也不自动废弃既有可复现候选。
 
 下一步只允许等待用户与 ChatGPT 裁决是否停止 TEB 结构迭代、是否另行授权有限 repair/warm-start，或何时转入 PMCR/P2；本轮未自动执行任何下一步。M4 保持 In Progress，没有新增 TEB architecture、没有训练 T2G/T3、没有实现 warm-start/P2、没有进入 M5/M7、没有运行任何正式评价数据集 test，也没有实现空间模块。
+## 36. 第十五轮：第十四轮 closure 与 warm-start/adapter-style T2 rescue 合同审计
+
+### 36.1 第十四轮结果 closure 与审计边界
+
+第十四轮结果版本已由单一 commit `e5d1b4aecdf34705bd9f908fa13644c74fddebf5` 提交并推送，parent=`be2185c3382ec42c7287e4bcc9b2cad5c07fdbad`，title=`docs(m4): record target-exogenous T2 adequacy failure`。提交范围仅为本 milestone；push 后 local/tracking/live remote 一致，ahead/behind=`0/0`，worktree/index clean。closure 版本 milestone SHA-256 为 `f5240dcfb6bb44bbc37eb75161501972dfc8b8896bff3f49a41a97ae5218b060`。Canonical、M0-M3、20-file source fingerprint、baseline 和冻结源码均未变化。
+
+本轮后续只做只读合同审计：没有重新读取 `metrics.json` 数值，没有执行 validation/test evaluation，没有训练 epoch，没有创建或更新 artifact/checkpoint，也没有执行 `optimizer.step()`。动态探针只使用 ETTm1 target_exogenous h96 的一个真实 train batch，并且只构造 train DataLoader。
+
+### 36.2 四个 U1 source artifact
+
+四个 source 均为唯一 completed schema-v2 U1（`el-amd-pmcr-teb-v1`、`ablation_id=U1`、PMCR/TEB off），13/13 Python exact-set/digest 与系统 `sha256sum -c` 全部通过；没有 duplicate completed identity、hidden staging、running/failed staging。共同身份为 `ETTm1`、`target_exogenous`、`feature_type=MS`、target=`OT`、target_idx=`6`、target_indices=`[6]`、aux_idx=`[0,1,2,3,4,5]`、`target_exogenous_schema_v1`、data SHA-256=`6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`、source commit=`be2185c3382ec42c7287e4bcc9b2cad5c07fdbad`、source fingerprint=`bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e`、dirty=`false`。每个 best checkpoint 的 metadata 与 config/manifest 一致，state dict 无 `pmcr.*` 或 `teb.*`。
+
+| H | run_id | config hash | best epoch | best.pt SHA-256 | artifact path |
+|---:|---|---|---:|---|---|
+| 96 | `20260901T095811.286299Z-6e33fa77` | `fa2c4da41f34eca232907e4d6462305cb8ef3ef15fc8996f7c67baa0411ddb2d` | 7 | `66458be335ac7948889156bf6a7a91af7221f3b75838a1522fd701e8e78b42d0` | `artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_96/fold_official/seed_2024/20260901T095811.286299Z-6e33fa77` |
+| 192 | `20260901T100147.203364Z-f03509fd` | `1585152dbf1ff74d935f7404f8b2699881b85c7224252371e939db585f2611d0` | 3 | `f8b0308578b10f09ade232cf2c6ac2e7826b1e28ceb994c2a321d44c4563be6a` | `artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_192/fold_official/seed_2024/20260901T100147.203364Z-f03509fd` |
+| 336 | `20260901T100520.627934Z-0c9f399c` | `45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5` | 3 | `89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530` | `artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_336/fold_official/seed_2024/20260901T100520.627934Z-0c9f399c` |
+| 720 | `20260901T100834.831317Z-5f71979f` | `93ddc59a0879b435a4cf4742e76c75460c254283ca00b2138164c4fe735d51cd` | 7 | `a13126522bb2cf8f5871c46272222242b8ebb6077145658558199c9473ba109b` | `artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_720/fold_official/seed_2024/20260901T100834.831317Z-5f71979f` |
+
+### 36.3 当前 checkpoint、resume 与 runner 事实
+
+- CLI 只有 `--resume`，没有 source checkpoint、`source_kind` 或 warm-start 参数。`--resume` 只接受当前 running/failed run 的 `last.pt`，拒绝 completed artifact；它严格核对同 variant/config/data/schema，并恢复 model、optimizer、completed epoch、best、history、train generator 和 Python/NumPy/CPU/CUDA RNG。因此 U1 best -> 新 T2 必须是新的 warm-start initialization，绝不能伪装成 resume。
+- `AMDEnhanced.load_state_dict(strict=True)` 在写入前检查 key 和 shape，但没有显式 dtype 检查。T2/T2G/T3 明确拒绝 `strict=False`。`load_enhancement_state_dict(source_kind=baseline|pmcr_only|teb_only)` 只接收 raw state mapping，结构预检后补全新模块再 strict load；它不读取 checkpoint container、implementation variant、artifact schema、target schema或 source lineage，也不证明来源就是 immutable baseline tag。
+- T2/T2G/T3 在 public importer 入口直接拒绝：`T2/T2G/T3 permit only from-scratch initialization or same-structure strict restore`。h96 实测拒绝前后 full-state `legacy_unversioned_audit_digest` 完全相同。
+- 现有 `_main_impl` 在 seed 和 loader 构造后先解析 artifact path、取得 lock、绑定 staging 并写 provenance/config/manifest，随后才构造 model/optimizer。它没有在 staging 前完成 source artifact、checkpoint metadata、key/shape/dtype 和 compatibility proof 的入口。
+- 未来安全路径必须在任何 artifact staging/写入、optimizer 构造和参数写入之前，验证 completed/checksum/config/manifest/checkpoint metadata、同 horizon/seq_len、task/target/aux/schema、完整 source key 集、shape 与 dtype；unexpected 必须为空，唯一 missing 必须精确等于目标 T2 的全部 `teb.*`。预检失败应丢弃新构造目标模型或证明全 state 逐元素不变。
+
+**Warm-start source loading: Not supported without code changes.**
+
+### 36.4 四 horizon source -> fresh T2 映射
+
+按每个 run 自身 config/factory/seed 构造并在内存中验证：U1 均为 60 keys；T2 均为 79 keys；公共 AMD 为 60 keys；PMCR/source TEB keys 均为 0；missing 精确为 19 个 T2 keys；unexpected、shape mismatch、dtype mismatch 均为空。安全映射后公共 AMD 与 source 逐元素相同，fresh T2 subset digest 不变。
+
+共同 missing key 完整列表：`teb.gamma_teb`；`teb.patch_query_projection.{weight,bias}`；`teb.patch_query_norm.{weight,bias}`；`teb.global_query_projection.{weight,bias}`；`teb.global_query_norm.{weight,bias}`；`teb.exogenous_projection.{weight,bias}`；`teb.exogenous_norm.{weight,bias}`；`teb.cross_attention.{in_proj_weight,in_proj_bias,out_proj.weight,out_proj.bias}`；`teb.patch_output_projection.{weight,bias}`。
+
+| H | source U1 digest | mapped T2 AMD-subset digest | fresh T2 subset digest（before=after） |
+|---:|---|---|---|
+| 96 | `95ebbbb744b9b112207152de728ab35ba21eb98ab87030aa4aeccf072c54dd23` | `95ebbbb744b9b112207152de728ab35ba21eb98ab87030aa4aeccf072c54dd23` | `5d079a22f13b7d602aa0eff037452bd8041dea6be84de3037bbfbedc79927ad5` |
+| 192 | `a1a72d1c1768dbc5c2f22faa3b89a232976effbd226cb1222415ac7862f0e821` | `a1a72d1c1768dbc5c2f22faa3b89a232976effbd226cb1222415ac7862f0e821` | `c096352f038c9fb652db6c2a19b31d0b3ab6225c337c7510eb9a1f84e078132d` |
+| 336 | `f5f13396ca4090a9540b5de99cbafbeffa7c7d389d135abbb31cdf6d4d5abb40` | `f5f13396ca4090a9540b5de99cbafbeffa7c7d389d135abbb31cdf6d4d5abb40` | `0213c44a065b861ab26b1314f7991808d557dbcda9cba945742755dfe43c3c23` |
+| 720 | `24bde4a53df88e3428dcddb4a79bd6858f28437f2699e0a339ab92760df49e9e` | `24bde4a53df88e3428dcddb4a79bd6858f28437f2699e0a339ab92760df49e9e` | `074be8c3a70d18630cf910abddfb4f43c5f0647b0d13e96a9ab3439a9c377edd` |
+
+本表 digest 现正式标记为 `legacy_unversioned_audit_digest`。保留的本地 Codex session 记录恢复了当时一次性脚本的精确实现：按 Python 字符串排序 key；key/dtype/raw length、rank 与每个 shape dimension 均为 8-byte little-endian，dimension 使用 signed encoding；无 header 或 key count。它覆盖 parameter 与 persistent buffer，不使用 `torch.save` pickle SHA。任意不同 horizon 交叉映射均先出现 horizon metadata mismatch，并在 AMS expert 输出层形成 16 个 shape mismatch（首个为 `moe.experts.0.net.3.bias`）；未写入目标，failure 前后 digest 相同。该历史逐 tensor equality、key/shape/dtype 与 mapping 证据继续有效，但 legacy 字符串不得与后续其他 framing 的 digest 直接比较。
+
+### 36.5 Freeze、buffer 与 module mode
+
+AMD 侧 RevIN/LayerNorm 无 running buffer；MDM 无 dropout；每个 DDI 的 `norm1` 是 BatchNorm1d，当前 `alpha=0` 因而没有启用 `norm2` 路径，`dropout_t` 在 train mode 生效；AMS 每个 expert 含 Dropout，TopKGating 在 train mode 调用 `torch.randn_like`；T2 的 MultiheadAttention dropout 在 T2 train mode 生效。当前 `train_one_epoch()` 每个 epoch 无条件调用 `model.train()`，会递归把此前手工设为 eval 的 AMD backbone 重新切回 train。
+
+h96 naive probe 使用真实 train batch `x=[128,512,7]`、`y=[128,96,1]`。仅把非 T2 parameters 设为 `requires_grad=False` 后调用 `model.train()`，forward 不改变任何 frozen parameter，却改变 `fc_blocks.0.norm1.running_mean`、`running_var` 和 `num_batches_tracked`；AMD DDI dropout、AMS expert dropout、selector Gaussian noise与 T2 attention dropout均激活。CUDA RNG 被消费；相同输入连续两次 prediction 不相等，max abs=`0.3012093902`，auxiliary max abs=`0.0151400194`。这证明 parameter freeze 不等于 buffer/mode/stochastic freeze。
+
+在独立模型上执行 `model.eval(); model.teb.train()`，AMD/RevIN/MDM/DDI/AMS/selector 均为 eval，T2/MHA 为 train：AMD BatchNorm buffer不变，selector noise与 AMD dropout关闭，T2 attention dropout保留；CPU RNG不变、CUDA RNG因T2 dropout改变。validation/test仍应使用全模型 eval。该 mixed mode 由 PyTorch公共 API可表达，但现有 runner 会在每个 epoch开头覆盖它，没有稳定重应用机制。
+
+**Frozen parameter policy: Not supported without code changes.**
+
+**Frozen buffer and module-mode policy: Not supported without code changes.**
+
+### 36.6 h96 mixed-mode production backward
+
+在 source U1 AMD 已安全映射、非 T2参数冻结、AMD eval/T2 train 的独立内存模型上，使用真实 production objective `MSE(prediction,y)+selector auxiliary` 做一次 backward；没有 optimizer/step。prediction/target 均为 `[128,96,1]`，prediction loss=`0.0581101477`、auxiliary=`0.0116437199`、total=`0.0697538704`。auxiliary 不依赖 T2且 `requires_grad=false`。完整 `legacy_unversioned_audit_digest` before/after 均为 `71347d364275d182b799af9475a66ea3b0441ec9d3fbb1652089a2c3cfb91b2e`；AMD parameter grad 全部 `None`，AMD buffer无变化。
+
+| T2 group | 参数 tensors / elements | grad L2 | max abs | exact nonzero | 结论 |
+|---|---:|---:|---:|---:|---|
+| forecast-connected 合计 | 15 / 22,881 | `1.8969084e-4` | `1.8884671e-4` | 22,881 | finite、首 backward 非零 |
+| `gamma_teb` | 1 / 1 | `1.8884671e-4` | `1.8884671e-4` | 1 | finite、非零 |
+| patch query projection/norm | 4 / 1,120 | `1.1170399e-6` | `1.1228893e-7` | 1,120 | finite、非零 |
+| exogenous projection/norm | 4 / 16,480 | `1.5935888e-5` | `6.4560629e-7` | 16,480 | finite、非零 |
+| shared cross-attention | 4 / 4,224 | `6.1272740e-6` | `7.1979571e-7` | 4,224 | finite、通过 patch forecast 路径训练 |
+| patch output projection | 2 / 1,056 | `5.1762217e-6` | `1.7747381e-6` | 1,056 | finite、非零 |
+| global-query-only projection/norm | 4 / 16,480 | `0` | `0` | 0 | graph-connected zero tensor，不受任务监督 |
+
+将 global-query-only 4 个 parameters 明确冻结后，其 grad 从严格零 tensor 变为 `None`；其余 forecast-connected 数值不变。`exo_context` 仍可因 shared exogenous projector/KV/MHA 的训练而改变，但 fixed fresh global query projection/norm 本身不被 forecast loss优化，因此应描述为“state interface 的 shared部分可适配，global-query-only映射固定”，不能称整个 state context 已受任务监督。
+
+推荐的 forecast-connected key 集（未锁定）：`teb.gamma_teb`；`teb.patch_query_projection.*`；`teb.patch_query_norm.*`；`teb.exogenous_projection.*`；`teb.exogenous_norm.*`；`teb.cross_attention.*`；`teb.patch_output_projection.*`。建议排除 `teb.global_query_projection.*` 与 `teb.global_query_norm.*`。
+
+### 36.7 Optimizer、gamma、epoch 0 与 objective
+
+当前 runner 使用 PyTorch 2.0.1 `torch.optim.Adam(model.parameters(), lr=3e-5, weight_decay=1e-7)`，76 tensors/10,284,103 elements全部进入单一参数组；无 scheduler；`optimizer.zero_grad()` 在当前环境默认 `set_to_none=True`。它没有 freeze policy、trainable-only filter或独立 optimizer-state policy，resume 会恢复旧 optimizer state。T2共19 tensors/39,361 elements，其中 forecast-connected 15 tensors/22,881 elements，global-query-only 4 tensors/16,480 elements。
+
+当前 Adam 的 weight decay 是 coupled L2：参数只要拥有严格零但非 `None` 的 grad tensor，就会加上 `weight_decay * parameter` 后移动。这足以解释第十四轮 global-query raw task gradient严格为零、参数却相对初始化移动的现象。若 gamma=0，除 gamma 外的 T2 参数首 backward均得到严格零 tensor；保留 `1e-7` 会在其获得任务梯度前先按权重衰减移动。推荐默认（未锁定）是全新 Adam、只接收 forecast-connected `requires_grad=True` 参数、adapter weight decay=`0`，并显式排除 global-query-only参数。
+
+gamma 两种候选合同：
+
+- `1e-3`：当前 class/config唯一支持值；h96 fresh T2 相对 source U1 的初始 prediction max abs=`7.8320503e-5`，不再 source-equivalent；首 backward全部15个 forecast-connected tensors有任务梯度。
+- `0`：当前 config/class拒绝；审计中仅在内存将已构造 T2 scalar置零。初始 prediction与U1逐元素相同（prediction/MoE max abs=`0`、`torch.equal=true`）；首 backward只有 gamma 非零（`1.8846584e-4`），其余 forecast-connected和global-only均为严格零，后续 gamma离开0后才建立其他任务梯度。若未来选择此策略，可由显式 warm-start初始化 policy在构造后、optimizer前原子置零并记录，而不必改变T2数学 class，但不得把它伪装成原 `teb_gamma_init=1e-3`。
+
+当前 runner 不评价或保存 epoch 0：`best_mse=inf`、`best_epoch=None`，从 epoch 1 validation开始选择，history只允许1..completed_epoch，summarizer也要求 `1 <= best_epoch <= train_epochs`。不纳入epoch 0实现最简单，但若所有adapter epoch更差，仍会强制发布某个更差训练态；纳入epoch 0可安全回退，但只有gamma=0时才严格等于source U1。推荐默认（未锁定）：gamma=0并把初始化candidate登记为明确的epoch-0 validation/checkpoint候选，不计作已训练epoch；最终test仍只在best确定后执行。
+
+冻结 AMD 后，selector auxiliary只依赖固定 `u_mdm`/selector，不对T2产生梯度；加入total只造成随batch变化但对adapter梯度为常数的数值偏移。它不影响backward方向，也不影响基于纯validation MSE的best选择，但会使train objective日志不等于prediction MSE。推荐默认（未锁定）保留原 `prediction MSE + auxiliary` 以维持production语义，并继续分开记录两项；若选择prediction-only，必须作为新的training policy/scientific identity，不能静默改变。
+
+### 36.8 Controls、预算与停止线
+
+- Primary：rescue从每个horizon同一个U1 best AMD出发，只训练fresh T2，与固定、不再训练的source U1 best比较。这直接回答adapter能否改善固定AMD，但candidate拥有额外数据遍历/优化预算。
+- Secondary：只有rescue先出现positive signal，才增加4个matched-budget U1 continuation：同source、reset optimizer、相同数据顺序/epoch/validation频率、继续训练整个AMD但不加T2。它用于判断收益是否仅是额外训练预算；当前runner同样缺少“completed best作为新run warm-start”的lineage路径，不能用resume替代，且延长已训练AMD可能引入特定过拟合偏差。
+- No-op：冻结所有参数、重复遍历数据而不更新，prediction恒定，不提供额外科学信息，不建议生成wall-clock matching artifact。
+
+R-min为4 horizon × 1 adapter、seed 2024、最多10 adapter epochs，共4个run；R-control仅在R-min positive后再增加4个U1 continuation，最大8个新run。基于第十四轮实际U2四run `733.036 s / 1,138,277,720 bytes`、U1四run `682.128 s / 1,134,986,137 bytes`，R-min保守估计约12分钟和1.14 GB，R-control总计约24分钟和2.27 GB；冻结backbone可能更快，但估算不是承诺。R-pilot只跑h96/h720会减少首阶段成本，但中途看test再决定补horizon会增加选择偏差；若采用pilot，只允许用validation的预登记门禁扩展。推荐默认（未锁定）直接R-min，最终最大预算8run，避免继续扩大搜索自由度。
+
+建议而未锁定的positive定义同时要求：test MSE macro低于fixed U1、test MAE macro不高于U1、至少3/4 horizon test MSE改善、validation MSE macro不高于U1、至少若干horizon best epoch>0、gamma/residual有限非零、residual bypass不再稳定优于Normal、aux permutation呈稳定不利影响；若运行matched-budget control，改善不能被普通AMD continuation完全解释。部分方向改善但核心条件不齐为mixed；宏平均/多数horizon无改善、全部回退epoch0或bypass继续稳定占优为negative-or-negligible。
+
+若一次预注册 rescue 仍非 positive：
+
+```text
+当前 TimeXer-inspired TEB 路线在 M4 有限开发中失败
+```
+
+之后不继续T4/T5/T6，不再调d、heads、patch、gate或beta，不启动P2，等待用户授权更换另一篇近三年外生模块来源。
+
+### 36.9 Identity、provenance 与 source compatibility gate
+
+T2数学结构不变，建议继续使用implementation variant `el-amd-m4-t2-patch-teb-v1`；warm-start/freeze是训练协议，不能复用from-scratch `M4_T2` identity。proposal only：`ablation_id=M4_T2_ADAPTER`，`rescue_protocol_id=m4_t2_u1_warmstart_frozen_adapter_v1`。是否采用仍需用户确认。
+
+除机器相关绝对 `source_artifact_path` 外，指令列出的 initialization/source checkpoint语义、source run/SHA/config/executable/data/best epoch/task/target/schema、parameter/buffer/mode、trainable/global-query policy、optimizer state/scope/lr/wd/adapter seed、gamma policy、epoch-zero policy和protocol id都应进入scientific config及checkpoint metadata；comparison hash保留这些预先决定的字段并只移除adapter seed；第十六轮用户已锁定：`completed_epochs`、`best_epoch`与best role均为runtime outcome，不进入scientific/comparison hash。绝对path写入resolved run/manifest但不进scientific hash；source SHA/run id等稳定lineage进入manifest。artifact root可显式使用protocol语义，既有dataset/task/target/horizon/fold/seed/run_id后缀保持不变。
+
+Summarizer必须区分from-scratch T2、warm-start adapter T2和matched-budget U1 continuation，按protocol/source SHA/source run/policy形成comparison identity，并以comparison hash+seed定义duplicate identity；completed epochs不同不得分裂identity，并拒绝lineage缺失、SHA篡改或identity冲突。建议保留schema-v2和现有13-file checksum：把`warm_start_contract_version=v1`、lineage和compatibility proof嵌入已受checksum保护的config/manifest/checkpoint，无需增加受控文件或schema-v3。
+
+最小source gate：
+
+1. source artifact完整性：completed、精确13-file checksum和系统校验、config/manifest/checkpoint metadata/data/schema/source SHA一致；
+2. source model compatibility：逐字节核验`models/tsAMD.py`、`models/common.py`、`models/tsmoe.py`、`models/tsAMD_enhanced.py`，并核验ETTm1路径所需`utils/dataloader.py`、`utils/general.py`、`models/modules/target_exogenous_bridge.py`；目标T2另记录`models/modules/patch_conditioned_target_exogenous_bridge.py`。未来`main.py`必然因warm-start治理改变，故对未改的`prepare_args`相关合同、`_build_generic_runtime_data`、`_build_model`、`_prediction_for_loss`与schema/target-selection函数记录可验证的function-source hash，而不能仅比较整个文件SHA；
+3. target implementation：允许新增runner/freeze/provenance逻辑，但不得改变AMD key/shape/forward和数据/target-selection语义；
+4. source/current全局fingerprint不同必须在manifest显式记录并附逐依赖compatibility proof。strict-load成功不等于语义等价。
+
+### 36.10 Production capability verdicts
+
+| Capability | Verdict | 核心原因 |
+|---|---|---|
+| U1 best -> T2 backbone warm-start | Not supported without code changes | 无source CLI，T2 importer明确拒绝 |
+| Atomic source validation | Not supported without code changes | 无checkpoint/lineage入口，现有preflight缺dtype与完整metadata |
+| Backbone parameter freeze | Not supported without code changes | 无freeze policy，optimizer收全部parameters |
+| Backbone buffer freeze | Not supported without code changes | `model.train()`使DDI BatchNorm buffers漂移 |
+| Mixed AMD-eval / T2-train mode | Not supported without code changes | 公共API可手工表达，但epoch入口会递归覆盖 |
+| Trainable-only optimizer | Not supported without code changes | runner固定`model.parameters()` |
+| Global-query-only parameter exclusion | Not supported without code changes | 无显式scope/policy |
+| Epoch-0 best selection | Not supported without code changes | best/history/summarizer均从epoch 1开始 |
+| Warm-start lineage in artifact | Not supported without code changes | config/manifest/checkpoint无source lineage contract |
+| Summarizer contract | Not supported without code changes | 当前只认from-scratch T2固定ablation/candidate contract |
+| Matched-budget U1 continuation | Not supported without code changes | completed best不能作为新run warm-start，resume语义错误 |
+| Overall warm-start adapter rescue | Not supported without code changes | 上述source/freeze/mode/optimizer/epoch0/provenance门禁缺失 |
+
+### 36.11 最小未来实现范围（未执行）
+
+- `main.py`：新增warm-start CLI与protocol字段；在staging/optimizer前执行source完整性、metadata、key/shape/dtype和compatibility gate；安全映射U1 AMD、设freeze/mixed mode并在每个epoch重应用；构造trainable-only新Adam；支持明确epoch0 candidate；写lineage/checkpoint/manifest。不得复用resume。
+- `summarize_results.py`：接受并严格验证adapter/continuation protocol、lineage、epoch0语义、comparison/duplicate identity与tamper拒绝，同时保持历史from-scratch identity不变。
+- `tests/test_runner.py`：扩展source atomicity、cross-horizon/dtype拒绝、freeze/buffer/mode、optimizer scope、global-only排除、epoch0、resume隔离、artifact lineage测试。
+- `tests/test_summarize_results.py`：扩展adapter/continuation/legacy区分、duplicate和lineage tamper测试。
+- `tests/test_tsAMD_enhanced.py`：仅在公共mapping helper放入model层时扩展；优先把协议留在runner，不改变T2 class/state keys/forward。
+- 无需修改frozen AMD、Global/T2/T2G/T3/PMCR、DataLoader或数据；无需新增TEB class或新production模块文件。建议不新增测试文件，扩展现有永久回归测试。若用户锁定rescue协议，执行前canonical需登记该训练治理，唯一M4 milestone继续记录实现/实验；本轮不做这些修改。
+
+### 36.12 待用户确认与本轮停止点
+
+下列均是待确认项，不是已授权合同：gamma使用`0`还是`1e-3`；epoch0是否纳入best；trainable scope用全部T2还是forecast-connected-only；global-query-only冻结还是保留；adapter weight decay用`0`还是`1e-7`；保留production objective还是prediction-only；adapter最大epoch数；matched-budget continuation是否只在positive后运行；variant/`M4_T2_ADAPTER`/protocol命名；R-min/R-pilot及最大4或8 run预算。
+
+本轮建议默认但未锁定：gamma=0、epoch0纳入best、forecast-connected-only、global-query-only冻结、adapter weight decay=0、保留production objective、R-min四个horizon最多10 epochs；只有R-min positive才追加matched-budget U1 continuation，总预算最多8run。
+
+本轮没有新增、修改或删除测试；所有既有测试继续为`permanent_regression_test`。第十四轮已在同一代码HEAD完成220/220，本轮未修改代码，故未重跑完整回归。一次性审计仅在`/tmp/m4_t2_warmstart_audit_9Lhn7V/`范围内进行，结束前删除。
+
+M4继续`In Progress`。本轮未修改canonical、代码、测试、M0-M3、数据或artifact；未训练、未运行validation/test、未创建rescue artifact；未实现warm-start、新TEB或P2，未进入M5/M7，未实现空间模块。审计结果只保留在本milestone的未stage、未commit、未push修改中，等待用户与ChatGPT审核。
+
+## 37. 第十六轮：warm-start/adapter-style T2 rescue production capability 实现
+
+### 37.1 用户锁定合同与实现边界
+
+用户已将第十五轮建议锁定为唯一一次预注册 rescue：每个 horizon 从对应 U1 `best.pt` 加载 60-key AMD 主干，T2 按 seed=2024 fresh 构造且不加载任何旧 TEB 参数，随后以无 RNG 的 policy 将 effective `gamma_teb` 置为严格 0。Epoch 0 是未训练的 source-equivalent initialization candidate，纳入 strict-improvement best selection；AMD parameter、persistent buffer 和 module mode 分别固定为 frozen/frozen/eval，T2 为 train；只训练 15 个 forecast-connected T2 tensors（22,881 parameters），4 个 global-query-only tensors（16,480 parameters）冻结。Optimizer 为 fresh Adam、lr=`3e-5`、weight decay=`0`；objective 仍为 prediction MSE + frozen selector auxiliary，但三项分开记录且 validation best 只看 prediction MSE。
+
+Adapter identity 固定为 implementation variant=`el-amd-m4-t2-patch-teb-v1`、ablation=`M4_T2_ADAPTER`、protocol=`m4_t2_u1_warmstart_frozen_adapter_v1`；matched-budget capability identity固定为 implementation variant=`el-amd-pmcr-teb-v1`、ablation=`M4_U1_CONTINUATION`、protocol=`m4_u1_matched_budget_continuation_v1`。二者均使用 `warm_start_contract_v1`，是训练协议而非新 architecture。第一阶段未来最多 4 个 adapter run；只有 provisional positive 且再次获授权，才能运行 4 个 continuation，总预算上限 8。一次 rescue 仍非 positive 时停止当前 TimeXer-inspired TEB 路线，不继续 T4/T5/T6、不再调 TEB 参数、不启动 P2，等待用户授权更换新的近三年外生模块来源。
+
+本轮只修改 canonical、本 milestone、`main.py`、`summarize_results.py`、`tests/test_runner.py`、`tests/test_summarize_results.py`；没有修改任何模型模块、DataLoader、数据、M0-M3 或既有 artifact，也没有新增文件。没有运行四个真实 adapter、没有运行 continuation、没有读取新的 ETTm1 test 指标、没有创建真实 rescue artifact。
+
+### 37.2 Runner、source preflight 与原子映射
+
+Runner 新增 standard/adapter/continuation 三类显式 protocol contract。Standard 不携带 warm-start block；warm-start CLI 必须显式给出 completed U1 source、role=`best` 和预期 checkpoint SHA。ETTm1/`target_exogenous`/MS/OT、target=6、aux=[0..5]、seq=512、seed=2024、horizon∈{96,192,336,720} 及 optimizer/epoch/variant/ablation 的矛盾组合均在 artifact path、staging、log 和 optimizer 创建前拒绝；warm-start source 与 `--resume` 不能作为同一个新-run initialization 使用。
+
+四个锁定 U1 source 均通过 formal preflight：completed schema-v2、精确 13-file checksum set、Python digest与系统 `sha256sum -c`、config/manifest/checkpoint/data/source/schema/dirty=false、run/config/comparison/checkpoint identity、无 `pmcr.*`/`teb.*`。h336 指令中的 source checkpoint SHA 原文本多写了末尾字符 `2`（65 hex）；本轮以 artifact `sha256sum` 和既有第十四/十五轮证据的实际 64-hex 值 `89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530` 修正授权文件中的证据转录，不修改 source artifact。
+
+全局 executable fingerprint 因 runner/summarizer 实现而不同，故使用 `source_compatibility_proof_v1`。七个 critical files 的 source/current SHA 全部逐字节相同：`models/tsAMD.py`=`fa72cdbe...90ba1`、`models/common.py`=`570f47c3...a3afb`、`models/tsmoe.py`=`d6c78884...ee0f1`、`models/tsAMD_enhanced.py`=`3eacf0cd...04f5`、`models/modules/__init__.py`=`1c381c66...61e04`、T2 module=`5bba40e...8f69`、`utils/dataloader.py`=`27b68d05...c87c`。Proof 与稳定 lineage 写入 checksum 覆盖的 config/checkpoint/manifest；absolute source path只留在 resolved runtime/manifest，不进入 scientific/comparison hash。
+
+Adapter mapping 在任何参数写入前验证完整 key、shape 与 dtype：source=60、target=79、mapped=60、allowed missing精确为19个 `teb.*`、unexpected/shape/dtype mismatch均为空。实现先保存目标完整 parameter/buffer clone，构造 merged state 后用普通 `load_state_dict(strict=True)` 一次写入；任何异常恢复原 clone并核对当时的 `pre_repair_production_unversioned_digest`。Continuation 为60→60同结构 strict mapping。永久测试覆盖 unexpected、shape、dtype、cross-horizon与污染拒绝；四个真实 source 均通过。h96 production smoke 当时记录的是 `pre_repair_production_unversioned_digest`：source state 与 mapped AMD digest同为 `b4111c4cf3898f8f5617be00ae9f57d2ab8383220447a919388c874be7cfe835`；fresh T2 subset mapping前后同为 `6bc1bb67afcfce02650a8b5c4dd16c54499778f65f1e893b47c5e1a20e7d12cc`。该旧 production helper 的 framing 为 key length=4-byte big-endian、dtype length/rank=2-byte big-endian、dimension/raw length=8-byte big-endian，无 header/key count；这些字符串同样不与 production v1 直接比较。
+
+### 37.3 Gamma、freeze/mode、optimizer 与 objective
+
+Gamma-zero helper在 `torch.no_grad()` 下仅改变 `teb.gamma_teb`，effective值严格为0，CPU与全部CUDA RNG state均不变，其他T2 parameter/buffer逐元素不变。每个adapter训练epoch由唯一mode helper重施 `model.eval(); model.teb.train()`：top-level与所有非TEB modules为eval，AMD BatchNorm/dropout和selector noise关闭，T2/MHA dropout保持train；validation/test仍为全模型eval。
+
+Forecast-connected allowlist精确为：`teb.gamma_teb`；`teb.patch_query_projection.{weight,bias}`；`teb.patch_query_norm.{weight,bias}`；`teb.exogenous_projection.{weight,bias}`；`teb.exogenous_norm.{weight,bias}`；`teb.cross_attention.{in_proj_weight,in_proj_bias,out_proj.weight,out_proj.bias}`；`teb.patch_output_projection.{weight,bias}`。Global-only freeze list精确为：`teb.global_query_projection.{weight,bias}`、`teb.global_query_norm.{weight,bias}`。未知/缺失 TEB key 或计数不符会在 optimizer 前拒绝。Fresh Adam 只接收15个 allowlist tensor，无重复、无 frozen parameter、state初始为空、lr=`3e-5`、weight decay=`0`。
+
+训练日志对 warm protocol分别保存 prediction、selector auxiliary和total；production backward仍使用总和，但永久测试证明 auxiliary 对adapter参数无梯度，total与prediction-only产生逐元素相同的adapter gradient。Validation selection继续只使用纯prediction MSE，不能把total解释成prediction metric。
+
+### 37.4 Epoch-0、resume、lineage 与 identity
+
+Warm-start新run在source preflight、target构造/mapping、adapter gamma-zero、scope/mode和fresh optimizer之后，训练前完整评价validation并保存可恢复的epoch-0 `best.pt`/`last.pt`。Best从epoch0 MSE初始化，只有严格更小的训练epoch可替换，相等不替换。History只允许1..`completed_epochs`；`completed_epochs`是实际执行的额外训练epoch数，`best_epoch`允许0..N。最终best=0时，test仅在全部预算完成后加载epoch-0 best执行，不强制改选epoch1。
+
+Warm-start staging可从自身epoch0或训练epoch恢复：核对sealed protocol/source SHA/lineage/proof/scope/optimizer/gamma/epoch-zero/objective，直接恢复该target run自己的`last.pt`、optimizer/best/history/train-generator/RNG；不重新打开source、不重复mapping或zero gamma。Completed U1 source不是resume target；standard resume语义保持不变。Continuation只提供同结构U1 source strict restore、fresh full-AMD Adam、epoch0与额外epoch1..10能力，不自动触发，本轮没有运行。
+
+Schema仍为v2且受控文件仍精确13个。Training protocol、稳定source lineage和compatibility proof进入config/checkpoint/manifest。Scientific identity包含预先决定的protocol/source/policy/max epochs/seed等；comparison identity仅移除adapter seed，duplicate identity使用comparison hash+seed。`completed_epochs`、`best_epoch`、best role、wall-clock、artifact size和最终指标均不进入scientific/comparison/duplicate identity；绝对source path也不进入hash。Summarizer分别验证standard、adapter与continuation，接受合法warm best_epoch=0，拒绝standard best_epoch=0、lineage/proof/policy/role/history tamper、parallel spoof和同identity不同completed epochs的重复run，并且不重新访问absolute source path。
+
+### 37.5 回归、真实 h96 smoke 与 synthetic 生命周期
+
+永久测试只修改并保留`tests/test_runner.py`与`tests/test_summarize_results.py`，没有新增、删除或弱化测试。Runner/summarizer定向组73/73通过（failed=0、skipped=0）；TEB/AMDEnhanced保护组106/106通过；PMCR/M1保护组36/36通过；完整discovery 233/233通过（failed=0、skipped=0），高于原220项。CUDA测试在NVIDIA A800 80GB PCIe上实际执行；完整回归用时25.792 s（unittest自身22.649 s），既有1e-6 parity门槛未放宽。
+
+真实h96 smoke只构造train与validation DataLoader，各冻结一个batch；未调用`get_test()`、未遍历完整validation、未创建artifact或checkpoint、未运行epoch。Train/validation的x均为`[128,512,7]`，y均为`[128,96,1]`。Formal source preflight为13/13与七个critical SHA通过，60→79映射通过，目标staging未创建。Epoch0 source U1与adapter prediction均为`[128,96,1]`，MoE均finite；prediction与MoE均`torch.equal=True`、max abs=0。State source均为`[128,1056]`，但其最后32维不要求等价且实测不相等（max abs=`0.8773267269`），符合U1零context与fresh T2 live context语义。
+
+独立真实train-batch两步probe使用正式mixed mode与optimizer：gamma `0 -> -2.9998407626e-5 -> -5.9238991525e-5`；step1/step2 prediction loss=`0.0581099615`/`0.0581099503`，auxiliary=`0.0116437199`/`0.0116437199`，total=`0.0697536841`/`0.0697536692`，全部finite，auxiliary `requires_grad=false`。两步AMD parameter、AMD persistent buffer和global-only最大变化始终0；step1非gamma forecast最大变化0，step2为`1.7639482394e-5`；全部parameter/buffer finite。Top-level=false、T2=true、非TEB/AMD BatchNorm/dropout均eval、T2 dropout=train；CPU RNG未消费，CUDA RNG因T2 dropout被消费。该两步仅是工程门禁，不构成candidate训练或性能证据。
+
+`TemporaryDirectory` synthetic A-E均通过：A（训练更差）best_epoch=0、role正确、history=[1,2]、completed=2并被summarizer接受；B（有改善）best_epoch=1/`trained_epoch`并接受；C continuation带lineage/epoch0且无PMCR/TEB并接受；D篡改lineage被拒绝；E仅completed epochs和absolute path不同但稳定identity相同的两个run仍按duplicate拒绝。A/B/C均为schema-v2、精确13/13且系统`sha256sum -c`通过，fixture目录自动回收。
+
+### 37.6 Backward compatibility、fingerprint 与停止点
+
+Standard AMD/U1/Global/T2/T2G/T3/PMCR保持既有CLI、optimizer、best从epoch1、history/metrics/manifest/resume语义；standard scientific/resolved/checkpoint/manifest不携带warm block，历史hash fixture逐值不变。T2 class、source/state keys与所有模型模块/DataLoader字节未改。第十四轮8个U1/U2 completed artifacts再次通过精确13/13 Python/system checksum，未读取其metrics数值，也未迁移或重写artifact。
+
+实现后source fingerprint算法仍为`sha256_length_prefixed_relative_path_and_content_v1`，文件数仍为20，新SHA-256为`4cd47a74687cdcdb7a1288522268a3e3c87a7c59e10cc0dfbc8347cd8aa7a2e6`。M0-M3、baseline、frozen AMD、DataLoader、Global TEB、PMCR、T2/T2G/T3及参考仓库保持不变。
+
+M4继续`In Progress`，TEB adequacy gate继续`remains failed`。本轮没有运行四个真实adapter、没有运行continuation、没有读取新的ETTm1 test、没有创建真实rescue artifact、没有修改T2数学结构、没有新增TEB、没有实现P2、没有进入M5/M7或空间模块。本实现和文档均保持未stage、未commit、未push，等待用户与ChatGPT review；不得自动启动R-min、continuation或Git closure。
+
+### 37.7 第十六轮 state-digest provenance repair
+
+本 repair 不改变当前轮次；M4 仍为第十六轮、状态仍为 **In Progress**。触发点是第十五轮 `legacy_unversioned_audit_digest` 与第十六轮 `pre_repair_production_unversioned_digest` 的两组历史字符串不同：h96 source U1 分别为 `95ebbbb744b9b112207152de728ab35ba21eb98ab87030aa4aeccf072c54dd23` 与 `b4111c4cf3898f8f5617be00ae9f57d2ab8383220447a919388c874be7cfe835`；fresh T2 subset 分别为 `5d079a22f13b7d602aa0eff037452bd8041dea6be84de3037bbfbedc79927ad5` 与 `6bc1bb67afcfce02650a8b5c4dd16c54499778f65f1e893b47c5e1a20e7d12cc`。
+
+保留的本地 Codex session 记录使 legacy 一次性算法得以精确重建，而不是猜测：它按字符串 key 排序，key/dtype/raw length、rank、shape dimension均为8-byte little-endian（dimension signed），无 header/key count。Repair 前 production helper 也已从源码与四 horizon probe逐值复现：key length为4-byte big-endian，dtype length与rank为2-byte big-endian，dimension/raw length为8-byte big-endian，无 header/key count。对同一组 h96 source和fresh T2 tensor同时运行两套已恢复 framing，分别精确得到上述两组历史值；四 horizon legacy 值也逐项重现第十五轮表。因此精确根因是 field-width、endianness 与 framing 合同不同，不是 checkpoint/source mapping 或 underlying tensor state 异常。Fresh initialization digest一般仍依赖精确 RNG 起点和模型构造顺序；本次之所以可把这四个 fresh T2 值归因于 framing，是因为同一内存 tensor同时计算两种 digest，而不是仅凭两次独立构造的字符串比较。
+
+Production 合同现唯一固定为：
+
+```text
+state_digest_contract_version =
+sha256_length_prefixed_state_dict_v1
+
+key_policy =
+exact_state_dict_keys_no_prefix_normalization
+```
+
+输入只允许唯一字符串 key 对应的 dense strided、非 meta、非 quantized tensor；精确 key 不去除或补写任何 prefix，按 UTF-8 bytes 排序。算法只允许 little-endian host。固定 byte stream 为 `sha256_length_prefixed_state_dict_v1\0` header、big-endian uint64 key count；随后每个 tensor写入 `LP(key_utf8)`、`LP(dtype_utf8)`、big-endian uint64 rank、逐维 big-endian uint64 shape、`LP(raw bytes)`，其中 `LP` 为 big-endian uint64 length 加 payload，dtype 使用 `str(tensor.dtype)`，raw bytes 来自 detached CPU contiguous flattened uint8 view 的 NumPy C-order bytes。Device与requires_grad不进入；`torch.save`/pickle、JSON、repr及无 framing 拼接禁止。非 Mapping、非字符串 key、非 tensor、sparse/其他 layout、meta、quantized均拒绝。
+
+四个锁定 U1 source artifact均再次通过精确13-file checksum和系统 `sha256sum -c`；probe不解析 `metrics.json` 数值。Production v1 source/mapped结果如下，且每个 key另由 `torch.equal` 逐 tensor通过：
+
+| H | algorithm | source keys | target AMD keys | source digest | mapped digest | equal |
+|---:|---|---:|---:|---|---|---|
+| 96 | `sha256_length_prefixed_state_dict_v1` | 60 | 60 | `f65b7f01a7a898d31cb56c37131d25db4c7dee1307731282195ff2094962863d` | `f65b7f01a7a898d31cb56c37131d25db4c7dee1307731282195ff2094962863d` | true |
+| 192 | `sha256_length_prefixed_state_dict_v1` | 60 | 60 | `f955deac3265d029658952e5054eda491b1debe9081f59f3b11fc351cfb5b22b` | `f955deac3265d029658952e5054eda491b1debe9081f59f3b11fc351cfb5b22b` | true |
+| 336 | `sha256_length_prefixed_state_dict_v1` | 60 | 60 | `c5b715e1b92393d13f1267eac4d48941ad51d928dd92261cd53db6995414224c` | `c5b715e1b92393d13f1267eac4d48941ad51d928dd92261cd53db6995414224c` | true |
+| 720 | `sha256_length_prefixed_state_dict_v1` | 60 | 60 | `668c9b56934af6d69fda96349b968e47ef88cc86507999f4e84f8effe6ff9d79` | `668c9b56934af6d69fda96349b968e47ef88cc86507999f4e84f8effe6ff9d79` | true |
+
+Fresh T2 subset在相同 mapping 的前后保持19 keys且逐 tensor相等：
+
+| H | algorithm | T2 keys | before digest | after digest | equal |
+|---:|---|---:|---|---|---|
+| 96 | `sha256_length_prefixed_state_dict_v1` | 19 | `32336718131e5dd518a0dbef9c56af792a4bed45fa44ed0d4a14a94811fba308` | `32336718131e5dd518a0dbef9c56af792a4bed45fa44ed0d4a14a94811fba308` | true |
+| 192 | `sha256_length_prefixed_state_dict_v1` | 19 | `2ec396db15c68e11dc7dc8a3b8656bb4d9df45573fa21ce04b30d241066ff8d0` | `2ec396db15c68e11dc7dc8a3b8656bb4d9df45573fa21ce04b30d241066ff8d0` | true |
+| 336 | `sha256_length_prefixed_state_dict_v1` | 19 | `ad78513c9460612e3c2be8e88d81bf2aa67b1a7b5e72844e411a7e5b4825307b` | `ad78513c9460612e3c2be8e88d81bf2aa67b1a7b5e72844e411a7e5b4825307b` | true |
+| 720 | `sha256_length_prefixed_state_dict_v1` | 19 | `a95d2c2e035c58569f8fae6d84c0dec57cd692d1a7dfd73acced0156c0f933cf` | `a95d2c2e035c58569f8fae6d84c0dec57cd692d1a7dfd73acced0156c0f933cf` | true |
+
+Atomic mapping/rollback的全部 production call site统一使用该唯一 helper，内部 mapping report明确携带版本；失败 mapping前后完整 target v1 digest相同。Digest helper覆盖 parameter与persistent buffer，并以 `torch.equal` 作第二重确定性证明。当前 `source_compatibility_proof_v1` 不存任何 state digest，故本 repair没有增加artifact文件、没有升级schema-v2、没有改变13-file checksum set，也没有修改summarizer sealed contract；`summarize_results.py`与`tests/test_summarize_results.py`的repair前后字节不变。Digest version/value只作为provenance/integrity evidence，不进入scientific/comparison/duplicate identity；standard hash fixture、warm-start identity、completed_epochs/best_epoch identity边界均保持。
+
+永久测试未新增文件，只修改并保留 `tests/test_runner.py`。新增4个test methods，覆盖版本常量与empty golden、重复/插入顺序/deep clone、non-contiguous/contiguous、device/requires_grad、value/dtype/shape/key/key-set敏感性、非法mapping/value/sparse/meta/quantized拒绝；既有四source mapping测试增补source/mapped与fresh before/after v1 digest，既有失败mapping测试继续覆盖rollback无污染，身份测试确认diagnostic digest变化不改变scientific identity。Runner定向52/52通过；runner+summarizer保护77/77通过；完整回归237/237通过（failed=0、skipped=0），原233项全部保留。CUDA digest CPU canonicalization测试和既有CUDA回归均在NVIDIA A800 80GB PCIe上实际执行；既有1e-6门槛未放宽。
+
+Repair后 executable source fingerprint为 `sha256_length_prefixed_relative_path_and_content_v1`、20 files、`f3a0a9de6bb3296437202c5a9ba4cebfd88424191232db212f55d151db144a4a`。只读probe目录为 `/tmp/m4_state_digest_repair_BaHgLwK3/`，只包含临时script/result/log，结束前删除。Probe只做四个source strict restore、fresh T2构造、state subset、mapping、`torch.equal`与digest；未构造DataLoader、未执行model forward/backward、未创建optimizer或artifact。
+
+Warm-start source preflight、60→79原子映射、19个fresh T2 keys、gamma=0、epoch-0 parity、freeze/mixed mode、15/4 tensor scope、epoch-0 selection、identity隔离、233项原回归、h96 two-step smoke与synthetic artifact lifecycle的第十六轮既有结论均不因digest framing消歧而撤销。本 repair没有运行真实adapter训练、validation/test、R-min或continuation，没有创建/修改真实artifact，没有修改模型/DataLoader或第十四轮8个artifact。TEB adequacy gate remains failed，P2未启动，M4保持In Progress；Git closure仍未授权，本轮不stage、不commit、不push。

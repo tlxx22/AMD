@@ -15,6 +15,7 @@ import time
 import traceback
 import uuid
 import warnings
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -108,9 +109,216 @@ ENHANCED_CHECKSUM_FILES = (
     "data_fingerprint.json",
 )
 
+STANDARD_TRAINING_PROTOCOL = "standard_from_scratch"
+T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
+U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
+WARM_START_TRAINING_PROTOCOLS = (
+    T2_ADAPTER_TRAINING_PROTOCOL,
+    U1_CONTINUATION_TRAINING_PROTOCOL,
+)
+WARM_START_CONTRACT_VERSION = "warm_start_contract_v1"
+SOURCE_COMPATIBILITY_PROOF_VERSION = "source_compatibility_proof_v1"
+STATE_DICT_DIGEST_CONTRACT_VERSION = "sha256_length_prefixed_state_dict_v1"
+SOURCE_CHECKPOINT_ROLE_BEST = "best"
+T2_ADAPTER_ABLATION_ID = "M4_T2_ADAPTER"
+U1_CONTINUATION_ABLATION_ID = "M4_U1_CONTINUATION"
+M4_U1_SOURCE_COMMIT = "be2185c3382ec42c7287e4bcc9b2cad5c07fdbad"
+M4_U1_SOURCE_FINGERPRINT = (
+    "bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e"
+)
+M4_U1_DATA_FINGERPRINT = (
+    "6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e"
+)
+M4_U1_SCHEMA_FINGERPRINT = (
+    "f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc"
+)
+
+SOURCE_COMPATIBILITY_CRITICAL_FILES = (
+    "models/tsAMD.py",
+    "models/common.py",
+    "models/tsmoe.py",
+    "models/tsAMD_enhanced.py",
+    "models/modules/__init__.py",
+    "models/modules/patch_conditioned_target_exogenous_bridge.py",
+    "utils/dataloader.py",
+)
+
+T2_ADAPTER_FORECAST_PARAMETER_NAMES = (
+    "teb.gamma_teb",
+    "teb.patch_query_projection.weight",
+    "teb.patch_query_projection.bias",
+    "teb.patch_query_norm.weight",
+    "teb.patch_query_norm.bias",
+    "teb.exogenous_projection.weight",
+    "teb.exogenous_projection.bias",
+    "teb.exogenous_norm.weight",
+    "teb.exogenous_norm.bias",
+    "teb.cross_attention.in_proj_weight",
+    "teb.cross_attention.in_proj_bias",
+    "teb.cross_attention.out_proj.weight",
+    "teb.cross_attention.out_proj.bias",
+    "teb.patch_output_projection.weight",
+    "teb.patch_output_projection.bias",
+)
+T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES = (
+    "teb.global_query_projection.weight",
+    "teb.global_query_projection.bias",
+    "teb.global_query_norm.weight",
+    "teb.global_query_norm.bias",
+)
+T2_ADAPTER_FORECAST_PARAMETER_COUNT = 22881
+T2_ADAPTER_GLOBAL_ONLY_PARAMETER_COUNT = 16480
+
+M4_U1_SOURCE_IDENTITIES = {
+    96: {
+        "run_id": "20260901T095811.286299Z-6e33fa77",
+        "config_hash": "fa2c4da41f34eca232907e4d6462305cb8ef3ef15fc8996f7c67baa0411ddb2d",
+        "best_epoch": 7,
+        "checkpoint_sha256": "66458be335ac7948889156bf6a7a91af7221f3b75838a1522fd701e8e78b42d0",
+        "comparison_config_hash": "4fbf51cca6fa7bad95bc8e35ddfc416d6dc45a78c331aead19e007f6d24ef74b",
+    },
+    192: {
+        "run_id": "20260901T100147.203364Z-f03509fd",
+        "config_hash": "1585152dbf1ff74d935f7404f8b2699881b85c7224252371e939db585f2611d0",
+        "best_epoch": 3,
+        "checkpoint_sha256": "f8b0308578b10f09ade232cf2c6ac2e7826b1e28ceb994c2a321d44c4563be6a",
+        "comparison_config_hash": "771cdff549663c52cc213c5cfaf9ed731362ce5b544457776bf7653ff0c950bf",
+    },
+    336: {
+        "run_id": "20260901T100520.627934Z-0c9f399c",
+        "config_hash": "45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5",
+        "best_epoch": 3,
+        "checkpoint_sha256": "89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530",
+        "comparison_config_hash": "8ccb82795987bd3df127f1cd087c8da7ff2cae53ee1d8c282fd565e730392d4b",
+    },
+    720: {
+        "run_id": "20260901T100834.831317Z-5f71979f",
+        "config_hash": "93ddc59a0879b435a4cf4742e76c75460c254283ca00b2138164c4fe735d51cd",
+        "best_epoch": 7,
+        "checkpoint_sha256": "a13126522bb2cf8f5871c46272222242b8ebb6077145658558199c9473ba109b",
+        "comparison_config_hash": "3f5f973cd636b205f813ba4589845c5a5ffb91fdf86a379726dd2cc6d039c291",
+    },
+}
+
 
 def _is_enhanced_variant(value):
     return value in ENHANCED_IMPLEMENTATION_VARIANTS
+
+
+def _is_warm_start_protocol(value):
+    return value in WARM_START_TRAINING_PROTOCOLS
+
+
+def _validate_training_protocol_contract(args):
+    """Validate M4 warm-start identities before any artifact path is created."""
+
+    protocol = args.training_protocol_id
+    source_fields = (
+        args.source_artifact_path,
+        args.source_checkpoint_role,
+        args.source_checkpoint_sha256,
+    )
+    if protocol == STANDARD_TRAINING_PROTOCOL:
+        if args.warm_start_contract_version is not None or any(
+            value is not None for value in source_fields
+        ):
+            raise ValueError(
+                "standard_from_scratch must not carry warm-start source fields"
+            )
+        return args
+    if protocol not in WARM_START_TRAINING_PROTOCOLS:
+        raise ValueError(f"unsupported training protocol: {protocol!r}")
+    if args.warm_start_contract_version != WARM_START_CONTRACT_VERSION:
+        raise ValueError(
+            f"{protocol} requires warm_start_contract_version="
+            f"{WARM_START_CONTRACT_VERSION}"
+        )
+    if args.source_artifact_path is None:
+        raise ValueError(f"{protocol} requires source_artifact_path")
+    if args.source_checkpoint_role != SOURCE_CHECKPOINT_ROLE_BEST:
+        raise ValueError(f"{protocol} requires source_checkpoint_role=best")
+    if (
+        not isinstance(args.source_checkpoint_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", args.source_checkpoint_sha256) is None
+    ):
+        raise ValueError(
+            f"{protocol} requires a lowercase 64-hex source checkpoint SHA-256"
+        )
+
+    expected_common = {
+        "dataset_id": "ETTm1",
+        "task_mode": TARGET_EXOGENOUS,
+        "feature_type": "MS",
+        "target": "OT",
+        "target_idx": 6,
+        "aux_idx": (0, 1, 2, 3, 4, 5),
+        "seq_len": 512,
+        "seed": 2024,
+        "train_epochs": 10,
+        "learning_rate": 3e-5,
+        "fold": "official",
+    }
+    mismatches = {
+        name: (expected, getattr(args, name))
+        for name, expected in expected_common.items()
+        if getattr(args, name) != expected
+    }
+    if args.artifact_horizon not in {96, 192, 336, 720}:
+        mismatches["artifact_horizon"] = (
+            "one of {96,192,336,720}", args.artifact_horizon
+        )
+    if args.pred_len != args.artifact_horizon:
+        mismatches["pred_len"] = (args.artifact_horizon, args.pred_len)
+    expected_features = (
+        "HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"
+    )
+    if tuple(args.feature_names) != expected_features:
+        mismatches["feature_names"] = (expected_features, tuple(args.feature_names))
+
+    if protocol == T2_ADAPTER_TRAINING_PROTOCOL:
+        expected_adapter = {
+            "implementation_variant": T2_IMPLEMENTATION_VARIANT,
+            "ablation_id": T2_ADAPTER_ABLATION_ID,
+            "use_pmcr": False,
+            "use_teb": True,
+            "teb_architecture": PATCH_CONDITIONED_V1,
+            "teb_context_dim": 32,
+            "teb_heads": 4,
+            "teb_dropout": 0.1,
+            "teb_gamma_init": 1e-3,
+            "teb_patch_size": 32,
+            "teb_patch_padding": RIGHT_ZERO_CROP,
+            "teb_patch_position": FIXED_SINUSOIDAL,
+            "weight_decay": 0.0,
+        }
+        mismatches.update({
+            name: (expected, getattr(args, name))
+            for name, expected in expected_adapter.items()
+            if getattr(args, name) != expected
+        })
+    else:
+        expected_continuation = {
+            "implementation_variant": ENHANCED_IMPLEMENTATION_VARIANT,
+            "ablation_id": U1_CONTINUATION_ABLATION_ID,
+            "use_pmcr": False,
+            "use_teb": False,
+            "teb_architecture": GLOBAL_TEB_V1,
+            "weight_decay": PAPER_WEIGHT_DECAY,
+        }
+        mismatches.update({
+            name: (expected, getattr(args, name))
+            for name, expected in expected_continuation.items()
+            if getattr(args, name) != expected
+        })
+    if mismatches:
+        raise ValueError(
+            f"{protocol} contract mismatch: "
+            + ", ".join(
+                f"{name} expected {expected!r}, got {observed!r}"
+                for name, (expected, observed) in sorted(mismatches.items())
+            )
+        )
+    return args
 
 
 def _t2_candidate_contract(args):
@@ -258,6 +466,7 @@ def parse_args(argv=None):
             "U0", "U1", "U2", "U3", "U4", "target_only_pmcr",
             "M0", "M1", "M2", "M3",
             "M4_T2", "M4_T2G", "M4_T3",
+            T2_ADAPTER_ABLATION_ID, U1_CONTINUATION_ABLATION_ID,
         ],
     )
 
@@ -398,6 +607,24 @@ def parse_args(argv=None):
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--learning_rate", type=float, default=0.00005)
     parser.add_argument("--weight_decay", type=float, default=PAPER_WEIGHT_DECAY)
+
+    parser.add_argument(
+        "--training_protocol_id",
+        default=STANDARD_TRAINING_PROTOCOL,
+        choices=(STANDARD_TRAINING_PROTOCOL, *WARM_START_TRAINING_PROTOCOLS),
+    )
+    parser.add_argument(
+        "--warm_start_contract_version",
+        default=None,
+        choices=[WARM_START_CONTRACT_VERSION],
+    )
+    parser.add_argument("--source_artifact_path", default=None)
+    parser.add_argument(
+        "--source_checkpoint_role",
+        default=None,
+        choices=[SOURCE_CHECKPOINT_ROLE_BEST],
+    )
+    parser.add_argument("--source_checkpoint_sha256", default=None)
 
     parser.add_argument(
         "--artifact_root", type=str, default=None,
@@ -745,6 +972,11 @@ def _prepare_enhanced_contract(args):
             T2G_IMPLEMENTATION_VARIANT: "M4_T2G",
             T3_IMPLEMENTATION_VARIANT: "M4_T3",
         }[args.implementation_variant]
+        if (
+            args.implementation_variant == T2_IMPLEMENTATION_VARIANT
+            and args.training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+        ):
+            expected_ablation = T2_ADAPTER_ABLATION_ID
         required_patch = {
             "teb_patch_size": args.teb_patch_size,
             "teb_patch_padding": args.teb_patch_padding,
@@ -867,6 +1099,9 @@ def _prepare_enhanced_contract(args):
         expected = {
             "U0": (False, False, False, "AMD-TargetOnly"),
             "U1": (False, False, True, "AMD-Concat"),
+            U1_CONTINUATION_ABLATION_ID: (
+                False, False, True, "AMD-Concat continuation"
+            ),
             "U2": (False, True, True, "AMD-Concat + TEB"),
             "U3": (True, False, True, "AMD-Concat + PMCR"),
             "U4": (True, True, True, "EL-AMD"),
@@ -879,7 +1114,8 @@ def _prepare_enhanced_contract(args):
         }
         if args.ablation_id not in expected:
             raise ValueError(
-                "target_exogenous ablation_id must be U0--U4 or target_only_pmcr"
+                "target_exogenous ablation_id must be U0--U4, "
+                "M4_U1_CONTINUATION, or target_only_pmcr"
             )
         expected_pmcr, expected_teb, expected_aux, display = expected[
             args.ablation_id
@@ -951,6 +1187,10 @@ def prepare_args(args):
     args.data = str(_absolute_path(args.data))
     args.artifact_root = str(_absolute_path(args.artifact_root))
     args.resume = str(_absolute_path(args.resume)) if args.resume else None
+    args.source_artifact_path = (
+        str(_absolute_path(args.source_artifact_path))
+        if args.source_artifact_path else None
+    )
     args.dataset_id = _safe_component(args.dataset_id or Path(args.data).stem, "dataset_id")
     args.name = str(args.name).strip() or args.dataset_id
 
@@ -989,13 +1229,18 @@ def prepare_args(args):
         raise ValueError("dropout must satisfy 0 <= dropout < 1")
     if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         raise ValueError("learning_rate must be finite and positive")
+    expected_weight_decay = (
+        0.0
+        if args.training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+        else PAPER_WEIGHT_DECAY
+    )
     if (
         not math.isfinite(args.weight_decay)
-        or args.weight_decay != PAPER_WEIGHT_DECAY
+        or args.weight_decay != expected_weight_decay
     ):
         raise ValueError(
-            f"{args.implementation_variant} fixes weight_decay at {PAPER_WEIGHT_DECAY:g}; "
-            f"got {args.weight_decay:g}"
+            f"{args.training_protocol_id} fixes weight_decay at "
+            f"{expected_weight_decay:g}; got {args.weight_decay:g}"
         )
     if args.implementation_variant == BASELINE_IMPLEMENTATION_VARIANT:
         baseline_only_values = {
@@ -1036,8 +1281,9 @@ def prepare_args(args):
                 + ", ".join(configured)
             )
         args.display_name = "AMD"
-        return args
-    return _prepare_enhanced_contract(args)
+        return _validate_training_protocol_contract(args)
+    args = _prepare_enhanced_contract(args)
+    return _validate_training_protocol_contract(args)
 
 
 def _utc_now():
@@ -1096,6 +1342,633 @@ def source_fingerprint_metadata(root=ROOT):
             {"path": path.relative_to(root).as_posix(), "sha256": sha256_file(path)}
             for path in _source_files(root)
         ],
+    }
+
+
+def _state_dict_digest(state_dict):
+    """Return sha256_length_prefixed_state_dict_v1 for a tensor mapping.
+
+    The input is a Mapping[str, torch.Tensor] with exact keys: this helper
+    never strips, adds, or rewrites prefixes. Keys are sorted by their UTF-8
+    bytes. The SHA-256 byte stream is the UTF-8 contract name followed by a
+    NUL byte and a big-endian uint64 key count. Each tensor contributes, in
+    order, an LP-encoded key, an LP-encoded str(dtype), a big-endian uint64
+    rank, one big-endian uint64 per shape dimension, and LP-encoded raw bytes.
+    LP(payload) is a big-endian uint64 payload length followed by the payload.
+    Raw bytes come from detach -> CPU -> contiguous -> flatten -> uint8 view
+    -> NumPy C-order bytes. Device and requires_grad are not encoded;
+    torch.save/pickle is never involved.
+
+    Version 1 is defined only on little-endian hosts and accepts only dense
+    strided, non-meta, non-quantized tensors. Non-string keys, non-tensor
+    values, sparse/other-layout tensors, meta tensors, and quantized tensors
+    are rejected instead of producing a superficially comparable digest.
+    """
+
+    if sys.byteorder != "little":
+        raise RuntimeError(
+            f"{STATE_DICT_DIGEST_CONTRACT_VERSION} requires a little-endian host"
+        )
+    if not isinstance(state_dict, Mapping):
+        raise TypeError("state_dict digest input must be a mapping")
+
+    encoded_items = []
+    for key, value in state_dict.items():
+        if not isinstance(key, str):
+            raise TypeError("state_dict digest keys must be strings")
+        if not torch.is_tensor(value):
+            raise TypeError(f"state_dict value is not a tensor: {key}")
+        if value.is_meta:
+            raise TypeError(f"state_dict tensor is meta: {key}")
+        if value.layout != torch.strided:
+            raise TypeError(f"state_dict tensor is not dense strided: {key}")
+        if value.is_quantized:
+            raise TypeError(f"state_dict tensor is quantized: {key}")
+        encoded_items.append((key.encode("utf-8"), key, value))
+
+    def length_prefixed(payload):
+        return len(payload).to_bytes(8, "big", signed=False) + payload
+
+    digest = hashlib.sha256()
+    digest.update(STATE_DICT_DIGEST_CONTRACT_VERSION.encode("utf-8") + b"\0")
+    digest.update(len(encoded_items).to_bytes(8, "big", signed=False))
+    for key_bytes, key, value in sorted(encoded_items, key=lambda item: item[0]):
+        tensor = value.detach().to(device="cpu").contiguous()
+        dtype_bytes = str(tensor.dtype).encode("utf-8")
+        raw = (
+            tensor.reshape(-1)
+            .view(torch.uint8)
+            .numpy()
+            .tobytes(order="C")
+        )
+        digest.update(length_prefixed(key_bytes))
+        digest.update(length_prefixed(dtype_bytes))
+        digest.update(tensor.ndim.to_bytes(8, "big", signed=False))
+        for dimension in tensor.shape:
+            digest.update(int(dimension).to_bytes(8, "big", signed=False))
+        digest.update(length_prefixed(raw))
+    return digest.hexdigest()
+
+
+def _read_json_object(path, label):
+    try:
+        value = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"cannot read valid {label} JSON: {path}") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"{label} must contain a JSON object: {path}")
+    return value
+
+
+def _comparison_config_hash_from_scientific(scientific, train_epochs):
+    comparison = deepcopy(scientific)
+    try:
+        del comparison["execution"]["seed"]
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError("source scientific config has no execution seed") from exc
+    comparison["completed_train_epochs"] = int(train_epochs)
+    return stable_hash(comparison)
+
+
+def _validate_and_map_source_state(
+    model,
+    source_state,
+    training_protocol_id,
+    *,
+    apply_mapping=True,
+):
+    """Validate a complete source mapping before atomically changing the model."""
+
+    if not isinstance(source_state, dict):
+        raise RuntimeError("source checkpoint model_state must be a dictionary")
+    target_before = _cpu_state_dict(model.state_dict())
+    target_digest_before = _state_dict_digest(target_before)
+    source_keys = set(source_state)
+    target_keys = set(target_before)
+    unexpected = sorted(source_keys - target_keys)
+    allowed_missing = sorted(target_keys - source_keys)
+    if training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL:
+        if len(source_keys) != 60 or len(target_keys) != 79:
+            raise RuntimeError(
+                "adapter source/target state key count mismatch: "
+                f"{len(source_keys)} != 60 or {len(target_keys)} != 79"
+            )
+        if len(allowed_missing) != 19 or any(
+            not key.startswith("teb.") for key in allowed_missing
+        ):
+            raise RuntimeError(
+                "adapter allowed missing keys must be exactly the 19 fresh teb.* keys"
+            )
+    elif training_protocol_id == U1_CONTINUATION_TRAINING_PROTOCOL:
+        if len(source_keys) != 60 or len(target_keys) != 60 or allowed_missing:
+            raise RuntimeError(
+                "continuation requires identical 60-key U1 source/target structures"
+            )
+    else:
+        raise RuntimeError(
+            f"state mapping is not defined for {training_protocol_id!r}"
+        )
+    if unexpected:
+        raise RuntimeError(f"source checkpoint has unexpected keys: {unexpected}")
+    if any(key.startswith(("pmcr.", "teb.")) for key in source_keys):
+        raise RuntimeError("source U1 state must not contain pmcr.* or teb.* keys")
+
+    shape_mismatches = []
+    dtype_mismatches = []
+    for key in sorted(source_keys):
+        source_tensor = source_state[key]
+        target_tensor = target_before[key]
+        if not torch.is_tensor(source_tensor):
+            raise RuntimeError(f"source state value is not a tensor: {key}")
+        if tuple(source_tensor.shape) != tuple(target_tensor.shape):
+            shape_mismatches.append({
+                "key": key,
+                "source": list(source_tensor.shape),
+                "target": list(target_tensor.shape),
+            })
+        if source_tensor.dtype != target_tensor.dtype:
+            dtype_mismatches.append({
+                "key": key,
+                "source": str(source_tensor.dtype),
+                "target": str(target_tensor.dtype),
+            })
+    if shape_mismatches:
+        raise RuntimeError(f"source tensor shape mismatch: {shape_mismatches}")
+    if dtype_mismatches:
+        raise RuntimeError(f"source tensor dtype mismatch: {dtype_mismatches}")
+
+    mapping = {
+        "state_digest_contract_version": STATE_DICT_DIGEST_CONTRACT_VERSION,
+        "source_state_key_count": len(source_keys),
+        "target_state_key_count": len(target_keys),
+        "mapped_key_count": len(source_keys),
+        "allowed_missing_keys": allowed_missing,
+        "unexpected_keys": unexpected,
+        "shape_mismatches": shape_mismatches,
+        "dtype_mismatches": dtype_mismatches,
+        "target_state_digest_before": target_digest_before,
+    }
+    if not apply_mapping:
+        mapping["target_state_digest_after"] = target_digest_before
+        return mapping
+
+    merged = _cpu_state_dict(target_before)
+    for key in sorted(source_keys):
+        merged[key] = source_state[key].detach().cpu().clone()
+    try:
+        model.load_state_dict(merged, strict=True)
+    except BaseException:
+        model.load_state_dict(target_before, strict=True)
+        if _state_dict_digest(model.state_dict()) != target_digest_before:
+            raise RuntimeError(
+                "source mapping failed and target model restoration was not exact"
+            )
+        raise
+
+    mapped_state = model.state_dict()
+    for key in sorted(source_keys):
+        if not torch.equal(
+            mapped_state[key].detach().cpu(), source_state[key].detach().cpu()
+        ):
+            model.load_state_dict(target_before, strict=True)
+            raise RuntimeError(f"source mapping did not preserve tensor {key}")
+    for key in allowed_missing:
+        if not torch.equal(
+            mapped_state[key].detach().cpu(), target_before[key].detach().cpu()
+        ):
+            model.load_state_dict(target_before, strict=True)
+            raise RuntimeError(f"source mapping changed fresh target tensor {key}")
+    mapping["target_state_digest_after"] = _state_dict_digest(mapped_state)
+    return mapping
+
+
+def _zero_adapter_gamma(model):
+    """Apply the locked no-RNG gamma-zero policy after fresh T2 construction."""
+
+    if not hasattr(model, "teb") or not hasattr(model.teb, "gamma_teb"):
+        raise RuntimeError("adapter target model has no teb.gamma_teb")
+    before = _cpu_state_dict(model.state_dict())
+    cpu_rng_before = torch.get_rng_state().clone()
+    cuda_rng_before = (
+        [state.clone() for state in torch.cuda.get_rng_state_all()]
+        if torch.cuda.is_available() else None
+    )
+    with torch.no_grad():
+        model.teb.gamma_teb.zero_()
+    cpu_rng_after = torch.get_rng_state()
+    cuda_rng_after = (
+        torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+    )
+    if not torch.equal(cpu_rng_before, cpu_rng_after):
+        raise RuntimeError("gamma-zero policy consumed CPU RNG")
+    if cuda_rng_before is not None and (
+        len(cuda_rng_before) != len(cuda_rng_after)
+        or any(
+            not torch.equal(left, right)
+            for left, right in zip(cuda_rng_before, cuda_rng_after)
+        )
+    ):
+        raise RuntimeError("gamma-zero policy consumed CUDA RNG")
+    after = model.state_dict()
+    changed = [
+        key for key in sorted(before)
+        if not torch.equal(before[key], after[key].detach().cpu())
+    ]
+    if changed != ["teb.gamma_teb"]:
+        raise RuntimeError(f"gamma-zero policy changed unexpected tensors: {changed}")
+    if float(model.teb.gamma_teb.detach().cpu().item()) != 0.0:
+        raise RuntimeError("effective adapter gamma was not set exactly to zero")
+    return {
+        "cpu_rng_unchanged": True,
+        "cuda_rng_unchanged": True,
+        "changed_keys": changed,
+        "effective_teb_gamma_init": 0.0,
+    }
+
+
+def _training_protocol_block(args):
+    """Return the sealed training policy; standard defaults stay out of old hashes."""
+
+    if args.training_protocol_id == STANDARD_TRAINING_PROTOCOL:
+        return {
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "warm_start_contract_version": None,
+        }
+    adapter = args.training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+    return {
+        "training_protocol_id": args.training_protocol_id,
+        "warm_start_contract_version": WARM_START_CONTRACT_VERSION,
+        "initialization_policy": (
+            "source_u1_amd_plus_fresh_t2"
+            if adapter else "source_u1_same_structure"
+        ),
+        "backbone_parameter_policy": "frozen" if adapter else "trainable",
+        "backbone_buffer_policy": "frozen" if adapter else "train_updates",
+        "backbone_module_mode": "eval" if adapter else "train",
+        "adapter_module_mode": "train" if adapter else None,
+        "adapter_trainable_scope": (
+            "forecast_connected_t2_only" if adapter else None
+        ),
+        "adapter_trainable_parameter_names": (
+            list(T2_ADAPTER_FORECAST_PARAMETER_NAMES) if adapter else None
+        ),
+        "adapter_trainable_tensor_count": 15 if adapter else None,
+        "adapter_trainable_parameter_count": (
+            T2_ADAPTER_FORECAST_PARAMETER_COUNT if adapter else None
+        ),
+        "global_query_parameter_policy": "frozen" if adapter else None,
+        "global_query_parameter_names": (
+            list(T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES) if adapter else None
+        ),
+        "global_query_tensor_count": 4 if adapter else None,
+        "global_query_parameter_count": (
+            T2_ADAPTER_GLOBAL_ONLY_PARAMETER_COUNT if adapter else None
+        ),
+        "optimizer_state_policy": "fresh",
+        "optimizer_parameter_scope": (
+            "exact_forecast_connected_t2_only" if adapter else "all_amd_parameters"
+        ),
+        "optimizer_parameter_names": (
+            list(T2_ADAPTER_FORECAST_PARAMETER_NAMES) if adapter else None
+        ),
+        "optimizer_name": "Adam",
+        "adapter_learning_rate": args.learning_rate if adapter else None,
+        "adapter_weight_decay": args.weight_decay if adapter else None,
+        "adapter_seed": args.seed if adapter else None,
+        "continuation_learning_rate": args.learning_rate if not adapter else None,
+        "continuation_weight_decay": args.weight_decay if not adapter else None,
+        "teb_constructor_gamma_init": args.teb_gamma_init if adapter else None,
+        "gamma_initialization_policy": (
+            "zero_after_fresh_t2_initialization" if adapter else None
+        ),
+        "effective_teb_gamma_init": 0.0 if adapter else None,
+        "epoch_zero_selection_policy": "included_strict_improvement",
+        "epoch_zero_checkpoint_role": "source_equivalent_initialization",
+        "max_adapter_epochs": args.train_epochs if adapter else None,
+        "max_continuation_epochs": args.train_epochs if not adapter else None,
+        "stopping_policy": "fixed_budget_no_early_stopping",
+        "training_objective_policy": (
+            "prediction_mse_plus_frozen_selector_auxiliary"
+            if adapter else "prediction_mse_plus_selector_auxiliary"
+        ),
+    }
+
+
+def _warm_resume_identity(args):
+    """Read sealed target-run identity without reopening the U1 source artifact."""
+
+    resume = Path(args.resume)
+    run_dir = resume.parent if resume.is_file() else resume
+    config = _read_json_object(
+        run_dir / "config.resolved.json", "warm-start resume resolved config"
+    )
+    expected_protocol = _training_protocol_block(args)
+    if config.get("training_protocol") != expected_protocol:
+        raise RuntimeError("warm-start resume training protocol mismatch")
+    lineage = config.get("source_lineage")
+    proof = config.get("source_compatibility_proof")
+    if not isinstance(lineage, dict) or not isinstance(proof, dict):
+        raise RuntimeError("warm-start resume lineage/proof is missing")
+    if (
+        lineage.get("source_checkpoint_role") != args.source_checkpoint_role
+        or lineage.get("source_checkpoint_sha256")
+        != args.source_checkpoint_sha256
+    ):
+        raise RuntimeError("warm-start resume source checkpoint identity mismatch")
+    restored_lineage = deepcopy(lineage)
+    restored_lineage["source_artifact_path"] = args.source_artifact_path
+    return {
+        "source_lineage": restored_lineage,
+        "source_compatibility_proof": deepcopy(proof),
+    }
+
+
+def _preflight_warm_start_source(
+    args,
+    target_model,
+    data_sha256,
+    target_exogenous_schema,
+    current_source_document,
+    *,
+    apply_mapping,
+):
+    """Verify sealed U1 lineage and optionally atomically initialize the target."""
+
+    source_dir = Path(args.source_artifact_path).resolve()
+    if not source_dir.is_dir():
+        raise FileNotFoundError(f"source artifact directory not found: {source_dir}")
+    if source_dir.name.startswith(".") and source_dir.name.endswith(".staging"):
+        raise RuntimeError("source artifact must be an immutable completed directory")
+
+    checksums = verify_checksums(source_dir)
+    verify_checksums_with_sha256sum(source_dir)
+    config = _read_json_object(
+        source_dir / "config.resolved.json", "source resolved config"
+    )
+    manifest = _read_json_object(source_dir / "manifest.json", "source manifest")
+    source_document = _read_json_object(
+        source_dir / "source_fingerprint.json", "source fingerprint"
+    )
+    data_document = _read_json_object(
+        source_dir / "data_fingerprint.json", "source data fingerprint"
+    )
+    checkpoint_path = source_dir / "best.pt"
+    actual_checkpoint_sha256 = sha256_file(checkpoint_path)
+    if actual_checkpoint_sha256 != args.source_checkpoint_sha256:
+        raise RuntimeError(
+            "source best.pt SHA-256 mismatch: "
+            f"{actual_checkpoint_sha256} != {args.source_checkpoint_sha256}"
+        )
+    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    if not isinstance(checkpoint, dict):
+        raise RuntimeError("source best.pt must contain a dictionary")
+
+    scientific = config.get("scientific_config")
+    dataset = scientific.get("dataset") if isinstance(scientific, dict) else None
+    model = scientific.get("model") if isinstance(scientific, dict) else None
+    experiment = scientific.get("experiment") if isinstance(scientific, dict) else None
+    execution = scientific.get("execution") if isinstance(scientific, dict) else None
+    source_metadata = config.get("source")
+    source_git = (
+        source_metadata.get("git") if isinstance(source_metadata, dict) else None
+    )
+    run_config = config.get("run")
+    if not all(
+        isinstance(value, dict)
+        for value in (
+            scientific, dataset, model, experiment, execution,
+            source_metadata, source_git, run_config,
+        )
+    ):
+        raise RuntimeError("source config is missing scientific/source/run metadata")
+    config_hash = config.get("config_hash")
+    if (
+        not isinstance(config_hash, str)
+        or stable_hash(scientific) != config_hash
+        or manifest.get("config_hash") != config_hash
+        or checkpoint.get("config_hash") != config_hash
+    ):
+        raise RuntimeError("source scientific/config/checkpoint hash mismatch")
+
+    expected_top = {
+        "schema_version": SCHEMA_VERSION,
+        "artifact_schema_version": ENHANCED_ARTIFACT_SCHEMA_VERSION,
+        "implementation_variant": ENHANCED_IMPLEMENTATION_VARIANT,
+    }
+    for label, document in (
+        ("config", config), ("manifest", manifest), ("checkpoint", checkpoint)
+    ):
+        for field, expected in expected_top.items():
+            if document.get(field) != expected:
+                raise RuntimeError(
+                    f"source {label} {field} mismatch: "
+                    f"{document.get(field)!r} != {expected!r}"
+                )
+    if manifest.get("status") != "completed":
+        raise RuntimeError("source artifact status must be completed")
+    if manifest.get("run_id") != source_dir.name:
+        raise RuntimeError("source run_id/path mismatch")
+    expected_source = M4_U1_SOURCE_IDENTITIES[args.artifact_horizon]
+    source_comparison_hash = _comparison_config_hash_from_scientific(
+        scientific, run_config.get("train_epochs")
+    )
+    observed_source_identity = {
+        "run_id": manifest.get("run_id"),
+        "config_hash": config_hash,
+        "best_epoch": checkpoint.get("best_epoch"),
+        "checkpoint_sha256": actual_checkpoint_sha256,
+        "comparison_config_hash": source_comparison_hash,
+    }
+    if observed_source_identity != expected_source:
+        raise RuntimeError(
+            "source artifact is not the locked U1 horizon identity: "
+            f"{observed_source_identity!r}"
+        )
+    if Path(str(manifest.get("artifact_dir", ""))).resolve() != source_dir:
+        raise RuntimeError("source manifest artifact path mismatch")
+    if Path(str(run_config.get("run_dir", ""))).resolve() != source_dir:
+        raise RuntimeError("source resolved run path mismatch")
+    if source_git.get("dirty") is not False:
+        raise RuntimeError("source artifact must record dirty=false")
+    if (
+        source_git.get("commit") != M4_U1_SOURCE_COMMIT
+        or source_document.get("sha256") != M4_U1_SOURCE_FINGERPRINT
+        or data_sha256 != M4_U1_DATA_FINGERPRINT
+        or dataset.get("schema_fingerprint") != M4_U1_SCHEMA_FINGERPRINT
+    ):
+        raise RuntimeError("source commit/fingerprint/data/schema identity mismatch")
+    if (
+        source_metadata.get("sha256") != source_document.get("sha256")
+        or checkpoint.get("resolved_config", {}).get("config_hash") != config_hash
+        or checkpoint.get("resolved_config", {}).get("scientific_config")
+        != scientific
+    ):
+        raise RuntimeError("source executable/checkpoint resolved metadata mismatch")
+    if (
+        experiment.get("ablation_id") != "U1"
+        or model.get("use_pmcr") is not False
+        or model.get("use_teb") is not False
+    ):
+        raise RuntimeError("source must be the PMCR-off/TEB-off U1 structure")
+
+    expected_dataset = {
+        "id": "ETTm1",
+        "task_mode": TARGET_EXOGENOUS,
+        "feature_type": "MS",
+        "target": "OT",
+        "target_idx": 6,
+        "target_indices": [6],
+        "aux_idx": [0, 1, 2, 3, 4, 5],
+        "seq_len": 512,
+        "artifact_horizon": args.artifact_horizon,
+        "label_horizon": args.label_horizon,
+        "model_pred_len": args.model_pred_len,
+        "fold": "official",
+        "sha256": data_sha256,
+        "target_exogenous_schema_contract_version": (
+            TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION
+        ),
+    }
+    observed_dataset = {
+        "id": dataset.get("id"),
+        "task_mode": dataset.get("task_mode"),
+        "feature_type": dataset.get("feature_type"),
+        "target": dataset.get("target"),
+        "target_idx": dataset.get("target_idx"),
+        "target_indices": dataset.get("target_indices"),
+        "aux_idx": dataset.get("aux_idx"),
+        "seq_len": model.get("seq_len"),
+        "artifact_horizon": dataset.get("artifact_horizon"),
+        "label_horizon": dataset.get("label_horizon"),
+        "model_pred_len": dataset.get("model_pred_len"),
+        "fold": str(dataset.get("fold")),
+        "sha256": dataset.get("sha256"),
+        "target_exogenous_schema_contract_version": dataset.get(
+            "target_exogenous_schema_contract_version"
+        ),
+    }
+    if observed_dataset != expected_dataset:
+        raise RuntimeError(
+            f"source task/data/horizon contract mismatch: {observed_dataset!r}"
+        )
+    if manifest.get("target_exogenous_schema") != target_exogenous_schema:
+        raise RuntimeError("source target_exogenous schema mismatch")
+    if (
+        data_document.get("sha256") != data_sha256
+        or manifest.get("data_sha256") != data_sha256
+        or checkpoint.get("data_sha256") != data_sha256
+    ):
+        raise RuntimeError("source data fingerprint mismatch")
+    if checkpoint.get("best_epoch") != manifest.get("best_epoch"):
+        raise RuntimeError("source best checkpoint epoch mismatch")
+    source_best_epoch = checkpoint.get("best_epoch")
+    if (
+        isinstance(source_best_epoch, bool)
+        or not isinstance(source_best_epoch, int)
+        or source_best_epoch <= 0
+    ):
+        raise RuntimeError("source best checkpoint epoch is invalid")
+    if not isinstance(checkpoint.get("model_state"), dict):
+        raise RuntimeError("source best checkpoint has no model state")
+
+    source_files = source_document.get("files")
+    current_files = current_source_document.get("files")
+    if not isinstance(source_files, list) or not isinstance(current_files, list):
+        raise RuntimeError("source/current fingerprint lacks per-file SHA records")
+    source_file_map = {
+        item.get("path"): item.get("sha256")
+        for item in source_files if isinstance(item, dict)
+    }
+    current_file_map = {
+        item.get("path"): item.get("sha256")
+        for item in current_files if isinstance(item, dict)
+    }
+    critical_records = []
+    for relative in SOURCE_COMPATIBILITY_CRITICAL_FILES:
+        source_digest = source_file_map.get(relative)
+        current_digest = current_file_map.get(relative)
+        if (
+            not isinstance(source_digest, str)
+            or not isinstance(current_digest, str)
+            or source_digest != current_digest
+        ):
+            raise RuntimeError(
+                f"source compatibility critical file mismatch: {relative}"
+            )
+        critical_records.append({
+            "path": relative,
+            "source_sha256": source_digest,
+            "current_sha256": current_digest,
+        })
+
+    mapping = _validate_and_map_source_state(
+        target_model,
+        checkpoint["model_state"],
+        args.training_protocol_id,
+        apply_mapping=apply_mapping,
+    )
+    proof = {
+        "contract_version": SOURCE_COMPATIBILITY_PROOF_VERSION,
+        "source_executable_fingerprint": source_document.get("sha256"),
+        "current_executable_fingerprint": current_source_document.get("sha256"),
+        "global_fingerprint_equal": (
+            source_document.get("sha256") == current_source_document.get("sha256")
+        ),
+        "critical_files": critical_records,
+        **{
+            key: mapping[key]
+            for key in (
+                "source_state_key_count", "target_state_key_count",
+                "mapped_key_count", "allowed_missing_keys", "unexpected_keys",
+                "shape_mismatches", "dtype_mismatches",
+            )
+        },
+    }
+    source_train_epochs = run_config.get("train_epochs")
+    if (
+        isinstance(source_train_epochs, bool)
+        or not isinstance(source_train_epochs, int)
+        or source_train_epochs <= 0
+    ):
+        raise RuntimeError("source run train_epochs is invalid")
+    source_lineage = {
+        "source_artifact_path": str(source_dir),
+        "source_run_id": manifest.get("run_id"),
+        "source_implementation_variant": config.get("implementation_variant"),
+        "source_ablation_id": experiment.get("ablation_id"),
+        "source_checkpoint_role": args.source_checkpoint_role,
+        "source_checkpoint_sha256": actual_checkpoint_sha256,
+        "source_config_hash": config_hash,
+        "source_comparison_config_hash": _comparison_config_hash_from_scientific(
+            scientific, source_train_epochs
+        ),
+        "source_commit": source_git.get("commit"),
+        "source_executable_fingerprint": source_document.get("sha256"),
+        "source_data_fingerprint": data_document.get("sha256"),
+        "source_best_epoch": source_best_epoch,
+        "source_task_mode": dataset.get("task_mode"),
+        "source_feature_type": dataset.get("feature_type"),
+        "source_target": dataset.get("target"),
+        "source_target_idx": dataset.get("target_idx"),
+        "source_target_indices": dataset.get("target_indices"),
+        "source_aux_idx": dataset.get("aux_idx"),
+        "source_target_exogenous_schema_version": dataset.get(
+            "target_exogenous_schema_contract_version"
+        ),
+        "source_schema_fingerprint": dataset.get("schema_fingerprint"),
+    }
+    required_lineage = {
+        key: value for key, value in source_lineage.items()
+        if key != "source_artifact_path"
+    }
+    if any(value is None for value in required_lineage.values()):
+        missing = sorted(key for key, value in required_lineage.items() if value is None)
+        raise RuntimeError(f"source lineage fields are missing: {missing}")
+    return {
+        "checksums": checksums,
+        "source_lineage": source_lineage,
+        "source_compatibility_proof": proof,
+        "state_mapping": mapping,
     }
 
 
@@ -1715,6 +2588,112 @@ def evaluate(
     return _finalize_errors(accumulator)
 
 
+def _apply_training_mode(model, training_protocol_id):
+    """Reapply the locked module mode at every training epoch boundary."""
+
+    if training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL:
+        model.eval()
+        if not hasattr(model, "teb"):
+            raise RuntimeError("adapter model has no T2 module")
+        model.teb.train()
+        return
+    model.train()
+
+
+def _configure_protocol_parameters(model, training_protocol_id):
+    """Set and verify the exact parameter scope before optimizer creation."""
+
+    named = dict(model.named_parameters())
+    if training_protocol_id != T2_ADAPTER_TRAINING_PROTOCOL:
+        for parameter in named.values():
+            parameter.requires_grad_(True)
+        return {
+            "trainable_parameter_names": list(named),
+            "trainable_tensor_count": len(named),
+            "trainable_parameter_count": sum(
+                parameter.numel() for parameter in named.values()
+            ),
+            "global_only_parameter_names": [],
+        }
+
+    expected_forecast = set(T2_ADAPTER_FORECAST_PARAMETER_NAMES)
+    expected_global = set(T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES)
+    actual_teb = {name for name in named if name.startswith("teb.")}
+    if actual_teb != expected_forecast | expected_global:
+        raise RuntimeError(
+            "adapter T2 parameter key set mismatch: "
+            f"missing={sorted((expected_forecast | expected_global) - actual_teb)}, "
+            f"unexpected={sorted(actual_teb - (expected_forecast | expected_global))}"
+        )
+    missing = sorted(expected_forecast - set(named))
+    if missing:
+        raise RuntimeError(f"adapter forecast parameter keys are missing: {missing}")
+    for parameter in named.values():
+        parameter.requires_grad_(False)
+    for name in T2_ADAPTER_FORECAST_PARAMETER_NAMES:
+        named[name].requires_grad_(True)
+
+    forecast_count = sum(
+        named[name].numel() for name in T2_ADAPTER_FORECAST_PARAMETER_NAMES
+    )
+    global_count = sum(
+        named[name].numel() for name in T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES
+    )
+    if (
+        len(T2_ADAPTER_FORECAST_PARAMETER_NAMES) != 15
+        or forecast_count != T2_ADAPTER_FORECAST_PARAMETER_COUNT
+        or len(T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES) != 4
+        or global_count != T2_ADAPTER_GLOBAL_ONLY_PARAMETER_COUNT
+    ):
+        raise RuntimeError(
+            "adapter parameter count mismatch: "
+            f"forecast=({len(T2_ADAPTER_FORECAST_PARAMETER_NAMES)}, {forecast_count}), "
+            f"global=({len(T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES)}, {global_count})"
+        )
+    actual_trainable = {
+        name for name, parameter in named.items() if parameter.requires_grad
+    }
+    if actual_trainable != expected_forecast:
+        raise RuntimeError(
+            f"adapter trainable parameter set mismatch: {sorted(actual_trainable)}"
+        )
+    return {
+        "trainable_parameter_names": list(
+            T2_ADAPTER_FORECAST_PARAMETER_NAMES
+        ),
+        "trainable_tensor_count": len(actual_trainable),
+        "trainable_parameter_count": forecast_count,
+        "global_only_parameter_names": list(
+            T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES
+        ),
+        "global_only_tensor_count": len(T2_ADAPTER_GLOBAL_ONLY_PARAMETER_NAMES),
+        "global_only_parameter_count": global_count,
+    }
+
+
+def _build_optimizer(model, args, parameter_scope):
+    """Build a fresh optimizer with a sealed, duplicate-free parameter scope."""
+
+    named = dict(model.named_parameters())
+    if args.training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL:
+        names = parameter_scope["trainable_parameter_names"]
+        parameters = [named[name] for name in names]
+    else:
+        names = list(named)
+        parameters = [named[name] for name in names]
+    if len({id(parameter) for parameter in parameters}) != len(parameters):
+        raise RuntimeError("optimizer parameter scope contains duplicate tensors")
+    if any(not parameter.requires_grad for parameter in parameters):
+        raise RuntimeError("optimizer parameter scope contains frozen tensors")
+    optimizer = torch.optim.Adam(
+        parameters,
+        lr=args.learning_rate,
+        weight_decay=args.weight_decay,
+    )
+    optimizer._amd_parameter_names = tuple(names)
+    return optimizer
+
+
 def train_one_epoch(
     model,
     data_loader,
@@ -1725,10 +2704,12 @@ def train_one_epoch(
     total_epochs,
     show_progress=True,
     task_mode=None,
+    training_protocol_id=STANDARD_TRAINING_PROTOCOL,
 ):
-    model.train()
+    _apply_training_mode(model, training_protocol_id)
     accumulator = {"sse": 0.0, "sae": 0.0, "num_elements": 0, "num_batches": 0}
     objective_sum = 0.0
+    prediction_sum = 0.0
     auxiliary_sum = 0.0
     iterator = tqdm(
         data_loader, desc=f"Train {epoch}/{total_epochs}",
@@ -1757,6 +2738,7 @@ def train_one_epoch(
         optimizer.step()
 
         objective_sum += loss.detach().item()
+        prediction_sum += prediction_loss.detach().item()
         auxiliary_sum += auxiliary_loss.detach().item()
         _accumulate_errors(prediction.detach(), batch_y, accumulator)
         iterator.set_postfix(loss=f"{objective_sum / accumulator['num_batches']:.6g}")
@@ -1764,6 +2746,10 @@ def train_one_epoch(
     metrics = _finalize_errors(accumulator)
     metrics["objective_mean_batches"] = objective_sum / metrics["num_batches"]
     metrics["auxiliary_mean_batches"] = auxiliary_sum / metrics["num_batches"]
+    if _is_warm_start_protocol(training_protocol_id):
+        metrics["prediction_mean_batches"] = (
+            prediction_sum / metrics["num_batches"]
+        )
     return metrics
 
 
@@ -1771,8 +2757,18 @@ def should_update_best(candidate_mse, best_mse):
     return math.isfinite(candidate_mse) and candidate_mse < best_mse
 
 
-def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
-                       environment, target_exogenous_schema=None):
+def _scientific_config(
+    args,
+    data_sha256,
+    source_sha256,
+    preprocessing,
+    device,
+    environment,
+    target_exogenous_schema=None,
+    training_protocol=None,
+    source_lineage=None,
+    source_compatibility_proof=None,
+):
     """Return fields that must match exactly when resuming a run."""
 
     dataset_config = {
@@ -1963,10 +2959,36 @@ def _scientific_config(args, data_sha256, source_sha256, preprocessing, device,
     }
     if experiment is not None:
         result["experiment"] = experiment
+    if _is_warm_start_protocol(args.training_protocol_id):
+        if not all(
+            isinstance(value, dict)
+            for value in (
+                training_protocol, source_lineage, source_compatibility_proof
+            )
+        ):
+            raise RuntimeError("warm-start scientific identity blocks are incomplete")
+        stable_lineage = deepcopy(source_lineage)
+        stable_lineage.pop("source_artifact_path", None)
+        result["training_protocol"] = deepcopy(training_protocol)
+        result["source_lineage"] = stable_lineage
+        result["source_compatibility_proof"] = deepcopy(
+            source_compatibility_proof
+        )
     return result
 
-def _resolved_config(args, scientific, config_hash, run_dir, source, environment):
-    return {
+
+def _resolved_config(
+    args,
+    scientific,
+    config_hash,
+    run_dir,
+    source,
+    environment,
+    training_protocol,
+    source_lineage=None,
+    source_compatibility_proof=None,
+):
+    result = {
         "schema_version": SCHEMA_VERSION,
         "artifact_schema_version": (
             ENHANCED_ARTIFACT_SCHEMA_VERSION
@@ -1987,10 +3009,17 @@ def _resolved_config(args, scientific, config_hash, run_dir, source, environment
         "source": source,
         "environment": environment,
     }
+    if _is_warm_start_protocol(args.training_protocol_id):
+        result.update({
+            "training_protocol": deepcopy(training_protocol),
+            "source_lineage": deepcopy(source_lineage),
+            "source_compatibility_proof": deepcopy(source_compatibility_proof),
+        })
+    return result
 
 
 def _checkpoint_common(resolved_config, config_hash, data_sha256, preprocessing):
-    return {
+    result = {
         "schema_version": SCHEMA_VERSION,
         "artifact_schema_version": resolved_config.get("artifact_schema_version"),
         "implementation_variant": resolved_config["implementation_variant"],
@@ -1999,6 +3028,15 @@ def _checkpoint_common(resolved_config, config_hash, data_sha256, preprocessing)
         "resolved_config": resolved_config,
         "preprocessing": preprocessing,
     }
+    if "training_protocol" in resolved_config:
+        result.update({
+            "training_protocol": deepcopy(resolved_config["training_protocol"]),
+            "source_lineage": deepcopy(resolved_config["source_lineage"]),
+            "source_compatibility_proof": deepcopy(
+                resolved_config["source_compatibility_proof"]
+            ),
+        })
+    return result
 
 
 def _cpu_state_dict(state_dict):
@@ -2020,6 +3058,9 @@ def _load_resume_checkpoint(
     run_id=None,
     artifact_dir=None,
     target_exogenous_schema=None,
+    training_protocol=None,
+    source_lineage=None,
+    source_compatibility_proof=None,
 ):
     run_dir = Path(run_dir)
     run_id = run_dir.name if run_id is None else str(run_id)
@@ -2074,6 +3115,48 @@ def _load_resume_checkpoint(
         != target_exogenous_schema
     ):
         raise RuntimeError("resume target_exogenous schema contract mismatch")
+    expected_protocol = (
+        training_protocol
+        if training_protocol is not None
+        else {
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "warm_start_contract_version": None,
+        }
+    )
+    for label, document in (
+        ("manifest", manifest),
+        ("resolved config", previous_config),
+    ):
+        observed_protocol = document.get("training_protocol")
+        if observed_protocol is None and (
+            expected_protocol.get("training_protocol_id")
+            == STANDARD_TRAINING_PROTOCOL
+        ):
+            observed_protocol = expected_protocol
+        if observed_protocol != expected_protocol:
+            raise RuntimeError(f"resume {label} training protocol mismatch")
+    if _is_warm_start_protocol(expected_protocol["training_protocol_id"]):
+        expected_stable_lineage = deepcopy(source_lineage)
+        expected_stable_lineage.pop("source_artifact_path", None)
+        for label, document in (
+            ("manifest", manifest),
+            ("resolved config", previous_config),
+        ):
+            observed_lineage = document.get("source_lineage")
+            if not isinstance(observed_lineage, dict):
+                raise RuntimeError(f"resume {label} source lineage is missing")
+            observed_stable_lineage = deepcopy(observed_lineage)
+            observed_stable_lineage.pop("source_artifact_path", None)
+            if observed_stable_lineage != expected_stable_lineage:
+                raise RuntimeError(f"resume {label} source lineage mismatch")
+            if (
+                document.get("source_compatibility_proof")
+                != source_compatibility_proof
+            ):
+                raise RuntimeError(
+                    f"resume {label} source compatibility proof mismatch"
+                )
+
     if previous_config.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("resume resolved config schema version mismatch")
     if (
@@ -2122,6 +3205,29 @@ def _load_resume_checkpoint(
         raise RuntimeError("resume checkpoint artifact schema version mismatch")
     if checkpoint.get("implementation_variant") != implementation_variant:
         raise RuntimeError("checkpoint implementation variant mismatch")
+    observed_checkpoint_protocol = checkpoint.get("training_protocol")
+    if observed_checkpoint_protocol is None and (
+        expected_protocol.get("training_protocol_id")
+        == STANDARD_TRAINING_PROTOCOL
+    ):
+        observed_checkpoint_protocol = expected_protocol
+    if observed_checkpoint_protocol != expected_protocol:
+        raise RuntimeError("resume checkpoint training protocol mismatch")
+    if _is_warm_start_protocol(expected_protocol["training_protocol_id"]):
+        checkpoint_lineage = checkpoint.get("source_lineage")
+        if not isinstance(checkpoint_lineage, dict):
+            raise RuntimeError("resume checkpoint source lineage is missing")
+        checkpoint_stable_lineage = deepcopy(checkpoint_lineage)
+        checkpoint_stable_lineage.pop("source_artifact_path", None)
+        expected_stable_lineage = deepcopy(source_lineage)
+        expected_stable_lineage.pop("source_artifact_path", None)
+        if checkpoint_stable_lineage != expected_stable_lineage:
+            raise RuntimeError("resume checkpoint source lineage mismatch")
+        if (
+            checkpoint.get("source_compatibility_proof")
+            != source_compatibility_proof
+        ):
+            raise RuntimeError("resume checkpoint compatibility proof mismatch")
     if checkpoint.get("config_hash") != config_hash:
         raise RuntimeError(
             "resume configuration mismatch; start a new run instead of combining experiments"
@@ -2138,8 +3244,16 @@ def _load_resume_checkpoint(
     ):
         raise RuntimeError("resume checkpoint scientific configuration mismatch")
     completed_epoch = int(checkpoint.get("completed_epoch", -1))
-    if completed_epoch < 1:
-        raise RuntimeError("resume checkpoint has no completed epoch")
+    warm_start = _is_warm_start_protocol(
+        expected_protocol["training_protocol_id"]
+    )
+    minimum_completed = 0 if warm_start else 1
+    if completed_epoch < minimum_completed:
+        raise RuntimeError("resume checkpoint has no valid completed epoch")
+    if warm_start and int(
+        checkpoint.get("completed_epochs", completed_epoch)
+    ) != completed_epoch:
+        raise RuntimeError("resume checkpoint completed_epochs mismatch")
     manifest_epoch = int(manifest.get("completed_epoch", 0))
     if manifest_epoch > completed_epoch:
         raise RuntimeError("manifest is ahead of the committed last checkpoint")
@@ -2165,7 +3279,7 @@ def _load_resume_checkpoint(
     if (
         isinstance(best_epoch, bool)
         or not isinstance(best_epoch, int)
-        or not 1 <= best_epoch <= completed_epoch
+        or not (0 if warm_start else 1) <= best_epoch <= completed_epoch
         or isinstance(best_mse, bool)
         or not isinstance(best_mse, (int, float))
         or not math.isfinite(float(best_mse))
@@ -2736,7 +3850,8 @@ def _main_impl(args, transcript=None):
     torch.set_num_threads(args.num_threads)
     set_seed(args.seed)
 
-    source_sha256 = source_fingerprint()
+    current_source_document = source_fingerprint_metadata()
+    source_sha256 = current_source_document["sha256"]
     train_generator = torch.Generator()
     train_generator.manual_seed(args.seed)
     data_loader = _build_runtime_data(args, train_generator)
@@ -2755,9 +3870,52 @@ def _main_impl(args, transcript=None):
         args, preprocessing
     )
     environment = environment_metadata(device)
+    training_protocol = _training_protocol_block(args)
+    warm_start_preflight = None
+    source_lineage = None
+    source_compatibility_proof = None
+    gamma_zero_report = None
+    prebuilt_model = None
+
+    # A warm-start source is fully checked while the target is still an
+    # in-memory CPU model.  No artifact root/staging/log/optimizer exists yet.
+    if _is_warm_start_protocol(args.training_protocol_id) and args.resume:
+        warm_start_preflight = _warm_resume_identity(args)
+        source_lineage = warm_start_preflight["source_lineage"]
+        source_compatibility_proof = warm_start_preflight[
+            "source_compatibility_proof"
+        ]
+    elif _is_warm_start_protocol(args.training_protocol_id):
+        prebuilt_model = _build_model(args, data_loader)
+        warm_start_preflight = _preflight_warm_start_source(
+            args,
+            prebuilt_model,
+            data_sha256,
+            target_exogenous_schema,
+            current_source_document,
+            apply_mapping=not bool(args.resume),
+        )
+        source_lineage = warm_start_preflight["source_lineage"]
+        source_compatibility_proof = warm_start_preflight[
+            "source_compatibility_proof"
+        ]
+        if (
+            args.training_protocol_id == T2_ADAPTER_TRAINING_PROTOCOL
+            and not args.resume
+        ):
+            gamma_zero_report = _zero_adapter_gamma(prebuilt_model)
+
     scientific = _scientific_config(
-        args, data_sha256, source_sha256, preprocessing, device, environment,
+        args,
+        data_sha256,
+        source_sha256,
+        preprocessing,
+        device,
+        environment,
         target_exogenous_schema=target_exogenous_schema,
+        training_protocol=training_protocol,
+        source_lineage=source_lineage,
+        source_compatibility_proof=source_compatibility_proof,
     )
     config_hash = stable_hash(scientific)
     artifact_paths = _artifact_paths(args)
@@ -2773,7 +3931,15 @@ def _main_impl(args, transcript=None):
 
     source = {"sha256": source_sha256, "git": git_metadata()}
     resolved_config = _resolved_config(
-        args, scientific, config_hash, final_run_dir, source, environment
+        args,
+        scientific,
+        config_hash,
+        final_run_dir,
+        source,
+        environment,
+        training_protocol,
+        source_lineage=source_lineage,
+        source_compatibility_proof=source_compatibility_proof,
     )
     run_started = time.time()
     manifest = {
@@ -2800,6 +3966,14 @@ def _main_impl(args, transcript=None):
             else {"mode": "legacy_direct"}
         ),
     }
+    if _is_warm_start_protocol(args.training_protocol_id):
+        manifest.update({
+            "training_protocol": deepcopy(training_protocol),
+            "source_lineage": deepcopy(source_lineage),
+            "source_compatibility_proof": deepcopy(
+                source_compatibility_proof
+            ),
+        })
     if artifact_paths.is_enhanced:
         manifest.update({
             "task_mode": args.task_mode,
@@ -2842,6 +4016,9 @@ def _main_impl(args, transcript=None):
                 run_id=run_id,
                 artifact_dir=final_run_dir,
                 target_exogenous_schema=target_exogenous_schema,
+                training_protocol=training_protocol,
+                source_lineage=source_lineage,
+                source_compatibility_proof=source_compatibility_proof,
             )
             manifest["status"] = "running"
             manifest["updated_at"] = _utc_now()
@@ -2859,8 +4036,6 @@ def _main_impl(args, transcript=None):
                     ),
                 )
             )
-            # Preserve the original invocation and append resume provenance while
-            # updating only the permitted target total epoch count.
             resolved_config = deepcopy(previous_config)
             resolved_config.setdefault("resume_invocations", []).append({
                 "invoked_at": _utc_now(),
@@ -2890,22 +4065,30 @@ def _main_impl(args, transcript=None):
     try:
         atomic_write_json(config_path, resolved_config)
         atomic_write_json(manifest_path, manifest)
-        model = _build_model(args, data_loader).to(device)
+        model = (
+            prebuilt_model
+            if prebuilt_model is not None
+            else _build_model(args, data_loader)
+        ).to(device)
         parameter_count = sum(parameter.numel() for parameter in model.parameters())
         criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=args.learning_rate,
-            weight_decay=args.weight_decay,
+        parameter_scope = _configure_protocol_parameters(
+            model, args.training_protocol_id
         )
+        optimizer = _build_optimizer(model, args, parameter_scope)
 
         start_epoch = 0
         best_mse = float("inf")
         best_epoch = None
         best_val_metrics = None
         best_model_state = None
+        best_checkpoint_role = None
+        initialization_validation = None
         history = []
 
         if resume_checkpoint is not None:
+            # This restores only the target run's own committed last.pt.  Source
+            # U1 state is not mapped again and adapter gamma is not zeroed again.
             model.load_state_dict(resume_checkpoint["model_state"], strict=True)
             optimizer.load_state_dict(resume_checkpoint["optimizer_state"])
             start_epoch = int(resume_checkpoint["completed_epoch"])
@@ -2913,19 +4096,100 @@ def _main_impl(args, transcript=None):
             best_epoch = resume_checkpoint["best_epoch"]
             best_val_metrics = resume_checkpoint.get("best_val_metrics")
             best_model_state = resume_checkpoint["best_model_state"]
+            best_checkpoint_role = resume_checkpoint.get(
+                "best_checkpoint_role",
+                "epoch_zero_initialization" if best_epoch == 0 else "trained_epoch",
+            )
+            initialization_validation = resume_checkpoint.get(
+                "initialization_validation"
+            )
             history = resume_checkpoint.get("history", [])
             train_generator.set_state(
                 resume_checkpoint["train_generator_state"].detach().cpu()
             )
             restore_rng_state(resume_checkpoint["rng_state"])
-        common_checkpoint = _checkpoint_common(
-            resolved_config, config_hash, data_sha256, preprocessing
-        )
+
+        if (
+            resume_checkpoint is None
+            and _is_warm_start_protocol(args.training_protocol_id)
+        ):
+            initialization_validation = evaluate(
+                model,
+                val_data,
+                device,
+                description="Val epoch 0 initialization",
+                show_progress=args.progress,
+                task_mode=args.task_mode,
+            )
+            best_mse = initialization_validation["mse"]
+            best_epoch = 0
+            best_val_metrics = initialization_validation
+            best_model_state = _cpu_state_dict(model.state_dict())
+            best_checkpoint_role = "epoch_zero_initialization"
+            resolved_config["run"].update({
+                "initialization_validation": deepcopy(initialization_validation),
+                "epoch_zero_in_best_selection": True,
+                "epoch_zero_checkpoint_role": (
+                    "source_equivalent_initialization"
+                ),
+            })
+            manifest.update({
+                "completed_epoch": 0,
+                "completed_epochs": 0,
+                "best_epoch": 0,
+                "best_validation_mse": best_mse,
+                "best_checkpoint_role": best_checkpoint_role,
+                "initialization_validation": deepcopy(initialization_validation),
+                "epoch_zero_in_best_selection": True,
+                "updated_at": _utc_now(),
+            })
+            common_checkpoint = _checkpoint_common(
+                resolved_config, config_hash, data_sha256, preprocessing
+            )
+            best_checkpoint = {
+                **common_checkpoint,
+                "model_state": best_model_state,
+                "best_epoch": 0,
+                "best_mse": best_mse,
+                "best_val_metrics": best_val_metrics,
+                "best_checkpoint_role": best_checkpoint_role,
+                "checkpoint_role": "epoch_zero_initialization",
+                "completed_epochs": 0,
+                "initialization_validation": deepcopy(initialization_validation),
+                "epoch_zero_in_best_selection": True,
+            }
+            last_checkpoint = {
+                **common_checkpoint,
+                "model_state": model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "completed_epoch": 0,
+                "completed_epochs": 0,
+                "best_epoch": 0,
+                "best_mse": best_mse,
+                "best_val_metrics": best_val_metrics,
+                "best_model_state": best_model_state,
+                "best_checkpoint_role": best_checkpoint_role,
+                "checkpoint_role": "epoch_zero_initialization",
+                "initialization_validation": deepcopy(initialization_validation),
+                "epoch_zero_in_best_selection": True,
+                "rng_state": capture_rng_state(),
+                "train_generator_state": train_generator.get_state(),
+                "history": [],
+                "active_duration_seconds": (
+                    elapsed_before_resume + time.time() - run_started
+                ),
+            }
+            atomic_write_json(config_path, resolved_config)
+            atomic_torch_save(best_path, best_checkpoint)
+            atomic_torch_save(last_path, last_checkpoint)
+            write_history(history_path, history)
+            atomic_write_json(manifest_path, manifest)
+        else:
+            common_checkpoint = _checkpoint_common(
+                resolved_config, config_hash, data_sha256, preprocessing
+            )
 
         if resume_checkpoint is not None:
-            # last.pt is the epoch commit point.  Rebuild derivative files from
-            # it before doing more work, so an interruption between their
-            # writes cannot leave a logically mixed run.
             best_checkpoint = {
                 **common_checkpoint,
                 "model_state": best_model_state,
@@ -2933,9 +4197,26 @@ def _main_impl(args, transcript=None):
                 "best_mse": best_mse,
                 "best_val_metrics": best_val_metrics,
             }
+            if _is_warm_start_protocol(args.training_protocol_id):
+                best_checkpoint.update({
+                    "best_checkpoint_role": best_checkpoint_role,
+                    "checkpoint_role": best_checkpoint_role,
+                    "completed_epochs": start_epoch,
+                    "initialization_validation": deepcopy(
+                        initialization_validation
+                    ),
+                    "epoch_zero_in_best_selection": True,
+                })
             atomic_torch_save(best_path, best_checkpoint)
             write_history(history_path, history)
             manifest["completed_epoch"] = start_epoch
+            if _is_warm_start_protocol(args.training_protocol_id):
+                manifest["completed_epochs"] = start_epoch
+                manifest["best_checkpoint_role"] = best_checkpoint_role
+                manifest["initialization_validation"] = deepcopy(
+                    initialization_validation
+                )
+                manifest["epoch_zero_in_best_selection"] = True
             manifest["best_epoch"] = best_epoch
             manifest["best_validation_mse"] = best_mse
             manifest["updated_at"] = _utc_now()
@@ -2945,12 +4226,21 @@ def _main_impl(args, transcript=None):
             epoch_started = time.time()
             epoch_number = epoch_index + 1
             train_metrics = train_one_epoch(
-                model, train_data, optimizer, criterion, device,
-                epoch_number, args.train_epochs, args.progress,
+                model,
+                train_data,
+                optimizer,
+                criterion,
+                device,
+                epoch_number,
+                args.train_epochs,
+                args.progress,
                 task_mode=args.task_mode,
+                training_protocol_id=args.training_protocol_id,
             )
             val_metrics = evaluate(
-                model, val_data, device,
+                model,
+                val_data,
+                device,
                 description=f"Val {epoch_number}/{args.train_epochs}",
                 show_progress=args.progress,
                 task_mode=args.task_mode,
@@ -2961,6 +4251,7 @@ def _main_impl(args, transcript=None):
                 best_epoch = epoch_number
                 best_val_metrics = val_metrics
                 best_model_state = _cpu_state_dict(model.state_dict())
+                best_checkpoint_role = "trained_epoch"
 
             epoch_record = {
                 "epoch": epoch_number,
@@ -2989,9 +4280,6 @@ def _main_impl(args, transcript=None):
                     elapsed_before_resume + time.time() - run_started
                 ),
             }
-            # This is the sole epoch commit point.  Every artifact written
-            # below is derivable from last.pt and is reconciled on resume.
-            atomic_torch_save(last_path, last_checkpoint)
             best_checkpoint = {
                 **common_checkpoint,
                 "model_state": best_model_state,
@@ -2999,24 +4287,49 @@ def _main_impl(args, transcript=None):
                 "best_mse": best_mse,
                 "best_val_metrics": best_val_metrics,
             }
+            if _is_warm_start_protocol(args.training_protocol_id):
+                last_checkpoint.update({
+                    "completed_epochs": epoch_number,
+                    "best_checkpoint_role": best_checkpoint_role,
+                    "checkpoint_role": "last_trained_epoch",
+                    "initialization_validation": deepcopy(
+                        initialization_validation
+                    ),
+                    "epoch_zero_in_best_selection": True,
+                })
+                best_checkpoint.update({
+                    "completed_epochs": epoch_number,
+                    "best_checkpoint_role": best_checkpoint_role,
+                    "checkpoint_role": best_checkpoint_role,
+                    "initialization_validation": deepcopy(
+                        initialization_validation
+                    ),
+                    "epoch_zero_in_best_selection": True,
+                })
+            # This is the sole trained-epoch commit point.  Everything below is
+            # derivable from last.pt and is reconciled on resume.
+            atomic_torch_save(last_path, last_checkpoint)
             atomic_torch_save(best_path, best_checkpoint)
             write_history(history_path, history)
             manifest["completed_epoch"] = epoch_number
+            if _is_warm_start_protocol(args.training_protocol_id):
+                manifest["completed_epochs"] = epoch_number
+                manifest["best_checkpoint_role"] = best_checkpoint_role
             manifest["best_epoch"] = best_epoch
             manifest["best_validation_mse"] = best_mse
             manifest["updated_at"] = _utc_now()
             atomic_write_json(manifest_path, manifest)
             print(
-                f"epoch={epoch_number} train_objective={train_metrics['objective_mean_batches']:.8g} "
-                f"val_mse={val_metrics['mse']:.8g} val_mae={val_metrics['mae']:.8g} "
+                f"epoch={epoch_number} "
+                f"train_objective={train_metrics['objective_mean_batches']:.8g} "
+                f"val_mse={val_metrics['mse']:.8g} "
+                f"val_mae={val_metrics['mae']:.8g} "
                 f"best_epoch={best_epoch}"
             )
 
         if best_epoch is None or not best_path.is_file():
             raise RuntimeError("training completed without a valid best checkpoint")
 
-        # The test set is evaluated only after validation-based selection, using
-        # the on-disk best checkpoint rather than an in-memory last-epoch copy.
         best_checkpoint = torch.load(best_path, map_location="cpu")
         if not isinstance(best_checkpoint, dict):
             raise RuntimeError("best checkpoint must contain a dictionary")
@@ -3032,18 +4345,28 @@ def _main_impl(args, transcript=None):
             raise RuntimeError("best checkpoint epoch metadata mismatch")
         if not isinstance(best_checkpoint.get("model_state"), dict):
             raise RuntimeError("best checkpoint has no model state")
-        # A resumed training budget may not improve the validation best.  Refresh
-        # checkpoint provenance without changing its selected model state.
+        if _is_warm_start_protocol(args.training_protocol_id):
+            if (
+                best_checkpoint.get("best_checkpoint_role")
+                != best_checkpoint_role
+                or best_checkpoint.get("checkpoint_role")
+                != best_checkpoint_role
+            ):
+                raise RuntimeError("warm-start best checkpoint role mismatch")
         best_checkpoint["resolved_config"] = resolved_config
         atomic_torch_save(best_path, best_checkpoint)
         model.load_state_dict(best_checkpoint["model_state"], strict=True)
         test_metrics = evaluate(
-            model, test_data, device, description="Final Test",
+            model,
+            test_data,
+            device,
+            description="Final Test",
             show_progress=args.progress,
             task_mode=args.task_mode,
         )
         elapsed = elapsed_before_resume + time.time() - run_started
         completed_at = _utc_now()
+        completed_epochs = len(history)
         metrics = {
             "schema_version": SCHEMA_VERSION,
             "artifact_schema_version": (
@@ -3076,6 +4399,20 @@ def _main_impl(args, transcript=None):
             "artifact_dir": str(final_run_dir),
             "completed_at": completed_at,
         }
+        if _is_warm_start_protocol(args.training_protocol_id):
+            metrics.update({
+                "training_protocol_id": args.training_protocol_id,
+                "warm_start_contract_version": WARM_START_CONTRACT_VERSION,
+                "completed_epochs": completed_epochs,
+                "best_checkpoint_role": best_checkpoint_role,
+                "initialization_validation": deepcopy(initialization_validation),
+                "epoch_zero_in_best_selection": True,
+                "training_protocol": deepcopy(training_protocol),
+                "source_lineage": deepcopy(source_lineage),
+                "source_compatibility_proof": deepcopy(
+                    source_compatibility_proof
+                ),
+            })
         atomic_write_json(metrics_path, metrics)
         completed_manifest = deepcopy(manifest)
         completed_manifest.update({
@@ -3095,10 +4432,18 @@ def _main_impl(args, transcript=None):
             "test_mse": test_metrics["mse"],
             "test_mae": test_metrics["mae"],
         })
+        if _is_warm_start_protocol(args.training_protocol_id):
+            completed_manifest.update({
+                "completed_epochs": completed_epochs,
+                "best_checkpoint_role": best_checkpoint_role,
+                "initialization_validation": deepcopy(initialization_validation),
+                "epoch_zero_in_best_selection": True,
+            })
         completion_message = (
             f"completed run={final_run_dir}\n"
             f"best_epoch={best_epoch} val_mse={best_mse:.8g} "
-            f"test_mse={test_metrics['mse']:.8g} test_mae={test_metrics['mae']:.8g}"
+            f"test_mse={test_metrics['mse']:.8g} "
+            f"test_mae={test_metrics['mae']:.8g}"
         )
         if artifact_paths.is_enhanced:
             if (
