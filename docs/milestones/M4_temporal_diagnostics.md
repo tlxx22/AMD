@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十三轮，Generic target_exogenous runner/artifact 最小 repair
+当前轮次：第十四轮，ETTm1 target_exogenous U1/U2 公平开发对照与 TEB adequacy gate
 
 canonical 内部版本：v2.1-R1
 
@@ -1813,3 +1813,193 @@ T2 使用真实 train batch 和 production `MSE + selector auxiliary` 仅 backwa
 一次性目录 `/tmp/m4_target_exogenous_repair_20260831T1938silDum/` 已确认为空并删除。Frozen AMD、PMCR、Global TEB、T2、T2G、T3、M0-M3 与 baseline 均未修改；`utils/dataloader.py`、任何模型模块和数据均未修改。
 
 本轮没有 U1/U2 production training、development validation epoch 或 final-test evaluation，没有真实 development artifact，没有新增 TEB、warm-start 或 P2，没有进入 M5/M7，也没有实现空间模块。工程 repair 通过不构成 TEB performance evidence；TEB adequacy gate 仍为 `not yet passed`，M4 继续 `In Progress`。本节将随唯一 implementation commit `fix(m4): support generic target-exogenous runner` 提交，最终 commit SHA 由 Codex closure 回执报告。
+
+## 35. 第十四轮：ETTm1 target_exogenous U1/U2 公平开发对照与 TEB adequacy gate
+
+### 35.1 起始状态、回归与测试生命周期
+
+本轮从 clean、已推送的 commit be2185c3382ec42c7287e4bcc9b2cad5c07fdbad（parent=2172b83b6631f74b14913aadc2ba6b517336d315，title=fix(m4): support generic target-exogenous runner）启动；branch=AMD-paper-repro-custom-modules-v1，local/tracking/live remote 一致，ahead/behind=0/0。起始 source fingerprint 为 sha256_length_prefixed_relative_path_and_content_v1、20 个文件、bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e。第十三轮 generic target_exogenous production runner、loss-shape 与 artifact provenance repair 已完成 Git closure。
+
+使用 /public/home/yueweiting/miniconda/envs/amd/bin/python -B -m unittest discover -s tests -p 'test_*.py' -v 重新运行完整回归：220/220 passed、failed=0、skipped=0，Python 测试计时 10.829 s，shell wall-clock 14 s。CUDA 可用，T2/T2G/T3、PMCR 与 M0 equivalence 的 CUDA 路径实际执行。首次尝试的外部 /usr/bin/time 包装器因该可执行文件不存在而在 Python 启动前返回 127；随后改用 Bash SECONDS，这不是测试失败。
+
+本轮未新增、修改或删除任何测试文件；仓库内全部 tests/test_*.py 均为永久回归资产。一次性公平性、梯度和归因 probe 只在 /tmp/m4_ettm1_target_exogenous_u1_u2_20260901T0955Z_iHAlAa/ 范围内执行，未写入仓库。
+
+### 35.2 Artifact root、数据与 schema 公平性
+
+artifact root 为 artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1。启动前该 root 不存在，因此没有相同 scientific identity 的 completed run、hidden staging、running/failed staging 或 checksum-invalid final；未发生静默择一、覆盖或清理。
+
+U1=AMD-Concat（el-amd-pmcr-teb-v1、ablation_id=U1、PMCR off、TEB off）；U2=AMD-Concat+T2（el-amd-m4-t2-patch-teb-v1、ablation_id=M4_T2、PMCR off、T2 on）。两者共同 runtime schema 为：
+
+| 字段 | 事实值 |
+|---|---|
+| dataset / feature type / task | ETTm1 / MS / target_exogenous |
+| input / target | 7 variables / OT only |
+| feature order | [HUFL,HULL,MUFL,MULL,LUFL,LULL,OT] |
+| target / aux index | 6 / [0,1,2,3,4,5] |
+| schema contract / fingerprint | target_exogenous_schema_v1 / f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc |
+| data SHA-256 / rows | 6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e / raw 69680, used 57600 |
+| split endpoints | train 34560, validation 46080, test 57600 |
+| context starts | train 0, validation 34048, test 45568 |
+| target scaler mean / scale | 17.12495024489946 / 9.173035273908697 |
+| x / y batch shape | [128,512,7] / [128,H,1] |
+
+Window counts（train/validation/test）依 horizon 分别为：h96=33953/11425/11425，h192=33857/11329/11329，h336=33713/11185/11185，h720=33329/10801/10801。四个 horizon 上固定样本、首个 shuffled train batch、首个 validation/test batch以及 DataLoader generator state 均逐元素相同；torch.equal=True、最大绝对误差=0。U1/U2 config 与 manifest 中公共 schema block 逐字段相同；U1 无 candidate contract，U2 另带 T2 candidate contract。
+
+### 35.3 Frozen AMD parity、初始化与 RNG 边界
+
+四个 horizon 上，U1 与 frozen AMD 的全通道输出取 OT slice 后 prediction 与 MoE loss 均 torch.equal=True、最大绝对误差=0；U1 state_source=[128,1056]，最后 32 维 context 为严格零，且无 pmcr.* / teb.* state keys 或 enhancement modules。
+
+U1/U2 共同 AMD parameter 与 persistent buffer 共 60 keys；相同 runner seed/factory 下 key/shape/dtype/value 全部一致，最大绝对误差=0、mismatch=none。两者 train DataLoader generator state 和首 batch完全一致。模型构造后 CPU RNG state 不一致，因为 U2 额外初始化 T2 参数；CUDA RNG state 一致。本公平性门禁证明共同 AMD 初值与训练样本顺序一致，但不声称两个独立模型逐 step 共享同一全局 RNG 轨迹。
+
+### 35.4 实际命令与 scientific config 差异
+
+八个 completed artifact 的 command.txt 均保存实际 Python executable 与完整 shell-escaped argv。绝对路径如下（每个文件第二行即完整可重放命令）：
+
+| Model | H | command.txt |
+|---|---:|---|
+| U1 | 96 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_96/fold_official/seed_2024/20260901T095811.286299Z-6e33fa77/command.txt |
+| U1 | 192 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_192/fold_official/seed_2024/20260901T100147.203364Z-f03509fd/command.txt |
+| U1 | 336 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_336/fold_official/seed_2024/20260901T100520.627934Z-0c9f399c/command.txt |
+| U1 | 720 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-pmcr-teb-v1/ETTm1/target_exogenous/OT/horizon_720/fold_official/seed_2024/20260901T100834.831317Z-5f71979f/command.txt |
+| U2 | 96 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_96/fold_official/seed_2024/20260901T101200.472821Z-265147d9/command.txt |
+| U2 | 192 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_192/fold_official/seed_2024/20260901T101543.845343Z-954e54fd/command.txt |
+| U2 | 336 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_336/fold_official/seed_2024/20260901T101921.289921Z-7bbb1947/command.txt |
+| U2 | 720 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-e-target-exogenous-t2-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_720/fold_official/seed_2024/20260901T102301.738668Z-5c2d85f0/command.txt |
+
+所有命令固定 seed=2024、epochs=10、batch=128、lr=3e-5、weight decay=1e-7、seq=512、pred_len=H、AMD n_block=1/alpha=0/mix=3,2/patch=16/norm+layernorm/dropout=true,true,0.1。U1/U2 的 scientific config 差异仅为 implementation_variant、experiment.ablation_id/display_name、model.use_teb 及 T2 的 architecture/patch size=32/padding=right_zero_crop/position=fixed_sinusoidal/target-selection contract；数据、训练、AMD 主干和所有共同字段完全一致。
+
+### 35.5 Completed artifact 清单
+
+全部 8 个 run 均为 schema-v2 completed、history=10 epochs、13/13 checksum Python exact-set+digest 及 system sha256sum -c 通过，source commit=be2185c3382ec42c7287e4bcc9b2cad5c07fdbad、dirty=false、source fingerprint=bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e、data SHA=6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e，best/last checkpoints 存在且所有指标 finite。最终 root 恰有 8 个 manifest，无 hidden staging。
+
+| Model | H | run_id | config hash | best epoch | best.pt SHA-256 | last.pt SHA-256 | wall s | bytes |
+|---|---:|---|---|---:|---|---|---:|---:|
+| U1 | 96 | 20260901T095811.286299Z-6e33fa77 | fa2c4da41f34eca232907e4d6462305cb8ef3ef15fc8996f7c67baa0411ddb2d | 7 | 66458be335ac7948889156bf6a7a91af7221f3b75838a1522fd701e8e78b42d0 | 667ae4bba8becf458adc13cd218395780b63a9f3d2ac15e44fe3bea3a4d679a1 | 176.181 | 205064834 |
+| U1 | 192 | 20260901T100147.203364Z-f03509fd | 1585152dbf1ff74d935f7404f8b2699881b85c7224252371e939db585f2611d0 | 3 | f8b0308578b10f09ade232cf2c6ac2e7826b1e28ceb994c2a321d44c4563be6a | 48df0c13636db15006806d24a5e7f6181c844166a5db2c883c2baedfcb9e710d | 173.946 | 236537485 |
+| U1 | 336 | 20260901T100520.627934Z-0c9f399c | 45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5 | 3 | 89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb5302 | dba0f43a990ab2242ee212fd75383e6e32c37c3e2bf8092159c442158459dd98 | 162.284 | 283746640 |
+| U1 | 720 | 20260901T100834.831317Z-5f71979f | 93ddc59a0879b435a4cf4742e76c75460c254283ca00b2138164c4fe735d51cd | 7 | a13126522bb2cf8f5871c46272222242b8ebb6077145658558199c9473ba109b | 403dabcf76d471efbc520c7da3cc915e1f3d0980b3ceb8bc9f7f43523068ea87 | 169.717 | 409637178 |
+| U2 | 96 | 20260901T101200.472821Z-265147d9 | 669772e9f8ac399465e510abe21ad269fdd8e030726f626cf58334dfd144853d | 3 | 058bfa02446e299a07849d4a8195eec8cb848d7f1e964d342e814f1e6fce5fd7 | ed0e837060cf4340f7ab74fca3279c5db207ae5b68bb8cbbf87939dc7ac5aa83 | 185.842 | 205887746 |
+| U2 | 192 | 20260901T101543.845343Z-954e54fd | f590a5a39a561378d2c7dfa22f77ab24a8530a027b234e6ea60cde95ad3a3b55 | 3 | ea81861b91f6a1ca160dd8a4c6af65b5088692db64dbd1c68c6d1dd66820d93f | 3120419bcb7104f5c7896fe345f1b1bd747aa453147e31ee5f6a6993ae9183bc | 185.017 | 237360421 |
+| U2 | 336 | 20260901T101921.289921Z-7bbb1947 | 07a4f9d53dbb9d82bfc776be3c13fcc3583a5d5c293bd1779b1a889f515984cf | 2 | 8fb3b1214b3edd8e5dcb461a1b1d907a95aa68d8873ee892bc8394303e8d62ef | 16fbdfb8a46bf5523dc3a329d5305a028fb0019dbff17b7a240feb7514e4a9d7 | 173.273 | 284569509 |
+| U2 | 720 | 20260901T102301.738668Z-5c2d85f0 | 715aa1ebe5557946585bec62c98774d4df4dc99a1891ab5785e6d456c7c753ab | 4 | d54fa638d796e425e2d692855b2c536398a6e95c51c0bc809273d6c54ed64407 | c100e3aefd4e882a67c59a0839c07235c3c409bd459d42327ea57232622bcbe0 | 188.906 | 410460044 |
+
+### 35.6 U2 相对 U1 的 development 指标
+
+负相对变化表示 U2 误差下降。ETTm1 为 development-only，test 已用于候选开发，以下不是论文正式结果。
+
+Validation MSE：
+
+| H | U1 | U2 | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.05116432 | 0.05135259 | +0.36797% |
+| 192 | 0.07350609 | 0.07359417 | +0.11983% |
+| 336 | 0.09000857 | 0.09012128 | +0.12523% |
+| 720 | 0.10404531 | 0.10480060 | +0.72592% |
+| Macro mean | 0.07968107 | 0.07996716 | +0.35904% |
+
+Validation MAE：
+
+| H | U1 | U2 | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.16807296 | 0.16888409 | +0.48261% |
+| 192 | 0.20784405 | 0.20780507 | -0.01875% |
+| 336 | 0.23508584 | 0.23554143 | +0.19380% |
+| 720 | 0.25514636 | 0.25599622 | +0.33309% |
+| Macro mean | 0.21653730 | 0.21705670 | +0.23987% |
+
+Test MSE（development primary）：
+
+| H | U1 | U2 | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.02759721 | 0.02819966 | +2.18301% |
+| 192 | 0.04116124 | 0.04116471 | +0.00844% |
+| 336 | 0.05261028 | 0.05341865 | +1.53652% |
+| 720 | 0.07035230 | 0.06954740 | -1.14409% |
+| Macro mean | 0.04793026 | 0.04808261 | +0.31786% |
+
+Test MAE（development secondary）：
+
+| H | U1 | U2 | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.12624871 | 0.12831446 | +1.63625% |
+| 192 | 0.15472727 | 0.15478672 | +0.03842% |
+| 336 | 0.17431307 | 0.17614072 | +1.04848% |
+| 720 | 0.20091614 | 0.19986873 | -0.52132% |
+| Macro mean | 0.16405130 | 0.16477766 | +0.44276% |
+
+两种相对汇总严格区分：
+
+| Metric | mean_horizon_relative_change | relative_change_of_macro_means |
+|---|---:|---:|
+| Validation MSE | +0.33474% | +0.35904% |
+| Validation MAE | +0.24768% | +0.23987% |
+| Test MSE | +0.64597% | +0.31786% |
+| Test MAE | +0.55046% | +0.44276% |
+
+### 35.7 曲线、gamma 与成本
+
+| Model | H | best epoch | epoch-1 val | best val | last val | last vs best | last-3 val |
+|---|---:|---:|---:|---:|---:|---:|---|
+| U1 | 96 | 7 | 0.05397703 | 0.05116432 | 0.05213227 | +1.89184% | 0.05191388,0.05153775,0.05213227 |
+| U1 | 192 | 3 | 0.07464176 | 0.07350609 | 0.07673102 | +4.38729% | 0.07578068,0.07620048,0.07673102 |
+| U1 | 336 | 3 | 0.09162994 | 0.09000857 | 0.09238960 | +2.64535% | 0.09267142,0.09137627,0.09238960 |
+| U1 | 720 | 7 | 0.10782488 | 0.10404531 | 0.10482275 | +0.74721% | 0.10541365,0.10466343,0.10482275 |
+| U2 | 96 | 3 | 0.05401062 | 0.05135259 | 0.05406593 | +5.28374% | 0.05295763,0.05332140,0.05406593 |
+| U2 | 192 | 3 | 0.07474114 | 0.07359417 | 0.08372224 | +13.76206% | 0.08052580,0.08269039,0.08372224 |
+| U2 | 336 | 2 | 0.09172329 | 0.09012128 | 0.10404136 | +15.44595% | 0.10043911,0.09956302,0.10404136 |
+| U2 | 720 | 4 | 0.10785528 | 0.10480060 | 0.11526754 | +9.98748% | 0.11215577,0.11395104,0.11526754 |
+
+所有 run 的最后 epoch 均不是 best。Train objective 为 prediction MSE + selector auxiliary，而 validation 为纯 prediction MSE，二者 objective 不同，不计算或解释 train-validation gap。
+
+U2 gamma_teb（init/best/last）依次为：h96=0.001/0.03187034/0.06876934，h192=0.001/0.03561231/0.08853173，h336=0.001/0.01873618/0.09187824，h720=0.001/0.04767828/0.10154618。Patch query、exogenous projector、MHA 与 patch output 的 best/last 参数均相对同 seed 初始值发生有限非零移动；global-query projection/norm 虽因 Adam coupled weight decay 发生参数移动，但 production raw backward gradient 在四个 horizon 均为严格零，不能称为受任务监督。
+
+参数量 U1/U2（增量恒为 39,361）：h96=10,244,742/10,284,103，h192=11,818,374/11,857,735，h336=14,178,822/14,218,183，h720=20,473,350/20,512,711。四 horizon 总训练 wall-clock U1=682.128 s、U2=733.036 s，U2/U1=1.07463（约 +7.46%）。artifact 总空间 U1=1,134,986,137 bytes，U2=1,138,277,720 bytes。
+
+### 35.8 T2 residual、同-checkpoint bypass 与 aux-K/V permutation
+
+在每个 U2 best checkpoint 的完整 validation/test 上，diagnostic wrapper 与 formal forward 的 prediction、MoE、A_patch、delta、exo_context/state 均最大误差=0；模型 state deterministic digest 前后相同。所有表示、ratio 和指标 finite，无 NaN/Inf。
+
+每样本 r_teb=||gamma*delta||/(||hidden||+eps)：
+
+| H | Split | mean | median | p10 | p90 | p99 | max |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 96 | val | 0.024467 | 0.023358 | 0.014765 | 0.035730 | 0.044748 | 0.053900 |
+| 96 | test | 0.025189 | 0.023332 | 0.014050 | 0.039072 | 0.049099 | 0.054448 |
+| 192 | val | 0.022405 | 0.022738 | 0.014699 | 0.029486 | 0.034174 | 0.038627 |
+| 192 | test | 0.022078 | 0.022085 | 0.014198 | 0.029574 | 0.035473 | 0.044266 |
+| 336 | val | 0.005307 | 0.005286 | 0.003993 | 0.006652 | 0.007716 | 0.008384 |
+| 336 | test | 0.005228 | 0.005176 | 0.004053 | 0.006480 | 0.007433 | 0.009474 |
+| 720 | val | 0.033940 | 0.032631 | 0.020814 | 0.048182 | 0.067132 | 0.082536 |
+| 720 | test | 0.035880 | 0.034854 | 0.021507 | 0.051540 | 0.068529 | 0.078116 |
+
+Patch-position mean ratio 亦 finite：h96 val/test 范围约 0.02447–0.03947/0.02789–0.03761；h192 0.02386–0.03112/0.02479–0.03008；h336 0.00628–0.00725/0.00622–0.00688；h720 0.03774–0.05072/0.04193–0.05073。h336 写回尤其小，但没有爆炸尾部。
+
+同-checkpoint 将 TEB temporal residual 旁路后，误差相对 Normal 的变化如下；负值代表旁路更优：
+
+| H | val MSE | val MAE | test MSE | test MAE | prediction max change val/test |
+|---:|---:|---:|---:|---:|---:|
+| 96 | -0.21048% | -0.01621% | -0.35058% | -0.14872% | 0.03237/0.02086 |
+| 192 | -0.32913% | -0.02378% | -0.17130% | -0.08422% | 0.02221/0.01989 |
+| 336 | -0.03111% | -0.00304% | -0.01510% | -0.01038% | 0.00290/0.00189 |
+| 720 | -0.32027% | -0.12039% | -0.06447% | -0.01870% | 0.02391/0.01644 |
+
+因此 8/8 split×horizon 上旁路均描述性地降低误差；这是同一已联合训练 checkpoint 内的反事实依赖，不是独立训练消融或因果证明。
+
+Aux-K/V permutation 对每个 batch 使用相同样本循环错配、保持 target hidden/query 与样本内变量关系不变；每个 split 使用三个 cyclic shifts 取均值，B=1 尾 batch数为 0。相对 Normal 的聚合变化：
+
+| H | val MSE | val MAE | test MSE | test MAE |
+|---:|---:|---:|---:|---:|
+| 96 | +0.05646% | +0.05017% | +0.05156% | +0.02038% |
+| 192 | -0.01192% | +0.00014% | +0.03620% | +0.00225% |
+| 336 | -0.00187% | -0.00074% | +0.00459% | +0.00191% |
+| 720 | +0.00002% | -0.00027% | -0.00334% | -0.00844% |
+
+所有 horizon 的 A_patch、delta 和 prediction 均发生非零逐元素变化，证明样本对齐的 auxiliary K/V 会影响表示和预测；但 aggregate metric 效应极小且方向混合，不能形成稳定有利外生依赖证据。这同样是同-checkpoint 扰动，不是因果结论。
+
+### 35.9 Development signal、adequacy gate 与证据边界
+
+本轮固定结论为 **negative-or-negligible development signal**：U2 相对严格公平 U1 的 validation MSE/MAE macro 分别恶化 +0.35904%/+0.23987%，development test MSE/MAE macro 分别恶化 +0.31786%/+0.44276%；四个 test horizon 中只有 h720 改善，且 validation MSE 四个 horizon 均未改善。T2 参数确实学习、residual finite 且能改变 prediction，但这不足以转化为稳定指标收益；旁路结果在所有 split×horizon 上描述性更优，aux permutation 的 aggregate 影响又极小/混合。
+
+因此 **TEB development adequacy gate remains failed**。本结论只回答单数据集 ETTm1、单 seed=2024、10 epochs、OT-only target_exogenous 下 T2 相对 AMD-Concat 的开发信号；ETTm1 test 已用于 development，不能进入 M6 正式主表或解释为未见测试泛化。它不能证明 UrbanEV/其他正式数据集表现、多 seed 稳定性、warm-start 可行性、其他 TEB 结构或 PMCR/P2 的效果，也不自动废弃既有可复现候选。
+
+下一步只允许等待用户与 ChatGPT 裁决是否停止 TEB 结构迭代、是否另行授权有限 repair/warm-start，或何时转入 PMCR/P2；本轮未自动执行任何下一步。M4 保持 In Progress，没有新增 TEB architecture、没有训练 T2G/T3、没有实现 warm-start/P2、没有进入 M5/M7、没有运行任何正式评价数据集 test，也没有实现空间模块。
