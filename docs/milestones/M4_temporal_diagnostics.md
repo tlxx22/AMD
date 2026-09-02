@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十六轮，warm-start/adapter-style T2 rescue production capability 实现
+当前轮次：第十七轮，Frozen-AMD + Fresh-T2 R-min 四 horizon development 实验
 
 canonical 内部版本：v2.1-R1
 
@@ -2258,3 +2258,187 @@ Atomic mapping/rollback的全部 production call site统一使用该唯一 helpe
 Repair后 executable source fingerprint为 `sha256_length_prefixed_relative_path_and_content_v1`、20 files、`f3a0a9de6bb3296437202c5a9ba4cebfd88424191232db212f55d151db144a4a`。只读probe目录为 `/tmp/m4_state_digest_repair_BaHgLwK3/`，只包含临时script/result/log，结束前删除。Probe只做四个source strict restore、fresh T2构造、state subset、mapping、`torch.equal`与digest；未构造DataLoader、未执行model forward/backward、未创建optimizer或artifact。
 
 Warm-start source preflight、60→79原子映射、19个fresh T2 keys、gamma=0、epoch-0 parity、freeze/mixed mode、15/4 tensor scope、epoch-0 selection、identity隔离、233项原回归、h96 two-step smoke与synthetic artifact lifecycle的第十六轮既有结论均不因digest framing消歧而撤销。本 repair没有运行真实adapter训练、validation/test、R-min或continuation，没有创建/修改真实artifact，没有修改模型/DataLoader或第十四轮8个artifact。TEB adequacy gate remains failed，P2未启动，M4保持In Progress；Git closure仍未授权，本轮不stage、不commit、不push。
+
+## 38. 第十七轮：Frozen-AMD + Fresh-T2 R-min 四 horizon development 实验
+
+### 38.1 起始现场、回归与 artifact root
+
+本轮从 branch AMD-paper-repro-custom-modules-v1、HEAD 08e704aa163953360c0a2675154e23141af90085 启动；parent=e5d1b4aecdf34705bd9f908fa13644c74fddebf5，title=feat(m4): implement warm-start T2 rescue protocol。local HEAD、tracking 与 live remote 完全一致，ahead/behind=0/0，worktree/index clean。baseline tag amd_reproduced_baseline_v1 的本地与远端 peeled commit 均为 fa9665627e6fcfb1d0c2bc22d943ca9666304fd6。
+
+Canonical SHA-256 为 fc418a32cf07c8cd9854f65efe2effbbad9137464c39512f0dbccbdce706ed6e，起始 M4 SHA-256 为 ef20281e3dd369bcdbd602f58106252e6726b319d440f7f4c283928e2d182ce4。M0-M3 相对 parent 无差异；UrbanEV、ModernTCN、TimeXer 各自 worktree/index clean 且 ahead/behind=0/0。Executable source fingerprint 为 sha256_length_prefixed_relative_path_and_content_v1、20 files、f3a0a9de6bb3296437202c5a9ba4cebfd88424191232db212f55d151db144a4a。
+
+四个第十四轮 U1 source 在不解析 source test 指标的前提下完成 best.pt SHA 交叉核验和系统 sha256sum -c；每个均为 13/13 OK。随后按锁定命令运行完整永久回归：237/237 passed、failed=0、skipped=0，unittest 自身 24.289 s。
+
+固定 artifact root 为 artifacts/m4-development/ettm1-stage-f-t2-adapter-rescue-v1；启动前该路径不存在，因而没有 completed、hidden staging、failed、running 或其他可复用内容。本轮没有覆盖、删除或静默复用 artifact。
+
+### 38.2 四个 source、实际命令与 lineage
+
+| H | source run_id | source config hash | source comparison hash | source best epoch | source best.pt SHA-256 |
+|---:|---|---|---|---:|---|
+| 96 | 20260901T095811.286299Z-6e33fa77 | fa2c4da41f34eca232907e4d6462305cb8ef3ef15fc8996f7c67baa0411ddb2d | 4fbf51cca6fa7bad95bc8e35ddfc416d6dc45a78c331aead19e007f6d24ef74b | 7 | 66458be335ac7948889156bf6a7a91af7221f3b75838a1522fd701e8e78b42d0 |
+| 192 | 20260901T100147.203364Z-f03509fd | 1585152dbf1ff74d935f7404f8b2699881b85c7224252371e939db585f2611d0 | 771cdff549663c52cc213c5cfaf9ed731362ce5b544457776bf7653ff0c950bf | 3 | f8b0308578b10f09ade232cf2c6ac2e7826b1e28ceb994c2a321d44c4563be6a |
+| 336 | 20260901T100520.627934Z-0c9f399c | 45ea9453083d6fb38381d03ba3a8455191e28e6221a2c9f86d0dee72ba8e8ff5 | 8ccb82795987bd3df127f1cd087c8da7ff2cae53ee1d8c282fd565e730392d4b | 3 | 89da2c854dce4e124c09575835d52e313bf3a6aeab2b556a060c7174709cb530 |
+| 720 | 20260901T100834.831317Z-5f71979f | 93ddc59a0879b435a4cf4742e76c75460c254283ca00b2138164c4fe735d51cd | 3f5f973cd636b205f813ba4589845c5a5ffb91fdf86a379726dd2cc6d039c291 | 7 | a13126522bb2cf8f5871c46272222242b8ebb6077145658558199c9473ba109b |
+
+四个 source artifact 路径继续使用第 36.2 节的精确路径。每个 target run 的 command.txt 保存实际 Python executable 与完整 argv；绝对路径为：
+
+| H | command.txt |
+|---:|---|
+| 96 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-f-t2-adapter-rescue-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_96/fold_official/seed_2024/20260901T153705.487633Z-5916049f/command.txt |
+| 192 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-f-t2-adapter-rescue-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_192/fold_official/seed_2024/20260901T153933.304452Z-45b7e8bc/command.txt |
+| 336 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-f-t2-adapter-rescue-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_336/fold_official/seed_2024/20260901T154148.160319Z-07ee1485/command.txt |
+| 720 | /public/home/yueweiting/大论文/AMD/artifacts/m4-development/ettm1-stage-f-t2-adapter-rescue-v1/el-amd-m4-t2-patch-teb-v1/ETTm1/target_exogenous/OT/horizon_720/fold_official/seed_2024/20260901T154406.678180Z-f41be476/command.txt |
+
+四条命令除 horizon、pred_len、source artifact 与 source checkpoint SHA 外完全一致：ETTm1/MS/target_exogenous/OT、target_idx=6、aux_idx=[0,1,2,3,4,5]、seq_len=512、seed=2024、batch=128、10 epochs、T2 patch=32/d=32/heads=4/dropout=0.1、AMD n_block=1/alpha=0/mix=3,2/patch=16、lr=3e-5、weight_decay=0、无 early stopping。Identity 固定为 el-amd-m4-t2-patch-teb-v1、M4_T2_ADAPTER、m4_t2_u1_warmstart_frozen_adapter_v1、warm_start_contract_v1。
+
+Formal source preflight 均证明 completed schema-v2、13-file exact checksum、source metadata、data/schema、dirty=false、无 pmcr/teb source state；source/current global fingerprint 不同，但 source_compatibility_proof_v1 的 7 个 critical file SHA 逐项相同。四条 mapping 均为 source=60 keys、target=79 keys、mapped AMD=60 keys、allowed missing 精确 19 个 fresh teb keys，unexpected/shape/dtype mismatch 均为空。
+
+### 38.3 Completed adapter artifacts
+
+全部四个 run 一次成功完成，没有第二身份重跑。正式 summarizer 接受 4/4 run 并形成 4 个 aggregate group，没有 duplicate identity；root 恰有四个 manifest，无 hidden staging。每个 run 均 status=completed、schema-v2、history epochs 精确为 1..10、completed_epochs=10、epoch 0 不在 history 中、best_epoch 属于 [0,10]、指标 finite、Python exact checksum 与系统 sha256sum -c 均为 13/13。
+
+config hash 即 stable scientific_config hash；下表仍同时明确 scientific 身份语义。
+
+| H | run_id | config/scientific hash | comparison hash | best epoch/role | best.pt SHA-256 | last.pt SHA-256 | wall s | bytes |
+|---:|---|---|---|---|---|---|---:|---:|
+| 96 | 20260901T153705.487633Z-5916049f | ef658ec9b5054465cdcca6ddbc9702a4ac1f9a3d854d75d5b728fee657c3ee9d | e5f791315ccba5b118d656c2be94973342230f165b9aa995a6bf377966c91a2c | 1 / trained_epoch | b57ff0c00fbf59d6c593cd07b482abecdd9acccdf2848f48b28722bcbcd5d8fe | fc192e8a81f26192b6472fcfb9a3749ff9c065fa9051ed3a372177252ed3cc46 | 115.049986 | 123814608 |
+| 192 | 20260901T153933.304452Z-45b7e8bc | 5a5432236dea9c3ff8fe73e76e2a4747d0015ab9c841dde84152c6baf4b292d0 | 4ecb72af0110af7df4f2266a3054bc6aa7b8ad58bab8067cf6c36974066e2e04 | 0 / epoch_zero_initialization | 640438a130cc90f3f31bca4a9cc406974a8172d2fe0c7eac930bc0d54d1e3672 | cd60eb7223113b8625098f04795be6059c339145d2dcf148b3cc95618e466a2a | 99.677459 | 142698267 |
+| 336 | 20260901T154148.160319Z-07ee1485 | 84fff7e1abcfe0a8d65c0908ddce6a9111fcf5b4e9aca23628f9a4c7e8c29639 | f25f509718ad3cfd46320b602453df286dd8dbc3454b1cbf1076cbaa13f4e4a2 | 0 / epoch_zero_initialization | 4a400554eaeb16f60521702507322ebcd058bf6e8178370fdd1880f6e29ddcb1 | 19c42a973c4396d0e2296617e3d7804ee7950dcef52ca0034c9054cb99399e8b | 112.507478 | 171023722 |
+| 720 | 20260901T154406.678180Z-f41be476 | c9030e201371796851fe67805e8370846dc6f2a80ddddfcdea2061ea8576f6f9 | 505873c35c40914b22abcb25400a833e2e05b390277e4e45860c8155ab0600cf | 0 / epoch_zero_initialization | ad2bb2c0e5bc7594bfa8adecb78aaaec732593ce647808e15d8bf806016199aa | ab90dc4ba31a7ec93c34e5a49149a4cd3b72397792d55c57e5ed2d3e0fc8ca74 | 111.657049 | 246558028 |
+
+四条 artifact 的共同 data SHA-256 为 6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e；target_exogenous_schema_v1 fingerprint 为 f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc；current executable fingerprint 为 f3a0a9de6bb3296437202c5a9ba4cebfd88424191232db212f55d151db144a4a。四条总 wall-clock 为 438.892 s，artifact 总空间为 684094625 bytes。
+
+### 38.4 U1 vs Adapter development 指标
+
+ETTm1 继续只作为 development-only benchmark；以下 validation/test 已用于候选开发，不进入 M6 正式主表，也不支持未见测试泛化主张。负相对变化表示 adapter 改善。
+
+Validation MSE：
+
+| H | fixed U1 | Adapter | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.051164323931 | 0.051164103197 | -0.00043142% |
+| 192 | 0.073506087241 | 0.073506087241 | 0% |
+| 336 | 0.090008565565 | 0.090008565565 | 0% |
+| 720 | 0.104045309980 | 0.104045309980 | 0% |
+| Macro mean | 0.079681071679 | 0.079681016496 | -0.00006926% |
+
+Validation MAE：
+
+| H | fixed U1 | Adapter | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.168072960404 | 0.168067353652 | -0.00333590% |
+| 192 | 0.207844046975 | 0.207844046975 | 0% |
+| 336 | 0.235085840964 | 0.235085840964 | 0% |
+| 720 | 0.255146362864 | 0.255146362864 | 0% |
+| Macro mean | 0.216537302802 | 0.216535901114 | -0.00064732% |
+
+Development test MSE：
+
+| H | fixed U1 | Adapter | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.027597208934 | 0.027597859607 | +0.00235775% |
+| 192 | 0.041161235376 | 0.041161235376 | 0% |
+| 336 | 0.052610279493 | 0.052610279493 | 0% |
+| 720 | 0.070352296784 | 0.070352296784 | 0% |
+| Macro mean | 0.047930255147 | 0.047930417815 | +0.00033939% |
+
+Development test MAE：
+
+| H | fixed U1 | Adapter | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.126248707310 | 0.126249907372 | +0.00095055% |
+| 192 | 0.154727269120 | 0.154727269120 | 0% |
+| 336 | 0.174313073967 | 0.174313073967 | 0% |
+| 720 | 0.200916141056 | 0.200916141056 | 0% |
+| Macro mean | 0.164051297863 | 0.164051597879 | +0.00018288% |
+
+| Metric | mean-horizon relative | relative change of macro means |
+|---|---:|---:|
+| Validation MSE | -0.00010786% | -0.00006926% |
+| Validation MAE | -0.00083398% | -0.00064732% |
+| Development test MSE | +0.00058944% | +0.00033939% |
+| Development test MAE | +0.00023764% | +0.00018288% |
+
+### 38.5 Epoch 0、best/last gamma 与冻结证明
+
+四个 initialization validation 的 MSE、MAE、num_batches 和 num_elements 均与对应 source U1 best validation 在 Python full precision 下严格相等。h192/h336/h720 的重建 epoch-0 79-key full state 又与 best.pt 逐 tensor torch.equal；history 只含 1..10，没有把 epoch 0 伪装成普通训练 epoch。best_epoch>0 的 horizon 数为 1/4。
+
+| H | effective gamma init | best gamma | last gamma | best forecast tensors moved / max abs | last forecast tensors moved / max abs |
+|---:|---:|---:|---:|---|---|
+| 96 | 0 | -0.0062736641 | -0.0820560753 | 15/15 / 0.0072885901 | 15/15 / 0.1106575429 |
+| 192 | 0 | 0 | +0.0894100219 | 0/15 / 0 | 15/15 / 0.1042429283 |
+| 336 | 0 | 0 | +0.1028243154 | 0/15 / 0 | 15/15 / 0.1101957988 |
+| 720 | 0 | 0 | -0.0871193483 | 0/15 / 0 | 15/15 / 0.1000282764 |
+
+因此四条训练轨迹的 15 个 forecast-connected tensors 均在 last state 实际移动；h192/h336/h720 只是 validation best 严格回退到未移动的 epoch 0。每条 run 的 57 个 AMD parameters 与 3 个 AMD persistent buffers 在 best/last 相对 source-mapped epoch 0 的 max change 均为 0；4 个 global-query-only tensors 在 best/last 的 max change也均为 0。该证据同时区分了训练确实发生与 best checkpoint 回退。
+
+### 38.6 Best-checkpoint residual 与 bypass
+
+每样本 residual ratio 定义为 norm(gamma*delta_target)/(norm(target_hidden)+1e-12)。h192/h336/h720 的 best gamma=0，因此 validation/test 的 mean、median、p10、p90、p99、max 全部严格为 0。h96 为唯一非零 best residual：
+
+| Split | mean | median | p10 | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|---:|
+| h96 validation | 0.001258977 | 0.001223564 | 0.000967429 | 0.001596620 | 0.002007371 | 0.002636101 |
+| h96 test | 0.001304640 | 0.001267959 | 0.000994289 | 0.001658338 | 0.002079300 | 0.002557177 |
+
+同一 best checkpoint 将 temporal residual 旁路后，相对 Normal 的变化如下；负值表示旁路更优：
+
+| H | validation MSE | validation MAE | test MSE | test MAE |
+|---:|---:|---:|---:|---:|
+| 96 | +0.00043142% | +0.00333601% | -0.00235770% | -0.00095054% |
+| 192 | 0% | 0% | 0% | 0% |
+| 336 | 0% | 0% | 0% | 0% |
+| 720 | 0% | 0% | 0% | 0% |
+
+h96 validation 上 Normal 极轻微优于 bypass，test 上 bypass 极轻微优于 Normal；另外三条因 epoch-0 gamma=0 而严格相同。因此 bypass 没有呈现稳定优于 Normal，也不能被解释为独立训练消融或因果证据。
+
+### 38.7 Aux K/V cyclic permutation、wrapper parity 与 state immutability
+
+每个 batch 固定使用 shifts=(1,floor(B/3),floor(2B/3)) 对 auxiliary sample K/V 做三次 torch.roll；target hidden/query 和样本内变量顺序保持不变。B=128 时 shifts=(1,42,85)，所有 validation/test batch 均 B>1，无法置换的 batch 数为 0。下表为三个 shifts 的 aggregate metric 均值相对 Normal；负值表示 permutation 后指标更低：
+
+| H | validation MSE | validation MAE | test MSE | test MAE |
+|---:|---:|---:|---:|---:|
+| 96 | +0.00014634% | +0.00035565% | +0.00055399% | -0.00008877% |
+| 192 | 0% | 0% | 0% | 0% |
+| 336 | 0% | 0% | 0% | 0% |
+| 720 | 0% | 0% | 0% | 0% |
+
+h96 permutation 的 prediction max change 为 validation/test 0.000954032/0.000875235；A_patch、delta_target、exo_context 最大变化分别为 2.380069/1.502985/2.249131 和 2.473568/1.820715/2.393269。h192/h336/h720 的 A_patch、delta、exo_context 仍发生有限非零变化，但 prediction max change 为 0，因为 best gamma=0。Permutation 因而没有呈现稳定不利指标影响；它只证明 K/V 对内部表示 live，不是独立训练因果消融。
+
+四个 horizon、两个 split 上，formal forward 与诊断 wrapper 的 prediction、MoE loss、state_source 最大绝对误差全部为 0；Normal 重算指标与封存 metrics 在 1e-12 内一致。诊断前后 sha256_length_prefixed_state_dict_v1 digest 分别保持：
+
+| H | before = after |
+|---:|---|
+| 96 | 717a5a3c645671026fffdbebc37e5a3731fcfbfadf6e3c0bb4bce31715bca825 |
+| 192 | 4091958897a25228b9baefbe7adc730239eb4e109050f16eaee26344a74013c7 |
+| 336 | 3004997849ddf2f7af5ada174df0b92411803c28089c55a92c8534ab873eb5c3 |
+| 720 | 6cb9506901a20ccefa7b8fdeccce03366153cbd583cd2ce8e6f6960681e31df3 |
+
+每个 state tensor 另以 torch.equal 逐项通过，证明诊断没有修改模型 parameter 或 persistent buffer。
+
+### 38.8 Provisional signal 判定与停止线
+
+只使用 canonical 已有硬条件：
+
+| 条件 | 结果 | 依据 |
+|---|---|---|
+| test MSE macro < fixed U1 | Fail | 0.047930417815 > 0.047930255147，+0.00033939% |
+| test MAE macro <= fixed U1 | Fail | 0.164051597879 > 0.164051297863，+0.00018288% |
+| 至少 3/4 horizon test MSE 改善 | Fail | 0/4 改善；3 条严格相等，h96 退化 |
+| validation MSE macro <= fixed U1 | Pass | 0.079681016496 < 0.079681071679，-0.00006926% |
+| 改善不是舍入误差 | Fail / 不适用 | 没有 qualifying test improvement；full-precision test delta 是退化 |
+| 改善不只由单一 horizon 驱动 | Fail | 唯一发生数值变化的是 h96；有利 validation macro 也完全来自 h96 |
+
+结论固定为 negative-or-negligible development signal，而不是 provisional positive 或 mixed。额外诊断同样不支持升级：best_epoch>0 仅 1/4；只有 h96 best gamma/residual nonzero，其他三条回退 gamma=0；bypass 不稳定优于 Normal；aux permutation 也不呈稳定不利影响。
+
+按预登记停止线登记：
+
+当前 TimeXer-inspired TEB 路线在 M4 有限开发中失败。
+
+本轮不运行 matched-budget continuation，不继续 T4/T5/T6，不调 d/heads/patch/gate/beta，不实现新 TEB，不启动 P2，不进入 M5/M7，也不实现或运行任何空间模块。下一步只等待用户与 ChatGPT 审核后决定更换另一篇近三年外生变量模块来源。M4 状态继续为 In Progress。
+
+### 38.9 文件、测试与 Git 边界
+
+本轮未新增、修改或删除任何 tests/test_*.py；现有 237 项继续全部作为 permanent regression tests。一次性聚合与诊断只位于 /tmp/m4_t2_adapter_rmin_20260901T1547Z/，结果登记完成后按本轮合同删除，不向仓库或 ChatGPT Project 上传。
+
+本轮只修改本 milestone；canonical、M0-M3、main.py、summarizer、模型、runner、测试、配置模板、数据及既有 artifact 均未修改。不执行 git add、commit 或 push，不做 Git closure。最终预期 tracked worktree 只保留本文件的未 stage 修改。
