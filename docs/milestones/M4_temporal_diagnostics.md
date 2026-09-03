@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十八轮，CrossLinear 来源锁定与 CCE v1 production capability 实现
+当前轮次：第十九轮，CrossLinear-inspired CCE v1 四 horizon paired development 实验
 
 canonical 内部版本：v2.1-R1
 
@@ -2553,3 +2553,238 @@ production runner 已新增 variant `el-amd-m4-crosslinear-cce-v1`、development
 最终完整 discovery：`251/251 passed`，failed=`0`，skipped=`0`，用时 `26.324 s`；CUDA CCE/T2/T2G/T3、PMCR 与 M0 parity 分支均实际执行。新 executable source fingerprint 为 `d6e2dd7fe51994dc91f9bad44a692426636518aa1f1f9109db11d5277ac8892a`，21 files；新增的 source file 是 `models/modules/cross_correlation_embedding.py`。
 
 本轮没有运行四个 `M4_CCE_CONTROL` 或四个 `M4_CCE` 真实 development runs，没有创建 completed/failed/staging CCE development artifact，没有训练完整 epoch，没有修改或删除既有 artifact/cache/log。没有启动 PMCR/P2，没有进入 M5/M7 或任何空间模块，M4 继续 `In Progress`。除本轮允许的 canonical 与 M4 外，其他文档、M0-M3、`models/tsAMD.py`、旧 TEB、PMCR、DataLoader、数据与 artifact 均未修改。所有改动保持未 stage、未 commit、未 push，等待用户与 ChatGPT 审核并锁定后续八 run 合同；本轮不执行 Git closure。
+
+## 40. 第十九轮：CrossLinear-inspired CCE v1 四 horizon paired development
+
+### 40.1 起始现场、回归与公平初始化
+
+本轮从已完成第十八轮 closure 的 clean 现场开始：branch `AMD-paper-repro-custom-modules-v1`，local/tracking/live remote 均为 `e3ef3a454f6c2b0b602d5f310c231126fe545757`，ahead/behind=`0/0`，worktree/index clean 且无 untracked。不可变 baseline `amd_reproduced_baseline_v1` 仍指向 `fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。canonical 与本 milestone 修改前 SHA-256 分别为 `3109bf54b8946520ee7c93c32cdabc320aa7c69acd848300393cf724a8e6da17`、`85af167f2bb9570bbcd90bad930882e571f0698766fbfca929c7990ef74971d9`。executable source fingerprint 为 `d6e2dd7fe51994dc91f9bad44a692426636518aa1f1f9109db11d5277ac8892a`（21 files，`sha256_length_prefixed_relative_path_and_content_v1`）。新 artifact root `artifacts/m4-development/ettm1-stage-g-crosslinear-cce-v1` 启动前不存在。
+
+运行前完整 discovery 结果为 `251/251 passed`，failed=`0`，skipped=`0`，unittest 用时 `24.930 s`。CUDA 分支实际执行，只出现既知 CuDNN `nvrtc.so` workaround warning，不影响通过判定。
+
+一次性 `/tmp` 探针对 h96/192/336/720 分别重建 matched control/candidate 初始化，观测如下：
+
+- 公共 AMD parameter 57 keys 与 persistent buffer 3 keys 的 key/shape/dtype/value 全部严格相等，max abs diff=`0`；
+- 同一 train generator 初态严格相等，digest=`88dc2922f3b13c33260a1f2064b3a551422700e416cfc14230f22a0b5f849e56`；取出首个 train batch 后 generator state 仍成对相等；
+- 首个 train/validation/test batch 逐元素相等；输入为 `[128,512,7]`，target 为 `[128,H,1]`；
+- CCE 构造不消费 CPU 或任何 CUDA RNG，paired construction 后 CPU/CUDA RNG state 相等；
+- 初始 prediction、MoE loss 与 `[128,1056]` state_source 均 `torch.equal=True`；
+- candidate 只多出完整 `cce.delta_weight`、`cce.delta_bias`、`cce.rho` 三个 state keys，control 无任何 `cce.*` key。
+
+该探针未写入仓库，临时目录已删除。
+
+### 40.2 锁定运行合同与 production 命令证据
+
+八个 run 均使用 `implementation_variant=el-amd-m4-crosslinear-cce-v1`、`development_protocol_id=m4_crosslinear_cce_from_scratch_pair_v1`、ETTm1/MS/OT、`target_exogenous`、`target_idx=6`、ordered `aux_idx=0,1,2,3,4,5`、`seq_len=512`、seed 2024、official fold、10 epochs、batch 128、Adam `lr=3e-5,weight_decay=1e-7`。AMD 固定 `n_block=1,alpha=0,mix_layer_num=3,mix_layer_scale=2,patch=16,norm=true,layernorm=true,dropout=0.1`；PMCR 和全部 TimeXer TEB 关闭，全部参数 from scratch 联合训练，best 从 epoch 1 开始，无 source/warm-start/adapter/continuation/epoch-0 best。
+
+Candidate 固定 kernel 3、lambda init 0.1、`zero_same`、`ordered_aux_then_target`、`identity_residual_delta_v1`；control 只将 `use_cce=false`，candidate 为 `use_cce=true`。数据 SHA-256 为 `6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`，feature/schema fingerprint 为 `f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc`。
+
+实际顺序为 `control h96 -> CCE h96 -> control h192 -> CCE h192 -> control h336 -> CCE h336 -> control h720 -> CCE h720`。每个 artifact 的 `command.txt` 均由 production runner 在训练前写入该 run 的完整命令，包含全部上述参数；本轮未手工补写、未事后重建命令证据。
+
+### 40.3 八个不可变 artifact
+
+下表路径均相对 `artifacts/m4-development/ettm1-stage-g-crosslinear-cce-v1/el-amd-m4-crosslinear-cce-v1/ETTm1/target_exogenous/OT/`。`config/scientific` 列为封存的 config/scientific identity hash。
+
+| H | arm | run_id / relative artifact path | config/scientific hash | comparison hash | best epoch | best.pt SHA-256 | last.pt SHA-256 | wall-clock (s) | bytes |
+|---:|---|---|---|---|---:|---|---|---:|---:|
+| 96 | control | `20260903T133823.128197Z-1a2c2339` / `horizon_96/fold_official/seed_2024/20260903T133823.128197Z-1a2c2339` | `03cf18690da9675799fc50d0f5f5f749658037cb8dadd7e340dd405e4c9885af` | `a293995ae65f65179258948f64dc2b5d99a32e046b8942da3c018f30fd84f5bc` | 7 | `466949f4087daeb3f373f6d09a4e7934cbcfd9bece8f63aedf111a38d1f8160e` | `53cbd89a4da7856488a78308cec20e056cdc3d15bc09c3b2f0f204594a7cc962` | 173.041576 | 205075922 |
+| 96 | CCE | `20260903T134158.187683Z-251f979a` / `horizon_96/fold_official/seed_2024/20260903T134158.187683Z-251f979a` | `d2a4ceb4cc3252105f9fbff6add2780db09450c74dc495cce9a222ac324cc839` | `d3779c51cc04b35cdb2bcb592a6d458c13eeb8105e5966bdc5b20851d219a63b` | 7 | `513cb81d8b6d0939391aca2398cdd41b27d370d2e638fd5fb3b730dd51326dcd` | `5bbb4d8e958a27eee366b2f71c982b92f7ab56b03a7f7223998d47ce454b2123` | 168.102194 | 205082136 |
+| 192 | control | `20260903T134526.964084Z-7aa2f273` / `horizon_192/fold_official/seed_2024/20260903T134526.964084Z-7aa2f273` | `b73d1d2a69ece422436d56386571b9a9e967cdee0e0b9e2a2b54432227b57337` | `0e728438c556964a33746521d71d4317993f9904f16c4302a5dbf1d7d2d78584` | 3 | `74130c8e855fd2e86dae6285bbaa5c1b9d9b8fa4c9122f1c69b00affbd5d6244` | `8cb43b14aa1dcf1684e5f1c73befb186047daade8bc75849ed61738dade8d3b4` | 154.012600 | 236548574 |
+| 192 | CCE | `20260903T134835.750261Z-63442539` / `horizon_192/fold_official/seed_2024/20260903T134835.750261Z-63442539` | `80946e4a36c31fca955ce6189d789f9dbc0391539222342804f525fef9bafc6e` | `8541230ed83663f544d81ccca09040f2ccbb82fdcaa975ab65b6a281ba401abc` | 3 | `75f0f95931b563543fab72641829f6cc1e5f8f730b9ce05bc8b79217f40b3880` | `b96ea9e17de14c6af496e73c0918f571296b3c4257f072fd3f44417dbed6cd65` | 163.212772 | 236554779 |
+| 336 | control | `20260903T135155.761182Z-3aa72c9d` / `horizon_336/fold_official/seed_2024/20260903T135155.761182Z-3aa72c9d` | `6183b85d768f5eb14bb82e15f43644c2cb5a5c1b521ec36590753edbe4d924da` | `464096b2a683bf1c921d541e101a5639ea39293120954c21ed7548c16452e28c` | 3 | `9821f8b8ea90cd250fb841623d2ca25e088c28676adc873f0fd8f49cb0639544` | `770902dfe83c5f8274636af201ddb5a1d402b1dd9d6d7e34d292ff76245a2cff` | 159.916965 | 283757729 |
+| 336 | CCE | `20260903T135522.029340Z-01bc74eb` / `horizon_336/fold_official/seed_2024/20260903T135522.029340Z-01bc74eb` | `d53d0e489747a0b01fd9f671ac8d0c9fd5e601fa090ee9cc6df5df81477e4605` | `86803785c79c1b6307d73f95a4fbfde68ae70287a922fc9829503c0c5013d1c6` | 3 | `58f5a7c01d0288a4de6e91e3f8080c27253cb440350de47231639ca6ea7c5e12` | `f5f951017ddf77f34099a8bcd51129df2ca8f5515b610969f99f6d6333458e19` | 161.982626 | 283763940 |
+| 720 | control | `20260903T135837.073075Z-b19c7ca0` / `horizon_720/fold_official/seed_2024/20260903T135837.073075Z-b19c7ca0` | `c31a46fcffae2956e6ec68f8b7108218fe79221d22da43de3f4b63c38e4e132c` | `6d827d903bb086f19013605cbfea97def91a6b80b2ebe8ee59b262790c244f93` | 7 | `bf4f778fce358019ed9d91f4476e70d0468bee3ff980259c4b64a365addb4e9c` | `933cedacd9085c0f8fd65aff158a5f3798061481f2e60beb3d53573f9515c90d` | 173.113178 | 409648272 |
+| 720 | CCE | `20260903T140215.465903Z-0f57e1eb` / `horizon_720/fold_official/seed_2024/20260903T140215.465903Z-0f57e1eb` | `3049a941fa630356e65b9545a54afcacff53b8a11b777acae97beea1d9c0b708` | `bd0fbe29e25f53424edbf1150681f8302f7b46d80e87767b2d57e31cf97fac84` | 7 | `0b9ed2507c8a678aeacaf2cf8dee9339736b7733630d0e5e5870f1d38b04bb85` | `69642ec9b1c54c35a1781095426b90aa6f1706a5288377e168bbf1cd38c0de0f` | 163.870678 | 409654475 |
+
+八个 run 合计 artifact size=`2270085827` bytes（约 2.114 GiB），artifact-recorded wall-clock 合计 `1317.252590 s`。逐 run 核验均为status completed、schema-v2/schema-version 1、history 恰为 epochs 1--10、best/last checkpoint 存在、metrics 全 finite、source/data/schema/config/checkpoint/manifest/path identity 一致。每个 artifact 的 13 个 checksummed payload 均通过 Python exact-set/digest 和系统 `sha256sum -c`。正式 summarizer 接受八个 artifact；最终 root 恰有 8 个 completed manifest、8 个唯一 scientific/comparison identity + seed，无 failed/running/hidden staging/重复 completed identity。
+
+### 40.4 四项 matched-control 核心指标
+
+下表的 relative change 均为 `100*(CCE/control-1)`，负值表示 CCE 改善。Macro 行的 relative 是 `relative_change_of_macro_means`；每表后另列四个 horizon relative 的算术平均 `mean_horizon_relative_change`。ETTm1 只是 development-only，本节不是论文正式结果。
+
+Validation MSE：
+
+| horizon | control | CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.051164323931 | 0.051283546439 | +0.233019% |
+| 192 | 0.073506087241 | 0.073552612337 | +0.063294% |
+| 336 | 0.090008565565 | 0.090040862991 | +0.035883% |
+| 720 | 0.104045309980 | 0.104191630054 | +0.140631% |
+| macro | 0.079681071679 | 0.079767162955 | +0.108045% |
+
+`mean_horizon_relative_change=+0.118207%`。
+
+Validation MAE：
+
+| horizon | control | CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.168072960404 | 0.168290660773 | +0.129527% |
+| 192 | 0.207844046975 | 0.207929689125 | +0.041205% |
+| 336 | 0.235085840964 | 0.235146953912 | +0.025996% |
+| 720 | 0.255146362864 | 0.255406785269 | +0.102068% |
+| macro | 0.216537302802 | 0.216693522270 | +0.072144% |
+
+`mean_horizon_relative_change=+0.074699%`。
+
+Development test MSE：
+
+| horizon | control | CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.027597208934 | 0.027626573597 | +0.106404% |
+| 192 | 0.041161235376 | 0.041177171984 | +0.038718% |
+| 336 | 0.052610279493 | 0.052622570281 | +0.023362% |
+| 720 | 0.070352296784 | 0.070392896863 | +0.057710% |
+| macro | 0.047930255147 | 0.047954803181 | +0.051216% |
+
+`mean_horizon_relative_change=+0.056548%`。
+
+Development test MAE：
+
+| horizon | control | CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.126248707310 | 0.126295513195 | +0.037074% |
+| 192 | 0.154727269120 | 0.154756899016 | +0.019150% |
+| 336 | 0.174313073967 | 0.174332537814 | +0.011166% |
+| 720 | 0.200916141056 | 0.200824188841 | -0.045766% |
+| macro | 0.164051297863 | 0.164052284716 | +0.000602% |
+
+`mean_horizon_relative_change=+0.005406%`。
+
+### 40.5 Best epoch、last-vs-best 与最后三轮 validation
+
+| H | arm | best epoch | last validation MSE / MAE（vs best） | last test MSE / MAE（vs best） | validation epoch 8; 9; 10（MSE/MAE） |
+|---:|---|---:|---|---|---|
+| 96 | control | 7 | 0.052132270 / 0.169383497 (+1.891837% / +0.779742%) | 0.027444374 / 0.125766111 (-0.553807% / -0.382258%) | 0.051913878/0.168732173; 0.051537745/0.168756223; 0.052132270/0.169383497 |
+| 96 | CCE | 7 | 0.052323292 / 0.169725407 (+2.027446% / +0.852541%) | 0.027492825 / 0.125836504 (-0.484132% / -0.363441%) | 0.052056760/0.168977472; 0.051706009/0.169043040; 0.052323292/0.169725407 |
+| 192 | control | 3 | 0.076731016 / 0.211956744 (+4.387295% / +1.978742%) | 0.041332146 / 0.154918449 (+0.415223% / +0.123559%) | 0.075780676/0.210342253; 0.076200475/0.210927529; 0.076731016/0.211956744 |
+| 192 | CCE | 3 | 0.076972072 / 0.212439877 (+4.648999% / +2.169093%) | 0.041418647 / 0.155032386 (+0.586429% / +0.178013%) | 0.075947756/0.210684890; 0.076406216/0.211350058; 0.076972072/0.212439877 |
+| 336 | control | 3 | 0.092389603 / 0.238162101 (+2.645345% / +1.308569%) | 0.053267822 / 0.174872425 (+1.249837% / +0.320889%) | 0.092671425/0.238073279; 0.091376269/0.237454255; 0.092389603/0.238162101 |
+| 336 | CCE | 3 | 0.092610712 / 0.238654454 (+2.854092% / +1.491620%) | 0.053335988 / 0.174943059 (+1.355725% / +0.350205%) | 0.092805513/0.238408623; 0.091545118/0.237844036; 0.092610712/0.238654454 |
+| 720 | control | 7 | 0.104822747 / 0.256006517 (+0.747210% / +0.337122%) | 0.071411360 / 0.202188040 (+1.505371% / +0.633050%) | 0.105413646/0.256573481; 0.104663433/0.255823048; 0.104822747/0.256006517 |
+| 720 | CCE | 7 | 0.105077024 / 0.256495044 (+0.849774% / +0.426088%) | 0.071514140 / 0.202117619 (+1.592835% / +0.644061%) | 0.105572991/0.256882364; 0.104792675/0.256153490; 0.105077024/0.256495044 |
+
+四组 pair 的 best epoch 完全相同：h96/720 为 7，h192/336 为 3。这不改变 CCE 四个 test MSE 均退化的主结果。
+
+### 40.6 Gate、delta 参数与 best-checkpoint kernel
+
+初始时 `rho=0`、effective lambda 严格为对应 dtype 的 0.1，delta weight/bias 严格为零。训练后全部 gate 和 delta 均 finite/nonzero；下表的 move 是 best 到 last 的 L2 距离，不是相对初始的移动（相对零初始的 weight/bias 移动就是各 checkpoint 自身 L2 norm）。
+
+| H | checkpoint | rho | effective lambda | delta_weight L2 | delta_bias L2 | best-to-last weight / bias / rho move |
+|---:|---|---:|---:|---:|---:|---|
+| 96 | best | 0.032534186 | 0.102966405 | 0.067019924 | 4.194981e-05 | 0.023677606 / 6.064736e-06 / 0.010063868 |
+| 96 | last | 0.042598054 | 0.103899673 | 0.090420600 | 4.801455e-05 | same row-pair |
+| 192 | best | 0.015966600 | 0.101446196 | 0.032121689 | 2.144902e-05 | 0.076175663 / 2.544612e-05 / 0.034451818 |
+| 192 | last | 0.050418418 | 0.104630038 | 0.107501626 | 4.689514e-05 | same row-pair |
+| 336 | best | 0.020402620 | 0.101851277 | 0.040165508 | 1.428153e-05 | 0.086956662 / 4.523675e-05 / 0.037766462 |
+| 336 | last | 0.058169082 | 0.105358377 | 0.125960699 | 3.095523e-05 | same row-pair |
+| 720 | best | 0.059833311 | 0.105515353 | 0.135291184 | 7.501144e-05 | 0.047742540 / 8.870560e-05 / 0.017966822 |
+| 720 | last | 0.077800132 | 0.107223138 | 0.182682856 | 1.369416e-05 | same row-pair |
+
+下表报告 best checkpoint 下 module input order `HUFL,HULL,MUFL,MULL,LUFL,LULL,OT`的 raw `delta_weight` 及真正等价 CrossLinear kernel `selector_identity + lambda*delta_weight`，每个向量顺序为 lag `[-1,0,+1]`；显示值四舍五入到 8 位小数，checkpoint 保留完整精度。
+
+| H | source | raw delta kernel [-1,0,+1] | equivalent kernel [-1,0,+1] |
+|---:|---|---|---|
+| 96 | HUFL | `[-0.01885078,-0.01816544,-0.01698866]` | `[-0.00194100,-0.00187043,-0.00174926]` |
+| 96 | HULL | `[-0.01134587,-0.01104496,-0.01335085]` | `[-0.00116824,-0.00113726,-0.00137469]` |
+| 96 | MUFL | `[-0.01777768,-0.01725085,-0.01570902]` | `[-0.00183050,-0.00177626,-0.00161750]` |
+| 96 | MULL | `[-0.01091791,-0.01028410,-0.01225491]` | `[-0.00112418,-0.00105892,-0.00126184]` |
+| 96 | LUFL | `[-0.00728045,-0.00659963,-0.00676955]` | `[-0.00074964,-0.00067954,-0.00069704]` |
+| 96 | LULL | `[-0.01351823,-0.01318184,-0.01459754]` | `[-0.00139192,-0.00135729,-0.00150306]` |
+| 96 | OT target | `[-0.00956228,-0.03176258,+0.00639698]` | `[-0.00098459,+0.99672952,+0.00065867]` |
+| 192 | HUFL | `[-0.00728721,-0.00686494,-0.00661619]` | `[-0.00073926,-0.00069642,-0.00067119]` |
+| 192 | HULL | `[-0.00860049,-0.00816142,-0.00812643]` | `[-0.00087249,-0.00082794,-0.00082440]` |
+| 192 | MUFL | `[-0.00710761,-0.00680197,-0.00653906]` | `[-0.00072104,-0.00069003,-0.00066336]` |
+| 192 | MULL | `[-0.00860567,-0.00833848,-0.00873473]` | `[-0.00087301,-0.00084591,-0.00088611]` |
+| 192 | LUFL | `[-0.00124249,-0.00171027,-0.00146198]` | `[-0.00012605,-0.00017350,-0.00014831]` |
+| 192 | LULL | `[-0.00469612,-0.00503788,-0.00509386]` | `[-0.00047640,-0.00051107,-0.00051675]` |
+| 192 | OT target | `[-0.00196211,-0.01531092,+0.00186898]` | `[-0.00019905,+0.99844677,+0.00018960]` |
+| 336 | HUFL | `[-0.00827739,-0.00868889,-0.00863621]` | `[-0.00084306,-0.00088497,-0.00087961]` |
+| 336 | HULL | `[-0.01086003,-0.01038908,-0.00985292]` | `[-0.00110611,-0.00105814,-0.00100353]` |
+| 336 | MUFL | `[-0.00890723,-0.00924897,-0.00914004]` | `[-0.00090721,-0.00094202,-0.00093092]` |
+| 336 | MULL | `[-0.01146283,-0.01120895,-0.01069017]` | `[-0.00116750,-0.00114165,-0.00108881]` |
+| 336 | LUFL | `[-0.00224254,-0.00231321,-0.00276190]` | `[-0.00022841,-0.00023560,-0.00028130]` |
+| 336 | LULL | `[-0.00394334,-0.00374363,-0.00438094]` | `[-0.00040163,-0.00038129,-0.00044620]` |
+| 336 | OT target | `[+0.00057239,-0.01953362,+0.00182325]` | `[+0.00005830,+0.99801048,+0.00018570]` |
+| 720 | HUFL | `[-0.03202698,-0.03238045,-0.03273229]` | `[-0.00337934,-0.00341664,-0.00345376]` |
+| 720 | HULL | `[-0.03523847,-0.03493602,-0.03469572]` | `[-0.00371820,-0.00368629,-0.00366093]` |
+| 720 | MUFL | `[-0.03412665,-0.03453387,-0.03526797]` | `[-0.00360089,-0.00364385,-0.00372131]` |
+| 720 | MULL | `[-0.03423008,-0.03404135,-0.03412889]` | `[-0.00361180,-0.00359189,-0.00360112]` |
+| 720 | LUFL | `[-0.01317689,-0.01255784,-0.01167291]` | `[-0.00139036,-0.00132505,-0.00123167]` |
+| 720 | LULL | `[-0.01164375,-0.01077665,-0.01052970]` | `[-0.00122859,-0.00113710,-0.00111104]` |
+| 720 | OT target | `[+0.00175090,-0.05950332,+0.00466761]` | `[+0.00018475,+0.99372149,+0.00049250]` |
+
+### 40.7 CCE 写回幅度
+
+在 candidate best checkpoint 下，对每个 sample 计算 `||lambda*delta||_2/(||x_ch||_2+1e-12)`；这是 RevIN 后表示上的 target-channel CCE 写回与全 channel 输入的 L2 比率。
+
+| H | split | mean | median | p10 | p90 | p99 | max |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 96 | validation | 0.004616929 | 0.004696637 | 0.003345302 | 0.005702361 | 0.006674247 | 0.007482079 |
+| 96 | test | 0.005285786 | 0.005538117 | 0.003407837 | 0.006278925 | 0.007015974 | 0.007322467 |
+| 192 | validation | 0.002255430 | 0.002279694 | 0.001635735 | 0.002798170 | 0.003143115 | 0.003518216 |
+| 192 | test | 0.002584890 | 0.002757714 | 0.001737921 | 0.003031810 | 0.003364259 | 0.003411890 |
+| 336 | validation | 0.002786764 | 0.002794165 | 0.002019790 | 0.003513739 | 0.003901419 | 0.004360912 |
+| 336 | test | 0.003289349 | 0.003516489 | 0.002177545 | 0.003822384 | 0.004213944 | 0.004257409 |
+| 720 | validation | 0.009796953 | 0.009816233 | 0.007128801 | 0.012288994 | 0.014076245 | 0.015739123 |
+| 720 | test | 0.012010297 | 0.012894569 | 0.007821717 | 0.014006642 | 0.015336035 | 0.015449849 |
+
+写回全部 finite/nonzero，但其幅度小不能被自动解释为有效外生利用。
+
+### 40.8 同 checkpoint bypass 与 auxiliary permutation
+
+Bypass 在同一 candidate best checkpoint 上只禁用 CCE 写回，其他 state 不变。relative 为 bypass 相对 normal，负值表示 bypass 更好。
+
+| H | split | normal MSE / MAE | bypass MSE / MAE | bypass relative MSE / MAE | prediction max change |
+|---:|---|---|---|---|---:|
+| 96 | validation | 0.051283546 / 0.168290661 | 0.051192720 / 0.168101686 | -0.177106% / -0.112291% | 0.012485623 |
+| 96 | test | 0.027626574 / 0.126295513 | 0.027616723 / 0.126246052 | -0.035656% / -0.039163% | 0.011724710 |
+| 192 | validation | 0.073552612 / 0.207929689 | 0.073524943 / 0.207853673 | -0.037619% / -0.036558% | 0.011008143 |
+| 192 | test | 0.041177172 / 0.154756899 | 0.041174993 / 0.154731566 | -0.005293% / -0.016369% | 0.009085178 |
+| 336 | validation | 0.090040863 / 0.235146954 | 0.090064931 / 0.235130720 | +0.026730% / -0.006904% | 0.017675996 |
+| 336 | test | 0.052622570 / 0.174332538 | 0.052635459 / 0.174320107 | +0.024494% / -0.007130% | 0.009994745 |
+| 720 | validation | 0.104191630 / 0.255406785 | 0.104885272 / 0.256038988 | +0.665736% / +0.247528% | 0.031915128 |
+| 720 | test | 0.070392897 / 0.200824189 | 0.070606880 / 0.200994510 | +0.303984% / +0.084811% | 0.030093670 |
+
+h96/192 的 bypass 在 validation/test 四项上均更好，h336 混合，h720 normal 更好。因此 bypass 并未呈现稳定一致方向。
+
+Auxiliary permutation 保持每个 batch 的 target 不变，六个 aux 整体分别使用 batch 维 cyclic shift `1,floor(B/3),floor(2B/3)`。下表报告三次指标均值、相对 normal 变化、三次范围和对 normal prediction 的最大变化。
+
+| H | split | perm mean MSE / MAE | relative MSE / MAE | three-shift MSE range | three-shift MAE range | prediction max change |
+|---:|---|---|---|---|---|---:|
+| 96 | validation | 0.051283113 / 0.168283573 | -0.000845% / -0.004212% | [0.051264922,0.051301522] | [0.168263038,0.168297473] | 0.017612338 |
+| 96 | test | 0.027618629 / 0.126260097 | -0.028757% / -0.028042% | [0.027608163,0.027627437] | [0.126229971,0.126299536] | 0.017690420 |
+| 192 | validation | 0.073573147 / 0.207944887 | +0.027918% / +0.007309% | [0.073552006,0.073597251] | [0.207926901,0.207980766] | 0.013253212 |
+| 192 | test | 0.041178939 / 0.154736067 | +0.004292% / -0.013461% | [0.041176238,0.041183667] | [0.154718754,0.154756356] | 0.010203004 |
+| 336 | validation | 0.090097932 / 0.235201227 | +0.063382% / +0.023080% | [0.090040491,0.090137934] | [0.235144726,0.235256968] | 0.018750906 |
+| 336 | test | 0.052635421 / 0.174321487 | +0.024420% / -0.006339% | [0.052621803,0.052652138] | [0.174302037,0.174331298] | 0.014073253 |
+| 720 | validation | 0.104836113 / 0.256060361 | +0.618555% / +0.255896% | [0.104201212,0.105155623] | [0.255415675,0.256402535] | 0.053235531 |
+| 720 | test | 0.070560511 / 0.200944534 | +0.238113% / +0.059926% | [0.070377569,0.070805123] | [0.200802417,0.201223698] | 0.052888751 |
+
+Permutation 对 h96 略有利、h192/336 混合、h720 明显不利，没有跨四 horizon 的稳定不利影响。Bypass 和 permutation 都只是同-checkpoint 描述性诊断，不是独立训练消融，也不是因果证明。
+
+### 40.9 Diagnostic wrapper parity 与 state 不变性
+
+对四个 candidate best checkpoint 的全部 validation/test batches，formal `AMDEnhanced.forward` 与用相同 production modules 展开的诊断 wrapper 对 prediction、MoE loss、state_source 的 max abs difference 全部为 `0`，满足原有 exact/1e-6 门禁。诊断前后 model `state_dict` key/shape/dtype/value 逐 tensor 严格相等，normal forward 在诊断前后的 prediction max difference 为 `0`。诊断未改写 best/last checkpoint、manifest 或 checksums。
+
+### 40.10 预登记 adequacy 裁决
+
+| positive development signal 硬条件 | evidence | result |
+|---|---|---|
+| test MSE macro < matched control | 0.047954803181 > 0.047930255147，+0.051216% | **Fail** |
+| test MAE macro <= matched control | 0.164052284716 > 0.164051297863，+0.000602% | **Fail** |
+| 至少 3/4 horizon test MSE 改善 | 0/4 改善，4/4 退化 | **Fail** |
+| validation MSE macro <= matched control | 0.079767162955 > 0.079681071679，+0.108045% | **Fail** |
+| 改善超过数值舍入噪声 | 不存在 macro/test-MSE 改善 | **Fail** |
+| 改善不只由单一 horizon 驱动 | 不存在可用的总体改善；仅 h720 test MAE 改善 | **Fail** |
+
+因六项硬条件全部失败，本轮分类为 **negative-or-negligible development signal**，不登记 CCE 通过 M4 development adequacy gate，也不把 CCE 升级为最终外生模块或最终 EL-AMD。Gate/delta finite/nonzero、h720 normal 在 bypass 诊断中占优，均不能推翻 matched-control 主结果。
+
+按预登记停止边界，本轮不调 kernel、lambda、层数、epoch、学习率或其他超参，不自动转向 Sonnet/XLinear 或启动新候选。没有启动 PMCR/P2，没有进入 M5/M7，没有实现或运行空间模块。M4 状态继续为 **In Progress**，下一步模型来源/结构决策等待用户与 ChatGPT 审核。
+
+### 40.11 文档、测试、artifact 与 Git 边界
+
+canonical 只修正执行授权边界：用户已锁定科学合同且前置 implementation closure 完成后，ChatGPT 可直接下发合同内普通实现、测试和预登记实验；只有改变结构、来源、超参数、预算、停止线、test 边界，启动新候选或进入下一 milestone 时需要用户重新决定。本修正不改变 CCE 科学、模型或实验合同。
+
+本轮没有新增、修改或删除任何测试文件；251 项现有测试继续全部作为 permanent regression tests。没有修改 Python 模型/runner/summarizer、DataLoader、`models/tsAMD.py`、PMCR、旧 TEB、数据或任何既有 artifact；本轮只在启动前不存在的固定 root 创建了上述八个不可变 development artifacts。一次性初始化/聚合/诊断内容只在 `/tmp`，登记完成后删除。
+
+本轮只保留 canonical 与本唯一 M4 milestone 的未 stage 文档修改；M0-M3 未修改，无其他 tracked/untracked 变化。本轮不执行 `git add`、commit、push 或 Git closure。

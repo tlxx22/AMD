@@ -66,7 +66,7 @@ M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭�
 
 M4 只处理第三章时间模块诊断与候选迭代。第十七轮已按预登记停止线确认当前 TimeXer-inspired TEB 路线在 M4 有限开发中失败；用户随后明确锁定 CrossLinear（KDD 2025）的 Cross-Correlation Embedding 为替代外生模块首选来源。当前工程候选是独立实现的 **CrossLinear-inspired CCE v1**，身份为 `el-amd-m4-crosslinear-cce-v1`，仍只是 M4 候选，不是最终外生模块、最终 TEB 或最终 EL-AMD。最终时间结构与正式 variant 只能在 M5 依据训练/验证证据冻结。
 
-M4 内部当前顺序固定为：先实现并验证 CCE v1 production capability，再经用户另行授权执行 CCE control/candidate 的公平 development pair；只有 CCE 通过 M4 adequacy gate 后，才允许讨论新的 PMCR/P2 候选与进入 M5。满足前不得启动 P2，不得以 PMCR 潜在收益掩盖外生模块证据，也不得实现 M7 或任何空间模块。任何真实八 run、结构调整、超参数调整或后续阶段均需另行授权。
+M4 内部当前顺序固定为：先实现并验证 CCE v1 production capability，再执行 CCE control/candidate 的公平 development pair；只有 CCE 通过 M4 adequacy gate 后，才允许讨论新的 PMCR/P2 候选与进入 M5。满足前不得启动 P2，不得以 PMCR 潜在收益掩盖外生模块证据，也不得实现 M7 或任何空间模块。科学合同一经用户锁定且前置 implementation closure 完成，ChatGPT 可以直接下发合同内的普通实现、测试和预登记实验，无需逐轮重复授权。只有改变结构、来源、超参数、预算、停止线、test 边界，启动新候选或进入下一 milestone 时，才需要用户重新决定。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -1485,7 +1485,7 @@ M4_CCE:
 
 两者均使用 standard from-scratch 训练身份：全部 AMD/CCE parameters trainable；fresh Adam；learning rate=`3e-5`；weight decay=`1e-7`；standard best 从 epoch 1 开始，不使用 epoch-0 best；不使用 source checkpoint、T2 warm-start protocol 或历史 TEB lineage。同一 run 的 resume 必须 strict same-structure，并恢复其自身 model/optimizer/RNG/generator/history/best。
 
-未来经另行授权的首个 development 实验是 ETTm1 四 horizon 的 4 个 control + 4 个 CCE paired runs；本轮只实现 capability、永久测试与单 batch smoke，不运行这八个真实 run，不创建 completed development artifact。
+首个已锁定 development 实验是 ETTm1 四 horizon 的 4 个 control + 4 个 CCE paired runs。其科学合同已由用户锁定且前置 implementation closure 已完成，因此属于可直接执行的合同内预登记实验，不需要逐个 run 或逐轮重新授权。
 
 ## 7A.6 Checkpoint 与原子 importer
 
