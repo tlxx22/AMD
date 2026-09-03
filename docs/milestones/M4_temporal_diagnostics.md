@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十七轮，Frozen-AMD + Fresh-T2 R-min 四 horizon development 实验
+当前轮次：第十八轮，CrossLinear 来源锁定与 CCE v1 production capability 实现
 
 canonical 内部版本：v2.1-R1
 
@@ -2442,3 +2442,114 @@ h96 permutation 的 prediction max change 为 validation/test 0.000954032/0.0008
 本轮未新增、修改或删除任何 tests/test_*.py；现有 237 项继续全部作为 permanent regression tests。一次性聚合与诊断只位于 /tmp/m4_t2_adapter_rmin_20260901T1547Z/，结果登记完成后按本轮合同删除，不向仓库或 ChatGPT Project 上传。
 
 本轮只修改本 milestone；canonical、M0-M3、main.py、summarizer、模型、runner、测试、配置模板、数据及既有 artifact 均未修改。不执行 git add、commit 或 push，不做 Git closure。最终预期 tracked worktree 只保留本文件的未 stage 修改。
+
+## 39. 第十八轮：CrossLinear 来源锁定与 CCE v1 production capability
+
+### 39.1 起始现场与来源身份
+
+本轮从 clean Git 现场开始：branch `AMD-paper-repro-custom-modules-v1`，local/tracking/live remote 均为 `4cff9cc0a6bdff7cac9366c5ab77f9979b344777`，ahead/behind=`0/0`，index/worktree clean 且无 untracked。不可变 baseline `amd_reproduced_baseline_v1` 仍指向 `fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。canonical 与本 milestone 修改前 SHA-256 分别为 `fc418a32cf07c8cd9854f65efe2effbbad9137464c39512f0dbccbdce706ed6e`、`756ee986cf1d4f48a8513b7d80d88ddaf01c93f154f545fa974b84962222e331`；M0-M3 SHA 均与冻结值一致。起始 source fingerprint 为 `f3a0a9de6bb3296437202c5a9ba4cebfd88424191232db212f55d151db144a4a`，20 files。
+
+用户已明确锁定 CrossLinear 的 Cross-Correlation Embedding 为 TimeXer 路线停止后的首选替代来源。本轮只使用服务器已有本地来源，不联网下载、不 clone：
+
+| source field | locked value |
+|---|---|
+| paper_title | `CrossLinear: Plug-and-Play Cross-Correlation Embedding for Time Series Forecasting with Exogenous Variables` |
+| venue | `KDD 2025` |
+| DOI | `10.1145/3711896.3736899` |
+| PDF SHA-256 | `45557c426ca8bfa88f35ec41f09fd87ab864c9a382eef1c659c2296a4a1b0152` |
+| official_repo_url | `https://github.com/mumiao2000/CrossLinear.git` |
+| official_repo_commit | `d22366e2f59ced560a02b2b1c7cc673e3c02a13f` |
+| official_model_sha256 | `a062ac97231c55384c621f27981b8225bb87822f50704df201b381dd8e037593` |
+| retained_component | `cross_correlation_embedding_only` |
+
+论文 Eq. (7)-(8) 与官方代码的来源事实被登记为“归一化变量经 `Conv1D` 形成 cross-correlation embedding，再与 endogenous 输入线性混合”；官方实现另含自身 normalization/de-normalization、unbounded alpha/beta、patch embedding、PE 和 forecasting head。本项目不复制官方源码，只独立实现 Cross-Correlation Embedding，并显式删除第二套 normalization、patch、PE 和 head；因此来源边界清晰，不能称为完整 CrossLinear。
+
+### 39.2 CCE v1 锁定数学与插入合同
+
+候选 implementation variant 固定为 `el-amd-m4-crosslinear-cce-v1`。输入是 AMD RevIN 后、MDM 前的 `x_ch [B,C,T]`；插入顺序固定为 `RevIN -> CCE -> MDM -> DDI -> PMCR? -> AMS`，当前 CCE pair 中 PMCR 与全部旧 TEB 固定关闭，不修改 `models/tsAMD.py`、PMCR 或旧 TEB 数学结构。
+
+gate 固定为 `lambda=sigmoid(logit(0.1)+rho)`，`rho` 是初始化严格为 0 的全局共享 scalar Parameter；effective lambda init 严格为 0.1。卷积固定 `kernel_size=3,stride=1,padding=1,dilation=1,groups=1,bias=True` 和 zero padding。可学习量采用 RNG-neutral identity-residual delta：`delta_weight=0`、`delta_bias=0`，不得先随机初始化再覆盖。
+
+target_exogenous 模式的模块输入顺序是 ordered `aux_idx` 后接 `target_idx`：
+
+```text
+delta_target = Conv1d([aux...,target], out_channels=1)
+output_target = input_target + lambda * delta_target
+```
+
+只替换 target，其他 channel 逐元素不变。parallel_multivariate 模式保持 feature schema 原顺序：
+
+```text
+delta_all = Conv1d(x_ch, C -> C)
+output = x_ch + lambda * delta_all
+```
+
+参数量硬合同为 target `3*C_source+2`，parallel `3*C*C+C+1`。分析接口必须公开 effective lambda、ungated delta 与 selector identity 加 learned delta 的等价 CrossLinear kernel。模块内部不得存在 normalization。
+
+target/aux 索引拒绝 bool、重复、越界及 target-in-aux，并保持 aux 明确顺序；target CCE-on 要求 aux 非空，parallel CCE-on 要求 `C>=2`。CCE-off 固定 `self.cce=None`、无 `cce.*` state keys 且严格旁路；F0/`C=1` 不得伪装为 CCE enabled。CCE 路线的 state source 前两段正常承载间接影响，第三段固定为 dtype/device 正确的 `legacy_width_compatibility_zero`，不是 CrossLinear-derived context。
+
+### 39.3 Runner、artifact、checkpoint 与 development 停止合同
+
+新增可追踪字段 `use_cce`、`cce_kernel_size`、`cce_lambda_init`、`cce_padding_policy`、`cce_input_order_policy`、`cce_parameterization_policy`；v1 强制 kernel 3、lambda init 0.1、`zero_same`、mode-specific input order 与 `identity_residual_delta_v1`。论文、仓库、retained component、插入点、mode/order/kernel/padding/bias、lambda transform/raw/effective init、normalization reuse 与 state placeholder 均进入 scientific identity 和 config/checkpoint/manifest；机器绝对参考仓库路径不得进入 comparison identity。
+
+development protocol 固定 `m4_crosslinear_cce_from_scratch_pair_v1`，只允许 `M4_CCE_CONTROL`（CCE/PMCR/TEB off）与 `M4_CCE`（CCE on、PMCR/TEB off）。两者均为 standard from-scratch：全部 AMD/CCE parameters trainable，Adam，lr=`3e-5`，weight_decay=`1e-7`，best 从 epoch 1 开始，不使用 epoch-0 best/source checkpoint/T2 warm-start；同 run resume 只允许 strict same-structure。
+
+artifact 继续 schema-v2、13-file checksum、hidden staging 与 atomic publication，不创建 schema-v3 或第 14 个文件。summarizer 必须区分 standard AMD/U1、TimeXer TEB、T2 adapter/continuation、CCE control 与 CCE candidate，并拒绝 CCE source/config/order/gate/checkpoint tamper 和 duplicate spoof。
+
+从 AMD/U1 state 初始化 CCE-on 模型只能调用专用 importer：`missing` 必须严格等于完整 `cce.*` key set，`unexpected` 必须为空；写参前核验 key/shape/dtype/task mode/C/feature schema/order/target/aux/schema fingerprint，失败时全部 parameter 与 persistent buffer 原子不变。禁止 `strict=False`、partial CCE、任何 `teb.*` 权重复用、target/parallel 跨模式迁移、不同 schema/order/C 迁移及 T2 lineage 冒充 CCE lineage。
+
+本轮只实现 production capability、永久回归合同与一个 ETTm1 h96 真实 single-batch smoke；不运行四个 control 或四个 CCE development run，不创建真实 completed development artifact。CCE 未通过后续 M4 paired adequacy 前继续阻塞新 PMCR/P2 和 M5；不得称其为最终外生模块或最终 EL-AMD，不进入 M7/空间模块，也不执行 Git closure。
+
+### 39.4 Production implementation 与 identity-preserving 证据
+
+独立模块实现位于 `models/modules/cross_correlation_embedding.py`，未复制官方源码。模块直接以 `torch.zeros` 创建 `delta_weight`、`delta_bias` 与 scalar `rho`，没有构造后清零的随机初始化，也没有 normalization、patch、PE 或 forecasting head。`effective_lambda()` 数值实现保持 `sigmoid(logit(0.1)+rho)` 的有界语义，并对 `rho==0` 的 float64 one-ULP round-trip 做 detached 精确值修正，因此 CPU/CUDA、float32/float64 初始化均严格返回各 dtype 的 `0.1`，同时保留 sigmoid 导数；`rho=±1000` 分别返回 0/1，未使用 clamp。
+
+`AMDEnhanced.forward` 的实际插入点已锁定为 `normalized_input -> transpose -> cce -> pastmixing`，即 RevIN 后、MDM 前；`models/tsAMD.py` 未改。target 模式以 one-hot residual scatter 保留直接恒等 autograd 主路径，既保证非 target channels 逐元素不变，也保证零 delta 首次 backward 时公共 AMD 梯度与 paired control 位级相等。parallel 模式保持 schema 原顺序。分析接口为 `effective_lambda()`、`compute_ungated_delta()` 与 `equivalent_crosslinear_kernel()`。
+
+shape/参数/主要 MAC 合同如下：
+
+| mode | internal shape | parameters | leading MAC complexity |
+|---|---|---:|---:|
+| target_exogenous | `[B,C_source,T] -> [B,1,T]`，外部仍 `[B,C,T]` | `3*C_source+2` | `O(3*B*T*C_source)` |
+| parallel_multivariate | `[B,C,T] -> [B,C,T]` | `3*C*C+C+1` | `O(3*B*T*C^2)` |
+
+永久测试实际覆盖 `T=12`、`T=512` 与 `C=321` forward。ECL `C=321` 时 parallel CCE 单模块参数为 309,445，target 使用全部 321 个 source 时为 965；前者的二次 channel 成本须留待获授权的高维实验单独评估。ETTm1 长序列下 k=3 只提供局部滞后，UrbanEV 短序列下端点 zero padding 占比更高；本轮仅证明能力与合同，不声称性能或可扩展性。
+
+### 39.5 梯度、optimizer 与 checkpoint 原子性
+
+固定 synthetic paired probe 使用相同 seed、输入、目标、Adam `lr=3e-5,weight_decay=1e-7`：初始化 prediction、MoE 和总 loss 均 `torch.equal`。第一次 backward 的六个 aux delta elements 为 `6/6` 非零且有限，L2=`0.29671091531916033`；`rho.grad=0`。公共 AMD parameter gradient 为 `41/41` tensors 位级相等，max abs diff=`0`。第一次 optimizer step 后公共 parameter/persistent-buffer state 为 `44/44` tensors 位级相等，max abs diff=`0`；`delta_weight` max move=`3.000000106112566e-05`，`rho` 仍严格为 0，未因任务梯度或 weight decay 漂移。第二次 synthetic backward 的 `rho.grad=-2.1595949874608777e-05`，有限且非零。
+
+专用 `load_cce_source_state_dict` 只接受 source state 的 missing set 严格等于 `{"cce.delta_weight","cce.delta_bias","cce.rho"}` 且 unexpected 为空；source contract 完整绑定 mode、C、feature schema、target/aux order、schema fingerprint 与 input-order policy。永久测试覆盖合法 AMD/U1-style import、partial CCE、额外 key、缺 key、shape、dtype、mode、schema、target/aux/order mismatch；每个失败案例均核验全部 parameter 与 persistent buffer 未变化。同结构 CCE checkpoint 只允许 `strict=True`，`strict=False` 被拒绝。
+
+新增 CCE 会改变 `models/tsAMD_enhanced.py` 与 `models/modules/__init__.py` 的整文件 SHA；因此第十四轮历史 U1 artifact 在当前 live source 下继续被既有 full-file compatibility proof 严格拒绝，不被伪装为可复用来源。永久测试显式保留此生产拒绝，同时用隔离的 compatibility fixture 继续验证历史 T2 adapter/continuation 的 state mapping、冻结范围与 epoch-0 机制。旧 completed artifacts 的 summarizer 读取合同不变。
+
+### 39.6 Runner、schema-v2 artifact 与 summarizer 回归
+
+production runner 已新增 variant `el-amd-m4-crosslinear-cce-v1`、development protocol `m4_crosslinear_cce_from_scratch_pair_v1` 及 `M4_CCE_CONTROL`/`M4_CCE` 两个且仅两个 ablation。开关、固定 kernel/gate/padding/order/parameterization、CrossLinear 论文与官方仓库身份、retained component、插入点、normalization reuse 和 state zero-placeholder 均进入 scientific config，并由 config、best/last checkpoint 与 manifest/candidate contract 交叉封存；机器绝对 CrossLinear 路径不进入 scientific/comparison identity。control 无 `cce.*` keys，candidate 恰有三个完整 CCE keys；两者 standard best 均从 epoch 1 开始。
+
+永久 runner fixture 在 `TemporaryDirectory` 中生成并自动回收 CCE control/candidate schema-v2 synthetic artifacts：每个 artifact 仍为 13 个 checksummed payload files，Python exact-set/digest 与系统 `sha256sum -c` 均通过，hidden staging/atomic publication 合同未变，没有 schema-v3/第 14 个文件。summarizer 成功把 CCE control、CCE candidate 与旧 standard/TimeXer/warm-start 身份分开，并拒绝 CrossLinear source、input order、gate、switch、checkpoint dtype 及 duplicate scientific identity + seed spoof。所有 synthetic artifact 已随临时目录删除，仓库 `artifacts/` 下没有 CCE variant 目录。
+
+### 39.7 真实 ETTm1 h96 single-batch smoke
+
+只通过 production `prepare_args -> _build_runtime_data -> _validate_loader_contract -> _build_model -> _prediction_for_loss` 取得一个真实 train batch；没有调用完整 runner lifecycle，没有创建 optimizer、执行 optimizer step、遍历 validation/test loader 或写 artifact。实际设备为 `cuda:0`，数据 SHA-256=`6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`，schema fingerprint=`f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc`。
+
+| probe | observed |
+|---|---|
+| input / target / prediction | `[4,512,7]` / `[4,96,1]` / `[4,96,1]` |
+| state_source | `[4,1056]`；最后 32 维为 zero placeholder |
+| paired initialization | prediction/MoE/state_source 均 `torch.equal=True` |
+| production objective | `6.7545485496521`，finite |
+| six-aux delta gradient | L2=`0.09123487410321596`，18/18 nonzero，finite |
+| first `rho.grad` | `0.0` exactly |
+| effective lambda init | float32 `0.10000000149011612`，即该 dtype 的精确 0.1 |
+| artifact/optimizer | artifact root 不存在；optimizer 未创建；step 未执行 |
+
+该 smoke 没有读取 development validation/test 指标，不是 CCE performance evidence。
+
+### 39.8 永久测试、最终 source identity 与停止点
+
+新增 `tests/test_cross_correlation_embedding.py`，覆盖模块数学、CPU float32/float64、CUDA float32、CPU/全部 CUDA RNG-neutral、identity output、target 首/中/末位置、有序 aux、非法索引、非 target 不变、parallel shape、zero padding、参数量、首/次轮梯度、paired optimizer exactness、无内部 normalization、off-path 与专用 importer 原子性。`tests/test_runner.py` 增加 CCE runner/artifact/summarizer、parallel identity、tamper/duplicate 及历史 source live-gate 回归；未删除或弱化任何旧测试，`tests/test_tsAMD_enhanced.py`、`tests/test_public_architecture.py`、`tests/test_summarize_results.py` 未修改。
+
+最终完整 discovery：`251/251 passed`，failed=`0`，skipped=`0`，用时 `26.324 s`；CUDA CCE/T2/T2G/T3、PMCR 与 M0 parity 分支均实际执行。新 executable source fingerprint 为 `d6e2dd7fe51994dc91f9bad44a692426636518aa1f1f9109db11d5277ac8892a`，21 files；新增的 source file 是 `models/modules/cross_correlation_embedding.py`。
+
+本轮没有运行四个 `M4_CCE_CONTROL` 或四个 `M4_CCE` 真实 development runs，没有创建 completed/failed/staging CCE development artifact，没有训练完整 epoch，没有修改或删除既有 artifact/cache/log。没有启动 PMCR/P2，没有进入 M5/M7 或任何空间模块，M4 继续 `In Progress`。除本轮允许的 canonical 与 M4 外，其他文档、M0-M3、`models/tsAMD.py`、旧 TEB、PMCR、DataLoader、数据与 artifact 均未修改。所有改动保持未 stage、未 commit、未 push，等待用户与 ChatGPT 审核并锁定后续八 run 合同；本轮不执行 Git closure。

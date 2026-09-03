@@ -14,18 +14,30 @@ from pathlib import Path
 
 import torch
 
+from models.modules.cross_correlation_embedding import (
+    CCE_INSERTION_POINT,
+    FEATURE_SCHEMA_ORDER,
+    IDENTITY_RESIDUAL_DELTA_V1,
+    LEGACY_WIDTH_COMPATIBILITY_ZERO,
+    ORDERED_AUX_THEN_TARGET,
+    REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
+    SIGMOID_LOGIT_PLUS_RHO,
+    ZERO_SAME,
+)
 
 IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
 T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
+CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
     T2_IMPLEMENTATION_VARIANT,
     T2G_IMPLEMENTATION_VARIANT,
     T3_IMPLEMENTATION_VARIANT,
+    CCE_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
@@ -38,6 +50,9 @@ ENHANCED_CHECKSUM_FILES = (
 SCHEMA_VERSION = 1
 METRIC_SPACE = "train-standardized"
 STANDARD_TRAINING_PROTOCOL = "standard_from_scratch"
+CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_cce_from_scratch_pair_v1"
+CCE_CONTROL_ABLATION_ID = "M4_CCE_CONTROL"
+CCE_CANDIDATE_ABLATION_ID = "M4_CCE"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -48,6 +63,23 @@ WARM_START_CONTRACT_VERSION = "warm_start_contract_v1"
 SOURCE_COMPATIBILITY_PROOF_VERSION = "source_compatibility_proof_v1"
 T2_ADAPTER_ABLATION_ID = "M4_T2_ADAPTER"
 U1_CONTINUATION_ABLATION_ID = "M4_U1_CONTINUATION"
+CROSSLINEAR_SOURCE_IDENTITY = {
+    "paper_title": (
+        "CrossLinear: Plug-and-Play Cross-Correlation Embedding for "
+        "Time Series Forecasting with Exogenous Variables"
+    ),
+    "conference": "KDD 2025",
+    "doi": "10.1145/3711896.3736899",
+    "pdf_sha256": (
+        "45557c426ca8bfa88f35ec41f09fd87ab864c9a382eef1c659c2296a4a1b0152"
+    ),
+    "official_repo_url": "https://github.com/mumiao2000/CrossLinear.git",
+    "official_repo_commit": "d22366e2f59ced560a02b2b1c7cc673e3c02a13f",
+    "official_model_sha256": (
+        "a062ac97231c55384c621f27981b8225bb87822f50704df201b381dd8e037593"
+    ),
+    "retained_component": "cross_correlation_embedding_only",
+}
 M4_U1_SOURCE_COMMIT = "be2185c3382ec42c7287e4bcc9b2cad5c07fdbad"
 M4_U1_SOURCE_FINGERPRINT = (
     "bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e"
@@ -113,6 +145,7 @@ EXPECTED_OPTIMIZATION_CONTRACT = {
 }
 RUN_FIELDS = (
     "implementation_variant", "training_protocol_id",
+    "development_protocol_id", "ablation_id",
     "dataset_id", "task_mode", "target",
     "label_horizon", "fold", "seq_len", "pred_len", "seed",
     "target_exogenous_schema_contract",
@@ -121,7 +154,9 @@ RUN_FIELDS = (
     "comparison_config_hash", "data_sha256", "completed_at", "artifact_dir",
 )
 AGGREGATE_FIELDS = (
-    "implementation_variant", "dataset_id", "seq_len", "pred_len",
+    "implementation_variant", "training_protocol_id",
+    "development_protocol_id", "ablation_id",
+    "dataset_id", "seq_len", "pred_len",
     "comparison_config_hash", "seed_count", "seeds",
     "val_mse_mean", "val_mse_sample_std", "val_mae_mean", "val_mae_sample_std",
     "test_mse_mean", "test_mse_sample_std", "test_mae_mean", "test_mae_sample_std",
@@ -198,13 +233,155 @@ def _validate_variant_contract(scientific, run_dir):
             )
 
 
+def _validate_cce_variant_contract(scientific, run_dir):
+    model = scientific.get("model")
+    dataset = scientific.get("dataset")
+    experiment = scientific.get("experiment")
+    optimization = scientific.get("optimization")
+    if not all(
+        isinstance(value, dict)
+        for value in (model, dataset, experiment, optimization)
+    ):
+        raise ValueError(f"CCE scientific contract is incomplete: {run_dir}")
+    if scientific.get("training_protocol") is not None:
+        raise ValueError(f"CCE must use standard from-scratch identity: {run_dir}")
+
+    ablation_id = experiment.get("ablation_id")
+    if ablation_id not in {
+        CCE_CONTROL_ABLATION_ID,
+        CCE_CANDIDATE_ABLATION_ID,
+    }:
+        raise ValueError(f"CCE ablation identity mismatch: {run_dir}")
+    enabled = ablation_id == CCE_CANDIDATE_ABLATION_ID
+    mode = dataset.get("task_mode")
+    feature_names = dataset.get("feature_names")
+    aux_idx = dataset.get("aux_idx")
+    target_idx = dataset.get("target_idx")
+    if (
+        mode not in {"target_exogenous", "parallel_multivariate"}
+        or not isinstance(feature_names, list)
+        or len(feature_names) < 1
+        or any(not isinstance(name, str) or not name for name in feature_names)
+        or len(set(feature_names)) != len(feature_names)
+        or not isinstance(aux_idx, list)
+        or any(isinstance(index, bool) or not isinstance(index, int) for index in aux_idx)
+        or isinstance(target_idx, bool)
+        or not isinstance(target_idx, int)
+        or not 0 <= target_idx < len(feature_names)
+    ):
+        raise ValueError(f"CCE feature/index contract is invalid: {run_dir}")
+    if len(set(aux_idx)) != len(aux_idx):
+        raise ValueError(f"CCE aux_idx contains duplicates: {run_dir}")
+    if target_idx in aux_idx or any(
+        not 0 <= index < len(feature_names) for index in aux_idx
+    ):
+        raise ValueError(f"CCE aux_idx is invalid: {run_dir}")
+
+    if mode == "target_exogenous":
+        if (
+            dataset.get("feature_type") != "MS"
+            or not aux_idx
+            or dataset.get("target") != dataset.get("target_feature_name")
+        ):
+            raise ValueError(f"CCE target_exogenous contract mismatch: {run_dir}")
+        input_order = ORDERED_AUX_THEN_TARGET
+        source_idx = [*aux_idx, target_idx]
+    else:
+        if (
+            dataset.get("feature_type") != "M"
+            or dataset.get("target") != "all"
+            or aux_idx
+            or len(feature_names) < 2
+        ):
+            raise ValueError(f"CCE parallel contract mismatch: {run_dir}")
+        input_order = FEATURE_SCHEMA_ORDER
+        source_idx = list(range(len(feature_names)))
+
+    expected_cce = {
+        "source": deepcopy(CROSSLINEAR_SOURCE_IDENTITY),
+        "enabled": enabled,
+        "insertion_point": CCE_INSERTION_POINT,
+        "mode": mode,
+        "input_order_policy": input_order,
+        "source_idx": source_idx,
+        "kernel": {
+            "size": 3,
+            "stride": 1,
+            "padding": 1,
+            "dilation": 1,
+            "groups": 1,
+            "padding_policy": ZERO_SAME,
+            "bias": True,
+        },
+        "lambda": {
+            "transform": SIGMOID_LOGIT_PLUS_RHO,
+            "raw_parameter": "rho",
+            "raw_init": 0.0,
+            "effective_init": 0.1,
+            "scope": "global_shared_scalar",
+        },
+        "parameterization_policy": IDENTITY_RESIDUAL_DELTA_V1,
+        "normalization_reuse_policy": REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
+        "state_zero_placeholder_policy": LEGACY_WIDTH_COMPATIBILITY_ZERO,
+        "excluded_crosslinear_components": [
+            "normalization",
+            "patch_embedding",
+            "positional_embedding",
+            "forecasting_head",
+        ],
+    }
+    mismatches = {}
+    if model.get("cce") != expected_cce:
+        mismatches["cce"] = (expected_cce, model.get("cce"))
+    expected_switches = (enabled, False, False)
+    observed_switches = (
+        model.get("use_cce"),
+        model.get("use_pmcr"),
+        model.get("use_teb"),
+    )
+    if observed_switches != expected_switches:
+        mismatches["module_switches"] = (expected_switches, observed_switches)
+    if (
+        model.get("norm") is not True
+        or model.get("target_idx") != target_idx
+        or model.get("module_connection")
+        != "X->RevIN->CCE?->MDM(U)->DDI; AMS_selector<-U"
+    ):
+        mismatches["model_route"] = ("locked CCE route", model)
+    if (
+        optimization.get("optimizer") != "Adam"
+        or optimization.get("learning_rate") != 3e-5
+        or optimization.get("weight_decay") != 1e-7
+    ):
+        mismatches["optimization"] = ("Adam/3e-5/1e-7", optimization)
+    if experiment.get("development_protocol_id") != CCE_DEVELOPMENT_PROTOCOL:
+        mismatches["development_protocol_id"] = (
+            CCE_DEVELOPMENT_PROTOCOL,
+            experiment.get("development_protocol_id"),
+        )
+    if mismatches:
+        raise ValueError(f"unsupported CCE contract {mismatches}: {run_dir}")
+    return {
+        "development_protocol_id": CCE_DEVELOPMENT_PROTOCOL,
+        "ablation_id": ablation_id,
+        "task_mode": mode,
+        "feature_names": feature_names,
+        "target_idx": target_idx,
+        "aux_idx": aux_idx,
+        "schema_fingerprint": dataset.get("schema_fingerprint"),
+        "cce": expected_cce,
+    }
+
+
 def _validate_enhanced_variant_contract(scientific, implementation_variant, run_dir):
-    """Keep Global v1 and T2 candidate artifacts distinct and explicit."""
+    """Keep legacy TEB, warm-start, and CCE artifact identities distinct."""
 
     model = scientific.get("model")
     experiment = scientific.get("experiment")
     if not isinstance(model, dict) or not isinstance(experiment, dict):
         raise ValueError(f"enhanced variant contract is incomplete: {run_dir}")
+    if implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+        return _validate_cce_variant_contract(scientific, run_dir)
     teb = model.get("teb")
     if not isinstance(teb, dict):
         raise ValueError(f"enhanced TEB contract is missing: {run_dir}")
@@ -864,6 +1041,94 @@ def _validate_warm_start_artifact(
     }
 
 
+def _validate_cce_checkpoints(
+    scientific,
+    config,
+    manifest,
+    metrics,
+    run_dir,
+):
+    """Reject checkpoint metadata or state that spoofs the sealed CCE identity."""
+
+    model = scientific["model"]
+    dataset = scientific["dataset"]
+    enabled = model["use_cce"]
+    feature_count = len(dataset["feature_names"])
+    if dataset["task_mode"] == "target_exogenous":
+        weight_shape = (1, len(dataset["aux_idx"]) + 1, 3)
+        bias_shape = (1,)
+    else:
+        weight_shape = (feature_count, feature_count, 3)
+        bias_shape = (feature_count,)
+    expected_cce_keys = (
+        {"cce.delta_weight", "cce.delta_bias", "cce.rho"}
+        if enabled
+        else set()
+    )
+
+    try:
+        checkpoints = {
+            role: torch.load(Path(run_dir) / f"{role}.pt", map_location="cpu")
+            for role in ("best", "last")
+        }
+    except Exception as exc:
+        raise ValueError(f"cannot read CCE checkpoints: {run_dir}") from exc
+    for role, checkpoint in checkpoints.items():
+        if not isinstance(checkpoint, dict):
+            raise ValueError(f"CCE {role} checkpoint must be a dictionary: {run_dir}")
+        resolved = checkpoint.get("resolved_config")
+        if (
+            checkpoint.get("schema_version") != SCHEMA_VERSION
+            or checkpoint.get("artifact_schema_version")
+            != ENHANCED_ARTIFACT_SCHEMA_VERSION
+            or checkpoint.get("implementation_variant")
+            != CCE_IMPLEMENTATION_VARIANT
+            or checkpoint.get("config_hash") != metrics.get("config_hash")
+            or checkpoint.get("data_sha256") != metrics.get("data_sha256")
+            or not isinstance(resolved, dict)
+            or resolved.get("config_hash") != metrics.get("config_hash")
+            or resolved.get("scientific_config") != scientific
+        ):
+            raise ValueError(
+                f"CCE {role} checkpoint scientific identity mismatch: {run_dir}"
+            )
+        state = checkpoint.get("model_state")
+        if not isinstance(state, dict):
+            raise ValueError(f"CCE {role} checkpoint has no model state: {run_dir}")
+        cce_keys = {key for key in state if key.startswith("cce.")}
+        forbidden = sorted(
+            key for key in state
+            if key.startswith("teb.") or key.startswith("pmcr.")
+        )
+        if cce_keys != expected_cce_keys or forbidden:
+            raise ValueError(
+                f"CCE {role} checkpoint module key mismatch: "
+                f"cce={sorted(cce_keys)}, forbidden={forbidden}: {run_dir}"
+            )
+        if enabled:
+            weight = state["cce.delta_weight"]
+            bias = state["cce.delta_bias"]
+            rho = state["cce.rho"]
+            if (
+                not all(torch.is_tensor(value) for value in (weight, bias, rho))
+                or tuple(weight.shape) != weight_shape
+                or tuple(bias.shape) != bias_shape
+                or tuple(rho.shape) != ()
+                or not weight.is_floating_point()
+                or bias.dtype != weight.dtype
+                or rho.dtype != weight.dtype
+                or not all(
+                    bool(torch.isfinite(value).all())
+                    for value in (weight, bias, rho)
+                )
+            ):
+                raise ValueError(
+                    f"CCE {role} checkpoint tensor contract mismatch: {run_dir}"
+                )
+    if manifest.get("candidate_contract", {}).get("cce") != model.get("cce"):
+        raise ValueError(f"CCE manifest/checkpoint source contract mismatch: {run_dir}")
+
+
 _TARGET_EXOGENOUS_SCHEMA_FIELDS = {
     "contract_version",
     "feature_type",
@@ -1113,6 +1378,8 @@ def _load_legacy_completed_runs(artifact_root):
         row = {
             "implementation_variant": IMPLEMENTATION_VARIANT,
             "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "development_protocol_id": None,
+            "ablation_id": None,
             "dataset_id": str(metrics["dataset_id"]),
             "seq_len": int(metrics["seq_len"]),
             "pred_len": int(metrics["pred_len"]),
@@ -1347,6 +1614,14 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             run_dir,
             implementation_variant,
         )
+        if implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+            _validate_cce_checkpoints(
+                scientific,
+                config,
+                manifest,
+                metrics,
+                run_dir,
+            )
         expected_weight_decay = (
             0.0
             if protocol_info["training_protocol_id"]
@@ -1455,6 +1730,8 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
         rows.append({
             "implementation_variant": implementation_variant,
             "training_protocol_id": protocol_info["training_protocol_id"],
+            "development_protocol_id": experiment.get("development_protocol_id"),
+            "ablation_id": experiment.get("ablation_id"),
             "dataset_id": identity["dataset_id"],
             "task_mode": identity["task_mode"],
             "target": identity["target"],
@@ -1527,6 +1804,21 @@ def aggregate_runs(rows):
 
     aggregates = []
     for key, group in sorted(groups.items()):
+        category_identities = {
+            (
+                row.get("training_protocol_id", STANDARD_TRAINING_PROTOCOL),
+                row.get("development_protocol_id"),
+                row.get("ablation_id"),
+            )
+            for row in group
+        }
+        if len(category_identities) != 1:
+            raise ValueError(
+                "one comparison group contains mixed protocol/ablation identities"
+            )
+        training_protocol_id, development_protocol_id, ablation_id = next(
+            iter(category_identities)
+        )
         seeds = [row["seed"] for row in group]
         if len(seeds) != len(set(seeds)):
             duplicates = sorted(seed for seed in set(seeds) if seeds.count(seed) > 1)
@@ -1547,6 +1839,9 @@ def aggregate_runs(rows):
         test_mae_mean, test_mae_std = mean_and_std("test_mae")
         aggregates.append({
             "implementation_variant": key[0],
+            "training_protocol_id": training_protocol_id,
+            "development_protocol_id": development_protocol_id,
+            "ablation_id": ablation_id,
             "dataset_id": key[1],
             "seq_len": key[2],
             "pred_len": key[3],

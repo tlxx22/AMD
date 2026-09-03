@@ -2949,13 +2949,48 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
 
     @classmethod
     def _preflight(cls, args, model, *, apply_mapping=True):
+        # The live full-file gate must reject pre-CCE historical artifacts now
+        # that AMDEnhanced changed. Mapping/scope tests below use a synthetic
+        # compatibility document so they continue testing their own contract.
+        current = runner.source_fingerprint_metadata()
+        source = json.loads(
+            (
+                Path(args.source_artifact_path) / "source_fingerprint.json"
+            ).read_text(encoding="utf-8")
+        )
+        source_digests = {
+            item["path"]: item["sha256"] for item in source["files"]
+        }
+        for item in current["files"]:
+            if item["path"] in runner.SOURCE_COMPATIBILITY_CRITICAL_FILES:
+                item["sha256"] = source_digests[item["path"]]
         return runner._preflight_warm_start_source(
             args,
             model,
             runner.M4_U1_DATA_FINGERPRINT,
             cls._schema(args.artifact_horizon),
-            runner.source_fingerprint_metadata(),
+            current,
             apply_mapping=apply_mapping,
+        )
+
+    def test_live_historical_source_gate_rejects_post_cce_file_change(self):
+        args = self._protocol_args(96)
+        model = self._model(args)
+        before = runner._state_dict_digest(model.state_dict())
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "source compatibility critical file mismatch: models/tsAMD_enhanced.py",
+        ):
+            runner._preflight_warm_start_source(
+                args,
+                model,
+                runner.M4_U1_DATA_FINGERPRINT,
+                self._schema(96),
+                runner.source_fingerprint_metadata(),
+                apply_mapping=True,
+            )
+        self.assertEqual(
+            before, runner._state_dict_digest(model.state_dict())
         )
 
     @classmethod
@@ -3419,6 +3454,401 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
         self.assertEqual(protocol["epoch_zero_selection_policy"],
                          "included_strict_improvement")
         self.assertEqual(protocol["max_continuation_epochs"], 10)
+
+
+class CCERunnerContractTests(unittest.TestCase):
+    @staticmethod
+    def _write_dataset(path):
+        rows = 80
+        pd.DataFrame({
+            "date": pd.date_range("2024-01-01", periods=rows, freq="h"),
+            "a": [float((index * 3) % 17) for index in range(rows)],
+            "b": [float((index * 5 + 1) % 19) for index in range(rows)],
+        }).to_csv(path, index=False)
+
+    @staticmethod
+    def _args(data_path, artifact_root, *, enabled, seed=123):
+        return runner.parse_args([
+            "--implementation_variant", runner.CCE_IMPLEMENTATION_VARIANT,
+            "--data", str(data_path),
+            "--dataset_id", "toy",
+            "--artifact_root", str(artifact_root),
+            "--device", "cpu",
+            "--num_threads", "1",
+            "--progress", "false",
+            "--seed", str(seed),
+            "--seq_len", "4",
+            "--pred_len", "2",
+            "--n_block", "1",
+            "--alpha", "0",
+            "--mix_layer_num", "0",
+            "--mix_layer_scale", "2",
+            "--patch", "4",
+            "--norm", "true",
+            "--layernorm", "false",
+            "--dropout", "0",
+            "--train_epochs", "1",
+            "--batch_size", "8",
+            "--learning_rate", "0.00003",
+            "--weight_decay", "0.0000001",
+            "--feature_type", "MS",
+            "--target", "b",
+            "--task_mode", "target_exogenous",
+            "--target_idx", "1",
+            "--aux_idx", "0",
+            "--feature_names", "a", "b",
+            "--target_feature_name", "b",
+            "--aux_feature_names", "a",
+            "--schema_fingerprint", runner.stable_hash(["a", "b"]),
+            "--fold", "official",
+            "--horizon", "2",
+            "--ablation_id", (
+                runner.CCE_CANDIDATE_ABLATION_ID
+                if enabled else runner.CCE_CONTROL_ABLATION_ID
+            ),
+            "--use_cce", str(enabled).lower(),
+            "--cce_input_order_policy", runner.ORDERED_AUX_THEN_TARGET,
+            "--development_protocol_id", runner.CCE_DEVELOPMENT_PROTOCOL,
+            "--use_pmcr", "false",
+            "--use_teb", "false",
+            "--teb_context_dim", "4",
+            "--teb_heads", "2",
+            "--teb_dropout", "0",
+        ])
+
+    @staticmethod
+    def _fake_train(*args, **kwargs):
+        return {
+            "mse": 0.5,
+            "mae": 0.4,
+            "num_elements": 1,
+            "num_batches": 1,
+            "objective_mean_batches": 0.5,
+            "auxiliary_mean_batches": 0.0,
+        }
+
+    @staticmethod
+    def _fake_evaluate(*args, **kwargs):
+        return {
+            "mse": 0.3,
+            "mae": 0.2,
+            "num_elements": 1,
+            "num_batches": 1,
+        }
+
+    @classmethod
+    def _run(cls, data_path, artifact_root, *, enabled, seed=123):
+        before = {
+            path.parent.resolve()
+            for path in Path(artifact_root).rglob("manifest.json")
+        }
+        args = cls._args(
+            data_path, artifact_root, enabled=enabled, seed=seed
+        )
+        with mock.patch.object(
+            runner, "train_one_epoch", side_effect=cls._fake_train
+        ), mock.patch.object(
+            runner, "evaluate", side_effect=cls._fake_evaluate
+        ):
+            runner.main(args)
+        after = {
+            path.parent.resolve()
+            for path in Path(artifact_root).rglob("manifest.json")
+            if json.loads(path.read_text(encoding="utf-8")).get("status")
+            == "completed"
+        }
+        created = after - before
+        if len(created) != 1:
+            raise AssertionError(f"expected one completed CCE run, got {created}")
+        return created.pop()
+
+    @staticmethod
+    def _reseal(run_dir):
+        lines = [
+            f"{summary._sha256_file(run_dir / name)}  {name}"
+            for name in summary.ENHANCED_CHECKSUM_FILES
+        ]
+        (run_dir / "checksums.sha256").write_text(
+            "\n".join(lines) + "\n", encoding="utf-8"
+        )
+
+    def test_pair_seals_scientific_source_checkpoint_and_13_file_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            artifact_root = root / "artifacts"
+            self._write_dataset(data_path)
+            control_dir = self._run(
+                data_path, artifact_root, enabled=False
+            )
+            candidate_dir = self._run(
+                data_path, artifact_root, enabled=True
+            )
+
+            rows = summary.load_completed_runs(
+                artifact_root,
+                implementation_variant=summary.CCE_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(
+                {row["ablation_id"] for row in rows},
+                {
+                    summary.CCE_CONTROL_ABLATION_ID,
+                    summary.CCE_CANDIDATE_ABLATION_ID,
+                },
+            )
+            self.assertTrue(all(
+                row["development_protocol_id"]
+                == summary.CCE_DEVELOPMENT_PROTOCOL
+                for row in rows
+            ))
+            self.assertEqual(
+                len({row["comparison_config_hash"] for row in rows}), 2
+            )
+
+            metrics_by_label = {}
+            for label, run_dir in (
+                ("control", control_dir),
+                ("candidate", candidate_dir),
+            ):
+                config = json.loads(
+                    (run_dir / "config.resolved.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                manifest = json.loads(
+                    (run_dir / "manifest.json").read_text(encoding="utf-8")
+                )
+                metrics = json.loads(
+                    (run_dir / "metrics.json").read_text(encoding="utf-8")
+                )
+                scientific = config["scientific_config"]
+                self.assertEqual(
+                    config["config_hash"], runner.stable_hash(scientific)
+                )
+                self.assertEqual(
+                    manifest["candidate_contract"]["cce"],
+                    scientific["model"]["cce"],
+                )
+                self.assertEqual(
+                    scientific["model"]["cce"]["source"],
+                    runner.CROSSLINEAR_SOURCE_IDENTITY,
+                )
+                self.assertNotIn("/public/home/", json.dumps(scientific))
+                self.assertNotIn("training_protocol", scientific)
+                self.assertEqual(manifest["best_epoch"], 1)
+                self.assertEqual(metrics["train_epochs"], 1)
+                checksum_lines = (
+                    run_dir / "checksums.sha256"
+                ).read_text(encoding="utf-8").splitlines()
+                self.assertEqual(len(checksum_lines), 13)
+                self.assertEqual(
+                    {line.split("  ", 1)[1] for line in checksum_lines},
+                    set(summary.ENHANCED_CHECKSUM_FILES),
+                )
+                verified = subprocess.run(
+                    ["sha256sum", "-c", "checksums.sha256"],
+                    cwd=run_dir,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(verified.returncode, 0, verified.stderr)
+                checkpoint = torch.load(
+                    run_dir / "best.pt", map_location="cpu"
+                )
+                cce_keys = {
+                    key for key in checkpoint["model_state"]
+                    if key.startswith("cce.")
+                }
+                self.assertEqual(
+                    cce_keys,
+                    (
+                        {"cce.delta_weight", "cce.delta_bias", "cce.rho"}
+                        if label == "candidate" else set()
+                    ),
+                )
+                metrics_by_label[label] = metrics
+            self.assertEqual(
+                metrics_by_label["candidate"]["parameter_count"]
+                - metrics_by_label["control"]["parameter_count"],
+                3 * 2 + 2,
+            )
+
+    def test_parallel_identity_and_locked_scientific_tamper_rejection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+            args = self._args(data_path, root / "unused", enabled=True)
+            args.task_mode = "parallel_multivariate"
+            args.feature_type = "M"
+            args.target = "all"
+            args.aux_idx = ()
+            args.aux_feature_names = ()
+            args.cce_input_order_policy = runner.FEATURE_SCHEMA_ORDER
+            args = runner.prepare_args(args)
+            model = runner._build_model(
+                args, SimpleNamespace(n_feature=2, target_slice=None)
+            )
+            self.assertEqual(model.cce.delta_weight.shape, (2, 2, 3))
+            self.assertTrue(all(
+                parameter.requires_grad for parameter in model.parameters()
+            ))
+            scientific = runner._scientific_config(
+                args,
+                "data-hash",
+                "source-hash",
+                {
+                    "columns": ["a", "b"],
+                    "feature_type": "M",
+                    "target": "all",
+                },
+                torch.device("cpu"),
+                _runtime_metadata(),
+            )
+            contract = summary._validate_cce_variant_contract(
+                scientific, Path("parallel-fixture")
+            )
+            self.assertEqual(contract["cce"]["source_idx"], [0, 1])
+            comparison = summary._comparison_hash(
+                {"scientific_config": scientific}, Path("fixture"), 1
+            )
+
+            mutations = []
+            source_tamper = deepcopy(scientific)
+            source_tamper["model"]["cce"]["source"]["doi"] = "tampered"
+            mutations.append(source_tamper)
+            order_tamper = deepcopy(scientific)
+            order_tamper["model"]["cce"]["input_order_policy"] = (
+                runner.ORDERED_AUX_THEN_TARGET
+            )
+            mutations.append(order_tamper)
+            gate_tamper = deepcopy(scientific)
+            gate_tamper["model"]["cce"]["lambda"]["effective_init"] = 0.2
+            mutations.append(gate_tamper)
+            switch_tamper = deepcopy(scientific)
+            switch_tamper["model"]["use_cce"] = False
+            mutations.append(switch_tamper)
+            for mutated in mutations:
+                with self.subTest(mutation=mutated["model"]["cce"]):
+                    self.assertNotEqual(
+                        runner.stable_hash(scientific),
+                        runner.stable_hash(mutated),
+                    )
+                    self.assertNotEqual(
+                        comparison,
+                        summary._comparison_hash(
+                            {"scientific_config": mutated},
+                            Path("fixture"),
+                            1,
+                        ),
+                    )
+                    with self.assertRaises(ValueError):
+                        summary._validate_cce_variant_contract(
+                            mutated, Path("tampered-fixture")
+                        )
+
+            single = self._args(
+                data_path, root / "single-unused", enabled=True
+            )
+            single.task_mode = "parallel_multivariate"
+            single.feature_type = "M"
+            single.target = "all"
+            single.feature_names = ("only",)
+            single.target_idx = 0
+            single.target_feature_name = "only"
+            single.aux_idx = ()
+            single.aux_feature_names = ()
+            single.schema_fingerprint = runner.stable_hash(["only"])
+            single.cce_input_order_policy = runner.FEATURE_SCHEMA_ORDER
+            with self.assertRaisesRegex(ValueError, "at least two variables"):
+                runner.prepare_args(single)
+
+    def test_runner_rejects_switch_order_gate_and_protocol_spoofs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+            cases = (
+                ("use_cce", False),
+                ("cce_input_order_policy", runner.FEATURE_SCHEMA_ORDER),
+                ("cce_kernel_size", 5),
+                ("cce_lambda_init", 0.2),
+                ("learning_rate", 1e-4),
+                ("weight_decay", 0.0),
+                ("development_protocol_id", None),
+                ("use_pmcr", True),
+                ("use_teb", True),
+            )
+            for field, value in cases:
+                with self.subTest(field=field):
+                    artifact_root = root / field
+                    args = self._args(
+                        data_path, artifact_root, enabled=True
+                    )
+                    setattr(args, field, value)
+                    with self.assertRaises(ValueError):
+                        runner.prepare_args(args)
+                    self.assertFalse(artifact_root.exists())
+
+    def test_summarizer_rejects_source_checkpoint_and_duplicate_spoofs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+
+            source_root = root / "source-tamper"
+            source_dir = self._run(data_path, source_root, enabled=True)
+            manifest_path = source_dir / "manifest.json"
+            manifest = json.loads(
+                manifest_path.read_text(encoding="utf-8")
+            )
+            manifest["candidate_contract"]["cce"]["source"]["doi"] = (
+                "tampered"
+            )
+            manifest_path.write_text(
+                json.dumps(manifest, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            self._reseal(source_dir)
+            with self.assertRaisesRegex(
+                ValueError, "candidate contract mismatch"
+            ):
+                summary.load_completed_runs(
+                    source_root,
+                    implementation_variant=summary.CCE_IMPLEMENTATION_VARIANT,
+                )
+
+            checkpoint_root = root / "checkpoint-tamper"
+            checkpoint_dir = self._run(
+                data_path, checkpoint_root, enabled=True
+            )
+            best_path = checkpoint_dir / "best.pt"
+            checkpoint = torch.load(best_path, map_location="cpu")
+            checkpoint["model_state"]["cce.delta_weight"] = checkpoint[
+                "model_state"
+            ]["cce.delta_weight"].double()
+            torch.save(checkpoint, best_path)
+            self._reseal(checkpoint_dir)
+            with self.assertRaisesRegex(
+                ValueError, "tensor contract mismatch"
+            ):
+                summary.load_completed_runs(
+                    checkpoint_root,
+                    implementation_variant=summary.CCE_IMPLEMENTATION_VARIANT,
+                )
+
+            duplicate_root = root / "duplicate"
+            self._run(data_path, duplicate_root, enabled=True)
+            self._run(data_path, duplicate_root, enabled=True)
+            with self.assertRaisesRegex(
+                ValueError, "same scientific identity"
+            ):
+                summary.load_completed_runs(
+                    duplicate_root,
+                    implementation_variant=summary.CCE_IMPLEMENTATION_VARIANT,
+                )
 
 
 

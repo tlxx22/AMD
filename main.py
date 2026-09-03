@@ -32,6 +32,16 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from models.modules.cross_correlation_embedding import (
+    CCE_INSERTION_POINT,
+    FEATURE_SCHEMA_ORDER,
+    IDENTITY_RESIDUAL_DELTA_V1,
+    LEGACY_WIDTH_COMPATIBILITY_ZERO,
+    ORDERED_AUX_THEN_TARGET,
+    REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
+    SIGMOID_LOGIT_PLUS_RHO,
+    ZERO_SAME,
+)
 from models.modules.global_mediated_patch_target_exogenous_bridge import (
     GLOBAL_GATE_IDENTITY_INIT,
     GLOBAL_GATE_INPUT_CONTRACT,
@@ -76,12 +86,14 @@ ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
 T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
+CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 IMPLEMENTATION_VARIANT = BASELINE_IMPLEMENTATION_VARIANT
 ENHANCED_IMPLEMENTATION_VARIANTS = (
     ENHANCED_IMPLEMENTATION_VARIANT,
     T2_IMPLEMENTATION_VARIANT,
     T2G_IMPLEMENTATION_VARIANT,
     T3_IMPLEMENTATION_VARIANT,
+    CCE_IMPLEMENTATION_VARIANT,
 )
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
@@ -110,6 +122,9 @@ ENHANCED_CHECKSUM_FILES = (
 )
 
 STANDARD_TRAINING_PROTOCOL = "standard_from_scratch"
+CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_cce_from_scratch_pair_v1"
+CCE_CONTROL_ABLATION_ID = "M4_CCE_CONTROL"
+CCE_CANDIDATE_ABLATION_ID = "M4_CCE"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -122,6 +137,23 @@ STATE_DICT_DIGEST_CONTRACT_VERSION = "sha256_length_prefixed_state_dict_v1"
 SOURCE_CHECKPOINT_ROLE_BEST = "best"
 T2_ADAPTER_ABLATION_ID = "M4_T2_ADAPTER"
 U1_CONTINUATION_ABLATION_ID = "M4_U1_CONTINUATION"
+CROSSLINEAR_SOURCE_IDENTITY = {
+    "paper_title": (
+        "CrossLinear: Plug-and-Play Cross-Correlation Embedding for "
+        "Time Series Forecasting with Exogenous Variables"
+    ),
+    "conference": "KDD 2025",
+    "doi": "10.1145/3711896.3736899",
+    "pdf_sha256": (
+        "45557c426ca8bfa88f35ec41f09fd87ab864c9a382eef1c659c2296a4a1b0152"
+    ),
+    "official_repo_url": "https://github.com/mumiao2000/CrossLinear.git",
+    "official_repo_commit": "d22366e2f59ced560a02b2b1c7cc673e3c02a13f",
+    "official_model_sha256": (
+        "a062ac97231c55384c621f27981b8225bb87822f50704df201b381dd8e037593"
+    ),
+    "retained_component": "cross_correlation_embedding_only",
+}
 M4_U1_SOURCE_COMMIT = "be2185c3382ec42c7287e4bcc9b2cad5c07fdbad"
 M4_U1_SOURCE_FINGERPRINT = (
     "bffb7f1975f4f4f9448e44576bc626a0e82c75e54902fda4800847c89611065e"
@@ -371,6 +403,72 @@ def _t3_candidate_contract(args):
     return contract
 
 
+def _cce_model_contract(args):
+    source_idx = (
+        [*args.aux_idx, args.target_idx]
+        if args.task_mode == TARGET_EXOGENOUS
+        else list(range(len(args.feature_names)))
+    )
+    return {
+        "source": deepcopy(CROSSLINEAR_SOURCE_IDENTITY),
+        "enabled": args.use_cce,
+        "insertion_point": CCE_INSERTION_POINT,
+        "mode": args.task_mode,
+        "input_order_policy": args.cce_input_order_policy,
+        "source_idx": source_idx,
+        "kernel": {
+            "size": args.cce_kernel_size,
+            "stride": 1,
+            "padding": 1,
+            "dilation": 1,
+            "groups": 1,
+            "padding_policy": args.cce_padding_policy,
+            "bias": True,
+        },
+        "lambda": {
+            "transform": SIGMOID_LOGIT_PLUS_RHO,
+            "raw_parameter": "rho",
+            "raw_init": 0.0,
+            "effective_init": args.cce_lambda_init,
+            "scope": "global_shared_scalar",
+        },
+        "parameterization_policy": args.cce_parameterization_policy,
+        "normalization_reuse_policy": REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
+        "state_zero_placeholder_policy": LEGACY_WIDTH_COMPATIBILITY_ZERO,
+        "excluded_crosslinear_components": [
+            "normalization",
+            "patch_embedding",
+            "positional_embedding",
+            "forecasting_head",
+        ],
+    }
+
+
+def _cce_candidate_contract(args):
+    return {
+        "development_protocol_id": args.development_protocol_id,
+        "ablation_id": args.ablation_id,
+        "task_mode": args.task_mode,
+        "feature_names": list(args.feature_names),
+        "target_idx": args.target_idx,
+        "aux_idx": list(args.aux_idx),
+        "schema_fingerprint": args.schema_fingerprint,
+        "cce": _cce_model_contract(args),
+    }
+
+
+def _has_cce_configuration(args):
+    return (
+        args.use_cce
+        or args.development_protocol_id is not None
+        or args.cce_input_order_policy is not None
+        or args.cce_kernel_size != 3
+        or args.cce_lambda_init != 0.1
+        or args.cce_padding_policy != ZERO_SAME
+        or args.cce_parameterization_policy != IDENTITY_RESIDUAL_DELTA_V1
+    )
+
+
 def str2bool(value):
     """Parse explicit boolean strings without Python's ``bool('False')`` trap."""
 
@@ -467,6 +565,8 @@ def parse_args(argv=None):
             "M0", "M1", "M2", "M3",
             "M4_T2", "M4_T2G", "M4_T3",
             T2_ADAPTER_ABLATION_ID, U1_CONTINUATION_ABLATION_ID,
+            CCE_CONTROL_ABLATION_ID,
+            CCE_CANDIDATE_ABLATION_ID,
         ],
     )
 
@@ -486,6 +586,25 @@ def parse_args(argv=None):
         ),
     )
     parser.add_argument("--dropout", type=float, default=0.1)
+
+    parser.add_argument("--use_cce", type=str2bool, default=False)
+    parser.add_argument("--cce_kernel_size", type=int, default=3)
+    parser.add_argument("--cce_lambda_init", type=float, default=0.1)
+    parser.add_argument(
+        "--cce_padding_policy",
+        default=ZERO_SAME,
+        choices=[ZERO_SAME],
+    )
+    parser.add_argument(
+        "--cce_input_order_policy",
+        default=None,
+        choices=[ORDERED_AUX_THEN_TARGET, FEATURE_SCHEMA_ORDER],
+    )
+    parser.add_argument(
+        "--cce_parameterization_policy",
+        default=IDENTITY_RESIDUAL_DELTA_V1,
+        choices=[IDENTITY_RESIDUAL_DELTA_V1],
+    )
 
     parser.add_argument("--use_pmcr", type=str2bool, default=False)
     parser.add_argument("--pmcr_hidden_dim", type=int, default=None)
@@ -608,6 +727,11 @@ def parse_args(argv=None):
     parser.add_argument("--learning_rate", type=float, default=0.00005)
     parser.add_argument("--weight_decay", type=float, default=PAPER_WEIGHT_DECAY)
 
+    parser.add_argument(
+        "--development_protocol_id",
+        default=None,
+        choices=[CCE_DEVELOPMENT_PROTOCOL],
+    )
     parser.add_argument(
         "--training_protocol_id",
         default=STANDARD_TRAINING_PROTOCOL,
@@ -803,8 +927,10 @@ def _validate_urbanev_protocol(args):
     if args.feature_type != "MS":
         raise ValueError("UrbanEV target_exogenous requires feature_type='MS'")
     _bind_urbanev_schema_contract(args)
-    if args.feature_preset == "F0" and args.use_teb:
-        raise ValueError("UrbanEV F0 has no auxiliary variables and requires use_teb=False")
+    if args.feature_preset == "F0" and (args.use_cce or args.use_teb):
+        raise ValueError(
+            "UrbanEV F0 has no auxiliary variables and requires use_teb=False and use_cce=False"
+        )
 
 def _prepare_enhanced_contract(args):
     if args.task_mode is None:
@@ -950,6 +1076,81 @@ def _prepare_enhanced_contract(args):
         args.teb_patch_gate_init,
         args.teb_global_prediction_role,
     )
+
+    if args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+        if any(value is not None for value in patch_values + t2g_values + t3_values):
+            raise ValueError("CCE variant does not accept T2/T2G/T3 parameters")
+        expected_order = (
+            ORDERED_AUX_THEN_TARGET
+            if args.task_mode == TARGET_EXOGENOUS
+            else FEATURE_SCHEMA_ORDER
+        )
+        if args.ablation_id not in {
+            CCE_CONTROL_ABLATION_ID,
+            CCE_CANDIDATE_ABLATION_ID,
+        }:
+            raise ValueError(
+                "CCE variant requires ablation_id M4_CCE_CONTROL or M4_CCE"
+            )
+        expected_cce = {
+            "development_protocol_id": CCE_DEVELOPMENT_PROTOCOL,
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "use_cce": args.ablation_id == CCE_CANDIDATE_ABLATION_ID,
+            "use_pmcr": False,
+            "use_teb": False,
+            "cce_kernel_size": 3,
+            "cce_lambda_init": 0.1,
+            "cce_padding_policy": ZERO_SAME,
+            "cce_input_order_policy": expected_order,
+            "cce_parameterization_policy": IDENTITY_RESIDUAL_DELTA_V1,
+            "learning_rate": 3e-5,
+            "weight_decay": PAPER_WEIGHT_DECAY,
+            "norm": True,
+        }
+        mismatches = [
+            name
+            for name, expected in expected_cce.items()
+            if getattr(args, name) != expected
+        ]
+        if mismatches:
+            raise ValueError(
+                "CrossLinear-inspired CCE v1 contract mismatch for "
+                + ", ".join(mismatches)
+            )
+        if args.task_mode == TARGET_EXOGENOUS:
+            if args.feature_type != "MS":
+                raise ValueError("target_exogenous requires feature_type='MS'")
+            if args.target != args.target_feature_name:
+                raise ValueError("target must equal target_feature_name")
+            if not args.aux_idx:
+                raise ValueError(
+                    "target_exogenous CCE pair requires at least one auxiliary"
+                )
+        else:
+            if args.feature_type != "M":
+                raise ValueError("parallel_multivariate requires feature_type='M'")
+            if args.target != "all":
+                raise ValueError("parallel_multivariate requires target='all'")
+            if args.aux_idx or args.aux_feature_names:
+                raise ValueError(
+                    "parallel_multivariate CCE uses schema order; aux must be empty"
+                )
+            if len(args.feature_names) < 2:
+                raise ValueError(
+                    "parallel_multivariate CCE requires at least two variables"
+                )
+        args.teb_architecture = GLOBAL_TEB_V1
+        args.display_name = (
+            "AMD + CrossLinear-inspired CCE"
+            if args.use_cce
+            else "AMD CCE paired control"
+        )
+        return args
+
+    if _has_cce_configuration(args):
+        raise ValueError(
+            "only el-amd-m4-crosslinear-cce-v1 accepts CCE configuration"
+        )
     if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
         if any(value is not None for value in patch_values + t2g_values + t3_values):
             raise ValueError(
@@ -1275,7 +1476,12 @@ def prepare_args(args):
             name for name, value in baseline_only_values.items()
             if value is not None
         ]
-        if configured or args.use_pmcr or args.use_teb:
+        if (
+            configured
+            or _has_cce_configuration(args)
+            or args.use_pmcr
+            or args.use_teb
+        ):
             raise ValueError(
                 "baseline variant does not accept enhanced configuration: "
                 + ", ".join(configured)
@@ -2881,6 +3087,14 @@ def _scientific_config(
             "empty_aux_policy": args.empty_aux_policy,
             "parallel_c1_policy": args.parallel_c1_policy,
         })
+        if args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+            model_config.update({
+                "module_connection": (
+                    "X->RevIN->CCE?->MDM(U)->DDI; AMS_selector<-U"
+                ),
+                "use_cce": args.use_cce,
+                "cce": _cce_model_contract(args),
+            })
         if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
             model_config["teb"].update({
                 "architecture": PATCH_CONDITIONED_V1,
@@ -2926,6 +3140,8 @@ def _scientific_config(
             "artifact_horizon": args.artifact_horizon,
             "fold": args.fold,
         }
+        if args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+            experiment["development_protocol_id"] = args.development_protocol_id
 
     result = {
         "implementation_variant": args.implementation_variant,
@@ -3816,6 +4032,16 @@ def _build_model(args, data_loader):
         teb_context_dim=args.teb_context_dim,
         task_mode=args.task_mode,
         aux_idx=args.aux_idx,
+        use_cce=args.use_cce,
+        cce_kernel_size=args.cce_kernel_size,
+        cce_lambda_init=args.cce_lambda_init,
+        cce_padding_policy=args.cce_padding_policy,
+        cce_input_order_policy=args.cce_input_order_policy,
+        cce_parameterization_policy=args.cce_parameterization_policy,
+        cce_feature_schema=args.feature_names if args.use_cce else None,
+        cce_schema_fingerprint=(
+            args.schema_fingerprint if args.use_cce else None
+        ),
         use_pmcr=args.use_pmcr,
         pmcr_hidden_dim=args.pmcr_hidden_dim,
         pmcr_kernel_small=args.pmcr_kernel_small,
@@ -3995,6 +4221,8 @@ def _main_impl(args, transcript=None):
         manifest["candidate_contract"] = _t2g_candidate_contract(args)
     elif args.implementation_variant == T3_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _t3_candidate_contract(args)
+    elif args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+        manifest["candidate_contract"] = _cce_candidate_contract(args)
     previous_config = None
     manifest_is_mutable = False
     artifact_sealed = False

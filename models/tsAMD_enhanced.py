@@ -3,6 +3,12 @@ import math
 
 import torch
 
+from models.modules.cross_correlation_embedding import (
+    CCE_SOURCE_IMPORT_CONTRACT_VERSION,
+    IDENTITY_RESIDUAL_DELTA_V1,
+    ZERO_SAME,
+    CrossCorrelationEmbedding,
+)
 from models.modules.global_mediated_patch_target_exogenous_bridge import (
     GLOBAL_GATE_IDENTITY_INIT,
     GLOBAL_GATE_INPUT_CONTRACT,
@@ -57,8 +63,23 @@ def _ordered_aux_idx(value) -> tuple[int, ...]:
     return result
 
 
+def _ordered_feature_schema(value, *, feature_num: int) -> tuple[str, ...]:
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise TypeError("CCE feature_schema must be an ordered iterable of strings")
+    result = tuple(value)
+    if len(result) != feature_num:
+        raise ValueError(
+            f"CCE feature_schema must contain {feature_num} names, got {len(result)}"
+        )
+    if any(not isinstance(name, str) or not name for name in result):
+        raise TypeError("CCE feature_schema must contain only non-empty strings")
+    if len(set(result)) != len(result):
+        raise ValueError("CCE feature_schema must not contain duplicate names")
+    return result
+
+
 class AMDEnhanced(AMD):
-    """AMD with optional PMCR, TEB, and fixed-width raw state source."""
+    """AMD with optional CCE/PMCR/TEB and fixed-width raw state source."""
 
     def __init__(
         self,
@@ -78,6 +99,14 @@ class AMDEnhanced(AMD):
         teb_context_dim,
         task_mode=None,
         aux_idx=(),
+        use_cce=False,
+        cce_kernel_size=3,
+        cce_lambda_init=0.1,
+        cce_padding_policy=ZERO_SAME,
+        cce_input_order_policy=None,
+        cce_parameterization_policy=IDENTITY_RESIDUAL_DELTA_V1,
+        cce_feature_schema=None,
+        cce_schema_fingerprint=None,
         use_pmcr=False,
         pmcr_hidden_dim=None,
         pmcr_kernel_small=None,
@@ -162,6 +191,10 @@ class AMDEnhanced(AMD):
                 "parallel_multivariate uses all other variables; aux_idx must be empty"
             )
 
+        if not isinstance(use_cce, bool):
+            raise TypeError(
+                f"AMDEnhanced use_cce must be bool, got {type(use_cce).__name__}"
+            )
         if not isinstance(use_pmcr, bool):
             raise TypeError(
                 "AMDEnhanced use_pmcr must be bool, "
@@ -172,12 +205,36 @@ class AMDEnhanced(AMD):
                 "AMDEnhanced use_teb must be bool, "
                 f"got {type(use_teb).__name__}"
             )
-        if task_mode is None and use_teb:
-            raise ValueError("AMDEnhanced use_teb=True requires an explicit task_mode")
+        if task_mode is None and (use_cce or use_teb):
+            raise ValueError("AMDEnhanced CCE/TEB requires an explicit task_mode")
         if task_mode is None and ordered_aux:
             raise ValueError(
                 "AMDEnhanced legacy task_mode=None requires aux_idx to be empty"
             )
+        if use_cce and (use_pmcr or use_teb):
+            raise ValueError(
+                "CrossLinear-inspired CCE v1 requires PMCR and TEB to be disabled"
+            )
+        if use_cce:
+            feature_schema = _ordered_feature_schema(
+                cce_feature_schema,
+                feature_num=self.feature_num,
+            )
+            if (
+                not isinstance(cce_schema_fingerprint, str)
+                or not cce_schema_fingerprint
+            ):
+                raise ValueError("CCE requires a non-empty cce_schema_fingerprint")
+        else:
+            if cce_feature_schema is not None:
+                raise ValueError(
+                    "CCE-off model must not carry cce_feature_schema metadata"
+                )
+            if cce_schema_fingerprint is not None:
+                raise ValueError(
+                    "CCE-off model must not carry cce_schema_fingerprint metadata"
+                )
+            feature_schema = None
         if use_teb and (
             isinstance(teb_heads, bool)
             or not isinstance(teb_heads, int)
@@ -349,8 +406,11 @@ class AMDEnhanced(AMD):
         self.teb_context_dim = teb_context_dim
         self.task_mode = task_mode
         self.aux_idx = ordered_aux
+        self.use_cce = use_cce
         self.use_pmcr = use_pmcr
         self.use_teb = use_teb
+        self.cce_feature_schema = feature_schema
+        self.cce_schema_fingerprint = cce_schema_fingerprint
         self.teb_architecture = teb_architecture
         self.teb_patch_size = teb_patch_size
         self.teb_patch_padding = teb_patch_padding
@@ -366,6 +426,20 @@ class AMDEnhanced(AMD):
         self.teb_patch_gate_activation = teb_patch_gate_activation
         self.teb_patch_gate_init = teb_patch_gate_init
         self.teb_global_prediction_role = teb_global_prediction_role
+
+        self.cce = None
+        if self.use_cce:
+            self.cce = CrossCorrelationEmbedding(
+                feature_num=self.feature_num,
+                task_mode=self.task_mode,
+                target_idx=self.target_idx,
+                aux_idx=self.aux_idx,
+                kernel_size=cce_kernel_size,
+                lambda_init=cce_lambda_init,
+                padding_policy=cce_padding_policy,
+                input_order_policy=cce_input_order_policy,
+                parameterization_policy=cce_parameterization_policy,
+            )
 
         self.pmcr = None
         if self.use_pmcr:
@@ -448,21 +522,21 @@ class AMDEnhanced(AMD):
     def load_state_dict(self, state_dict, strict=True):
         """Keep strict restores same-structure and non-polluting.
 
-        Global TEB v1 keeps its ordinary successful strict-load behavior. The
-        preflight adds only a failure atomicity guarantee, which is required
-        when rejecting cross-architecture Global/T2 checkpoints.
+        CCE and from-scratch TEB candidates only permit same-structure strict
+        restores. Cross-structure CCE initialization has a dedicated importer.
         """
 
-        is_from_scratch_candidate = (
-            getattr(self, "teb_architecture", GLOBAL_TEB_V1)
-            in {
+        requires_strict = getattr(self, "use_cce", False) or (
+            getattr(self, "teb_architecture", GLOBAL_TEB_V1) in {
                 PATCH_CONDITIONED_V1,
                 GLOBAL_MEDIATED_PATCH_V1,
                 SELECTIVE_PATCH_V1,
             }
         )
-        if is_from_scratch_candidate and strict is not True:
-            raise ValueError("T2/T2G/T3 checkpoint restore requires strict=True")
+        if requires_strict and strict is not True:
+            raise ValueError(
+                "CCE/T2/T2G/T3 checkpoint restore requires strict=True"
+            )
         if strict is not True:
             return super().load_state_dict(state_dict, strict=strict)
         if not isinstance(state_dict, Mapping):
@@ -482,6 +556,10 @@ class AMDEnhanced(AMD):
                 metadata_errors.append(
                     f"{key}: shape {tuple(incoming.shape)} != {tuple(expected.shape)}"
                 )
+            elif getattr(self, "use_cce", False) and incoming.dtype != expected.dtype:
+                metadata_errors.append(
+                    f"{key}: dtype {incoming.dtype} != {expected.dtype}"
+                )
         if missing or unexpected or metadata_errors:
             raise RuntimeError(
                 "strict checkpoint contract failed before loading: "
@@ -492,9 +570,10 @@ class AMDEnhanced(AMD):
 
     def _state_key_groups(self):
         current_keys = set(self.state_dict())
+        cce_keys = {key for key in current_keys if key.startswith("cce.")}
         pmcr_keys = {key for key in current_keys if key.startswith("pmcr.")}
         teb_keys = {key for key in current_keys if key.startswith("teb.")}
-        backbone_keys = current_keys - pmcr_keys - teb_keys
+        backbone_keys = current_keys - cce_keys - pmcr_keys - teb_keys
         return current_keys, backbone_keys, pmcr_keys, teb_keys
 
     def load_enhancement_state_dict(self, state_dict, *, source_kind):
@@ -505,6 +584,10 @@ class AMDEnhanced(AMD):
         load_state_dict(strict=True) instead.
         """
 
+        if getattr(self, "use_cce", False):
+            raise RuntimeError(
+                "CCE source initialization requires load_cce_source_state_dict"
+            )
         if self.teb_architecture in {
             PATCH_CONDITIONED_V1,
             GLOBAL_MEDIATED_PATCH_V1,
@@ -576,6 +659,133 @@ class AMDEnhanced(AMD):
         completed_state.update(state_dict)
         return self.load_state_dict(completed_state, strict=True)
 
+    def cce_source_import_contract(self) -> dict:
+        """Return the exact schema contract required by the CCE importer."""
+
+        if not getattr(self, "use_cce", False):
+            raise RuntimeError("CCE source contract requires use_cce=True")
+        return {
+            "contract_version": CCE_SOURCE_IMPORT_CONTRACT_VERSION,
+            "task_mode": self.task_mode,
+            "feature_num": self.feature_num,
+            "feature_schema": self.cce_feature_schema,
+            "target_idx": self.target_idx,
+            "aux_idx": self.aux_idx,
+            "schema_fingerprint": self.cce_schema_fingerprint,
+            "input_order_policy": self.cce.input_order_policy,
+        }
+
+    def load_cce_source_state_dict(self, state_dict, *, source_contract):
+        """Atomically import a CCE-free AMD/U1 state into a fresh CCE model."""
+
+        if not getattr(self, "use_cce", False):
+            raise RuntimeError("CCE source importer requires use_cce=True")
+        if not isinstance(state_dict, Mapping):
+            raise TypeError("CCE source state_dict must be a mapping")
+        if not isinstance(source_contract, Mapping):
+            raise TypeError("CCE source_contract must be a mapping")
+
+        expected_contract = self.cce_source_import_contract()
+        required_contract_keys = set(expected_contract)
+        supplied_contract_keys = set(source_contract)
+        missing_contract = sorted(required_contract_keys - supplied_contract_keys)
+        unexpected_contract = sorted(supplied_contract_keys - required_contract_keys)
+        if missing_contract or unexpected_contract:
+            raise RuntimeError(
+                "CCE source contract key mismatch: "
+                f"missing={missing_contract}, unexpected={unexpected_contract}"
+            )
+
+        source_feature_num = source_contract["feature_num"]
+        if isinstance(source_feature_num, bool) or not isinstance(
+            source_feature_num, int
+        ):
+            raise TypeError("CCE source feature_num must be a non-bool integer")
+        source_target_idx = source_contract["target_idx"]
+        if isinstance(source_target_idx, bool) or not isinstance(
+            source_target_idx, int
+        ):
+            raise TypeError("CCE source target_idx must be a non-bool integer")
+        source_schema = _ordered_feature_schema(
+            source_contract["feature_schema"],
+            feature_num=source_feature_num,
+        )
+        source_aux = _ordered_aux_idx(source_contract["aux_idx"])
+        normalized_contract = {
+            "contract_version": source_contract["contract_version"],
+            "task_mode": source_contract["task_mode"],
+            "feature_num": source_feature_num,
+            "feature_schema": source_schema,
+            "target_idx": source_target_idx,
+            "aux_idx": source_aux,
+            "schema_fingerprint": source_contract["schema_fingerprint"],
+            "input_order_policy": source_contract["input_order_policy"],
+        }
+        mismatches = [
+            key
+            for key, expected in expected_contract.items()
+            if normalized_contract[key] != expected
+        ]
+        if mismatches:
+            raise RuntimeError(
+                "CCE source compatibility contract mismatch for "
+                + ", ".join(mismatches)
+            )
+
+        current_state = self.state_dict()
+        current_keys = set(current_state)
+        cce_keys = {key for key in current_keys if key.startswith("cce.")}
+        if not cce_keys:
+            raise RuntimeError("CCE target has no cce.* state keys")
+        expected_source_keys = current_keys - cce_keys
+        incoming_keys = set(state_dict)
+        missing = current_keys - incoming_keys
+        unexpected = incoming_keys - expected_source_keys
+        if missing != cce_keys or unexpected or incoming_keys != expected_source_keys:
+            raise RuntimeError(
+                "CCE source checkpoint key contract failed: "
+                f"missing={sorted(missing)}, expected_missing={sorted(cce_keys)}, "
+                f"unexpected={sorted(unexpected)}"
+            )
+
+        metadata_errors = []
+        for key in sorted(expected_source_keys):
+            incoming = state_dict[key]
+            expected = current_state[key]
+            if not torch.is_tensor(incoming):
+                metadata_errors.append(f"{key}: not a tensor")
+            elif incoming.shape != expected.shape:
+                metadata_errors.append(
+                    f"{key}: shape {tuple(incoming.shape)} != {tuple(expected.shape)}"
+                )
+            elif incoming.dtype != expected.dtype:
+                metadata_errors.append(
+                    f"{key}: dtype {incoming.dtype} != {expected.dtype}"
+                )
+        if metadata_errors:
+            raise RuntimeError(
+                "CCE source tensor contract failed before loading: "
+                + "; ".join(metadata_errors)
+            )
+
+        snapshot = {
+            key: value.detach().clone() for key, value in current_state.items()
+        }
+        fresh_cce = {key: snapshot[key] for key in cce_keys}
+        completed_state = current_state.copy()
+        completed_state.update(state_dict)
+        try:
+            result = super().load_state_dict(completed_state, strict=True)
+            if any(
+                not torch.equal(self.state_dict()[key], fresh_cce[key])
+                for key in cce_keys
+            ):
+                raise RuntimeError("CCE importer modified fresh cce.* state")
+        except Exception:
+            super().load_state_dict(snapshot, strict=True)
+            raise
+        return result
+
     def load_amd_backbone_state_dict(self, state_dict):
         """Initialize enabled enhancements from the frozen AMD backbone."""
 
@@ -615,8 +825,11 @@ class AMDEnhanced(AMD):
         normalized_input = self.rev_norm(x, "norm") if self.norm else x
         x_ch = torch.transpose(normalized_input, 1, 2)
 
+        if self.use_cce:
+            x_ch = self.cce(x_ch)
+
         # Frozen paper-close inter-module connection:
-        #   x_ch -> MDM(u_mdm) -> DDI(v); AMS(v_final, u_mdm).
+        #   RevIN -> CCE? -> MDM(u_mdm) -> DDI(v); AMS(v_final, u_mdm).
         u_mdm = self.pastmixing(x_ch)
         v = u_mdm
         for fc_block in self.fc_blocks:

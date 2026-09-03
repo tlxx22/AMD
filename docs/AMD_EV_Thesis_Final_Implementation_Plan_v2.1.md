@@ -17,6 +17,7 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 论文语义审计锚点：AMD-paper-norm-wd-ddi-v1 @ 5a718d5
 开发分支：AMD-paper-repro-custom-modules-v1
 M3 工程候选时间 variant：el-amd-pmcr-teb-v1
+M4 当前替代外生候选 variant：el-amd-m4-crosslinear-cce-v1
 时空模型 variant：st-el-amd-hst-sadr-sc-simgca-v1
 ```
 
@@ -61,11 +62,11 @@ M12：论文正文、图表与结果分析
 M13：终稿审校、复现材料与答辩
 ```
 
-M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭环，不表示 PMCR 或 TEB 已通过最终性能验收。PMCR v1 与 Global TEB v1 均为可追溯工程候选；`el-amd-pmcr-teb-v1` 是 M3 时点的工程组合 variant，不是最终冻结模型。最终时间结构与正式 variant 只能在 M5 依据训练/验证证据冻结。
+M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭环，不表示 PMCR 或 TEB 已通过最终性能验收。PMCR v1 与 Global TEB v1 均为可追溯工程候选；`el-amd-pmcr-teb-v1` 是 M3 时点的工程组合 variant，不是最终冻结模型。TimeXer-inspired Global/T2/T2G/T3 与 warm-start adapter rescue 的实现、artifact 和诊断继续作为失败路线及历史工程证据保留，不删除、不改写，也不得再称为当前领先外生候选。
 
-M4 只处理第三章时间模块诊断与候选迭代。M4 可以形成诊断结论，并在用户另行确认后实现保持论文来源边界的候选；不得据此静默选择结构或超参数。Patch-conditioned TEB 可在 M4 诊断后由用户另行授权，不再固定延期到 M5 之后。在 M4 尚未形成足够证据前，不得实现 M7 或任何空间模块。
+M4 只处理第三章时间模块诊断与候选迭代。第十七轮已按预登记停止线确认当前 TimeXer-inspired TEB 路线在 M4 有限开发中失败；用户随后明确锁定 CrossLinear（KDD 2025）的 Cross-Correlation Embedding 为替代外生模块首选来源。当前工程候选是独立实现的 **CrossLinear-inspired CCE v1**，身份为 `el-amd-m4-crosslinear-cce-v1`，仍只是 M4 候选，不是最终外生模块、最终 TEB 或最终 EL-AMD。最终时间结构与正式 variant 只能在 M5 依据训练/验证证据冻结。
 
-自 M4 第八轮起，M4 内部开发顺序固定为 **TEB 候选路线先满足 development adequacy gate，再处理 PMCR/P2 候选路线**。第十一轮按当时规则曾登记 T2 为领先候选并认为 TEB 分支达到候选终点；第十二轮用户最新决定已正式撤销该 endpoint。T2 目前只能称为 `best among tested TEB variants`，因为 T2G、T3 均为 `negative-or-negligible`，且 T2 相对同输入 AMD baseline 仍为负向 development signal。转入 PMCR/P2 前，必须有一个 TimeXer-inspired TEB 候选相对同输入、同输出、同源码 AMD control 获得明确正向 development signal，或由用户明确停止当前 TimeXer-inspired 路线并授权更换另一篇近三年来源模块。满足该条件前不得启动 P2，也不得以 PMCR 潜在收益掩盖 TEB 负收益；T4 Hidden-KV 与 T5 sparse/top-k 继续排除。
+M4 内部当前顺序固定为：先实现并验证 CCE v1 production capability，再经用户另行授权执行 CCE control/candidate 的公平 development pair；只有 CCE 通过 M4 adequacy gate 后，才允许讨论新的 PMCR/P2 候选与进入 M5。满足前不得启动 P2，不得以 PMCR 潜在收益掩盖外生模块证据，也不得实现 M7 或任何空间模块。任何真实八 run、结构调整、超参数调整或后续阶段均需另行授权。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -85,17 +86,23 @@ ETTm1 test 已被纳入模型开发反馈，因此不得作为 M6 正式未见�
 RevIN -> MDM -> DDI -> AMS -> Forecast
 ```
 
-新增模块执行顺序：
+当前替代候选执行顺序：
 
 ```text
 RevIN
   -> x_ch
+  -> CCE? -> x_cce
   -> MDM -> u_mdm
   -> DDI -> v_ddi
   -> PMCR? -> v_local
-  -> TEB?  -> v_final, exo_context
-  -> AMS(experts=v_final, selector=u_mdm)
+  -> AMS(experts=v_local, selector=u_mdm)
   -> Forecast
+```
+
+即当前锁定路径为：
+
+```text
+RevIN -> CCE -> MDM -> DDI -> PMCR? -> AMS
 ```
 
 M3 时点工程组合：
@@ -105,7 +112,7 @@ EL-AMD：Exogenous-and-Local Enhanced AMD
 工程 variant：el-amd-pmcr-teb-v1
 ```
 
-EL-AMD 名称继续作为第三章增强时间模型的项目名称（模型族名称）；`el-amd-pmcr-teb-v1` 只标识 M3 已闭环、可追溯的 PMCR v1 + Global TEB v1 工程候选。最终内部结构和正式 implementation variant 只能在 M5 冻结。
+EL-AMD 名称继续作为第三章增强时间模型的项目名称（模型族名称）；`el-amd-pmcr-teb-v1` 只标识 M3 已闭环、可追溯的 PMCR v1 + Global TEB v1 历史工程候选。`el-amd-m4-crosslinear-cce-v1` 只标识当前 CCE production/development 候选。最终内部结构和正式 implementation variant 只能在 M5 冻结。
 
 两个来源模块：
 
@@ -115,11 +122,13 @@ EL-AMD 名称继续作为第三章增强时间模型的项目名称（模型族�
   - 删除与 AMD-DDI 重复的 ConvFFN2 跨变量分支；
   - 改成只补偿局部时间细节的单块轻量旁路。
 
-- **TEB：Target–Exogenous Bridge**
-  - 来源：TimeXer，NeurIPS 2024；
-  - 借鉴内生全局表示、外生 variate token 和 exogenous-to-endogenous cross-attention；
-  - 改成插在 AMD 隐表示上的轻量目标导向桥接层；
-  - 不复制 TimeXer 的 Transformer 主干与预测头。
+- **CCE：Cross-Correlation Embedding（当前替代外生候选）**
+  - 来源：CrossLinear，KDD 2025；
+  - 只借鉴单层一维卷积形成直接跨变量相关嵌入及其目标导向残差融合；
+  - 改成插在 AMD 已有 RevIN 后、MDM 前的 identity-preserving delta residual；
+  - 不复制 CrossLinear 的第二套 normalization、patch embedding、positional embedding 或 forecasting head。
+
+TimeXer-inspired TEB 的来源边界、实现和失败证据保留在第 7 节与 M4 milestone 中，仅作历史工程证据，不再占用当前替代外生候选身份。
 
 ## 1.2 第四章：时空模型
 
@@ -171,12 +180,13 @@ SC-SimGCA residual       SC-SimGCA residual
         y_hat = y_time + spatial residual
 ```
 
-# 2. 六篇核心论文与模块边界
+# 2. 核心论文与模块边界
 
 | 角色 | 正式论文 | 出处 | 本方案使用范围 |
 |---|---|---|---|
 | 时间基准 | Adaptive Multi-Scale Decomposition Framework for Time Series Forecasting | AAAI 2025 | 完整 MDM + DDI + AMS |
-| 时间模块 T1 | TimeXer: Empowering Transformers for Time Series Forecasting with Exogenous Variables | NeurIPS 2024 | 外生 variate token、内生全局表示、cross-attention 桥接 |
+| 时间模块 T1（失败历史路线） | TimeXer: Empowering Transformers for Time Series Forecasting with Exogenous Variables | NeurIPS 2024 | Global/T2/T2G/T3/rescue 的来源边界与失败工程证据，不是当前候选 |
+| 时间模块 T1 替代候选 | CrossLinear: Plug-and-Play Cross-Correlation Embedding for Time Series Forecasting with Exogenous Variables | KDD 2025 | 仅 Cross-Correlation Embedding；不复制 normalization、patch、PE、head |
 | 时间模块 T2 | ModernTCN: A Modern Pure Convolution Structure for General Time Series Analysis | ICLR 2024 Spotlight | Reparam large/small DWConv、ConvFFN1、residual |
 | 空间基准 | Predicting Electric Vehicle Charging Demand Using a Heterogeneous Spatio-Temporal Graph Convolutional Network | TR-C 2023 | Geographic Graph + DTW Demand Graph + heterogeneous fusion |
 | 空间模块 S1 | An Adaptive Spatio-Temporal Graph Recurrent Network for Short-Term Electric Vehicle Charging Demand Prediction | Applied Energy 383 (2025) 125320 | 动态 embedding、embedding projection、相似度图 |
@@ -1296,9 +1306,209 @@ Matched-budget U1 continuation 本轮只提供 production capability，不自动
 
 Rescue 的第一阶段固定为四 horizon各一个 adapter run。只有其相对固定 U1 形成 `provisional positive adapter signal`，才允许用户另行授权四个 matched-budget continuation；最终 TEB adequacy pass 必须等待 continuation 后裁决。No-op frozen control不运行。一次预注册 rescue 仍非 positive时，正式停止当前 TimeXer-inspired路线；不得自动运行 R-min、continuation、P2或任何新 TEB。当前只实现和验证 production capability，不表示 rescue 已运行或 gate 已通过；M4 保持 In Progress，TEB adequacy gate remains failed。
 
-# 8. M3 工程候选 forward 与时间状态接口
+# 7A. CrossLinear-inspired CCE v1 当前替代外生候选
 
-## 8.1 前向流程
+TimeXer-inspired Global/T2/T2G/T3/rescue 已按第十七轮结果触发失败停止线；本节不删除或重定义第 7 节，而是登记用户已锁定的替代来源与独立工程候选。来源身份固定为：
+
+| 字段 | 锁定值 |
+|---|---|
+| paper_title | `CrossLinear: Plug-and-Play Cross-Correlation Embedding for Time Series Forecasting with Exogenous Variables` |
+| conference | `KDD 2025` |
+| DOI | `10.1145/3711896.3736899` |
+| PDF SHA-256 | `45557c426ca8bfa88f35ec41f09fd87ab864c9a382eef1c659c2296a4a1b0152` |
+| official_repo_url | `https://github.com/mumiao2000/CrossLinear.git` |
+| official_repo_commit | `d22366e2f59ced560a02b2b1c7cc673e3c02a13f` |
+| official_model_sha256 | `a062ac97231c55384c621f27981b8225bb87822f50704df201b381dd8e037593` |
+| retained_component | `cross_correlation_embedding_only` |
+
+论文原始 many-to-one 公式为：
+
+```text
+X_cross = Conv1D(Stack(X_exogenous_normalized, X_endogenous_normalized))
+X_embedding = alpha * X_endogenous_normalized
+            + (1 - alpha) * X_cross
+```
+
+官方代码在 `features=MS` 时把最后一列作为 endogenous target，使用 `Conv1d(dec_in,1,kernel_size=3,padding='same')`；在 `features=M` 时使用 `Conv1d(C,C,kernel_size=3,padding='same')`。官方完整模型另含自身的 instance normalization/de-normalization、可学习 `alpha/beta`、patch/value embedding、learnable positional embedding 与 forecasting head。CCE v1 不复制官方源码，只保留“单层 k=3 跨变量卷积嵌入”这一来源组件，并按 AMD 接口独立重参数化。
+
+## 7A.1 输入、插入点与禁止重复职责
+
+CCE 固定输入是 AMD 已完成 RevIN 后的：
+
+```text
+x_ch = normalized_input.transpose(1,2)  # [B,C,T]
+```
+
+唯一插入点是：
+
+```text
+normalized_input -> transpose -> CCE -> pastmixing/MDM
+```
+
+当前候选路径固定为：
+
+```text
+RevIN -> CCE -> MDM -> DDI -> PMCR? -> AMS
+```
+
+CCE 内不得再次 normalization，也不得复制 CrossLinear patch embedding、positional embedding 或 forecasting head。AMD 的 RevIN 继续唯一负责输入 normalization/de-normalization，MDM/DDI/AMS 继续负责既有时间分解、channel mixing 与预测；CCE 只负责 RevIN 空间内、进入 MDM 前的局部跨变量线性相关注入。不得修改 `models/tsAMD.py`，不得把 CCE 放到 DDI、PMCR 或 AMS 后。
+
+本候选的 PMCR 与全部旧 TEB 固定关闭。旧 TEB 文件、测试、checkpoint、artifact 与数学结构保持不变；CCE 不产生 `teb.*` 或旧 `exo_context`。
+
+## 7A.2 固定 gate、卷积与 identity residual
+
+全局共享 gate 固定为：
+
+```text
+lambda = sigmoid(logit(0.1) + rho)
+rho = one learnable scalar Parameter, initialized exactly to 0
+effective lambda at initialization = exactly 0.1
+```
+
+禁止 clamp、无界直接 gate、per-channel gate 或 per-output gate。卷积合同固定为：
+
+```text
+kernel_size=3
+stride=1
+padding=1
+dilation=1
+groups=1
+padding_policy=zero_same
+bias=True
+parameterization_policy=identity_residual_delta_v1
+```
+
+CCE 参数是直接创建的零 `delta_weight` 与零 `delta_bias`，不得先调用随机初始化再清零并静默消费 CPU/CUDA RNG。初始化时 `delta=0`，因此 CCE 输出必须与输入逐元素 `torch.equal`，并使 AMD prediction、MoE loss 和 `state_source` 与 matched CCE-off control 严格相等。
+
+`target_exogenous` 固定按调用方提供的 `ordered aux_idx followed by target_idx` 聚合卷积输入：
+
+```text
+source_idx = [*aux_idx, target_idx]
+delta_target = Conv1d(x_ch[:,source_idx,:], C_source -> 1, k=3)
+output_target = input_target + lambda * delta_target
+```
+
+只写回 `target_idx`；其他通道必须逐元素不变。参数量 golden 为：
+
+```text
+3 * C_source + 2
+# delta_weight + delta_bias + rho
+```
+
+`parallel_multivariate` 使用原 feature schema 顺序：
+
+```text
+delta_all = Conv1d(x_ch, C -> C, k=3)
+output = x_ch + lambda * delta_all
+```
+
+参数量 golden 为：
+
+```text
+3 * C * C + C + 1
+# delta_weight + delta_bias + rho
+```
+
+两种模式的外部输入/输出都保持 `[B,C,T] -> [B,C,T]`。target 模式内部卷积为 `[B,C_source,T] -> [B,1,T]`，参数和主要 MAC 复杂度分别为 `O(3*C_source)` 与 `O(3*B*T*C_source)`；parallel 模式内部卷积为 `[B,C,T] -> [B,C,T]`，参数和主要 MAC 复杂度分别为 `O(3*C^2)` 与 `O(3*B*T*C^2)`。因此 ETTm1 `T=512,C=7` 的 target 路径计算随长序列线性增长，但 k=3 仍只表达局部滞后；UrbanEV `T=12` 时两端 zero padding 的边界占比更高，必须保留端点测试；ECL `C=321` 的 parallel 路径单模块即有 `309,445` 个参数并呈二次 channel 成本，而 target 路径若使用全部 321 个 source 只有 `965` 个参数。任何高维 parallel 正式运行都需在后续授权轮单独评估显存、吞吐与收益，本轮不得据 capability smoke 宣称可扩展性或性能。
+
+模块必须提供只读分析接口，至少返回 effective lambda、ungated delta，以及与同一次 forward 等价的 CrossLinear-style kernel：
+
+```text
+equivalent_weight = selector_identity_kernel + lambda * delta_weight
+equivalent_bias = lambda * delta_bias
+```
+
+target 模式的 selector identity 是目标输入在 center tap 上的 1，并按 source order/scatter 明确表达；parallel 模式是每个输出通道对应输入通道 center tap 的单位矩阵。分析接口不得改变参数、buffer 或 RNG。
+
+## 7A.3 模式、索引与状态接口
+
+`target_exogenous + CCE on` 要求 `aux_idx` 非空；`parallel_multivariate + CCE on` 要求 `C>=2`。target/aux 索引必须拒绝 bool、重复、越界及 target 出现在 aux，并严格保留 aux 明确顺序。target 可位于 feature schema 首、中、末任意位置，禁止依赖官方 target-last 假设。
+
+`CCE off` 固定：
+
+```text
+self.cce = None
+no cce.* state_dict keys
+forward strict bypass
+```
+
+F0/单变量 `C=1` 不得伪装为 CCE enabled。当前 `state_source` 的 `u_target` 与 `v_target` 正常反映 CCE 对 AMD 主干的间接影响；第三段固定为 dtype/device 正确的确定性零张量，其语义登记为：
+
+```text
+legacy_width_compatibility_zero
+```
+
+该零段只维持冻结宽度接口，不是 CrossLinear-derived context，不得输出、命名或声称存在独立 CCE context。它对未来 M7 的影响仅登记为 state source 缺少独立外生 context；本轮不设计或实现 M7。
+
+## 7A.4 Runner、artifact 与科学身份
+
+候选 implementation variant 固定为：
+
+```text
+el-amd-m4-crosslinear-cce-v1
+```
+
+runner 必须原生解析并封存：
+
+```text
+use_cce
+cce_kernel_size
+cce_lambda_init
+cce_padding_policy
+cce_input_order_policy
+cce_parameterization_policy
+```
+
+v1 强制 `kernel_size=3`、`lambda_init=0.1`、`padding_policy=zero_same`、`parameterization_policy=identity_residual_delta_v1`；target 模式 input order 为 `ordered_aux_then_target`，parallel 模式为 `feature_schema_order`。config、checkpoint、manifest 必须同时封存本节来源身份、retained component、插入点、mode/order/kernel/stride/padding/dilation/groups/bias、lambda transform/raw/effective init、normalization reuse policy 与 state zero-placeholder policy。
+
+上述稳定来源与 CCE 合同进入 scientific identity。机器绝对参考仓库/PDF 路径仅可作为本地审计信息，不得进入 comparison identity；repo URL、commit 与 SHA 等稳定字段必须进入。artifact 继续使用 schema-v2、现有 13-file checksum、hidden staging 与同文件系统 atomic publication；不得新增 schema-v3 或第 14 个文件。
+
+summarizer 必须把旧 standard AMD/U1、旧 TimeXer TEB variants、T2 adapter/continuation、新 CCE control 与新 CCE candidate 分开，并拒绝 CCE source/config/order/gate tamper、manifest/config/checkpoint 不一致及 `comparison_config_hash + seed` duplicate spoof。
+
+## 7A.5 From-scratch development pair
+
+development 身份固定为：
+
+```text
+development_protocol_id = m4_crosslinear_cce_from_scratch_pair_v1
+
+M4_CCE_CONTROL:
+    CCE off
+    PMCR off
+    all TEB off
+
+M4_CCE:
+    CCE on
+    PMCR off
+    all TEB off
+```
+
+两者均使用 standard from-scratch 训练身份：全部 AMD/CCE parameters trainable；fresh Adam；learning rate=`3e-5`；weight decay=`1e-7`；standard best 从 epoch 1 开始，不使用 epoch-0 best；不使用 source checkpoint、T2 warm-start protocol 或历史 TEB lineage。同一 run 的 resume 必须 strict same-structure，并恢复其自身 model/optimizer/RNG/generator/history/best。
+
+未来经另行授权的首个 development 实验是 ETTm1 四 horizon 的 4 个 control + 4 个 CCE paired runs；本轮只实现 capability、永久测试与单 batch smoke，不运行这八个真实 run，不创建 completed development artifact。
+
+## 7A.6 Checkpoint 与原子 importer
+
+CCE 关闭时保持现有严格恢复行为。同结构 CCE resume 只允许普通 `load_state_dict(strict=True)`。从 AMD/U1 state 初始化 CCE-on 模型只能调用专用 importer，并要求：
+
+```text
+missing == complete current cce.* key set
+unexpected == empty
+```
+
+importer 在写参前必须校验完整 key set、shape、dtype、task mode、C、feature schema/order、target_idx、ordered aux_idx 与 schema fingerprint。成功时只映射公共 AMD state，fresh CCE state 逐 tensor不变；任一失败时全部 parameter 与 persistent buffer 原子不变。禁止 `strict=False`、partial `cce.*`、任何 `teb.*` 权重复用、target/parallel 间迁移、不同 C/schema/feature order 间迁移，以及把 T2 warm-start lineage 用于 CCE。
+
+## 7A.7 梯度与阶段停止线
+
+零 delta 初始化时任务损失对 `rho` 的第一次 backward 梯度为零，这是乘法结构的预期；由于 effective lambda 初始非零，forecast-connected delta weights（包括 target 模式的 auxiliary taps）在非退化真实 batch 上必须获得 finite nonzero gradient，公共 AMD gradient 必须与 matched CCE-off control 严格相等。第一次 optimizer step 后公共 AMD 参数须与 matched control 严格相等，delta 参数移动，`rho` 不得因 task gradient或 weight decay 漂移；构造 synthetic 非零 delta 后，第二次 backward 必须证明 `rho` 可获得 finite nonzero gradient。
+
+CCE 未通过 M4 adequacy gate 前，新的 PMCR/P2 与 M5 继续阻塞。不得把 capability、smoke 或单一 development 结果称为最终外生模块、最终 EL-AMD 或正式论文性能。若未来 paired development 未通过已有 M4 adequacy/停止规则，则停止 CCE 当前候选并等待用户与 ChatGPT 决定；不得自行调参、启动 P2、进入 M5/M7 或实现空间模块。
+
+# 8. 历史 M3 与当前 CCE 候选的 forward / 时间状态接口
+
+## 8.1 历史 M3 前向流程
+
+本小节只保留 `el-amd-pmcr-teb-v1` 的历史工程合同，不代表当前 M4 替代候选。
 
 ```python
 x_norm = RevIN_norm(x)
@@ -1348,7 +1558,7 @@ AMS selector <- 原始 u_mdm
 h = x_ch 后送入 DDI
 ```
 
-## 8.2 return_state_source 与后续 StateAdapter
+## 8.2 历史 M3 return_state_source 与后续 StateAdapter
 
 第三章增强模型只公开 M0-B 已冻结的原始状态源接口，不直接返回未训练的 `StateProjection` 或 `H_time`：
 
@@ -1384,6 +1594,36 @@ y_time = reshape(pred,[B,N,H_out])
 ```
 
 该 StateAdapter 必须属于第四章模型及其 checkpoint，并参与训练；不得把随机、未训练投影冒充第三章 EL-AMD 输出。推荐 `d_s=16`、`state_dim=32`，最终值只依据训练/验证集确定。
+
+## 8.3 当前 CCE 候选 forward 与 fixed-width state
+
+`el-amd-m4-crosslinear-cce-v1` 的正式插入顺序固定为：
+
+```text
+normalized_input = RevIN_norm(x)
+x_ch             = transpose(normalized_input)
+x_cce            = CCE(x_ch)
+u_mdm            = MDM(x_cce)
+v_final          = DDI(u_mdm)
+                  -> PMCR?  # 当前 CCE pair 固定 off
+                  -> TEB?   # 当前 CCE pair 固定 off
+pred             = AMS(v_final, selector=u_mdm)
+```
+
+CCE-off control 在同一位置严格旁路，`self.cce=None` 且无 `cce.*` state。CCE-on 的零 delta 初始化必须使 `x_cce` 与 `x_ch` 逐元素相等；因此 matched control 与 candidate 的 prediction、MoE loss 和 state source 在初始化时严格相等。
+
+当前 CCE 路线继续使用冻结宽度接口：
+
+```text
+u_target = u_mdm[:,target_idx,:]
+v_target = v_final[:,target_idx,:]
+legacy_width_compatibility_zero =
+    v_final.new_zeros([B,teb_context_dim])
+state_source =
+    concat(v_target,u_target,legacy_width_compatibility_zero)
+```
+
+`u_target` 与 `v_target` 可以承载 CCE 的间接影响；第三段只维持历史宽度和 dtype/device 合同，不是 CrossLinear-derived context 或独立 CCE context。M7 之前不得据此设计、创建或训练 StateAdapter。
 
 # 9. 第三章实验设计
 
@@ -1966,7 +2206,7 @@ tests/
 | M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
-| M4 | 时间模块诊断与候选迭代 | 只用训练/验证证据完成诊断；候选实现须经用户另行授权 |
+| M4 | 时间模块诊断与候选迭代 | 保留 TimeXer 路线失败证据；按授权实现并以 paired development 审核 CrossLinear-inspired CCE，未通过前不解锁 P2/M5 |
 | M5 | 模型筛选与结构冻结 | 公平多数据集、多 seed 验证；锁定 practical-effect threshold、最终时间结构与正式 variant |
 | M6 | 第三章正式实验与定稿 | 结构冻结后运行正式 test；完成主表、消融、效率与第三章定稿 |
 | M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
@@ -1997,7 +2237,8 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 
 可视化：
 
-- TEB 对价格、服务费、天气的注意力分配；
+- 历史 TimeXer TEB 的 attention/residual 只作为失败路线诊断，不作为当前候选解释；
+- CCE 的等价 CrossLinear kernel、effective lambda 与 ungated delta 分布；
 - PMCR 在峰值和突变窗口的残差响应；
 - AMD 与 EL-AMD 峰值预测案例；
 - 不把 attention 权重表述为因果贡献。
@@ -2020,7 +2261,8 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 
 | 模块 | M4 诊断与候选边界 | 保留来源的备选实现 | 最终仍失败时 |
 |---|---|---|---|
-| TEB | M4 只诊断 aux、表示压缩、attention 与 residual；任何参数或结构候选须经用户确认 | 可评估保持 TimeXer 来源边界的 Patch-conditioned TEB；不得预先选定 | 更换另一篇近三年外生变量模块，不得简单删除 |
+| TimeXer-inspired TEB（失败历史路线） | Global/T2/T2G/T3/rescue 的 artifact、实现与诊断保持可追溯；第十七轮已触发停止线 | 不再继续 T4/T5/T6、patch/gate/beta 调参或新 TimeXer-derived TEB | 已由用户锁定 CrossLinear KDD 2025 作为替代来源 |
+| CrossLinear-inspired CCE（当前替代候选） | 只保留 Cross-Correlation Embedding 来源边界，固定 RevIN 后、MDM 前 identity-residual delta；PMCR/TEB 关闭 | 仅运行预登记的 CCE-off/control 与 CCE-on/candidate paired development | 未通过已有 M4 adequacy/停止规则则停止该候选并等待用户与 ChatGPT 决策 |
 | PMCR | M4 只诊断 kernel、hidden、作用范围与 residual；任何参数或结构候选须经用户确认 | 可评估保留 Reparam DWConv + ConvFFN1 来源边界的候选；不得预先选定 | 更换另一篇近三年局部时间模块 |
 | SADR | b_lambda 更负；k/d_a；正则 | ASTGRN global adaptive graph 与 DTW 的残差融合 | 更换另一篇近三年空间图模块；退回静态双图只算排障结果 |
 | SC-SimGCA | rho 初始化；层数；SimAM lambda | 保留 G-STAN 层融合，移除 Graph-SimAM，改名 SC-GCF | 若仍失败，更换另一篇近三年空间传播模块 |
@@ -2038,6 +2280,7 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 | 论文 | 官方代码 | 本方案使用难度 |
 |---|---|---|
 | AMD | https://github.com/TROUBADOUR000/AMD | 已复现 |
+| CrossLinear | https://github.com/mumiao2000/CrossLinear | CCE 独立重实现与配对合同：低—中；不复制 normalization、patch、PE、head |
 | TimeXer | https://github.com/thuml/TimeXer | TEB：低—中，2-4 个有效开发日 |
 | ModernTCN | https://github.com/luodhhh/ModernTCN | PMCR：中，3-5 日 |
 | HSTGCN | 未检索到可核验作者仓库 | HSTGCN-core：中，3-6 日 |
@@ -2057,6 +2300,8 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 
 [T1] Wang, Y., Wu, H., Dong, J., et al. TimeXer: Empowering Transformers for Time Series Forecasting with Exogenous Variables. NeurIPS, 2024.
 
+[T1R] Zhou, P., Liu, Y., Liang, J., Song, Q., and Li, X. CrossLinear: Plug-and-Play Cross-Correlation Embedding for Time Series Forecasting with Exogenous Variables. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2, 2025. DOI: 10.1145/3711896.3736899.
+
 [T2] Luo, D., and Wang, X. ModernTCN: A Modern Pure Convolution Structure for General Time Series Analysis. ICLR Spotlight, 2024.
 
 [S0] Wang, S., Chen, A., Wang, P., and Zhuge, C. Predicting Electric Vehicle Charging Demand Using a Heterogeneous Spatio-Temporal Graph Convolutional Network. Transportation Research Part C, 153, 104205, 2023.
@@ -2072,7 +2317,7 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 # 24. 总体论文路线（最终时间结构由 M5 冻结）
 
 ```text
-第三章：AMD + ModernTCN-inspired PMCR + TimeXer-inspired TEB（来源路线；最终实现由 M5 冻结）
+第三章：AMD + 当前 CrossLinear-inspired CCE 候选（TimeXer 路线作为失败历史证据保留；PMCR/P2 与最终时间结构均待 M4/M5 门禁）
 数据：UrbanEV + EPF-PJM + ETTh1 + Weather + ECL + Exchange
 
 第四章：EL-AMD + HSTGCN-core + ASTGRN-inspired SADR + G-STAN-inspired SC-SimGCA

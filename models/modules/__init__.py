@@ -1,5 +1,17 @@
 """Reusable thesis model components."""
 
+from models.modules.cross_correlation_embedding import (
+    CCE_INSERTION_POINT,
+    CCE_SOURCE_IMPORT_CONTRACT_VERSION,
+    FEATURE_SCHEMA_ORDER,
+    IDENTITY_RESIDUAL_DELTA_V1,
+    LEGACY_WIDTH_COMPATIBILITY_ZERO,
+    ORDERED_AUX_THEN_TARGET,
+    REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
+    SIGMOID_LOGIT_PLUS_RHO,
+    ZERO_SAME,
+    CrossCorrelationEmbedding,
+)
 from models.modules.global_mediated_patch_target_exogenous_bridge import (
     GLOBAL_GATE_IDENTITY_INIT,
     GLOBAL_GATE_INPUT_CONTRACT,
@@ -35,6 +47,16 @@ from models.modules.target_exogenous_bridge import (
 )
 
 __all__ = [
+    "CCE_INSERTION_POINT",
+    "CCE_SOURCE_IMPORT_CONTRACT_VERSION",
+    "FEATURE_SCHEMA_ORDER",
+    "IDENTITY_RESIDUAL_DELTA_V1",
+    "LEGACY_WIDTH_COMPATIBILITY_ZERO",
+    "ORDERED_AUX_THEN_TARGET",
+    "REVIN_REUSE_NO_INTERNAL_NORMALIZATION",
+    "SIGMOID_LOGIT_PLUS_RHO",
+    "ZERO_SAME",
+    "CrossCorrelationEmbedding",
     "PeakPreservingModernConvRefinement",
     "ReparamLargeKernelDWConv",
     "GLOBAL_GATE_IDENTITY_INIT",
