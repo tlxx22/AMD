@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第十九轮，CrossLinear-inspired CCE v1 四 horizon paired development 实验
+当前轮次：第二十轮，CrossLinear-inspired Late CCE production capability 与 paired development 实验
 
 canonical 内部版本：v2.1-R1
 
@@ -2788,3 +2788,48 @@ canonical 只修正执行授权边界：用户已锁定科学合同且前置 imp
 本轮没有新增、修改或删除任何测试文件；251 项现有测试继续全部作为 permanent regression tests。没有修改 Python 模型/runner/summarizer、DataLoader、`models/tsAMD.py`、PMCR、旧 TEB、数据或任何既有 artifact；本轮只在启动前不存在的固定 root 创建了上述八个不可变 development artifacts。一次性初始化/聚合/诊断内容只在 `/tmp`，登记完成后删除。
 
 本轮只保留 canonical 与本唯一 M4 milestone 的未 stage 文档修改；M0-M3 未修改，无其他 tracked/untracked 变化。本轮不执行 `git add`、commit、push 或 Git closure。
+
+
+## 41. 第二十轮：Late CCE 只读审计与 production capability
+
+### 41.1 起始现场与来源锚点
+
+本轮从 clean closure 现场启动：branch `AMD-paper-repro-custom-modules-v1`，local/tracking/live remote 均为 `26f285d8e4dc0b9f250584cadefc906fb5abf006`，ahead/behind `0/0`，index/worktree/untracked 均为空；baseline tag `amd_reproduced_baseline_v1` 仍指向 `fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。canonical/M4 起始 SHA-256 分别为 `ebb11be3032eef74a3d5118a1e9f719460d19f6f38f5cafb084b022e482b9701` 与 `18d70b0fa20dc0e8da8e058e962c7a6362c12ff6d014cda9adaaa45eb65c2c19`；起始 executable source fingerprint 为 21-file `d6e2dd7fe51994dc91f9bad44a692426636518aa1f1f9109db11d5277ac8892a`。M0--M3 SHA、UrbanEV/ModernTCN/TimeXer/CrossLinear clean 状态均与冻结现场一致。
+
+CrossLinear 来源锚点复核为：KDD 2025 论文 PDF SHA-256 `45557c426ca8bfa88f35ec41f09fd87ab864c9a382eef1c659c2296a4a1b0152`；服务器官方仓库 commit `d22366e2f59ced560a02b2b1c7cc673e3c02a13f`，`models/CrossLinear.py` SHA-256 `a062ac97231c55384c621f27981b8225bb87822f50704df201b381dd8e037593`。`docs/archive` 未作为决策依据。
+
+### 41.2 只读审计结论与锁定边界
+
+对 production 依赖图的逐函数审计确认：Early CCE 在 `AMDEnhanced.forward` 的 RevIN transpose 后、`pastmixing` 前写回 `x_ch`，因此同时影响 MDM、DDI、AMS experts 与 selector；Late CCE 在 MDM/DDI/可选 PMCR 得到 `v_local` 后写回 `v_final`，AMS 固定调用 `moe(v_final,u_mdm)`。因此 Late 只改变 experts input，`x_ch`、`u_mdm`、`v_ddi` 与 selector input 均保持原路径。`state_source` 第一段来自 `v_final` target，第二段来自 `u_mdm` target，第三段仍是 deterministic `legacy_width_compatibility_zero`。
+
+审计 verdict 为 **Supported**：现有 `CrossCorrelationEmbedding` 已具备 `[B,C,T]`、ordered aux+target、target-only writeback、parallel `C->C`、正号 identity residual、RNG-neutral zero delta 与分析接口，可由 `AMDEnhanced` 的显式 route 复用于 hidden `v_local`；不需要且不得新建第二个 Late class。来源表述限定为 CrossLinear-inspired hidden-state/late adaptation；lag `-1/0/+1` 是 AMD hidden-time 局部修正，不是原始物理观测上的一步 lead-lag。
+
+### 41.3 Production capability 实现
+
+实现登记独立 identity：
+
+```text
+implementation_variant = el-amd-m4-crosslinear-late-cce-v1
+control ablation_id = M4_LATE_CCE_CONTROL
+candidate ablation_id = M4_LATE_CCE
+development_protocol_id = m4_crosslinear_late_cce_from_scratch_pair_v1
+cce_architecture = crosslinear_inspired_hidden_state_late_cce_v1
+cce_insertion_point = post_pmcr_pre_ams
+cce_input_representation = amd_hidden_v_local
+```
+
+`AMDEnhanced` 现在只接受完整 Early 或完整 Late route triplet。Late route 为 `RevIN -> MDM(u_mdm) -> DDI(v_ddi) -> PMCR?(v_local) -> CCE?(v_final) -> AMS(experts=v_final,selector=u_mdm)`；固定公式是 `target_new=target_hidden+lambda*(cross_target-target_hidden)=target_hidden+lambda*delta_target`，没有引入负号。数学仍复用 kernel 3、zero-same、bias、`sigmoid(logit(0.1)+rho)` 与 zero delta；CCE+PMCR/TEB guard 保持，standalone pair 固定 PMCR/全部 TEB off。
+
+runner 将 Late variant/arm/protocol 与三个 route 字段封存在 scientific/resolved/comparison identity、checkpoint 内嵌 resolved metadata和 manifest candidate contract；resume 先按 variant/config hash 拒绝 Early/Late 或 control/candidate 交叉身份，才允许 same-structure `strict=True` 写参。模型 importer 同时按 route/mode/schema/order/key/shape/dtype 作写参前 allowlist 检查并保持 failure atomicity。summarizer 独立识别 Late control/candidate，复核同一合同、checkpoint 和 13-file schema-v2，并拒绝 route tamper 与 duplicate spoof。Early CCE identity、恢复语义和第十九轮 artifact 均未改写。
+
+本阶段实际修改范围精确为九个授权文件：canonical、本 M4 milestone、`main.py`、`models/modules/__init__.py`、现有 CCE module、`models/tsAMD_enhanced.py`、`summarize_results.py`、`tests/test_cross_correlation_embedding.py`、`tests/test_runner.py`。未修改 `models/tsAMD.py`、DataLoader、PMCR/TEB 数学、M0--M3、数据或既有 artifact；未新增 Late module 文件。
+
+### 41.4 永久测试与真实单批探针
+
+新增的永久保护覆盖 Late off/identity/正号、hidden target-only writeback、Early/Late route、selector/state_source、公共初始化与梯度 exact parity、first-backward aux/rho、strict restore/atomic rejection、PMCR guard、runner scientific/comparison/checkpoint/manifest identity、summarizer tamper 与 resume-before-model-write rejection。定向 CCE/AMDEnhanced/public architecture/runner/summarizer 回归为 `131/131 passed`；完整 discovery 为 `256/256 passed, failed=0, skipped=0`，CPU float32/float64 与可用 CUDA float32 路径均执行，未放宽既有 `1e-6` 或 exact 门禁。
+
+一次性真实 ETTm1 h96 train-batch probe 直接复用 production `prepare_args`、runtime loader、model builder 和 prediction+MoE objective，不执行 optimizer step、不创建 artifact。结果：两臂 train generator 初态和首 batch exact；CCE construction CPU/CUDA RNG-neutral；公共 AMD 为 57 parameter tensors + 3 persistent buffers，key/shape/dtype/value exact；control 无 `cce.*`，candidate 恰有 3 keys。初始化 prediction/MoE/state_source max error 均为 `0`，MDM input、`u_mdm`、selector input exact，`v_final==v_local`，非 target hidden exact unchanged。第一次 backward 的 aux delta max-abs gradient `1.9047695968765765e-4`、target delta max-abs gradient `6.4536230638623238e-4`，均 finite，`rho.grad=0`；全部公共 AMD gradients exact。probe 清除 gradient 并恢复训练 forward 产生的 buffers 后，parameter/persistent-buffer digest 与 probe 前 exact；两个 `/tmp/m4_late_cce_impl_probe*` 临时目录均已自动删除。
+
+### 41.5 Closure 前门禁
+
+`git diff --check` 通过。implementation executable source fingerprint 更新为 21-file `adba794cdbc03b6d83a7c89f40d95bb5bf8163d2d32e23d530deff674e566005`。九文件之外没有 tracked/untracked 变化，index 仍为空。上述 capability 在精确 diff/staged scope 再核验后，才允许按本轮用户授权执行 implementation commit/push；八个 development runs 只能从随后 clean、已推送的新 HEAD 启动。此处尚未把 capability 或 probe 称为 development adequacy 通过，M4 保持 **In Progress**。

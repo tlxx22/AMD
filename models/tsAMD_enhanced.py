@@ -5,7 +5,13 @@ import torch
 
 from models.modules.cross_correlation_embedding import (
     CCE_SOURCE_IMPORT_CONTRACT_VERSION,
+    CCE_INSERTION_POINT,
+    EARLY_CCE_ARCHITECTURE,
+    EARLY_CCE_INPUT_REPRESENTATION,
     IDENTITY_RESIDUAL_DELTA_V1,
+    LATE_CCE_ARCHITECTURE,
+    LATE_CCE_INPUT_REPRESENTATION,
+    LATE_CCE_INSERTION_POINT,
     ZERO_SAME,
     CrossCorrelationEmbedding,
 )
@@ -107,6 +113,9 @@ class AMDEnhanced(AMD):
         cce_parameterization_policy=IDENTITY_RESIDUAL_DELTA_V1,
         cce_feature_schema=None,
         cce_schema_fingerprint=None,
+        cce_architecture=None,
+        cce_insertion_point=None,
+        cce_input_representation=None,
         use_pmcr=False,
         pmcr_hidden_dim=None,
         pmcr_kernel_small=None,
@@ -214,6 +223,34 @@ class AMDEnhanced(AMD):
         if use_cce and (use_pmcr or use_teb):
             raise ValueError(
                 "CrossLinear-inspired CCE v1 requires PMCR and TEB to be disabled"
+            )
+        if cce_architecture is None:
+            cce_architecture = EARLY_CCE_ARCHITECTURE
+        if cce_insertion_point is None:
+            cce_insertion_point = CCE_INSERTION_POINT
+        if cce_input_representation is None:
+            cce_input_representation = EARLY_CCE_INPUT_REPRESENTATION
+        cce_route = (
+            cce_architecture,
+            cce_insertion_point,
+            cce_input_representation,
+        )
+        supported_cce_routes = {
+            (
+                EARLY_CCE_ARCHITECTURE,
+                CCE_INSERTION_POINT,
+                EARLY_CCE_INPUT_REPRESENTATION,
+            ),
+            (
+                LATE_CCE_ARCHITECTURE,
+                LATE_CCE_INSERTION_POINT,
+                LATE_CCE_INPUT_REPRESENTATION,
+            ),
+        }
+        if cce_route not in supported_cce_routes:
+            raise ValueError(
+                "CCE architecture/insertion/input representation must form one "
+                f"supported route, got {cce_route!r}"
             )
         if use_cce:
             feature_schema = _ordered_feature_schema(
@@ -411,6 +448,9 @@ class AMDEnhanced(AMD):
         self.use_teb = use_teb
         self.cce_feature_schema = feature_schema
         self.cce_schema_fingerprint = cce_schema_fingerprint
+        self.cce_architecture = cce_architecture
+        self.cce_insertion_point = cce_insertion_point
+        self.cce_input_representation = cce_input_representation
         self.teb_architecture = teb_architecture
         self.teb_patch_size = teb_patch_size
         self.teb_patch_padding = teb_patch_padding
@@ -673,6 +713,9 @@ class AMDEnhanced(AMD):
             "aux_idx": self.aux_idx,
             "schema_fingerprint": self.cce_schema_fingerprint,
             "input_order_policy": self.cce.input_order_policy,
+            "cce_architecture": self.cce_architecture,
+            "cce_insertion_point": self.cce_insertion_point,
+            "cce_input_representation": self.cce_input_representation,
         }
 
     def load_cce_source_state_dict(self, state_dict, *, source_contract):
@@ -720,6 +763,11 @@ class AMDEnhanced(AMD):
             "aux_idx": source_aux,
             "schema_fingerprint": source_contract["schema_fingerprint"],
             "input_order_policy": source_contract["input_order_policy"],
+            "cce_architecture": source_contract["cce_architecture"],
+            "cce_insertion_point": source_contract["cce_insertion_point"],
+            "cce_input_representation": source_contract[
+                "cce_input_representation"
+            ],
         }
         mismatches = [
             key
@@ -825,7 +873,7 @@ class AMDEnhanced(AMD):
         normalized_input = self.rev_norm(x, "norm") if self.norm else x
         x_ch = torch.transpose(normalized_input, 1, 2)
 
-        if self.use_cce:
+        if self.use_cce and self.cce_insertion_point == CCE_INSERTION_POINT:
             x_ch = self.cce(x_ch)
 
         # Frozen paper-close inter-module connection:
@@ -843,6 +891,8 @@ class AMDEnhanced(AMD):
             (v_local.shape[0], self.teb_context_dim)
         )
         v_final = v_local
+        if self.use_cce and self.cce_insertion_point == LATE_CCE_INSERTION_POINT:
+            v_final = self.cce(v_local)
         if self.use_teb:
             v_final, exo_context = self.teb(
                 hidden=v_local,

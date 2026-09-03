@@ -19,6 +19,9 @@ from models.modules.cross_correlation_embedding import (
     FEATURE_SCHEMA_ORDER,
     IDENTITY_RESIDUAL_DELTA_V1,
     LEGACY_WIDTH_COMPATIBILITY_ZERO,
+    LATE_CCE_ARCHITECTURE,
+    LATE_CCE_INPUT_REPRESENTATION,
+    LATE_CCE_INSERTION_POINT,
     ORDERED_AUX_THEN_TARGET,
     REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
     SIGMOID_LOGIT_PLUS_RHO,
@@ -31,6 +34,7 @@ T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
+LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
@@ -38,6 +42,7 @@ SUPPORTED_IMPLEMENTATION_VARIANTS = (
     T2G_IMPLEMENTATION_VARIANT,
     T3_IMPLEMENTATION_VARIANT,
     CCE_IMPLEMENTATION_VARIANT,
+    LATE_CCE_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
@@ -53,6 +58,9 @@ STANDARD_TRAINING_PROTOCOL = "standard_from_scratch"
 CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_cce_from_scratch_pair_v1"
 CCE_CONTROL_ABLATION_ID = "M4_CCE_CONTROL"
 CCE_CANDIDATE_ABLATION_ID = "M4_CCE"
+LATE_CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_late_cce_from_scratch_pair_v1"
+LATE_CCE_CONTROL_ABLATION_ID = "M4_LATE_CCE_CONTROL"
+LATE_CCE_CANDIDATE_ABLATION_ID = "M4_LATE_CCE"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -233,7 +241,19 @@ def _validate_variant_contract(scientific, run_dir):
             )
 
 
-def _validate_cce_variant_contract(scientific, run_dir):
+def _validate_cce_variant_contract(
+    scientific, run_dir, implementation_variant=CCE_IMPLEMENTATION_VARIANT
+):
+    is_late = implementation_variant == LATE_CCE_IMPLEMENTATION_VARIANT
+    control_ablation = (
+        LATE_CCE_CONTROL_ABLATION_ID if is_late else CCE_CONTROL_ABLATION_ID
+    )
+    candidate_ablation = (
+        LATE_CCE_CANDIDATE_ABLATION_ID if is_late else CCE_CANDIDATE_ABLATION_ID
+    )
+    development_protocol = (
+        LATE_CCE_DEVELOPMENT_PROTOCOL if is_late else CCE_DEVELOPMENT_PROTOCOL
+    )
     model = scientific.get("model")
     dataset = scientific.get("dataset")
     experiment = scientific.get("experiment")
@@ -247,12 +267,9 @@ def _validate_cce_variant_contract(scientific, run_dir):
         raise ValueError(f"CCE must use standard from-scratch identity: {run_dir}")
 
     ablation_id = experiment.get("ablation_id")
-    if ablation_id not in {
-        CCE_CONTROL_ABLATION_ID,
-        CCE_CANDIDATE_ABLATION_ID,
-    }:
+    if ablation_id not in {control_ablation, candidate_ablation}:
         raise ValueError(f"CCE ablation identity mismatch: {run_dir}")
-    enabled = ablation_id == CCE_CANDIDATE_ABLATION_ID
+    enabled = ablation_id == candidate_ablation
     mode = dataset.get("task_mode")
     feature_names = dataset.get("feature_names")
     aux_idx = dataset.get("aux_idx")
@@ -300,7 +317,7 @@ def _validate_cce_variant_contract(scientific, run_dir):
     expected_cce = {
         "source": deepcopy(CROSSLINEAR_SOURCE_IDENTITY),
         "enabled": enabled,
-        "insertion_point": CCE_INSERTION_POINT,
+        "insertion_point": LATE_CCE_INSERTION_POINT if is_late else CCE_INSERTION_POINT,
         "mode": mode,
         "input_order_policy": input_order,
         "source_idx": source_idx,
@@ -330,6 +347,12 @@ def _validate_cce_variant_contract(scientific, run_dir):
             "forecasting_head",
         ],
     }
+    if is_late:
+        expected_cce.update({
+            "cce_architecture": LATE_CCE_ARCHITECTURE,
+            "cce_insertion_point": LATE_CCE_INSERTION_POINT,
+            "cce_input_representation": LATE_CCE_INPUT_REPRESENTATION,
+        })
     mismatches = {}
     if model.get("cce") != expected_cce:
         mismatches["cce"] = (expected_cce, model.get("cce"))
@@ -345,7 +368,12 @@ def _validate_cce_variant_contract(scientific, run_dir):
         model.get("norm") is not True
         or model.get("target_idx") != target_idx
         or model.get("module_connection")
-        != "X->RevIN->CCE?->MDM(U)->DDI; AMS_selector<-U"
+        != (
+            "X->RevIN->MDM(U)->DDI->PMCR?->LateCCE?; "
+            "AMS(experts=LateCCE?,selector=U)"
+            if is_late
+            else "X->RevIN->CCE?->MDM(U)->DDI; AMS_selector<-U"
+        )
     ):
         mismatches["model_route"] = ("locked CCE route", model)
     if (
@@ -354,15 +382,15 @@ def _validate_cce_variant_contract(scientific, run_dir):
         or optimization.get("weight_decay") != 1e-7
     ):
         mismatches["optimization"] = ("Adam/3e-5/1e-7", optimization)
-    if experiment.get("development_protocol_id") != CCE_DEVELOPMENT_PROTOCOL:
+    if experiment.get("development_protocol_id") != development_protocol:
         mismatches["development_protocol_id"] = (
-            CCE_DEVELOPMENT_PROTOCOL,
+            development_protocol,
             experiment.get("development_protocol_id"),
         )
     if mismatches:
         raise ValueError(f"unsupported CCE contract {mismatches}: {run_dir}")
     return {
-        "development_protocol_id": CCE_DEVELOPMENT_PROTOCOL,
+        "development_protocol_id": development_protocol,
         "ablation_id": ablation_id,
         "task_mode": mode,
         "feature_names": feature_names,
@@ -380,8 +408,13 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
     experiment = scientific.get("experiment")
     if not isinstance(model, dict) or not isinstance(experiment, dict):
         raise ValueError(f"enhanced variant contract is incomplete: {run_dir}")
-    if implementation_variant == CCE_IMPLEMENTATION_VARIANT:
-        return _validate_cce_variant_contract(scientific, run_dir)
+    if implementation_variant in {
+        CCE_IMPLEMENTATION_VARIANT,
+        LATE_CCE_IMPLEMENTATION_VARIANT,
+    }:
+        return _validate_cce_variant_contract(
+            scientific, run_dir, implementation_variant=implementation_variant
+        )
     teb = model.get("teb")
     if not isinstance(teb, dict):
         raise ValueError(f"enhanced TEB contract is missing: {run_dir}")
@@ -1043,6 +1076,7 @@ def _validate_warm_start_artifact(
 
 def _validate_cce_checkpoints(
     scientific,
+    implementation_variant,
     config,
     manifest,
     metrics,
@@ -1082,7 +1116,7 @@ def _validate_cce_checkpoints(
             or checkpoint.get("artifact_schema_version")
             != ENHANCED_ARTIFACT_SCHEMA_VERSION
             or checkpoint.get("implementation_variant")
-            != CCE_IMPLEMENTATION_VARIANT
+            != implementation_variant
             or checkpoint.get("config_hash") != metrics.get("config_hash")
             or checkpoint.get("data_sha256") != metrics.get("data_sha256")
             or not isinstance(resolved, dict)
@@ -1614,9 +1648,13 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             run_dir,
             implementation_variant,
         )
-        if implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+        if implementation_variant in {
+            CCE_IMPLEMENTATION_VARIANT,
+            LATE_CCE_IMPLEMENTATION_VARIANT,
+        }:
             _validate_cce_checkpoints(
                 scientific,
+                implementation_variant,
                 config,
                 manifest,
                 metrics,

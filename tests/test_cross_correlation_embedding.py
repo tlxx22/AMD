@@ -5,8 +5,14 @@ import torch
 from torch.nn import functional as F
 
 from models.modules.cross_correlation_embedding import (
+    CCE_INSERTION_POINT,
+    EARLY_CCE_ARCHITECTURE,
+    EARLY_CCE_INPUT_REPRESENTATION,
     FEATURE_SCHEMA_ORDER,
     IDENTITY_RESIDUAL_DELTA_V1,
+    LATE_CCE_ARCHITECTURE,
+    LATE_CCE_INPUT_REPRESENTATION,
+    LATE_CCE_INSERTION_POINT,
     ORDERED_AUX_THEN_TARGET,
     PARALLEL_MULTIVARIATE,
     TARGET_EXOGENOUS,
@@ -37,7 +43,14 @@ def _assert_rng_equal(test_case, left, right):
             test_case.assertTrue(torch.equal(expected, observed))
 
 
-def _model(*, use_cce, task_mode=TARGET_EXOGENOUS, target_idx=1):
+def _model(
+    *,
+    use_cce,
+    task_mode=TARGET_EXOGENOUS,
+    target_idx=1,
+    late=False,
+    use_pmcr=False,
+):
     return AMDEnhanced(
         input_shape=(4, 3),
         pred_len=2,
@@ -66,7 +79,17 @@ def _model(*, use_cce, task_mode=TARGET_EXOGENOUS, target_idx=1):
         cce_parameterization_policy=IDENTITY_RESIDUAL_DELTA_V1,
         cce_feature_schema=("a", "b", "c") if use_cce else None,
         cce_schema_fingerprint="fixture-schema" if use_cce else None,
-        use_pmcr=False,
+        cce_architecture=(
+            LATE_CCE_ARCHITECTURE if late else EARLY_CCE_ARCHITECTURE
+        ),
+        cce_insertion_point=(
+            LATE_CCE_INSERTION_POINT if late else CCE_INSERTION_POINT
+        ),
+        cce_input_representation=(
+            LATE_CCE_INPUT_REPRESENTATION
+            if late else EARLY_CCE_INPUT_REPRESENTATION
+        ),
+        use_pmcr=use_pmcr,
         use_teb=False,
     )
 
@@ -422,6 +445,9 @@ class CrossCorrelationEmbeddingAMDIntegrationTests(unittest.TestCase):
             ("aux_idx", (0, 2)),
             ("schema_fingerprint", "different"),
             ("input_order_policy", FEATURE_SCHEMA_ORDER),
+            ("cce_architecture", LATE_CCE_ARCHITECTURE),
+            ("cce_insertion_point", LATE_CCE_INSERTION_POINT),
+            ("cce_input_representation", LATE_CCE_INPUT_REPRESENTATION),
         ):
             changed = dict(contract)
             changed[field] = value
@@ -447,6 +473,193 @@ class CrossCorrelationEmbeddingAMDIntegrationTests(unittest.TestCase):
                 self.assertTrue(
                     torch.equal(value, target.state_dict()[key]), key
                 )
+
+
+class LateCrossCorrelationEmbeddingAMDIntegrationTests(unittest.TestCase):
+    @staticmethod
+    def _paired_models():
+        torch.manual_seed(27191)
+        control = _model(use_cce=False, late=True)
+        torch.manual_seed(27191)
+        candidate = _model(use_cce=True, late=True)
+        return control, candidate
+
+    @staticmethod
+    def _forward_trace(model, x):
+        trace = {}
+
+        def mdm_pre_hook(unused_module, inputs):
+            trace["mdm_input"] = inputs[0].detach().clone()
+
+        def mdm_hook(unused_module, unused_inputs, output):
+            trace["u_mdm"] = output.detach().clone()
+
+        def cce_pre_hook(unused_module, inputs):
+            trace["cce_input"] = inputs[0].detach().clone()
+
+        def cce_hook(unused_module, unused_inputs, output):
+            trace["cce_output"] = output.detach().clone()
+
+        def moe_pre_hook(unused_module, inputs):
+            trace["experts_input"] = inputs[0].detach().clone()
+            trace["selector_input"] = inputs[1].detach().clone()
+
+        handles = [
+            model.pastmixing.register_forward_pre_hook(mdm_pre_hook),
+            model.pastmixing.register_forward_hook(mdm_hook),
+            model.moe.register_forward_pre_hook(moe_pre_hook),
+        ]
+        if model.cce is not None:
+            handles.extend([
+                model.cce.register_forward_pre_hook(cce_pre_hook),
+                model.cce.register_forward_hook(cce_hook),
+            ])
+        try:
+            result = model(x, return_state_source=True)
+        finally:
+            for handle in handles:
+                handle.remove()
+        return result, trace
+
+    def test_late_identity_route_selector_state_and_off_path_are_exact(self):
+        control, candidate = self._paired_models()
+        self.assertIsNone(control.cce)
+        self.assertEqual(
+            {key for key in candidate.state_dict() if key.startswith("cce.")},
+            {"cce.delta_weight", "cce.delta_bias", "cce.rho"},
+        )
+        self.assertFalse(
+            any(key.startswith("cce.") for key in control.state_dict())
+        )
+        for key, value in control.state_dict().items():
+            self.assertTrue(torch.equal(value, candidate.state_dict()[key]), key)
+
+        x = torch.randn(3, 4, 3)
+        control.eval()
+        candidate.eval()
+        with torch.no_grad():
+            control_result, control_trace = self._forward_trace(control, x)
+            candidate_result, candidate_trace = self._forward_trace(candidate, x)
+
+        for expected, observed in zip(control_result, candidate_result):
+            self.assertTrue(torch.equal(expected, observed))
+        self.assertTrue(torch.equal(
+            control_trace["mdm_input"], candidate_trace["mdm_input"]
+        ))
+        self.assertTrue(torch.equal(
+            control_trace["u_mdm"], candidate_trace["u_mdm"]
+        ))
+        self.assertTrue(torch.equal(
+            control_trace["selector_input"], candidate_trace["selector_input"]
+        ))
+        self.assertTrue(torch.equal(
+            control_trace["experts_input"], candidate_trace["cce_input"]
+        ))
+        self.assertTrue(torch.equal(
+            candidate_trace["cce_input"], candidate_trace["cce_output"]
+        ))
+        self.assertTrue(torch.equal(
+            candidate_trace["cce_output"], candidate_trace["experts_input"]
+        ))
+
+        state_source = candidate_result[2]
+        self.assertTrue(torch.equal(
+            state_source[:, :4], candidate_trace["experts_input"][:, 1, :]
+        ))
+        self.assertTrue(torch.equal(
+            state_source[:, 4:8], candidate_trace["u_mdm"][:, 1, :]
+        ))
+        self.assertTrue(torch.equal(
+            state_source[:, 8:], torch.zeros_like(state_source[:, 8:])
+        ))
+
+    def test_late_positive_residual_non_target_and_first_backward(self):
+        control, candidate = self._paired_models()
+        x = torch.randn(3, 4, 3)
+        target = torch.randn(3, 2, 1)
+        control.eval()
+        candidate.eval()
+
+        with torch.no_grad():
+            candidate.cce.delta_weight[0, 0, 1] = 2.0
+            candidate.cce.delta_bias.fill_(0.25)
+            _, control_trace = self._forward_trace(control, x)
+            _, candidate_trace = self._forward_trace(candidate, x)
+            delta = candidate.cce.compute_ungated_delta(
+                candidate_trace["cce_input"]
+            )
+            expected = candidate_trace["cce_input"].clone()
+            expected[:, 1:2, :] = (
+                expected[:, 1:2, :]
+                + candidate.cce.effective_lambda() * delta
+            )
+        self.assertTrue(torch.equal(expected, candidate_trace["cce_output"]))
+        self.assertTrue(torch.equal(
+            candidate_trace["cce_output"][:, (0, 2), :],
+            candidate_trace["cce_input"][:, (0, 2), :],
+        ))
+        self.assertTrue(torch.equal(
+            control_trace["mdm_input"], candidate_trace["mdm_input"]
+        ))
+        self.assertTrue(torch.equal(
+            control_trace["u_mdm"], candidate_trace["u_mdm"]
+        ))
+        self.assertTrue(torch.equal(
+            control_trace["selector_input"], candidate_trace["selector_input"]
+        ))
+
+        control, candidate = self._paired_models()
+        control.train()
+        candidate.train()
+        criterion = torch.nn.MSELoss()
+        shared_rng = _rng_state()
+        control_prediction, control_aux = control(x)
+        torch.set_rng_state(shared_rng["cpu"])
+        if shared_rng["cuda"] is not None:
+            torch.cuda.set_rng_state_all(shared_rng["cuda"])
+        candidate_prediction, candidate_aux = candidate(x)
+        self.assertTrue(torch.equal(control_prediction, candidate_prediction))
+        self.assertTrue(torch.equal(control_aux, candidate_aux))
+        (criterion(control_prediction, target) + control_aux).backward()
+        (criterion(candidate_prediction, target) + candidate_aux).backward()
+
+        aux_gradient = candidate.cce.delta_weight.grad[:, :2, :]
+        target_gradient = candidate.cce.delta_weight.grad[:, 2:, :]
+        self.assertTrue(bool(torch.isfinite(aux_gradient).all()))
+        self.assertGreater(aux_gradient.abs().max().item(), 0.0)
+        self.assertTrue(bool(torch.isfinite(target_gradient).all()))
+        self.assertEqual(candidate.cce.rho.grad.item(), 0.0)
+        candidate_parameters = dict(candidate.named_parameters())
+        for name, expected_parameter in control.named_parameters():
+            observed_parameter = candidate_parameters[name]
+            if expected_parameter.grad is None:
+                self.assertIsNone(observed_parameter.grad, name)
+            else:
+                self.assertTrue(torch.equal(
+                    expected_parameter.grad, observed_parameter.grad
+                ), name)
+
+    def test_late_route_contract_restore_isolation_and_pmcr_guard(self):
+        early = _model(use_cce=True, late=False)
+        late = _model(use_cce=True, late=True)
+        source = _model(use_cce=False, late=True)
+        before = copy.deepcopy(late.state_dict())
+        with self.assertRaisesRegex(RuntimeError, "cce_architecture"):
+            late.load_cce_source_state_dict(
+                source.state_dict(),
+                source_contract=early.cce_source_import_contract(),
+            )
+        for key, value in before.items():
+            self.assertTrue(torch.equal(value, late.state_dict()[key]), key)
+
+        restored = _model(use_cce=True, late=True)
+        result = restored.load_state_dict(late.state_dict(), strict=True)
+        self.assertEqual(result.missing_keys, [])
+        self.assertEqual(result.unexpected_keys, [])
+        with self.assertRaisesRegex(ValueError, "strict=True"):
+            restored.load_state_dict(late.state_dict(), strict=False)
+        with self.assertRaisesRegex(ValueError, "PMCR"):
+            _model(use_cce=True, late=True, use_pmcr=True)
 
 
 if __name__ == "__main__":

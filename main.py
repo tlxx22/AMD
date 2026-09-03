@@ -34,9 +34,14 @@ from tqdm import tqdm
 
 from models.modules.cross_correlation_embedding import (
     CCE_INSERTION_POINT,
+    EARLY_CCE_ARCHITECTURE,
+    EARLY_CCE_INPUT_REPRESENTATION,
     FEATURE_SCHEMA_ORDER,
     IDENTITY_RESIDUAL_DELTA_V1,
     LEGACY_WIDTH_COMPATIBILITY_ZERO,
+    LATE_CCE_ARCHITECTURE,
+    LATE_CCE_INPUT_REPRESENTATION,
+    LATE_CCE_INSERTION_POINT,
     ORDERED_AUX_THEN_TARGET,
     REVIN_REUSE_NO_INTERNAL_NORMALIZATION,
     SIGMOID_LOGIT_PLUS_RHO,
@@ -87,6 +92,7 @@ T2_IMPLEMENTATION_VARIANT = "el-amd-m4-t2-patch-teb-v1"
 T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
+LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 IMPLEMENTATION_VARIANT = BASELINE_IMPLEMENTATION_VARIANT
 ENHANCED_IMPLEMENTATION_VARIANTS = (
     ENHANCED_IMPLEMENTATION_VARIANT,
@@ -94,6 +100,7 @@ ENHANCED_IMPLEMENTATION_VARIANTS = (
     T2G_IMPLEMENTATION_VARIANT,
     T3_IMPLEMENTATION_VARIANT,
     CCE_IMPLEMENTATION_VARIANT,
+    LATE_CCE_IMPLEMENTATION_VARIANT,
 )
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
@@ -123,8 +130,11 @@ ENHANCED_CHECKSUM_FILES = (
 
 STANDARD_TRAINING_PROTOCOL = "standard_from_scratch"
 CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_cce_from_scratch_pair_v1"
+LATE_CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_late_cce_from_scratch_pair_v1"
 CCE_CONTROL_ABLATION_ID = "M4_CCE_CONTROL"
 CCE_CANDIDATE_ABLATION_ID = "M4_CCE"
+LATE_CCE_CONTROL_ABLATION_ID = "M4_LATE_CCE_CONTROL"
+LATE_CCE_CANDIDATE_ABLATION_ID = "M4_LATE_CCE"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -404,15 +414,16 @@ def _t3_candidate_contract(args):
 
 
 def _cce_model_contract(args):
+    is_late = args.implementation_variant == LATE_CCE_IMPLEMENTATION_VARIANT
     source_idx = (
         [*args.aux_idx, args.target_idx]
         if args.task_mode == TARGET_EXOGENOUS
         else list(range(len(args.feature_names)))
     )
-    return {
+    contract = {
         "source": deepcopy(CROSSLINEAR_SOURCE_IDENTITY),
         "enabled": args.use_cce,
-        "insertion_point": CCE_INSERTION_POINT,
+        "insertion_point": args.cce_insertion_point if is_late else CCE_INSERTION_POINT,
         "mode": args.task_mode,
         "input_order_policy": args.cce_input_order_policy,
         "source_idx": source_idx,
@@ -442,6 +453,13 @@ def _cce_model_contract(args):
             "forecasting_head",
         ],
     }
+    if is_late:
+        contract.update({
+            "cce_architecture": args.cce_architecture,
+            "cce_insertion_point": args.cce_insertion_point,
+            "cce_input_representation": args.cce_input_representation,
+        })
+    return contract
 
 
 def _cce_candidate_contract(args):
@@ -461,6 +479,9 @@ def _has_cce_configuration(args):
     return (
         args.use_cce
         or args.development_protocol_id is not None
+        or args.cce_architecture is not None
+        or args.cce_insertion_point is not None
+        or args.cce_input_representation is not None
         or args.cce_input_order_policy is not None
         or args.cce_kernel_size != 3
         or args.cce_lambda_init != 0.1
@@ -567,6 +588,8 @@ def parse_args(argv=None):
             T2_ADAPTER_ABLATION_ID, U1_CONTINUATION_ABLATION_ID,
             CCE_CONTROL_ABLATION_ID,
             CCE_CANDIDATE_ABLATION_ID,
+            LATE_CCE_CONTROL_ABLATION_ID,
+            LATE_CCE_CANDIDATE_ABLATION_ID,
         ],
     )
 
@@ -604,6 +627,21 @@ def parse_args(argv=None):
         "--cce_parameterization_policy",
         default=IDENTITY_RESIDUAL_DELTA_V1,
         choices=[IDENTITY_RESIDUAL_DELTA_V1],
+    )
+    parser.add_argument(
+        "--cce_architecture",
+        default=None,
+        choices=[EARLY_CCE_ARCHITECTURE, LATE_CCE_ARCHITECTURE],
+    )
+    parser.add_argument(
+        "--cce_insertion_point",
+        default=None,
+        choices=[CCE_INSERTION_POINT, LATE_CCE_INSERTION_POINT],
+    )
+    parser.add_argument(
+        "--cce_input_representation",
+        default=None,
+        choices=[EARLY_CCE_INPUT_REPRESENTATION, LATE_CCE_INPUT_REPRESENTATION],
     )
 
     parser.add_argument("--use_pmcr", type=str2bool, default=False)
@@ -730,7 +768,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--development_protocol_id",
         default=None,
-        choices=[CCE_DEVELOPMENT_PROTOCOL],
+        choices=[CCE_DEVELOPMENT_PROTOCOL, LATE_CCE_DEVELOPMENT_PROTOCOL],
     )
     parser.add_argument(
         "--training_protocol_id",
@@ -1077,7 +1115,11 @@ def _prepare_enhanced_contract(args):
         args.teb_global_prediction_role,
     )
 
-    if args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+    if args.implementation_variant in {
+        CCE_IMPLEMENTATION_VARIANT,
+        LATE_CCE_IMPLEMENTATION_VARIANT,
+    }:
+        is_late = args.implementation_variant == LATE_CCE_IMPLEMENTATION_VARIANT
         if any(value is not None for value in patch_values + t2g_values + t3_values):
             raise ValueError("CCE variant does not accept T2/T2G/T3 parameters")
         expected_order = (
@@ -1085,17 +1127,24 @@ def _prepare_enhanced_contract(args):
             if args.task_mode == TARGET_EXOGENOUS
             else FEATURE_SCHEMA_ORDER
         )
-        if args.ablation_id not in {
-            CCE_CONTROL_ABLATION_ID,
-            CCE_CANDIDATE_ABLATION_ID,
-        }:
+        control_ablation = (
+            LATE_CCE_CONTROL_ABLATION_ID if is_late else CCE_CONTROL_ABLATION_ID
+        )
+        candidate_ablation = (
+            LATE_CCE_CANDIDATE_ABLATION_ID if is_late else CCE_CANDIDATE_ABLATION_ID
+        )
+        development_protocol = (
+            LATE_CCE_DEVELOPMENT_PROTOCOL if is_late else CCE_DEVELOPMENT_PROTOCOL
+        )
+        if args.ablation_id not in {control_ablation, candidate_ablation}:
             raise ValueError(
-                "CCE variant requires ablation_id M4_CCE_CONTROL or M4_CCE"
+                f"CCE variant requires ablation_id {control_ablation} or "
+                f"{candidate_ablation}"
             )
         expected_cce = {
-            "development_protocol_id": CCE_DEVELOPMENT_PROTOCOL,
+            "development_protocol_id": development_protocol,
             "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
-            "use_cce": args.ablation_id == CCE_CANDIDATE_ABLATION_ID,
+            "use_cce": args.ablation_id == candidate_ablation,
             "use_pmcr": False,
             "use_teb": False,
             "cce_kernel_size": 3,
@@ -1107,6 +1156,17 @@ def _prepare_enhanced_contract(args):
             "weight_decay": PAPER_WEIGHT_DECAY,
             "norm": True,
         }
+        expected_cce.update({
+            "cce_architecture": (
+                LATE_CCE_ARCHITECTURE if is_late else None
+            ),
+            "cce_insertion_point": (
+                LATE_CCE_INSERTION_POINT if is_late else None
+            ),
+            "cce_input_representation": (
+                LATE_CCE_INPUT_REPRESENTATION if is_late else None
+            ),
+        })
         mismatches = [
             name
             for name, expected in expected_cce.items()
@@ -1114,7 +1174,9 @@ def _prepare_enhanced_contract(args):
         ]
         if mismatches:
             raise ValueError(
-                "CrossLinear-inspired CCE v1 contract mismatch for "
+                "CrossLinear-inspired "
+                + ("Late CCE v1" if is_late else "CCE v1")
+                + " contract mismatch for "
                 + ", ".join(mismatches)
             )
         if args.task_mode == TARGET_EXOGENOUS:
@@ -1139,17 +1201,27 @@ def _prepare_enhanced_contract(args):
                 raise ValueError(
                     "parallel_multivariate CCE requires at least two variables"
                 )
+        if not is_late:
+            args.cce_architecture = EARLY_CCE_ARCHITECTURE
+            args.cce_insertion_point = CCE_INSERTION_POINT
+            args.cce_input_representation = EARLY_CCE_INPUT_REPRESENTATION
         args.teb_architecture = GLOBAL_TEB_V1
-        args.display_name = (
-            "AMD + CrossLinear-inspired CCE"
-            if args.use_cce
-            else "AMD CCE paired control"
-        )
+        if is_late:
+            args.display_name = (
+                "AMD + CrossLinear-inspired Late CCE"
+                if args.use_cce else "AMD Late CCE paired control"
+            )
+        else:
+            args.display_name = (
+                "AMD + CrossLinear-inspired CCE"
+                if args.use_cce else "AMD CCE paired control"
+            )
         return args
 
     if _has_cce_configuration(args):
         raise ValueError(
-            "only el-amd-m4-crosslinear-cce-v1 accepts CCE configuration"
+            "only a registered CrossLinear-inspired CCE variant accepts "
+            "CCE configuration"
         )
     if args.implementation_variant == ENHANCED_IMPLEMENTATION_VARIANT:
         if any(value is not None for value in patch_values + t2g_values + t3_values):
@@ -3087,10 +3159,19 @@ def _scientific_config(
             "empty_aux_policy": args.empty_aux_policy,
             "parallel_c1_policy": args.parallel_c1_policy,
         })
-        if args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+        if args.implementation_variant in {
+            CCE_IMPLEMENTATION_VARIANT,
+            LATE_CCE_IMPLEMENTATION_VARIANT,
+        }:
+            is_late = args.implementation_variant == LATE_CCE_IMPLEMENTATION_VARIANT
             model_config.update({
                 "module_connection": (
-                    "X->RevIN->CCE?->MDM(U)->DDI; AMS_selector<-U"
+                    (
+                        "X->RevIN->MDM(U)->DDI->PMCR?->LateCCE?; "
+                        "AMS(experts=LateCCE?,selector=U)"
+                    )
+                    if is_late
+                    else "X->RevIN->CCE?->MDM(U)->DDI; AMS_selector<-U"
                 ),
                 "use_cce": args.use_cce,
                 "cce": _cce_model_contract(args),
@@ -3140,7 +3221,10 @@ def _scientific_config(
             "artifact_horizon": args.artifact_horizon,
             "fold": args.fold,
         }
-        if args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+        if args.implementation_variant in {
+            CCE_IMPLEMENTATION_VARIANT,
+            LATE_CCE_IMPLEMENTATION_VARIANT,
+        }:
             experiment["development_protocol_id"] = args.development_protocol_id
 
     result = {
@@ -4042,6 +4126,9 @@ def _build_model(args, data_loader):
         cce_schema_fingerprint=(
             args.schema_fingerprint if args.use_cce else None
         ),
+        cce_architecture=args.cce_architecture,
+        cce_insertion_point=args.cce_insertion_point,
+        cce_input_representation=args.cce_input_representation,
         use_pmcr=args.use_pmcr,
         pmcr_hidden_dim=args.pmcr_hidden_dim,
         pmcr_kernel_small=args.pmcr_kernel_small,
@@ -4221,7 +4308,10 @@ def _main_impl(args, transcript=None):
         manifest["candidate_contract"] = _t2g_candidate_contract(args)
     elif args.implementation_variant == T3_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _t3_candidate_contract(args)
-    elif args.implementation_variant == CCE_IMPLEMENTATION_VARIANT:
+    elif args.implementation_variant in {
+        CCE_IMPLEMENTATION_VARIANT,
+        LATE_CCE_IMPLEMENTATION_VARIANT,
+    }:
         manifest["candidate_contract"] = _cce_candidate_contract(args)
     previous_config = None
     manifest_is_mutable = False

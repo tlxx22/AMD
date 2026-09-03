@@ -25,6 +25,11 @@ SIGMOID_LOGIT_PLUS_RHO = "sigmoid_logit_plus_rho"
 REVIN_REUSE_NO_INTERNAL_NORMALIZATION = "reuse_amd_revin_no_internal_normalization"
 LEGACY_WIDTH_COMPATIBILITY_ZERO = "legacy_width_compatibility_zero"
 CCE_INSERTION_POINT = "after_revin_before_mdm"
+EARLY_CCE_ARCHITECTURE = "crosslinear_inspired_observation_space_cce_v1"
+EARLY_CCE_INPUT_REPRESENTATION = "amd_revin_normalized_x_ch"
+LATE_CCE_ARCHITECTURE = "crosslinear_inspired_hidden_state_late_cce_v1"
+LATE_CCE_INSERTION_POINT = "post_pmcr_pre_ams"
+LATE_CCE_INPUT_REPRESENTATION = "amd_hidden_v_local"
 CCE_SOURCE_IMPORT_CONTRACT_VERSION = "cce_source_import_contract_v1"
 
 

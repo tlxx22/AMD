@@ -1504,6 +1504,98 @@ importer 在写参前必须校验完整 key set、shape、dtype、task mode、C�
 
 CCE 未通过 M4 adequacy gate 前，新的 PMCR/P2 与 M5 继续阻塞。不得把 capability、smoke 或单一 development 结果称为最终外生模块、最终 EL-AMD 或正式论文性能。若未来 paired development 未通过已有 M4 adequacy/停止规则，则停止 CCE 当前候选并等待用户与 ChatGPT 决定；不得自行调参、启动 P2、进入 M5/M7 或实现空间模块。
 
+# 7B. CrossLinear-inspired Late CCE：最后一个有限插入位置候选
+
+第十九轮 Early CCE v1（RevIN 后、MDM 前）四 horizon paired development 已完成，按预登记六项 adequacy gate 判定为 `negative-or-negligible development signal`：development test MSE/MAE macro 与 validation MSE macro 均退化，test MSE 改善为 0/4 horizon。该结果和八个 Early CCE artifact 保持不变，不得覆盖、改写或用 Late CCE 身份恢复。
+
+用户已授权 CrossLinear 路线最后一个有限插入位置候选 Late CCE。其工程身份固定为：
+
+```text
+implementation_variant = el-amd-m4-crosslinear-late-cce-v1
+control ablation_id = M4_LATE_CCE_CONTROL
+candidate ablation_id = M4_LATE_CCE
+development_protocol_id = m4_crosslinear_late_cce_from_scratch_pair_v1
+cce_architecture = crosslinear_inspired_hidden_state_late_cce_v1
+cce_insertion_point = post_pmcr_pre_ams
+cce_input_representation = amd_hidden_v_local
+```
+
+这仍只是 M4 工程/开发候选，不是最终外生模块、最终 EL-AMD 或 M5 冻结结果。
+
+## 7B.1 精确路由、数学与来源边界
+
+Late CCE 复用同一个独立实现 `CrossCorrelationEmbedding`，不新建第二个 Late class。插入位置由 `AMDEnhanced` 显式路由字段决定：
+
+```text
+normalized_input = RevIN(x)
+x_ch = transpose(normalized_input)
+u_mdm = MDM(x_ch)
+v_ddi = DDI(u_mdm)
+v_local = PMCR(v_ddi) if enabled else v_ddi
+v_final = LateCCE(v_local) if enabled else v_local
+prediction, moe_loss = AMS(experts_input=v_final, selector_input=u_mdm)
+```
+
+standalone Late CCE development 中 PMCR 与全部 TimeXer TEB 固定关闭，因而 `v_local == v_ddi`；`post_pmcr_pre_ams` 仍是体系结构位置。现有 CCE+PMCR coexistence guard 本轮保持，不解除、不重写。Late CCE 不改变 `x_ch`、`u_mdm`、`v_ddi` 或 AMS selector，只修改进入 AMS experts 的 `v_final`。
+
+数学继续完全复用 CCE v1：kernel 3、stride 1、zero-same padding 1、dilation 1、groups 1、bias true；`lambda=sigmoid(logit(0.1)+rho)`，全局共享 scalar `rho` 初始化为 0；`delta_weight/delta_bias` 直接零初始化且 RNG-neutral。固定正号公式为：
+
+```text
+source_hidden = gather(v_local, ordered [aux_idx..., target_idx])
+delta_target = Conv1d(source_hidden, C_source -> 1, k=3)
+cross_target = target_hidden + delta_target
+target_new = target_hidden + lambda * (cross_target - target_hidden)
+           = target_hidden + lambda * delta_target
+```
+
+禁止实现负号。target_exogenous 只写回 `target_idx`，所有非目标 hidden channel 逐元素不变；parallel_multivariate 继续以 feature schema 原顺序执行 `C -> C`。不得增加 normalization、patch、PE、attention、额外 gate、FFN 或 CrossLinear forecasting head。
+
+来源表述只能是 `CrossLinear-inspired hidden-state / late cross-correlation embedding adaptation`。Late kernel 的 lag `-1/0/+1` 表示 AMD 隐状态时间位置之间的局部相关修正，不得表述为原始物理变量数值的一步 lead-lag，也不得声称与原版 CrossLinear 的输入和插入方式完全相同。
+
+## 7B.2 State source、参数与恢复隔离
+
+Late 路线保持冻结宽度接口：
+
+```text
+state_source = concat(
+    v_final[:, target_idx, :],
+    u_mdm[:, target_idx, :],
+    legacy_width_compatibility_zero,
+)
+```
+
+第一段反映 Late CCE 后的 target hidden；第二段保持原始 `u_mdm`；第三段仍是 dtype/device 正确的确定性零占位。总宽度不变，不得称零段或 CCE 为独立 `exo_context`，本轮不设计 M7 StateAdapter。
+
+Late target 参数量仍为 `3*C_source+2`，parallel 为 `3*C*C+C+1`。CCE-off 固定 `self.cce=None` 且无 `cce.*` keys；CCE-on 固定恰有 `cce.delta_weight`、`cce.delta_bias`、`cce.rho`。初始化 output、AMD prediction、MoE、selector input 与 state_source 必须和 matched control 位级相等；第一次 production backward 要求 aux delta taps finite/nonzero、target taps finite、`rho.grad==0`，公共 AMD 与 selector 路径 gradient 和 control 位级相等。
+
+以下字段必须同时封存到 resolved/scientific/comparison config、checkpoint 内嵌 metadata、manifest candidate contract、resume mismatch 与 summarizer：
+
+```text
+cce_architecture
+cce_insertion_point
+cce_input_representation
+```
+
+即使 Early/Late 的 `cce.*` key 和 shape 相同，也必须在写入参数前依据 variant、route、mode、schema/order 与 candidate identity 拒绝交叉恢复；普通 `strict=True` 能读取 tensor 不代表科学结构兼容。Late same-structure resume 才允许 strict restore。control→candidate、target↔parallel、不同 C/schema/feature/target/aux order、partial/unexpected/shape/dtype mismatch 都必须原子拒绝。Late 是 standard from-scratch pair，不得继承 AMD/U1/T2 adapter checkpoint 或 lineage。
+
+## 7B.3 八 run development 与停止线
+
+ETTm1 development-only 实验固定为 horizon `96/192/336/720`，每个 horizon 顺序运行 `M4_LATE_CCE_CONTROL` 后 `M4_LATE_CCE`。共同合同逐字段复用第十九轮 Early pair：MS/OT、target_exogenous、feature order `HUFL,HULL,MUFL,MULL,LUFL,LULL,OT`、target 6、ordered aux 0--5、seq_len 512、seed 2024、10 epochs、batch 128、Adam lr `3e-5`、weight decay `1e-7`、`n_block=1,alpha=0,mix_layer_num=3,mix_layer_scale=2,patch=16,norm=true,layernorm=true,dropout=0.1`；PMCR/TEB off，全部参数 from scratch，best 从 epoch 1 开始，无 source/warm-start/adapter/continuation/epoch-0 best。
+
+artifact 使用独立 root：
+
+```text
+artifacts/m4-development/ettm1-stage-h-crosslinear-late-cce-v1
+```
+
+继续使用 schema-v2、13-file checksum、hidden staging 与 atomic publication，不创建 schema-v3/第 14 个文件，不覆盖第十九轮 artifact。summarizer 必须把 Late control/candidate 与 Early CCE、旧 standard/TEB/adapter/continuation 分开，并拒绝 route/source/config/checkpoint tamper 与 duplicate scientific identity。
+
+adequacy gate 不得事后改变，只有六项全部满足才是 `positive development signal`：test MSE macro 更低、test MAE macro 不高、至少 3/4 horizon test MSE 改善、validation MSE macro 不高、改善超过舍入噪声且不由单一 horizon 驱动。任一失败即登记 `negative-or-negligible development signal`，并正式停止：
+
+> 当前 CrossLinear-inspired CCE 路线在 M4 有限开发中失败。
+
+失败后不得自动调 kernel/lambda/gate、再换插入点、转向 Sonnet/XLinear、启动 PMCR/P2 或进入 M5。即使 positive，Late CCE 也只成为当前 CrossLinear leading development candidate，不自动进入 M5 或启动 P2。无论结果正负，本轮结束后停止等待用户与 ChatGPT 决策。
+
 # 8. 历史 M3 与当前 CCE 候选的 forward / 时间状态接口
 
 ## 8.1 历史 M3 前向流程

@@ -3516,6 +3516,22 @@ class CCERunnerContractTests(unittest.TestCase):
             "--teb_dropout", "0",
         ])
 
+    @classmethod
+    def _late_args(cls, data_path, artifact_root, *, enabled, seed=123):
+        args = cls._args(
+            data_path, artifact_root, enabled=enabled, seed=seed
+        )
+        args.implementation_variant = runner.LATE_CCE_IMPLEMENTATION_VARIANT
+        args.ablation_id = (
+            runner.LATE_CCE_CANDIDATE_ABLATION_ID
+            if enabled else runner.LATE_CCE_CONTROL_ABLATION_ID
+        )
+        args.development_protocol_id = runner.LATE_CCE_DEVELOPMENT_PROTOCOL
+        args.cce_architecture = runner.LATE_CCE_ARCHITECTURE
+        args.cce_insertion_point = runner.LATE_CCE_INSERTION_POINT
+        args.cce_input_representation = runner.LATE_CCE_INPUT_REPRESENTATION
+        return args
+
     @staticmethod
     def _fake_train(*args, **kwargs):
         return {
@@ -3537,12 +3553,13 @@ class CCERunnerContractTests(unittest.TestCase):
         }
 
     @classmethod
-    def _run(cls, data_path, artifact_root, *, enabled, seed=123):
+    def _run(cls, data_path, artifact_root, *, enabled, seed=123, late=False):
         before = {
             path.parent.resolve()
             for path in Path(artifact_root).rglob("manifest.json")
         }
-        args = cls._args(
+        args_factory = cls._late_args if late else cls._args
+        args = args_factory(
             data_path, artifact_root, enabled=enabled, seed=seed
         )
         with mock.patch.object(
@@ -3849,6 +3866,145 @@ class CCERunnerContractTests(unittest.TestCase):
                     duplicate_root,
                     implementation_variant=summary.CCE_IMPLEMENTATION_VARIANT,
                 )
+
+    def test_late_pair_seals_route_and_summarizer_rejects_tamper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            artifact_root = root / "late-artifacts"
+            self._write_dataset(data_path)
+            control_dir = self._run(
+                data_path, artifact_root, enabled=False, late=True
+            )
+            candidate_dir = self._run(
+                data_path, artifact_root, enabled=True, late=True
+            )
+
+            rows = summary.load_completed_runs(
+                artifact_root,
+                implementation_variant=summary.LATE_CCE_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(
+                {row["ablation_id"] for row in rows},
+                {
+                    summary.LATE_CCE_CONTROL_ABLATION_ID,
+                    summary.LATE_CCE_CANDIDATE_ABLATION_ID,
+                },
+            )
+            self.assertTrue(all(
+                row["development_protocol_id"]
+                == summary.LATE_CCE_DEVELOPMENT_PROTOCOL
+                for row in rows
+            ))
+            self.assertEqual(
+                len({row["comparison_config_hash"] for row in rows}), 2
+            )
+
+            for enabled, run_dir in (
+                (False, control_dir),
+                (True, candidate_dir),
+            ):
+                config = json.loads(
+                    (run_dir / "config.resolved.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                manifest = json.loads(
+                    (run_dir / "manifest.json").read_text(encoding="utf-8")
+                )
+                cce = config["scientific_config"]["model"]["cce"]
+                self.assertEqual(cce["cce_architecture"], runner.LATE_CCE_ARCHITECTURE)
+                self.assertEqual(
+                    cce["cce_insertion_point"], runner.LATE_CCE_INSERTION_POINT
+                )
+                self.assertEqual(
+                    cce["cce_input_representation"],
+                    runner.LATE_CCE_INPUT_REPRESENTATION,
+                )
+                self.assertEqual(manifest["candidate_contract"]["cce"], cce)
+                checkpoint = torch.load(run_dir / "best.pt", map_location="cpu")
+                cce_keys = {
+                    key for key in checkpoint["model_state"]
+                    if key.startswith("cce.")
+                }
+                self.assertEqual(
+                    cce_keys,
+                    {"cce.delta_weight", "cce.delta_bias", "cce.rho"}
+                    if enabled else set(),
+                )
+
+            manifest_path = candidate_dir / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["candidate_contract"]["cce"]["cce_insertion_point"] = (
+                runner.CCE_INSERTION_POINT
+            )
+            manifest_path.write_text(
+                json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            self._reseal(candidate_dir)
+            with self.assertRaisesRegex(ValueError, "candidate contract mismatch"):
+                summary.load_completed_runs(
+                    artifact_root,
+                    implementation_variant=summary.LATE_CCE_IMPLEMENTATION_VARIANT,
+                )
+
+    def test_late_resume_rejects_early_and_control_before_model_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "toy.csv"
+            self._write_dataset(data_path)
+
+            for label, source_late, source_enabled in (
+                ("early-to-late", False, True),
+                ("control-to-candidate", True, False),
+            ):
+                with self.subTest(label=label):
+                    source_root = root / label
+                    source_dir = self._run(
+                        data_path,
+                        source_root,
+                        enabled=source_enabled,
+                        late=source_late,
+                    )
+                    staging = source_dir.with_name(
+                        f".{source_dir.name}.staging"
+                    )
+                    source_dir.rename(staging)
+                    source_dir = staging
+                    manifest_path = source_dir / "manifest.json"
+                    manifest = json.loads(
+                        manifest_path.read_text(encoding="utf-8")
+                    )
+                    manifest["status"] = "failed"
+                    manifest_path.write_text(
+                        json.dumps(manifest, sort_keys=True) + "\n",
+                        encoding="utf-8",
+                    )
+                    before = {
+                        path.name: path.read_bytes()
+                        for path in source_dir.iterdir()
+                        if path.is_file() and path.name != ".run.lock"
+                    }
+                    args = self._late_args(
+                        data_path, source_root, enabled=True
+                    )
+                    args.resume = str(source_dir)
+                    with mock.patch.object(
+                        runner,
+                        "_build_model",
+                        side_effect=AssertionError("model construction reached"),
+                    ):
+                        with self.assertRaisesRegex(
+                            RuntimeError, "variant|configuration"
+                        ):
+                            runner.main(args)
+                    after = {
+                        path.name: path.read_bytes()
+                        for path in source_dir.iterdir()
+                        if path.is_file() and path.name != ".run.lock"
+                    }
+                    self.assertEqual(before, after)
 
 
 
