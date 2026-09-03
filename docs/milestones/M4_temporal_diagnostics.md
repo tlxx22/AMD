@@ -2833,3 +2833,234 @@ runner 将 Late variant/arm/protocol 与三个 route 字段封存在 scientific/
 ### 41.5 Closure 前门禁
 
 `git diff --check` 通过。implementation executable source fingerprint 更新为 21-file `adba794cdbc03b6d83a7c89f40d95bb5bf8163d2d32e23d530deff674e566005`。九文件之外没有 tracked/untracked 变化，index 仍为空。上述 capability 在精确 diff/staged scope 再核验后，才允许按本轮用户授权执行 implementation commit/push；八个 development runs 只能从随后 clean、已推送的新 HEAD 启动。此处尚未把 capability 或 probe 称为 development adequacy 通过，M4 保持 **In Progress**。
+
+
+## 42. 第二十轮：implementation closure 与 Late CCE paired development 结果
+
+### 42.1 Implementation closure 与成对初始化门禁
+
+实现门禁通过后，九个授权文件以 commit `43403f6c7f38b06a6cb5b62eb6f554c9ac215c9b`、parent `26f285d8e4dc0b9f250584cadefc906fb5abf006`、title `feat(m4): implement Late CrossLinear-inspired CCE candidate` 提交并推送。提交后 local/tracking/live remote 三端均为该 commit，ahead/behind `0/0`，worktree/index/untracked clean；baseline tag 未移动。closure 时 canonical/M4 SHA-256 为 `771b422c0847b1c80d97eb551990d78e734224749ebc94cb2c9d820089bb6763` / `613c61647e3d101c11d32b9c6cf2615da1b5419f579cb0432519740073cfeda1`，source fingerprint 为 21-file `adba794cdbc03b6d83a7c89f40d95bb5bf8163d2d32e23d530deff674e566005`。
+
+实现提交中的可执行/测试文件 SHA-256：
+
+| file | SHA-256 |
+|---|---|
+| `main.py` | `5c622e90fba551730c06bbe1992ed9a595d1f06a06875a6e82233c2d95330f69` |
+| `models/modules/__init__.py` | `d15a5cfff3e647ed76b9ba09ca22e61b3c05afebbe51ca66a0341ae64043725d` |
+| `models/modules/cross_correlation_embedding.py` | `c1afa4766046238be45bf7dc85eeff9e076197818f52fadac799910d2c5164ed` |
+| `models/tsAMD_enhanced.py` | `b0bcb45754e12f5d2b94ff9becc4cd9b42deddbae7e88c87ce9d58cb2d611402` |
+| `summarize_results.py` | `497617dabe1235110b22f90976c926b8d777633eec1e65e716677959572ab036` |
+| `tests/test_cross_correlation_embedding.py` | `f74024ceeda8a7023895ecf524162b3f3a935fcdd2623d64b2730df28108777b` |
+| `tests/test_runner.py` | `ee089e7a3d88d821033b7ac004492735691d947fdb1611d06e8995dacec6a68c` |
+
+从该 clean/pushed HEAD、且固定 artifact root 尚不存在时，对 h96/192/336/720 全部执行成对初始化门禁。每组 control/candidate 的 57 个公共 AMD parameter tensors 与 3 个 persistent buffers 的 key/shape/dtype/value exact；train generator 初态、首个 train/validation/test batch、初始化 prediction/MoE/selector/state_source exact，max error 均为 0；CCE construction 不消费 CPU/CUDA RNG。control 无 `cce.*`，candidate 恰有 `cce.delta_weight,cce.delta_bias,cce.rho`。prepared config 只在 `ablation_id,display_name,use_cce` 不同；scientific/comparison config 只在 `experiment.ablation_id,experiment.display_name,model.cce.enabled,model.use_cce` 不同。四组门禁全部通过且未创建 artifact，随后才开始训练。
+
+### 42.2 八个 immutable artifact
+
+固定 root 为：
+
+```text
+artifacts/m4-development/ettm1-stage-h-crosslinear-late-cce-v1
+```
+
+下表的 artifact path 共同前缀为 `artifacts/m4-development/ettm1-stage-h-crosslinear-late-cce-v1/el-amd-m4-crosslinear-late-cce-v1/ETTm1/target_exogenous/OT/`；完整训练命令位于对应 artifact 的 `command.txt`，不是事后重建。
+
+| H | arm | artifact leaf / run_id | config/scientific hash | comparison hash | best epoch | best.pt SHA-256 | last.pt SHA-256 | wall-clock s | size MiB | params |
+|---:|---|---|---|---|---:|---|---|---:|---:|---:|
+| 96 | control | `horizon_96/fold_official/seed_2024/20260903T181044.049388Z-b1bc897e` | `21369836601c5805a9a72d02511b47d39a4ebb9e81ca0205df178facd95a3102` | `3de1ab9aaa1082e2c59e372f49336c15143dbaf45a8601f4f4a736b266f94ebf` | 7 | `95eb6b94c5992b2095c46c2b117c67e65ca0669e70b9357ccab416554ac4abaf` | `3f408568af9e36202dec73a45a14390204f231c63041d93587736522b281d0cd` | 168.400341 | 195.577 | 10244742 |
+| 96 | Late CCE | `horizon_96/fold_official/seed_2024/20260903T181353.736665Z-1d870396` | `47435d2a3c250d52db564813ca0c685f5fd989f0b8c0af9d3a3fd031b4f79bc9` | `b9cdf237510e9fe193e734b26a4ba6aa883324aad14b293da70f71b3d9593844` | 7 | `d0e67538dc816cbde9133cc3e443f98addca9a09faba19e9e8070d07e1a56989` | `9d569d8c2a6bed6a2c6a31e5aed861ac8b02de1a6cf2fd720e722a992947cb8e` | 175.406158 | 195.583 | 10244765 |
+| 192 | control | `horizon_192/fold_official/seed_2024/20260903T181707.624885Z-415f88da` | `d89459544f9094ea71a90b8255ea454afec2fa8906b44f9d4df313c905166e04` | `08721904f430bc2951269899389d9342f8c90ad5ba677a2b2e80314e8b1262d3` | 3 | `e2b8ed28de1bd51bf65a2ea617865bcc4309b089d269792d999cb2824e5052e2` | `aa55ed6ba93643e6b0b5ecef52c9c41ff4d8cf57ca7d73e1a403d6122346bfce` | 165.552031 | 225.592 | 11818374 |
+| 192 | Late CCE | `horizon_192/fold_official/seed_2024/20260903T182147.217487Z-136e9add` | `0bc85d8c246ef69e3038bbcef0945e2fa1ca0b914bf2ddb0473972064ac1d559` | `185db1bf9ea6574f10f0e4e8da3582def59ffdccf4a2c20f9365063bae502604` | 3 | `0498ea0d0a909b17c9179cffd95baab6f84bafda26ce877c7820cea762d1c2d4` | `7a3d6e4ce0848ba13133044ca8a6564b113dae11602a182f0f01dd7d3d776292` | 156.401641 | 225.598 | 11818397 |
+| 336 | control | `horizon_336/fold_official/seed_2024/20260903T182502.132716Z-f41485c1` | `9ce4ede30f437e2d5e4cdeb4b5bc965ef7bd819945970eae1e07267552230062` | `5b222ed71c0c89a41f578762d5995204bd2fdf9a4fd72bbe602ddab150e935fa` | 3 | `95ddeece245b53fe2a2f93fa26ac48240dc5c660f6ab95a6247837f4663ae51b` | `7fa53408aa2dc3c473b33232ff59a58a5be98d684c6e7b496d05e802f7d9606e` | 161.569917 | 270.614 | 14178822 |
+| 336 | Late CCE | `horizon_336/fold_official/seed_2024/20260903T182813.393757Z-c5cf11dd` | `7433eaf4b30d64d423782e6b5e57d5713395f14a4cd603ad623083d812686de8` | `c3f4374c5cdaad1448ccf69e585cc01ca6b3667cb016b6a966422d3179a30518` | 3 | `d0053ef95795ca74502acfacd7021f1605cc477812efe7c4304f052ae79942cd` | `5d04e22b68b3dce2e8586514006abfb2e116a28befc7f406743785dafe302e8f` | 161.443131 | 270.620 | 14178845 |
+| 720 | control | `horizon_720/fold_official/seed_2024/20260903T183128.604223Z-108ad311` | `1a2453fd3b72f12420661e2c816a60a87c60eadf21573e399c44b6f799dbe45a` | `0466617ea95e557719691d36ee1796d94dee22891982593652a5ad1a92e9e3c9` | 7 | `b760ec0ac1a80e103115d1a79cc7a46ad8a7665b791cd4f9aff81633b29653e9` | `724b56ceb270a7893dbc8cd479e677fe14e10a683a3c50a1bd73f792ec4ac23b` | 164.571274 | 390.672 | 20473350 |
+| 720 | Late CCE | `horizon_720/fold_official/seed_2024/20260903T183442.598311Z-46cda477` | `e963878067d2e6831f84199c8215f8e7f15f1dedd7b8e2dee777b4eddc9616c8` | `f7875e01d126bde5d9e5f7855159b71d33d552498fe8cf50933f5251ebbd8cfa` | 7 | `59d889ad63e4c802a8d8d8bedb2874469023ec2cf6acc8cad43c1280b545f6b7` | `e9710e3da32010cd470b4cbefd459d074716e95882c5f8245690d1dcbca22fc1` | 175.375416 | 390.678 | 20473373 |
+
+每个 candidate 比 control 多 23 parameters，严格等于 target mode 的 `3*C_source+2=3*7+2`。八个 artifact 均为 `status=completed`、schema-v2、history epoch 1--10、best/last 存在；Python verifier 与系统 `sha256sum -c` 均为 13/13 × 8。共同 data SHA-256 为 `6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`，source fingerprint 均为上述 21-file 值，schema fingerprint 均为 `f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc`。config/checkpoint/manifest/path identity 一致，指标 finite，8 个 scientific identity 唯一；root 恰有 8 个 completed manifests，无 hidden staging、failed/running 或 duplicate completed identity。
+
+### 42.3 Matched-control 核心指标
+
+ETTm1 在本节始终是 **development-only；test used for candidate development；not a formal paper result**。relative 为 candidate 相对 matched control，负值表示 Late CCE 改善。
+
+Validation MSE：
+
+| H | control | Late CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.051164323931 | 0.051296987612 | +0.259289% |
+| 192 | 0.073506087241 | 0.073569866896 | +0.086768% |
+| 336 | 0.090008565565 | 0.090076639606 | +0.075631% |
+| 720 | 0.104045309980 | 0.104386463698 | +0.327890% |
+| macro | 0.079681071679 | 0.079832489453 | +0.190030% |
+
+`mean_horizon_relative_change=+0.187394%`；`relative_change_of_macro_means=+0.190030%`。
+
+Validation MAE：
+
+| H | control | Late CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.168072960404 | 0.168309734887 | +0.140876% |
+| 192 | 0.207844046975 | 0.207940391615 | +0.046354% |
+| 336 | 0.235085840964 | 0.235178782414 | +0.039535% |
+| 720 | 0.255146362864 | 0.255607368635 | +0.180683% |
+| macro | 0.216537302802 | 0.216759069388 | +0.102415% |
+
+`mean_horizon_relative_change=+0.101862%`；`relative_change_of_macro_means=+0.102415%`。
+
+Development test MSE：
+
+| H | control | Late CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.027597208934 | 0.027620488725 | +0.084356% |
+| 192 | 0.041161235376 | 0.041189443618 | +0.068531% |
+| 336 | 0.052610279493 | 0.052660432181 | +0.095329% |
+| 720 | 0.070352296784 | 0.070444472065 | +0.131020% |
+| macro | 0.047930255147 | 0.047978709147 | +0.101093% |
+
+`mean_horizon_relative_change=+0.094809%`；`relative_change_of_macro_means=+0.101093%`。
+
+Development test MAE：
+
+| H | control | Late CCE | relative change |
+|---:|---:|---:|---:|
+| 96 | 0.126248707310 | 0.126252188897 | +0.002758% |
+| 192 | 0.154727269120 | 0.154760533454 | +0.021499% |
+| 336 | 0.174313073967 | 0.174376609666 | +0.036449% |
+| 720 | 0.200916141056 | 0.200848681104 | -0.033576% |
+| macro | 0.164051297863 | 0.164059503280 | +0.005002% |
+
+`mean_horizon_relative_change=+0.006782%`；`relative_change_of_macro_means=+0.005002%`。
+
+### 42.4 Best epoch、尾部 history 与参数动力学
+
+四组 pair 的 best epoch 完全匹配：h96/720 为 7，h192/336 为 3。最后三轮 validation 与 last 相对 best：
+
+| H | arm | last val MSE/MAE | last vs best MSE/MAE | epochs 8;9;10 validation MSE/MAE |
+|---:|---|---|---|---|
+| 96 | control | 0.052132270/0.169383497 | +1.891837%/+0.779742% | 0.051913878/0.168732173; 0.051537745/0.168756223; 0.052132270/0.169383497 |
+| 96 | Late CCE | 0.052318272/0.169718490 | +1.990925%/+0.837002% | 0.052060488/0.168984503; 0.051709050/0.169042919; 0.052318272/0.169718490 |
+| 192 | control | 0.076731016/0.211956744 | +4.387295%/+1.978742% | 0.075780676/0.210342253; 0.076200475/0.210927529; 0.076731016/0.211956744 |
+| 192 | Late CCE | 0.077030899/0.212492473 | +4.704415%/+2.189128% | 0.075982661/0.210725861; 0.076442455/0.211380163; 0.077030899/0.212492473 |
+| 336 | control | 0.092389603/0.238162101 | +2.645345%/+1.308569% | 0.092671425/0.238073279; 0.091376269/0.237454255; 0.092389603/0.238162101 |
+| 336 | Late CCE | 0.092684963/0.238724469 | +2.895671%/+1.507656% | 0.092886527/0.238472847; 0.091611223/0.237896081; 0.092684963/0.238724469 |
+| 720 | control | 0.104822747/0.256006517 | +0.747210%/+0.337122% | 0.105413646/0.256573481; 0.104663433/0.255823048; 0.104822747/0.256006517 |
+| 720 | Late CCE | 0.105347439/0.256749148 | +0.920594%/+0.446693% | 0.105785042/0.257091005; 0.105074638/0.256423865; 0.105347439/0.256749148 |
+
+Gate 与 delta 均从固定 `lambda=0.1,rho=0,delta=0` 出发；相对零初始化的 delta 移动量就是各 checkpoint 的 L2 norm：
+
+| H | checkpoint | rho | effective lambda | delta_weight L2 | delta_bias L2 | best-to-last weight/bias/rho move |
+|---:|---|---:|---:|---:|---:|---|
+| 96 | best | 0.037539531 | 0.103429653 | 0.064056702 | 0.004125076 | 0.019552233/0.000498962/0.010230839 |
+| 96 | last | 0.047770370 | 0.104382224 | 0.083159611 | 0.003626115 | same pair |
+| 192 | best | 0.024415953 | 0.102218993 | 0.046043254 | 0.003274822 | 0.081018925/0.003294799/0.038791159 |
+| 192 | last | 0.063207112 | 0.105834208 | 0.125056475 | 0.000019977 | same pair |
+| 336 | best | 0.028378554 | 0.102583207 | 0.071232989 | 0.002118969 | 0.109531425/0.000118195/0.044434160 |
+| 336 | last | 0.072812714 | 0.106746666 | 0.179493338 | 0.002237163 | same pair |
+| 720 | best | 0.065794259 | 0.106079273 | 0.177209988 | 0.004173085 | 0.059522491/0.003482899/0.020720668 |
+| 720 | last | 0.086514927 | 0.108060248 | 0.235097378 | 0.007655984 | same pair |
+
+所有值 finite/nonzero（除预登记零初始化）；参数确实移动，但这本身不是 adequacy 证据。
+
+### 42.5 Best-checkpoint hidden-state kernel
+
+module input order 为 `HUFL,HULL,MUFL,MULL,LUFL,LULL,OT`，每个向量顺序为 hidden-time lag `[-1,0,+1]`。equivalent kernel 是 selector identity 加 `lambda*delta_weight`；它解释 AMD hidden-state 局部修正，不解释原始物理变量 lead-lag。
+
+| H | source | raw delta [-1,0,+1] | equivalent kernel [-1,0,+1] |
+|---:|---|---|---|
+| 96 | HUFL | `[-0.01852910,-0.01891164,-0.01960787]` | `[-0.00191646,-0.00195602,-0.00202803]` |
+| 96 | HULL | `[-0.00832026,-0.00929426,-0.01119441]` | `[-0.00086056,-0.00096130,-0.00115783]` |
+| 96 | MUFL | `[-0.01771915,-0.01881159,-0.01915792]` | `[-0.00183269,-0.00194568,-0.00198150]` |
+| 96 | MULL | `[-0.01351822,-0.01481718,-0.01630895]` | `[-0.00139818,-0.00153254,-0.00168683]` |
+| 96 | LUFL | `[-0.00741340,-0.00732138,-0.00854277]` | `[-0.00076677,-0.00075725,-0.00088358]` |
+| 96 | LULL | `[-0.00273402,-0.00162268,-0.00351203]` | `[-0.00028278,-0.00016783,-0.00036325]` |
+| 96 | OT target | `[+0.01453127,+0.01764726,+0.01752661]` | `[+0.00150296,+1.00182521,+0.00181277]` |
+| 192 | HUFL | `[-0.01133674,-0.01185800,-0.01172670]` | `[-0.00115883,-0.00121211,-0.00119869]` |
+| 192 | HULL | `[-0.00882078,-0.01005503,-0.01008701]` | `[-0.00090165,-0.00102782,-0.00103108]` |
+| 192 | MUFL | `[-0.01174572,-0.01253705,-0.01240409]` | `[-0.00120064,-0.00128152,-0.00126793]` |
+| 192 | MULL | `[-0.01260841,-0.01366578,-0.01372721]` | `[-0.00128882,-0.00139690,-0.00140318]` |
+| 192 | LUFL | `[-0.00253840,-0.00306564,-0.00348592]` | `[-0.00025947,-0.00031337,-0.00035633]` |
+| 192 | LULL | `[+0.00026842,+0.00003846,-0.00045348]` | `[+0.00002744,+0.00000393,-0.00004635]` |
+| 192 | OT target | `[+0.01140532,+0.01198245,+0.01214819]` | `[+0.00116584,+1.00122488,+0.00124178]` |
+| 336 | HUFL | `[-0.01717472,-0.01824837,-0.01809320]` | `[-0.00176184,-0.00187198,-0.00185606]` |
+| 336 | HULL | `[-0.01766800,-0.01880070,-0.01865170]` | `[-0.00181244,-0.00192864,-0.00191335]` |
+| 336 | MUFL | `[-0.01791642,-0.01895670,-0.01883108]` | `[-0.00183792,-0.00194464,-0.00193175]` |
+| 336 | MULL | `[-0.02023905,-0.02119735,-0.02103227]` | `[-0.00207619,-0.00217449,-0.00215756]` |
+| 336 | LUFL | `[-0.00794986,-0.00870712,-0.00916576]` | `[-0.00081552,-0.00089320,-0.00094025]` |
+| 336 | LULL | `[+0.00216127,+0.00167484,+0.00062190]` | `[+0.00022171,+0.00017181,+0.00006380]` |
+| 336 | OT target | `[+0.01306689,+0.01341652,+0.01368899]` | `[+0.00134044,+1.00137627,+0.00140426]` |
+| 720 | HUFL | `[-0.04466490,-0.04547077,-0.04739862]` | `[-0.00473802,-0.00482351,-0.00502801]` |
+| 720 | HULL | `[-0.04985920,-0.04773095,-0.04874580]` | `[-0.00528903,-0.00506326,-0.00517092]` |
+| 720 | MUFL | `[-0.04789409,-0.04869835,-0.05037535]` | `[-0.00508057,-0.00516589,-0.00534378]` |
+| 720 | MULL | `[-0.05152943,-0.04967847,-0.05089391]` | `[-0.00546620,-0.00526986,-0.00539879]` |
+| 720 | LUFL | `[-0.01329895,-0.01145348,-0.01359307]` | `[-0.00141074,-0.00121498,-0.00144194]` |
+| 720 | LULL | `[+0.00691925,+0.00700995,+0.00517266]` | `[+0.00073399,+0.00074361,+0.00054871]` |
+| 720 | OT target | `[+0.02735871,+0.02927904,+0.02854916]` | `[+0.00290219,+1.00310588,+0.00302847]` |
+
+best raw/gated bias 为：h96 `+0.004125076/+0.000426655`；h192 `+0.003274822/+0.000334749`；h336 `+0.002118969/+0.000217371`；h720 `+0.004173085/+0.000442678`。
+
+### 42.6 Residual writeback、bypass 与 auxiliary permutation
+
+按 sample 计算 `||lambda*delta||_2/(||v_local||_2+1e-12)`：
+
+| H | split | mean | median | p10 | p90 | p99 | max |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 96 | validation | 0.004608940 | 0.004516602 | 0.003797099 | 0.005580921 | 0.006529463 | 0.006833167 |
+| 96 | test | 0.005866733 | 0.006144619 | 0.004374451 | 0.006660408 | 0.006936166 | 0.007222807 |
+| 192 | validation | 0.003203524 | 0.003085340 | 0.002535494 | 0.004128573 | 0.004846141 | 0.005068542 |
+| 192 | test | 0.004183841 | 0.004447300 | 0.003078388 | 0.004725903 | 0.004887992 | 0.004993623 |
+| 336 | validation | 0.004981623 | 0.004786532 | 0.004039442 | 0.006357500 | 0.007562926 | 0.007861115 |
+| 336 | test | 0.006593846 | 0.007069014 | 0.004596202 | 0.007476437 | 0.007716894 | 0.007900655 |
+| 720 | validation | 0.012782107 | 0.012337986 | 0.010480255 | 0.016293956 | 0.018471401 | 0.019829281 |
+| 720 | test | 0.017008602 | 0.018277008 | 0.011972352 | 0.019234994 | 0.019607417 | 0.019949926 |
+
+同一 candidate best checkpoint 的 CCE bypass（relative 为 bypass 相对 normal，负值表示 bypass 更好）：
+
+| H | split | normal MSE/MAE | bypass MSE/MAE | relative MSE/MAE | prediction max change |
+|---:|---|---|---|---|---:|
+| 96 | validation | 0.051296988/0.168309735 | 0.051202223/0.168184912 | -0.184736%/-0.074162% | 0.011892438 |
+| 96 | test | 0.027620489/0.126252189 | 0.027597863/0.126214213 | -0.081916%/-0.030079% | 0.011134148 |
+| 192 | validation | 0.073569867/0.207940392 | 0.073548527/0.207921916 | -0.029006%/-0.008885% | 0.008413911 |
+| 192 | test | 0.041189444/0.154760533 | 0.041177119/0.154720067 | -0.029922%/-0.026148% | 0.006762743 |
+| 336 | validation | 0.090076640/0.235178782 | 0.090141526/0.235241201 | +0.072034%/+0.026541% | 0.013751626 |
+| 336 | test | 0.052660432/0.174376610 | 0.052665566/0.174324737 | +0.009748%/-0.029747% | 0.011386633 |
+| 720 | validation | 0.104386464/0.255607369 | 0.105296242/0.256556524 | +0.871549%/+0.371333% | 0.041113496 |
+| 720 | test | 0.070444472/0.200848681 | 0.070770654/0.201102557 | +0.463034%/+0.126401% | 0.031911492 |
+
+CCE 没有 attention K/V tensor；“aux K/V permutation”按锁定诊断含义实现为：只在 CCE source-hidden 分支保持 target hidden 不变，对六个 aux hidden 共同作 batch cyclic shift `1,floor(B/3),floor(2B/3)`，不改 MDM/selector 路径。下表报告三次均值、相对 normal、三次范围及三次中的 prediction max change 最大值：
+
+| H | split | three-shift mean MSE/MAE | relative MSE/MAE | MSE range | MAE range | prediction max change |
+|---:|---|---|---|---|---|---:|
+| 96 | validation | 0.051307495/0.168360852 | +0.020483%/+0.030371% | [0.051291295,0.051334557] | [0.168309418,0.168420830] | 0.016432643 |
+| 96 | test | 0.027609713/0.126222435 | -0.039012%/-0.023567% | [0.027601862,0.027622072] | [0.126197715,0.126258459] | 0.017006755 |
+| 192 | validation | 0.073611659/0.208009791 | +0.056806%/+0.033375% | [0.073568415,0.073661811] | [0.207937077,0.208097452] | 0.011578411 |
+| 192 | test | 0.041188981/0.154734922 | -0.001122%/-0.016549% | [0.041183115,0.041194850] | [0.154715933,0.154760521] | 0.011904240 |
+| 336 | validation | 0.090199947/0.235341753 | +0.136891%/+0.069296% | [0.090075259,0.090300905] | [0.235175110,0.235497191] | 0.017240360 |
+| 336 | test | 0.052676385/0.174354805 | +0.030294%/-0.012504% | [0.052658107,0.052709967] | [0.174313990,0.174376084] | 0.018909216 |
+| 720 | validation | 0.105190732/0.256514615 | +0.770472%/+0.354938% | [0.104391030,0.105699360] | [0.255611059,0.257115559] | 0.059102625 |
+| 720 | test | 0.070712914/0.201091066 | +0.381069%/+0.120681% | [0.070427579,0.071066849] | [0.200827217,0.201500520] | 0.057868600 |
+
+Bypass 在 h96/192 更好、h336 mixed、h720 normal 更好；permutation 在不同 horizon/split 也为 mixed，不呈跨四 horizon 稳定一致方向。二者均为 **同-checkpoint 描述性诊断**，不是独立训练消融或因果证明。
+
+### 42.7 Wrapper parity、state 不变与 adequacy gate
+
+对四个 candidate best checkpoint 的全部 validation/test batches，formal `AMDEnhanced.forward` 与按 production modules 展开的诊断 wrapper 在 prediction、MoE loss、state_source 上 max abs difference 全部为 `0`；诊断前后 normal repeat 三项 max difference 也全部为 `0`。每个 model 的 state_dict key/shape/dtype/value 逐 tensor exact，digest 前后相同。诊断未改写 checkpoint、manifest、checksum 或 artifact。
+
+| positive development signal 硬条件 | evidence | result |
+|---|---|---|
+| development test MSE macro < control | 0.047978709147 > 0.047930255147，+0.101093% | **Fail** |
+| development test MAE macro <= control | 0.164059503280 > 0.164051297863，+0.005002% | **Fail** |
+| 至少 3/4 horizon test MSE 改善 | 0/4 改善，4/4 退化 | **Fail** |
+| validation MSE macro <= control | 0.079832489453 > 0.079681071679，+0.190030% | **Fail** |
+| 改善超过浮点/舍入噪声 | 不存在 test-MSE/macro 改善 | **Fail** |
+| 改善不只由单一 horizon 驱动 | 不存在总体改善；仅 h720 test MAE 单项改善 | **Fail** |
+
+六项全部失败，最终判定为 **negative-or-negligible development signal**。Late CCE 不通过 M4 adequacy gate；h720 test MAE 的 `-0.033576%`、finite/nonzero lambda/delta 与 h336/h720 某些 bypass 方向均不能推翻 matched-control 主裁决。
+
+依预登记停止线，正式登记：
+
+> 当前 CrossLinear-inspired CCE 路线在 M4 有限开发中失败。
+
+Early/Late CCE implementation、永久测试与 artifact 均作为历史工程和负向 development 证据保留，不得覆盖或改写。本轮不调 kernel/lambda/gate，不再换 CCE 插入位置，不自动转向 Sonnet/XLinear，不启动 PMCR/P2，不进入 M5/M7，不实现空间模块。M4 状态保持 **In Progress**，后续来源/结构决策等待用户与 ChatGPT。
+
+### 42.8 实验后文件与测试边界
+
+implementation code/tests 与 commit `43403f6c7f38b06a6cb5b62eb6f554c9ac215c9b` 完全一致。实验后只修改 canonical 与本唯一 M4 milestone 以登记结果，index 保持 empty，不对结果文档执行 commit/push；M0--M3、`models/tsAMD.py`、DataLoader、PMCR/旧 TEB、数据与既有 Early CCE artifact 均未修改。`tests/test_cross_correlation_embedding.py` 与 `tests/test_runner.py` 是随 implementation commit 保留的 permanent regression tests；未删除或清理任何既有测试。一次性 probe/聚合/诊断内容仅在 `/tmp` 或进程内存中，结束前全部删除；production artifacts 不上传 ChatGPT Project。
