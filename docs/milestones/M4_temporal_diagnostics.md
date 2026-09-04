@@ -3527,6 +3527,97 @@ UrbanEV 主门禁：validation MSE macro < control；MAE macro <= control；至�
 
 未来 ETTm1/UrbanEV roots 分别为 `artifacts/m4-development/ettm1-stage-i-sonnet-mvca-v1` 与 `artifacts/m4-development/urbanev-stage-i-sonnet-mvca-v1`。继续 schema-v2、13-file payload、checksum、hidden staging 与 atomic publication，并新增 `evaluation_policy` 和 `artifact_purpose=m4_development_candidate`。`train_validation_only` 的 `metrics.json` 不得含 `test` key，manifest 不得含 `test_mse`、`test_mae` 或其他 test result 字段，但必须固定 `test_access_policy=forbidden`；RuntimeData不得持有可遍历test loader；summarizer进入独立 validation-only branch并拒绝混合 policy。既有 test-inclusive schema-v2 不得降低或重定义。
 
+
+## 45. 第二十二轮 Stage B：Sonnet S2 production capability 实现与单批探针
+
+### 45.1 Stage A docs-only closure 与 Stage B 边界
+
+Stage A 将第 44 节精确合同写入 canonical 与本唯一 M4 milestone 后独立闭环：commit=460fa64f800ed66275d4d25018c1714deb542ef6，parent=1b8b94bbc5f8983b1badd67b4406782bd1892c48，title=docs(m4): lock Sonnet MVCA residual contract，并已推送 origin/AMD-paper-repro-custom-modules-v1。closure 后 local/tracking/live remote 一致、ahead/behind=0/0、worktree/index/untracked=clean/empty/none。Stage A 最终 canonical SHA-256=4f802aabcd3735e55769362741bae27343738af2f0379902ff2597a293fe14ec，M4 SHA-256=18f53ea9177910a456e1be32bd8179c6288659bf0a0f49542798818bc6680e6d。
+
+Stage B 从上述 clean HEAD 开始，只实现 production capability、永久测试和无 optimizer.step 的单批探针。本节记录的是 implementation gate，不是 development performance artifact、adequacy 通过或最终模型结论。没有运行 ETTm1/UrbanEV 10-epoch paired development，没有创建或发布真实 artifact/checkpoint；XLinear、PMCR/P2、M5/M7 和空间模块均未启动。
+
+### 45.2 独立模块与 AMD 路由实现
+
+新增 models/modules/sonnet_mvca_target_residual.py，独立实现 SonnetMVCATargetResidual 与 PaperDefinedMVCA，未复制 Sonnet 官方源码。实现逐项封存第 44 节：aux→target raw gather、[E_aux,E_target] latent concat、64维32/32 joint embedding、[64,8,3]无约束 standard-normal wavelet、包含端点的 runtime-T grid、[B,8,T,64]逐元素投影、latent 维 rfft、CSD/PSD mean、product+1e-6 denominator、除 sqrt(64)、时间维 softmax 后 dropout=0.1、无 T×T/时间求和、residual MLP、非零 output projection、删除 var_attn、同 atoms 重构、Xavier d→1 readout与全局 gamma=1e-3 target-only residual。ETTm1 C=7 模块参数量=26,850；UrbanEV F4 C=11 参数量=26,978；state_dict 的 sonnet_mvca 前缀固定16个 tensor keys。
+
+models/tsAMD_enhanced.py 在完整公共 AMD 主干构造后，以隔离 CPU/CUDA RNG context 和 module_init_seed=run seed 初始化分支；off 时不实例化且无 keys。forward 路径为 AMD RevIN→Sonnet target residual→MDM→DDI→AMS，MDM input、u_mdm、DDI、experts、selector和prediction均处于增强路径；state_source第三段继续是原宽度、同dtype/device的 deterministic exact-zero placeholder。strict restore 先完整校验 key/shape/dtype，再原子写入；跨结构、partial keys和 strict=False 均拒绝。
+
+main.py 注册唯一 variant、control/candidate ablation、CLI与完整 source/math/route/schema/evaluation/init identity，论文来源身份显式记录year=2026。Sonnet pair 只接受精确大小写 ETTm1 或 UrbanEV、target_exogenous、standard from-scratch、旧模块全部off；resolved/scientific/comparison hash、checkpoint、manifest与resume preflight均携带锁定身份。公共 AMD在candidate分支前按同序构造，模块初始化恢复全局RNG，不改变独立train generator。ETTm1 RuntimeData/data fingerprint 的test_access_policy固定development_only；UrbanEV train_validation_only只构造train/validation TemporalRegionDataset与DataLoader，RuntimeData.test_data=None。
+
+summarize_results.py 增加Sonnet独立expected-contract、checkpoint tensor scope、source/route/schema/paper-code policy、evaluation policy和tamper校验。validation-only分支拒绝metrics/manifest/log中的任何test结果字段，输出CSV也不含test列；test-inclusive旧schema不变；两种evaluation_policy混合时拒绝汇总。schema-v2固定13-file checksum、hidden staging与atomic publication沿用且未降级。
+
+### 45.3 永久测试与回归结果
+
+新增 tests/test_sonnet_mvca_target_residual.py 10项；在 tests/test_tsAMD_enhanced.py、tests/test_runner.py、tests/test_summarize_results.py 分别新增5、5、4项，共新增24项 permanent_regression_test。覆盖公式参考、shape/axis/dtype、参数量/state keys、target-only/off parity、首步梯度与zero-gate/readout负例、AMD routing/RNG/首batch、strict restore原子拒绝、完整identity/hash、13-file atomic artifact、validation-only test隔离及summarizer tamper/mixed-policy拒绝。未删除任何既有测试。
+
+最终测试结果：
+
+| suite | tests | failed | errors | skipped |
+|---|---:|---:|---:|---:|
+| Sonnet module + AMDEnhanced directed | 35 | 0 | 0 | 0 |
+| runner + summarizer directed | 93 | 0 | 0 | 0 |
+| M0--M3 protection | 81 | 0 | 0 | 0 |
+| full unittest discovery | 280 | 0 | 0 | 0 |
+
+runner/summarizer首轮定向回归曾捕获一个仅涉及UrbanEV F0旧错误消息匹配的兼容性失败；恢复原有 requires use_teb=False 语义并扩展Sonnet拒绝说明后，单测、93项定向和280项完整回归均通过。该修正不改变F0拒绝行为或科学合同。
+
+### 45.4 Synthetic CPU/CUDA float32 probe
+
+所有probe均未创建optimizer、未调用optimizer.step、未运行epoch、未发布artifact。synthetic输入为[2,12,11]，输出同shape，wavelet投影[2,8,12,64]，Q/K rfft为complex64 [2,8,12,33]；CPU/CUDA输出均finite，非目标bitwise不变，目标写回与直接计算 y+gamma*delta bitwise一致，eval同设备重复forward bitwise一致。
+
+| device | loss | delta max abs | residual/input norm ratio | peak allocated / reserved |
+|---|---:|---:|---:|---:|
+| CPU float32 | 0.9976500273 | 1.2745544910 | 4.0556199e-4 | N/A |
+| CUDA float32 | 0.9763236046 | 0.5579587817 | 3.9425198e-4 | 18,817,536 / 25,165,824 bytes（17.946 / 24.000 MiB） |
+
+一次初始CUDA统计调用在CUDA context建立前执行reset_peak_memory_stats而被PyTorch拒绝；该次未进入CUDA model forward。调整为先建立context后，表中正式probe成功；这不是OOM或模型失败。
+
+### 45.5 ETTm1 真实单批与公平性 probe
+
+ETTm1使用真实首个shuffled train batch、OT target_idx=6、aux=[0,1,2,3,4,5]、T=512、batch=32和正式 MSE+MoE objective，仅做一次forward/backward。
+
+| horizon | input / target / prediction / state | loss（MSE + MoE） | delta max abs | residual/input ratio | peak allocated / reserved |
+|---:|---|---:|---:|---:|---:|
+| 96 | [32,512,7] / [32,96,1] / [32,96,1] / [32,1056] | 0.7681993246（0.1151693165 + 0.6530299783） | 0.6980895400 | 2.4799621e-4 | 668,487,168 / 1,054,867,456 bytes（637.519 / 1006.000 MiB） |
+| 720 | [32,512,7] / [32,720,1] / [32,720,1] / [32,1056] | 0.9877328277（0.2169653177 + 0.7707675099） | 0.6949900985 | 2.4809822e-4 | 754,050,560 / 1,170,210,816 bytes（719.119 / 1116.000 MiB） |
+
+两次均为CUDA float32，projected=[32,8,512,64]、rfft=[32,8,512,33] complex64，prediction/state/loss finite，non-target bitwise不变。h96 matched construction证明：control/candidate公共60个parameter/persistent-buffer state tensors逐元素相同；构造后全局CPU RNG、全部CUDA RNG、train generator初态及首batch后的state、首batch input/target均逐元素相同。
+
+### 45.6 UrbanEV F4/fold 6 validation-only probe
+
+只构造一个真实train batch与一个validation batch；两者分别为input=[128,12,11]、target=[128,1]。candidate CUDA float32输出prediction=[128,1,1]、state=[128,56]、projected=[128,8,12,64]、rfft complex64=[128,8,12,33]；loss=3.1778407097（MSE=1.5391082764，MoE=1.6387324333），delta max abs=2.5866029263，residual/input norm ratio=4.2756472e-4，全部finite且non-target bitwise不变。峰值allocated/reserved=273,995,264/297,795,584 bytes（261.302/284.000 MiB）。
+
+runtime evaluation_policy=train_validation_only、test_access_policy=forbidden、test_data=None；split_identity只有train/validation。M1 preprocessing state明确fit_scope=current_fold_raw_train_time_slice_only，F4 feature order和schema fingerprint=8e43cc3835b913f43357d98573c57c902e3c42d38024df32b6ea93735c00a0f8。计数为train Dataset构造1、validation Dataset构造1、test Dataset构造0、test getitem 0；没有test DataLoader、evaluate(test)、test prediction/metric/log/manifest。
+
+### 45.7 首次 backward 梯度
+
+下表为各逻辑组gradient max abs；所有列的全部parameter elements均finite且nonzero。joint embedding在ETTm1为288/288、synthetic/UrbanEV为416/416；其余固定为wavelet 1536/1536、QKV 12480/12480、residual MLP 8320/8320、output projection 4160/4160、readout 65/65、gamma 1/1。
+
+| group | synthetic CPU | synthetic CUDA | ETT h96 | ETT h720 | UrbanEV |
+|---|---:|---:|---:|---:|---:|
+| joint embedding | 1.3780141e-5 | 7.4909312e-6 | 1.1135180e-7 | 2.4206739e-7 | 2.2808838e-4 |
+| wavelet | 1.9872599e-5 | 7.0776209e-6 | 1.4682876e-5 | 1.7585804e-5 | 3.4181526e-4 |
+| Q/K/V | 6.1106577e-5 | 2.7951444e-5 | 5.9458614e-7 | 4.8789440e-7 | 8.1690395e-4 |
+| residual MLP | 6.8149071e-5 | 6.1393701e-5 | 4.5382891e-5 | 6.1797356e-5 | 1.1176998e-3 |
+| output projection | 1.2542977e-4 | 9.3779934e-5 | 1.0678553e-4 | 1.4329265e-4 | 3.0812868e-3 |
+| readout | 6.4401713e-5 | 6.9560105e-5 | 3.9233193e-5 | 5.3024498e-5 | 1.9757007e-3 |
+| gamma | 4.6151411e-2 | 7.6186224e-3 | 2.2207603e-2 | 2.7356155e-2 | 6.2619603e-1 |
+
+### 45.8 当前结论、文件与停止点
+
+production capability、永久回归、single-batch gradient 与显存门禁通过，ChatGPT implementation review 已 Passed。当前状态登记：
+
+- ChatGPT implementation review = Passed；
+- production implementation gate = Passed；
+- implementation Git closure = Pending；
+- paired development = Not started；
+- adequacy = Not evaluated。
+
+当前等待 implementation Git closure。closure 完成后，可以按 canonical 已锁定合同直接执行 ETTm1/UrbanEV paired development，无需用户重复授权；目前尚未执行 paired development，亦无 performance improvement、adequacy 或最终结构结论。M4 继续 In Progress，Sonnet 仍只是 M4 development candidate。
+
+probe前的Stage B worktree精确为修改main.py、models/modules/__init__.py、models/tsAMD_enhanced.py、summarize_results.py、tests/test_runner.py、tests/test_summarize_results.py、tests/test_tsAMD_enhanced.py，并新增models/modules/sonnet_mvca_target_residual.py与tests/test_sonnet_mvca_target_residual.py；index empty。全部probe结束后、写入本节前，该集合逐项不变，说明probe没有污染仓库、受控数据或artifact。
+
+Stage B executable source fingerprint为sha256_length_prefixed_relative_path_and_content_v1、22 files、b1bfc174dcec275d6eb4e953e3ba3475a73a6383aa90b21fb7bd1110c8e86632。最终新增/修改只涉及Sonnet模块、module export、AMDEnhanced、runner、summarizer、三份既有测试、本轮新测试和本M4记录；models/tsAMD.py、PMCR、TimeXer/CrossLinear模块、M0--M3、canonical、数据、既有artifact均未在Stage B修改。所有一次性probe均以内联进程执行，没有留下/tmp脚本或probe artifact；index保持empty，本轮Stage B不stage、不commit、不push。
 source paper/repo/commit/PDF/core SHA、license-text-missing、retained/deleted components、raw/latent order、d/K/alpha/epsilon/dropout/gamma、FFT/denominator/scale/softmax/var_attn/reconstruction/readout/init、input/insertion/task/schema/evaluation/module-seed policy必须进入 resolved/scientific/comparison config、checkpoint、manifest、resume和summarizer expected contract。
 
 Stage B 永久测试按用户锁定九组覆盖 joint embedding、wavelet、MVCA、target residual、首步梯度及切断负例、AMD 路由/off parity、RNG与首 batch parity、strict checkpoint/config/schema-v2 artifact/summarizer以及 UrbanEV test 构造/访问计数为零。所有新增测试均登记为 `permanent_regression_test`，不删除既有测试。单批 probe 只可写入 `/tmp` 并在结束时精确删除。

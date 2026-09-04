@@ -7,6 +7,7 @@ from pathlib import Path
 
 import torch
 
+import main as runner
 import summarize_results as summary
 
 
@@ -1501,6 +1502,267 @@ class WarmStartSummaryTests(unittest.TestCase):
                     artifacts, implementation_variant=summary.T2_IMPLEMENTATION_VARIANT
                 )
 
+
+
+class SonnetSummaryContractTests(unittest.TestCase):
+    FEATURES = ("HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT")
+
+    @classmethod
+    def _args(cls, *, enabled=True):
+        return runner.prepare_args(runner.parse_args([
+            "--implementation_variant", runner.SONNET_IMPLEMENTATION_VARIANT,
+            "--data", str(runner.ROOT / "data" / "ETTm1.csv"),
+            "--dataset_id", "ETTm1",
+            "--device", "cpu",
+            "--progress", "false",
+            "--feature_type", "MS",
+            "--target", "OT",
+            "--task_mode", "target_exogenous",
+            "--target_idx", "6",
+            "--aux_idx", "0", "1", "2", "3", "4", "5",
+            "--feature_names", *cls.FEATURES,
+            "--target_feature_name", "OT",
+            "--aux_feature_names", *cls.FEATURES[:-1],
+            "--schema_fingerprint", runner.stable_hash(cls.FEATURES),
+            "--fold", "official",
+            "--label_horizon", "96",
+            "--seq_len", "512",
+            "--pred_len", "96",
+            "--batch_size", "32",
+            "--train_epochs", "10",
+            "--learning_rate", "0.00003",
+            "--ablation_id", (
+                runner.SONNET_CANDIDATE_ABLATION_ID
+                if enabled else runner.SONNET_CONTROL_ABLATION_ID
+            ),
+            "--use_sonnet_mvca", str(enabled).lower(),
+            "--use_pmcr", "false",
+            "--use_teb", "false",
+            "--development_protocol_id", runner.SONNET_DEVELOPMENT_PROTOCOL,
+            "--training_protocol_id", runner.STANDARD_TRAINING_PROTOCOL,
+        ]))
+
+    @classmethod
+    def _documents(cls, *, enabled=True, run_dir=Path("/tmp/sonnet-summary")):
+        args = cls._args(enabled=enabled)
+        preprocessing = {
+            "feature_type": "MS",
+            "columns": list(cls.FEATURES),
+            "resolved_target": "OT",
+            "target_indices": [6],
+            "feature_schema_fingerprint": args.schema_fingerprint,
+        }
+        schema = runner._build_target_exogenous_schema_contract(
+            args, preprocessing
+        )
+        training = runner._training_protocol_block(args)
+        scientific = runner._scientific_config(
+            args,
+            "data-sha",
+            "source-sha",
+            preprocessing,
+            torch.device("cpu"),
+            {"python": "test"},
+            schema,
+            training,
+        )
+        config_hash = runner.stable_hash(scientific)
+        config = runner._resolved_config(
+            args,
+            scientific,
+            config_hash,
+            run_dir,
+            {"sha256": "source-sha"},
+            {"python": "test"},
+            training,
+        )
+        manifest = {
+            "candidate_contract": runner._sonnet_candidate_contract(args),
+            "evaluation_policy": args.evaluation_policy,
+            "artifact_purpose": args.artifact_purpose,
+            "test_access_policy": "development_only",
+        }
+        metrics = {
+            "config_hash": config_hash,
+            "data_sha256": "data-sha",
+            "evaluation_policy": args.evaluation_policy,
+            "artifact_purpose": args.artifact_purpose,
+        }
+        return args, scientific, config, manifest, metrics
+
+    def test_exact_source_math_route_and_policy_tamper_are_rejected(self):
+        _, scientific, _, _, _ = self._documents()
+        expected = summary._validate_sonnet_variant_contract(
+            scientific, Path("/tmp/sonnet-summary")
+        )
+        self.assertEqual(
+            expected["sonnet_mvca"],
+            scientific["model"]["sonnet_mvca"],
+        )
+        mutations = (
+            ("source commit", ("source", "official_repo_commit"), "wrong"),
+            ("FFT axis", ("mvca", "fft_axis_policy"), "time_dimension_T"),
+            ("denominator", ("mvca", "denominator_policy"), "clamped"),
+            ("scale", ("mvca", "scale_policy"), "multiply_sqrt_K"),
+        )
+        for label, path, value in mutations:
+            with self.subTest(label=label):
+                changed = deepcopy(scientific)
+                sonnet = changed["model"]["sonnet_mvca"]
+                if path[0] == "source":
+                    sonnet[path[0]][path[1]] = value
+                else:
+                    sonnet[path[0]][path[1]] = value
+                with self.assertRaisesRegex(ValueError, "model/source contract"):
+                    summary._validate_sonnet_variant_contract(
+                        changed, Path("/tmp/sonnet-summary")
+                    )
+        changed = deepcopy(scientific)
+        changed["model"]["sonnet_mvca"]["insertion_identity"] = "after_ddi"
+        with self.assertRaisesRegex(ValueError, "model/source contract"):
+            summary._validate_sonnet_variant_contract(
+                changed, Path("/tmp/sonnet-summary")
+            )
+        changed = deepcopy(scientific)
+        changed["dataset"]["aux_idx"] = [5, 4, 3, 2, 1, 0]
+        with self.assertRaisesRegex(ValueError, "dataset contract"):
+            summary._validate_sonnet_variant_contract(
+                changed, Path("/tmp/sonnet-summary")
+            )
+
+    def test_validation_only_rejects_every_test_result_surface(self):
+        scientific = {
+            "evaluation": {
+                "evaluation_policy": summary.TRAIN_VALIDATION_ONLY,
+                "artifact_purpose": summary.M4_DEVELOPMENT_CANDIDATE,
+                "test_access_policy": "forbidden",
+            }
+        }
+        config = {
+            "evaluation_policy": summary.TRAIN_VALIDATION_ONLY,
+            "artifact_purpose": summary.M4_DEVELOPMENT_CANDIDATE,
+        }
+        manifest = {
+            "evaluation_policy": summary.TRAIN_VALIDATION_ONLY,
+            "artifact_purpose": summary.M4_DEVELOPMENT_CANDIDATE,
+            "test_access_policy": "forbidden",
+        }
+        metrics = {
+            "evaluation_policy": summary.TRAIN_VALIDATION_ONLY,
+            "artifact_purpose": summary.M4_DEVELOPMENT_CANDIDATE,
+            "best_validation": {"mse": 1.0, "mae": 1.0},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            for name in ("stdout.log", "stderr.log", "train.log"):
+                (run_dir / name).write_text("", encoding="utf-8")
+            self.assertEqual(
+                summary._validate_sonnet_evaluation_artifact(
+                    scientific, config, manifest, metrics, run_dir
+                ),
+                summary.TRAIN_VALIDATION_ONLY,
+            )
+            changed = deepcopy(metrics)
+            changed["test"] = {"mse": 1.0}
+            with self.assertRaisesRegex(ValueError, "test result fields"):
+                summary._validate_sonnet_evaluation_artifact(
+                    scientific, config, manifest, changed, run_dir
+                )
+            changed = deepcopy(manifest)
+            changed["test_mae"] = 1.0
+            with self.assertRaisesRegex(ValueError, "test result fields"):
+                summary._validate_sonnet_evaluation_artifact(
+                    scientific, config, changed, metrics, run_dir
+                )
+            (run_dir / "train.log").write_text(
+                "test_mse=1.0", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "log contains test output"):
+                summary._validate_sonnet_evaluation_artifact(
+                    scientific, config, manifest, metrics, run_dir
+                )
+        self.assertNotIn("test_mse", summary.SONNET_VALIDATION_RUN_FIELDS)
+        self.assertNotIn(
+            "test_mse_mean", summary.SONNET_VALIDATION_AGGREGATE_FIELDS
+        )
+
+    def test_checkpoint_scope_is_exact_and_cross_source_keys_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            args, scientific, config, manifest, metrics = self._documents(
+                run_dir=run_dir
+            )
+            module = summary.sonnet_spec.SonnetMVCATargetResidual(
+                seq_len=512,
+                feature_num=7,
+                task_mode="target_exogenous",
+                target_idx=6,
+                ordered_aux_idx=range(6),
+                feature_schema=self.FEATURES,
+                schema_fingerprint=args.schema_fingerprint,
+            )
+            state = {
+                f"sonnet_mvca.{key}": value.detach().clone()
+                for key, value in module.state_dict().items()
+            }
+            common = {
+                "schema_version": summary.SCHEMA_VERSION,
+                "artifact_schema_version": summary.ENHANCED_ARTIFACT_SCHEMA_VERSION,
+                "implementation_variant": summary.SONNET_IMPLEMENTATION_VARIANT,
+                "config_hash": metrics["config_hash"],
+                "data_sha256": metrics["data_sha256"],
+                "evaluation_policy": summary.TRAIN_VALIDATION_TEST,
+                "artifact_purpose": summary.M4_DEVELOPMENT_CANDIDATE,
+                "training_protocol": scientific["training_protocol"],
+                "resolved_config": config,
+                "model_state": state,
+            }
+            torch.save(common, run_dir / "best.pt")
+            last = deepcopy(common)
+            last["best_model_state"] = deepcopy(state)
+            torch.save(last, run_dir / "last.pt")
+            summary._validate_sonnet_checkpoints(
+                scientific, config, manifest, metrics, run_dir
+            )
+
+            broken = torch.load(run_dir / "best.pt", map_location="cpu")
+            broken["model_state"]["sonnet_mvca.freq_params"] = broken[
+                "model_state"
+            ]["sonnet_mvca.freq_params"].double()
+            torch.save(broken, run_dir / "best.pt")
+            with self.assertRaisesRegex(ValueError, "tensor mismatch"):
+                summary._validate_sonnet_checkpoints(
+                    scientific, config, manifest, metrics, run_dir
+                )
+
+            torch.save(common, run_dir / "best.pt")
+            broken = torch.load(run_dir / "last.pt", map_location="cpu")
+            broken["model_state"]["teb.forbidden"] = torch.zeros(1)
+            torch.save(broken, run_dir / "last.pt")
+            with self.assertRaisesRegex(ValueError, "module key mismatch"):
+                summary._validate_sonnet_checkpoints(
+                    scientific, config, manifest, metrics, run_dir
+                )
+
+    def test_aggregate_rejects_mixed_evaluation_policy(self):
+        base = {
+            "implementation_variant": summary.SONNET_IMPLEMENTATION_VARIANT,
+            "training_protocol_id": summary.STANDARD_TRAINING_PROTOCOL,
+            "development_protocol_id": summary.SONNET_DEVELOPMENT_PROTOCOL,
+            "ablation_id": summary.SONNET_CANDIDATE_ABLATION_ID,
+            "dataset_id": "fixture",
+            "seq_len": 12,
+            "pred_len": 1,
+            "comparison_config_hash": "same",
+            "val_mse": 1.0,
+            "val_mae": 1.0,
+        }
+        rows = [
+            {**base, "seed": 1, "evaluation_policy": summary.TRAIN_VALIDATION_ONLY},
+            {**base, "seed": 2, "evaluation_policy": summary.TRAIN_VALIDATION_TEST},
+        ]
+        with self.assertRaisesRegex(ValueError, "mixed evaluation_policy"):
+            summary.aggregate_runs(rows)
 
 
 if __name__ == "__main__":

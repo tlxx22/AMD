@@ -68,6 +68,7 @@ from models.modules.selective_patch_target_exogenous_bridge import (
     PATCH_GATE_INPUT_QUERY_AND_ATTENTION,
     SELECTIVE_PATCH_V1,
 )
+from models.modules import sonnet_mvca_target_residual as sonnet_spec
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     TARGET_EXOGENOUS,
@@ -93,6 +94,7 @@ T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
+SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
 IMPLEMENTATION_VARIANT = BASELINE_IMPLEMENTATION_VARIANT
 ENHANCED_IMPLEMENTATION_VARIANTS = (
     ENHANCED_IMPLEMENTATION_VARIANT,
@@ -101,6 +103,7 @@ ENHANCED_IMPLEMENTATION_VARIANTS = (
     T3_IMPLEMENTATION_VARIANT,
     CCE_IMPLEMENTATION_VARIANT,
     LATE_CCE_IMPLEMENTATION_VARIANT,
+    SONNET_IMPLEMENTATION_VARIANT,
 )
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
@@ -135,6 +138,16 @@ CCE_CONTROL_ABLATION_ID = "M4_CCE_CONTROL"
 CCE_CANDIDATE_ABLATION_ID = "M4_CCE"
 LATE_CCE_CONTROL_ABLATION_ID = "M4_LATE_CCE_CONTROL"
 LATE_CCE_CANDIDATE_ABLATION_ID = "M4_LATE_CCE"
+SONNET_DEVELOPMENT_PROTOCOL = sonnet_spec.SONNET_DEVELOPMENT_PROTOCOL_ID
+SONNET_CONTROL_ABLATION_ID = sonnet_spec.SONNET_CONTROL_ABLATION_ID
+SONNET_CANDIDATE_ABLATION_ID = sonnet_spec.SONNET_CANDIDATE_ABLATION_ID
+TRAIN_VALIDATION_TEST = "train_validation_test"
+TRAIN_VALIDATION_ONLY = "train_validation_only"
+SONNET_EVALUATION_POLICIES = (
+    TRAIN_VALIDATION_TEST,
+    TRAIN_VALIDATION_ONLY,
+)
+M4_DEVELOPMENT_CANDIDATE = "m4_development_candidate"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -475,6 +488,144 @@ def _cce_candidate_contract(args):
     }
 
 
+def _sonnet_model_contract(args):
+    """Return the complete immutable Sonnet S2 model/source identity."""
+
+    return {
+        "source": deepcopy(sonnet_spec.SONNET_SOURCE_IDENTITY),
+        "enabled": args.use_sonnet_mvca,
+        "architecture_identity": sonnet_spec.SONNET_ARCHITECTURE_IDENTITY,
+        "input_identity": sonnet_spec.SONNET_INPUT_IDENTITY,
+        "insertion_identity": sonnet_spec.SONNET_INSERTION_IDENTITY,
+        "retained_components": list(sonnet_spec.SONNET_RETAINED_COMPONENTS),
+        "deleted_components": list(sonnet_spec.SONNET_DELETED_COMPONENTS),
+        "raw_source_order": {
+            "policy": sonnet_spec.SONNET_RAW_SOURCE_ORDER,
+            "indices": [*args.aux_idx, args.target_idx],
+            "target_position": "last",
+        },
+        "joint_embedding": {
+            "aux_input_dim": len(args.aux_idx),
+            "aux_output_dim": 32,
+            "target_input_dim": 1,
+            "target_output_dim": 32,
+            "d_model": args.sonnet_d_model,
+            "alpha": args.sonnet_alpha,
+            "alpha_parameter_policy": "fixed_hyperparameter_not_nn_parameter",
+            "aux_bias": True,
+            "target_bias": True,
+            "latent_concat_order": sonnet_spec.SONNET_LATENT_CONCAT_ORDER,
+            "post_embedding_normalization": None,
+            "post_embedding_dropout": None,
+        },
+        "learnable_wavelet": {
+            "n_atoms": args.sonnet_n_atoms,
+            "freq_params_shape": [
+                args.sonnet_d_model,
+                args.sonnet_n_atoms,
+                3,
+            ],
+            "freq_params_initialization": "standard_normal",
+            "freq_params_constraint": "none",
+            "time_grid": sonnet_spec.SONNET_WAVELET_TIME_GRID,
+            "atom_formula": (
+                "exp(-w_alpha*t^2)*cos(w_beta*t+w_gamma*t^2)"
+            ),
+            "projection": "elementwise_B_by_K_by_T_by_d",
+            "padding": None,
+            "crop": None,
+            "time_compression": None,
+        },
+        "mvca": {
+            "hidden_width": args.sonnet_d_model,
+            "qkv": "single_linear_d_to_3d_bias_true",
+            "fft_operator": "torch.fft.rfft",
+            "fft_axis_policy": sonnet_spec.SONNET_FFT_AXIS_POLICY,
+            "cross_spectral_density": "mean_frequency_Qf_times_conj_Kf",
+            "power_spectral_density": (
+                "mean_frequency_self_product_real"
+            ),
+            "epsilon": args.sonnet_epsilon,
+            "denominator_policy": (
+                sonnet_spec.SONNET_COHERENCE_DENOMINATOR_POLICY
+            ),
+            "hard_clamp": False,
+            "scale_policy": sonnet_spec.SONNET_COHERENCE_SCALE_POLICY,
+            "softmax_axis_policy": sonnet_spec.SONNET_SOFTMAX_AXIS_POLICY,
+            "attention_dropout": args.sonnet_attention_dropout,
+            "attention_dropout_position": "after_softmax",
+            "value_policy": sonnet_spec.SONNET_VALUE_POLICY,
+            "time_attention_matrix": False,
+            "time_reduction": False,
+            "residual_mlp": "linear_d_d_gelu_linear_d_d_all_bias_true",
+            "output_projection": "linear_d_d_bias_true_nonzero_default_init",
+            "var_attn_policy": sonnet_spec.SONNET_VAR_ATTN_POLICY,
+        },
+        "reconstruction": {
+            "policy": sonnet_spec.SONNET_RECONSTRUCTION_POLICY,
+            "output_shape": "B_by_T_by_d",
+            "koopman": False,
+        },
+        "readout": {
+            "policy": sonnet_spec.SONNET_READOUT_POLICY,
+            "shape": "linear_d_to_one_bias_true",
+            "weight_initialization": "xavier_uniform",
+            "bias_initialization": 0.0,
+        },
+        "residual": {
+            "policy": sonnet_spec.SONNET_RESIDUAL_POLICY,
+            "gamma_name": "gamma_sonnet",
+            "gamma_scope": "global_shared_scalar",
+            "gamma_constraint": "none",
+            "gamma_init": args.sonnet_gamma_init,
+            "writeback": "target_only",
+            "non_target_policy": "bitwise_unchanged",
+            "off_policy": "not_instantiated_exact_amd_identity",
+            "on_identity": "near_identity_not_exact_identity",
+        },
+        "normalization_policy": sonnet_spec.SONNET_NORMALIZATION_POLICY,
+        "state_context_policy": sonnet_spec.SONNET_STATE_CONTEXT_POLICY,
+        "module_init_seed": {
+            "policy": sonnet_spec.SONNET_MODULE_INIT_SEED_POLICY,
+            "seed": args.module_init_seed,
+        },
+    }
+
+
+def _sonnet_candidate_contract(args):
+    return {
+        "development_protocol_id": args.development_protocol_id,
+        "ablation_id": args.ablation_id,
+        "architecture_identity": sonnet_spec.SONNET_ARCHITECTURE_IDENTITY,
+        "input_identity": sonnet_spec.SONNET_INPUT_IDENTITY,
+        "insertion_identity": sonnet_spec.SONNET_INSERTION_IDENTITY,
+        "task_mode": args.task_mode,
+        "feature_names": list(args.feature_names),
+        "target_idx": args.target_idx,
+        "aux_idx": list(args.aux_idx),
+        "schema_fingerprint": args.schema_fingerprint,
+        "seq_len": args.seq_len,
+        "evaluation_policy": args.evaluation_policy,
+        "artifact_purpose": args.artifact_purpose,
+        "sonnet_mvca": _sonnet_model_contract(args),
+    }
+
+
+def _has_sonnet_configuration(args):
+    return (
+        args.use_sonnet_mvca
+        or args.sonnet_d_model is not None
+        or args.sonnet_n_atoms is not None
+        or args.sonnet_alpha is not None
+        or args.sonnet_epsilon is not None
+        or args.sonnet_attention_dropout is not None
+        or args.sonnet_gamma_init is not None
+        or args.module_init_seed is not None
+        or args.evaluation_policy is not None
+        or args.artifact_purpose is not None
+    )
+
+
 def _has_cce_configuration(args):
     return (
         args.use_cce
@@ -590,6 +741,8 @@ def parse_args(argv=None):
             CCE_CANDIDATE_ABLATION_ID,
             LATE_CCE_CONTROL_ABLATION_ID,
             LATE_CCE_CANDIDATE_ABLATION_ID,
+            SONNET_CONTROL_ABLATION_ID,
+            SONNET_CANDIDATE_ABLATION_ID,
         ],
     )
 
@@ -609,6 +762,25 @@ def parse_args(argv=None):
         ),
     )
     parser.add_argument("--dropout", type=float, default=0.1)
+
+    parser.add_argument("--use_sonnet_mvca", type=str2bool, default=False)
+    parser.add_argument("--sonnet_d_model", type=int, default=None)
+    parser.add_argument("--sonnet_n_atoms", type=int, default=None)
+    parser.add_argument("--sonnet_alpha", type=float, default=None)
+    parser.add_argument("--sonnet_epsilon", type=float, default=None)
+    parser.add_argument("--sonnet_attention_dropout", type=float, default=None)
+    parser.add_argument("--sonnet_gamma_init", type=float, default=None)
+    parser.add_argument("--module_init_seed", type=int, default=None)
+    parser.add_argument(
+        "--evaluation_policy",
+        default=None,
+        choices=SONNET_EVALUATION_POLICIES,
+    )
+    parser.add_argument(
+        "--artifact_purpose",
+        default=None,
+        choices=[M4_DEVELOPMENT_CANDIDATE],
+    )
 
     parser.add_argument("--use_cce", type=str2bool, default=False)
     parser.add_argument("--cce_kernel_size", type=int, default=3)
@@ -768,7 +940,11 @@ def parse_args(argv=None):
     parser.add_argument(
         "--development_protocol_id",
         default=None,
-        choices=[CCE_DEVELOPMENT_PROTOCOL, LATE_CCE_DEVELOPMENT_PROTOCOL],
+        choices=[
+            CCE_DEVELOPMENT_PROTOCOL,
+            LATE_CCE_DEVELOPMENT_PROTOCOL,
+            SONNET_DEVELOPMENT_PROTOCOL,
+        ],
     )
     parser.add_argument(
         "--training_protocol_id",
@@ -965,9 +1141,12 @@ def _validate_urbanev_protocol(args):
     if args.feature_type != "MS":
         raise ValueError("UrbanEV target_exogenous requires feature_type='MS'")
     _bind_urbanev_schema_contract(args)
-    if args.feature_preset == "F0" and (args.use_cce or args.use_teb):
+    if args.feature_preset == "F0" and (
+        args.use_sonnet_mvca or args.use_cce or args.use_teb
+    ):
         raise ValueError(
-            "UrbanEV F0 has no auxiliary variables and requires use_teb=False and use_cce=False"
+            "UrbanEV F0 has no auxiliary variables and requires use_teb=False, "
+            "use_cce=False, and use_sonnet_mvca=False"
         )
 
 def _prepare_enhanced_contract(args):
@@ -1114,6 +1293,163 @@ def _prepare_enhanced_contract(args):
         args.teb_patch_gate_init,
         args.teb_global_prediction_role,
     )
+
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        if not isinstance(args.use_sonnet_mvca, bool):
+            raise TypeError("use_sonnet_mvca must be bool")
+        fixed_defaults = {
+            "sonnet_d_model": sonnet_spec.SONNET_D_MODEL,
+            "sonnet_n_atoms": sonnet_spec.SONNET_N_ATOMS,
+            "sonnet_alpha": sonnet_spec.SONNET_ALPHA,
+            "sonnet_epsilon": sonnet_spec.SONNET_EPSILON,
+            "sonnet_attention_dropout": (
+                sonnet_spec.SONNET_ATTENTION_DROPOUT
+            ),
+            "sonnet_gamma_init": sonnet_spec.SONNET_GAMMA_INIT,
+            "module_init_seed": args.seed,
+            "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+        }
+        for name, expected in fixed_defaults.items():
+            observed = getattr(args, name)
+            if observed is None:
+                setattr(args, name, expected)
+            elif observed != expected:
+                raise ValueError(
+                    f"Sonnet S2 fixes {name}={expected!r}, got {observed!r}"
+                )
+
+        if args.ablation_id not in {
+            SONNET_CONTROL_ABLATION_ID,
+            SONNET_CANDIDATE_ABLATION_ID,
+        }:
+            raise ValueError(
+                "Sonnet S2 requires M4_SONNET_MVCA_CONTROL or "
+                "M4_SONNET_MVCA"
+            )
+        expected_switch = args.ablation_id == SONNET_CANDIDATE_ABLATION_ID
+        expected_common = {
+            "development_protocol_id": SONNET_DEVELOPMENT_PROTOCOL,
+            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+            "use_sonnet_mvca": expected_switch,
+            "use_cce": False,
+            "use_pmcr": False,
+            "use_teb": False,
+            "norm": True,
+            "learning_rate": 3e-5,
+            "weight_decay": PAPER_WEIGHT_DECAY,
+            "task_mode": TARGET_EXOGENOUS,
+            "feature_type": "MS",
+            "train_epochs": 10,
+            "seed": 2024,
+        }
+        common_mismatches = [
+            name
+            for name, expected in expected_common.items()
+            if getattr(args, name) != expected
+        ]
+        if common_mismatches:
+            raise ValueError(
+                "Sonnet S2 common contract mismatch for "
+                + ", ".join(common_mismatches)
+            )
+        if args.target != args.target_feature_name:
+            raise ValueError("Sonnet S2 target must equal target_feature_name")
+        if not args.aux_idx:
+            raise ValueError("Sonnet S2 requires at least one auxiliary")
+        if any(value is not None for value in patch_values + t2g_values + t3_values):
+            raise ValueError("Sonnet S2 does not accept T2/T2G/T3 parameters")
+        cce_defaults = {
+            "cce_kernel_size": 3,
+            "cce_lambda_init": 0.1,
+            "cce_padding_policy": ZERO_SAME,
+            "cce_input_order_policy": None,
+            "cce_parameterization_policy": IDENTITY_RESIDUAL_DELTA_V1,
+            "cce_architecture": None,
+            "cce_insertion_point": None,
+            "cce_input_representation": None,
+        }
+        cce_mismatches = [
+            name
+            for name, expected in cce_defaults.items()
+            if getattr(args, name) != expected
+        ]
+        if cce_mismatches:
+            raise ValueError(
+                "Sonnet S2 rejects CCE configuration: "
+                + ", ".join(cce_mismatches)
+            )
+
+        dataset_id = str(args.dataset_id)
+        if dataset_id == "ETTm1":
+            expected_policy = TRAIN_VALIDATION_TEST
+            expected_ettm1 = {
+                "target": "OT",
+                "target_idx": 6,
+                "aux_idx": (0, 1, 2, 3, 4, 5),
+                "feature_names": (
+                    "HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"
+                ),
+                "seq_len": 512,
+                "fold": "official",
+                "batch_size": 32,
+                "feature_preset": None,
+            }
+            if args.label_horizon not in {96, 192, 336, 720}:
+                raise ValueError(
+                    "Sonnet ETTm1 label_horizon must be 96/192/336/720"
+                )
+            if args.pred_len != args.label_horizon:
+                raise ValueError(
+                    "Sonnet ETTm1 pred_len must equal label_horizon"
+                )
+            dataset_mismatches = [
+                name
+                for name, expected in expected_ettm1.items()
+                if getattr(args, name) != expected
+            ]
+        elif dataset_id == "UrbanEV":
+            expected_policy = TRAIN_VALIDATION_ONLY
+            expected_urbanev = {
+                "feature_preset": "F4",
+                "fold": 6,
+                "seq_len": 12,
+                "pred_len": 1,
+                "target": "volume",
+                "target_idx": 0,
+                "aux_idx": tuple(range(1, 11)),
+                "batch_size": 128,
+            }
+            dataset_mismatches = [
+                name
+                for name, expected in expected_urbanev.items()
+                if getattr(args, name) != expected
+            ]
+        else:
+            raise ValueError("Sonnet S2 development supports only ETTm1 or UrbanEV")
+        if dataset_mismatches:
+            raise ValueError(
+                "Sonnet S2 dataset contract mismatch for "
+                + ", ".join(dataset_mismatches)
+            )
+        if args.evaluation_policy is None:
+            args.evaluation_policy = expected_policy
+        elif args.evaluation_policy != expected_policy:
+            raise ValueError(
+                f"Sonnet {args.dataset_id} requires "
+                f"evaluation_policy={expected_policy}"
+            )
+        args.teb_architecture = GLOBAL_TEB_V1
+        args.display_name = (
+            "AMD + Sonnet-inspired MVCA target residual"
+            if args.use_sonnet_mvca
+            else "AMD Sonnet MVCA paired control"
+        )
+        return args
+
+    if _has_sonnet_configuration(args):
+        raise ValueError(
+            "only the registered Sonnet S2 variant accepts Sonnet configuration"
+        )
 
     if args.implementation_variant in {
         CCE_IMPLEMENTATION_VARIANT,
@@ -1551,6 +1887,7 @@ def prepare_args(args):
         if (
             configured
             or _has_cce_configuration(args)
+            or _has_sonnet_configuration(args)
             or args.use_pmcr
             or args.use_teb
         ):
@@ -1704,6 +2041,13 @@ def _comparison_config_hash_from_scientific(scientific, train_epochs):
         del comparison["execution"]["seed"]
     except (KeyError, TypeError) as exc:
         raise RuntimeError("source scientific config has no execution seed") from exc
+    if comparison.get("implementation_variant") == SONNET_IMPLEMENTATION_VARIANT:
+        try:
+            del comparison["model"]["sonnet_mvca"]["module_init_seed"]["seed"]
+        except (KeyError, TypeError) as exc:
+            raise RuntimeError(
+                "Sonnet scientific config has no module initialization seed"
+            ) from exc
     comparison["completed_train_epochs"] = int(train_epochs)
     return stable_hash(comparison)
 
@@ -1868,6 +2212,16 @@ def _training_protocol_block(args):
     """Return the sealed training policy; standard defaults stay out of old hashes."""
 
     if args.training_protocol_id == STANDARD_TRAINING_PROTOCOL:
+        if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            return {
+                "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+                "warm_start_contract_version": None,
+                "initialization_policy": "matched_standard_from_scratch",
+                "source_checkpoint": None,
+                "source_importer": None,
+                "optimizer_state_policy": "fresh",
+                "parameter_scope": "all_model_parameters_trainable",
+            }
         return {
             "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
             "warm_start_contract_version": None,
@@ -3176,6 +3530,16 @@ def _scientific_config(
                 "use_cce": args.use_cce,
                 "cce": _cce_model_contract(args),
             })
+        if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            model_config.update({
+                "module_connection": (
+                    "X->RevIN->SonnetTargetResidual?->MDM(U)->DDI; "
+                    "AMS(experts=DDI,selector=U)"
+                ),
+                "use_sonnet_mvca": args.use_sonnet_mvca,
+                "use_cce": False,
+                "sonnet_mvca": _sonnet_model_contract(args),
+            })
         if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
             model_config["teb"].update({
                 "architecture": PATCH_CONDITIONED_V1,
@@ -3221,6 +3585,12 @@ def _scientific_config(
             "artifact_horizon": args.artifact_horizon,
             "fold": args.fold,
         }
+        if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            experiment.update({
+                "development_protocol_id": args.development_protocol_id,
+                "evaluation_policy": args.evaluation_policy,
+                "artifact_purpose": args.artifact_purpose,
+            })
         if args.implementation_variant in {
             CCE_IMPLEMENTATION_VARIANT,
             LATE_CCE_IMPLEMENTATION_VARIANT,
@@ -3259,6 +3629,17 @@ def _scientific_config(
     }
     if experiment is not None:
         result["experiment"] = experiment
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        result["evaluation"] = {
+            "evaluation_policy": args.evaluation_policy,
+            "artifact_purpose": args.artifact_purpose,
+            "test_access_policy": (
+                "forbidden"
+                if args.evaluation_policy == TRAIN_VALIDATION_ONLY
+                else "development_only"
+            ),
+        }
+        result["training_protocol"] = deepcopy(training_protocol)
     if _is_warm_start_protocol(args.training_protocol_id):
         if not all(
             isinstance(value, dict)
@@ -3309,6 +3690,12 @@ def _resolved_config(
         "source": source,
         "environment": environment,
     }
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        result.update({
+            "evaluation_policy": args.evaluation_policy,
+            "artifact_purpose": args.artifact_purpose,
+            "training_protocol": deepcopy(training_protocol),
+        })
     if _is_warm_start_protocol(args.training_protocol_id):
         result.update({
             "training_protocol": deepcopy(training_protocol),
@@ -3328,14 +3715,21 @@ def _checkpoint_common(resolved_config, config_hash, data_sha256, preprocessing)
         "resolved_config": resolved_config,
         "preprocessing": preprocessing,
     }
-    if "training_protocol" in resolved_config:
+    if resolved_config["implementation_variant"] == SONNET_IMPLEMENTATION_VARIANT:
         result.update({
-            "training_protocol": deepcopy(resolved_config["training_protocol"]),
+            "evaluation_policy": resolved_config["evaluation_policy"],
+            "artifact_purpose": resolved_config["artifact_purpose"],
+        })
+    if "training_protocol" in resolved_config:
+        protocol = deepcopy(resolved_config["training_protocol"])
+        result["training_protocol"] = protocol
+        if _is_warm_start_protocol(protocol["training_protocol_id"]):
+            result.update({
             "source_lineage": deepcopy(resolved_config["source_lineage"]),
             "source_compatibility_proof": deepcopy(
                 resolved_config["source_compatibility_proof"]
             ),
-        })
+            })
     return result
 
 
@@ -3346,6 +3740,37 @@ def _cpu_state_dict(state_dict):
         key: value.detach().cpu().clone()
         for key, value in state_dict.items()
     }
+
+
+def _validate_resume_model_state(state_dict, expected_state, label):
+    """Reject any key/shape/dtype mismatch without writing model state."""
+
+    if not isinstance(state_dict, dict):
+        raise RuntimeError(f"resume checkpoint {label} must be a dictionary")
+    expected_keys = set(expected_state)
+    observed_keys = set(state_dict)
+    missing = sorted(expected_keys - observed_keys)
+    unexpected = sorted(observed_keys - expected_keys)
+    tensor_errors = []
+    for key in sorted(expected_keys & observed_keys):
+        observed = state_dict[key]
+        expected = expected_state[key]
+        if not torch.is_tensor(observed):
+            tensor_errors.append(f"{key}: not a tensor")
+        elif observed.shape != expected.shape:
+            tensor_errors.append(
+                f"{key}: shape {tuple(observed.shape)} != {tuple(expected.shape)}"
+            )
+        elif observed.dtype != expected.dtype:
+            tensor_errors.append(
+                f"{key}: dtype {observed.dtype} != {expected.dtype}"
+            )
+    if missing or unexpected or tensor_errors:
+        raise RuntimeError(
+            f"resume checkpoint {label} strict model-state mismatch: "
+            f"missing={missing}, unexpected={unexpected}, "
+            f"tensor_errors={tensor_errors}"
+        )
 
 
 def _load_resume_checkpoint(
@@ -3361,6 +3786,11 @@ def _load_resume_checkpoint(
     training_protocol=None,
     source_lineage=None,
     source_compatibility_proof=None,
+    candidate_contract=None,
+    evaluation_policy=None,
+    artifact_purpose=None,
+    test_access_policy=None,
+    expected_model_state=None,
 ):
     run_dir = Path(run_dir)
     run_id = run_dir.name if run_id is None else str(run_id)
@@ -3415,6 +3845,23 @@ def _load_resume_checkpoint(
         != target_exogenous_schema
     ):
         raise RuntimeError("resume target_exogenous schema contract mismatch")
+    if candidate_contract is not None and (
+        manifest.get("candidate_contract") != candidate_contract
+    ):
+        raise RuntimeError("resume manifest candidate contract mismatch")
+    if evaluation_policy is not None:
+        manifest_evaluation = {
+            "evaluation_policy": manifest.get("evaluation_policy"),
+            "artifact_purpose": manifest.get("artifact_purpose"),
+            "test_access_policy": manifest.get("test_access_policy"),
+        }
+        expected_evaluation = {
+            "evaluation_policy": evaluation_policy,
+            "artifact_purpose": artifact_purpose,
+            "test_access_policy": test_access_policy,
+        }
+        if manifest_evaluation != expected_evaluation:
+            raise RuntimeError("resume manifest evaluation contract mismatch")
     expected_protocol = (
         training_protocol
         if training_protocol is not None
@@ -3474,6 +3921,17 @@ def _load_resume_checkpoint(
         raise RuntimeError("resume resolved config has no scientific_config object")
     if stable_hash(previous_scientific) != config_hash:
         raise RuntimeError("resume resolved scientific configuration was modified")
+    if evaluation_policy is not None and (
+        previous_config.get("evaluation_policy") != evaluation_policy
+        or previous_config.get("artifact_purpose")
+        != artifact_purpose
+    ):
+        raise RuntimeError("resume resolved evaluation contract mismatch")
+    if candidate_contract is not None and (
+        previous_scientific.get("model", {}).get("sonnet_mvca")
+        != candidate_contract.get("sonnet_mvca")
+    ):
+        raise RuntimeError("resume resolved Sonnet contract mismatch")
     if (
         _target_exogenous_schema_from_scientific(previous_scientific)
         != target_exogenous_schema
@@ -3534,6 +3992,11 @@ def _load_resume_checkpoint(
         )
     if checkpoint.get("data_sha256") != data_sha256:
         raise RuntimeError("resume data fingerprint mismatch")
+    if evaluation_policy is not None and (
+        checkpoint.get("evaluation_policy") != evaluation_policy
+        or checkpoint.get("artifact_purpose") != artifact_purpose
+    ):
+        raise RuntimeError("resume checkpoint evaluation contract mismatch")
     checkpoint_config = checkpoint.get("resolved_config")
     if not isinstance(checkpoint_config, dict):
         raise RuntimeError("resume checkpoint has no resolved configuration")
@@ -3568,11 +4031,20 @@ def _load_resume_checkpoint(
         range(1, completed_epoch + 1)
     ):
         raise RuntimeError("resume checkpoint history has invalid epoch numbering")
-    if not isinstance(checkpoint.get("model_state"), dict):
-        raise RuntimeError("resume checkpoint has no model state")
     if not isinstance(checkpoint.get("optimizer_state"), dict):
         raise RuntimeError("resume checkpoint has no optimizer state")
-    if not isinstance(checkpoint.get("best_model_state"), dict):
+    if expected_model_state is not None:
+        _validate_resume_model_state(
+            checkpoint.get("model_state"), expected_model_state, "model_state"
+        )
+        _validate_resume_model_state(
+            checkpoint.get("best_model_state"),
+            expected_model_state,
+            "best_model_state",
+        )
+    elif not isinstance(checkpoint.get("model_state"), dict):
+        raise RuntimeError("resume checkpoint has no model state")
+    elif not isinstance(checkpoint.get("best_model_state"), dict):
         raise RuntimeError("resume checkpoint has no committed best-model state")
     best_epoch = checkpoint.get("best_epoch")
     best_mse = checkpoint.get("best_mse")
@@ -3731,6 +4203,8 @@ class RuntimeData:
     data_fingerprint: str
     data_fingerprint_document: dict
     backend: object
+    evaluation_policy: str = TRAIN_VALIDATION_TEST
+    test_access_policy: str = "allowed"
 
 
 def _urbanev_split_identity(bundle, dataset, split):
@@ -3776,6 +4250,13 @@ def _build_urbanev_runtime_data(args, train_generator):
                 f"{getattr(args, name)!r} != {value!r}"
             )
 
+    evaluation_policy = (
+        args.evaluation_policy
+        if args.evaluation_policy is not None
+        else TRAIN_VALIDATION_TEST
+    )
+    validation_only = evaluation_policy == TRAIN_VALIDATION_ONLY
+    split_names = ("train", "validation") if validation_only else SPLIT_NAMES
     datasets = {
         split: TemporalRegionDataset(
             bundle,
@@ -3783,7 +4264,7 @@ def _build_urbanev_runtime_data(args, train_generator):
             label_horizon=args.label_horizon,
             history_len=args.seq_len,
         )
-        for split in SPLIT_NAMES
+        for split in split_names
     }
     if len(datasets["train"]) < args.batch_size:
         raise ValueError(
@@ -3803,15 +4284,19 @@ def _build_urbanev_runtime_data(args, train_generator):
         shuffle=False,
         drop_last=False,
     )
-    test_data = DataLoader(
-        datasets["test"],
-        batch_size=args.batch_size,
-        shuffle=False,
-        drop_last=False,
+    test_data = (
+        None
+        if validation_only
+        else DataLoader(
+            datasets["test"],
+            batch_size=args.batch_size,
+            shuffle=False,
+            drop_last=False,
+        )
     )
     split_identity = {
         split: _urbanev_split_identity(bundle, datasets[split], split)
-        for split in SPLIT_NAMES
+        for split in split_names
     }
     preprocessing = {
         "loader_kind": "urbanev_m1_temporal_region",
@@ -3840,6 +4325,8 @@ def _build_urbanev_runtime_data(args, train_generator):
         "timestamp_semantics": raw.timestamp_semantics,
         "timezone": raw.timezone,
     }
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        preprocessing["evaluation_policy"] = evaluation_policy
     fingerprint_document = {
         "schema_version": SCHEMA_VERSION,
         "artifact_schema_version": ENHANCED_ARTIFACT_SCHEMA_VERSION,
@@ -3864,6 +4351,11 @@ def _build_urbanev_runtime_data(args, train_generator):
         "aux_feature_names": list(args.aux_feature_names),
         "split_identity": split_identity,
     }
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        fingerprint_document.update({
+            "evaluation_policy": evaluation_policy,
+            "test_access_policy": "forbidden" if validation_only else "allowed",
+        })
     return RuntimeData(
         n_feature=len(bundle.feature_names),
         target_slice=None,
@@ -3874,6 +4366,8 @@ def _build_urbanev_runtime_data(args, train_generator):
         data_fingerprint=raw.data_fingerprint,
         data_fingerprint_document=fingerprint_document,
         backend=bundle,
+        evaluation_policy=evaluation_policy,
+        test_access_policy="forbidden" if validation_only else "allowed",
     )
 
 
@@ -3907,6 +4401,19 @@ def _build_generic_runtime_data(args, train_generator):
         "schema_fingerprint": getattr(args, "schema_fingerprint", None),
         "loader_kind": "generic_custom_data_loader",
     }
+    evaluation_policy = (
+        args.evaluation_policy
+        if getattr(args, "evaluation_policy", None) is not None
+        else TRAIN_VALIDATION_TEST
+    )
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        fingerprint_document["evaluation_policy"] = evaluation_policy
+        fingerprint_document["test_access_policy"] = "development_only"
+    test_access_policy = (
+        "development_only"
+        if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+        else "allowed"
+    )
     return RuntimeData(
         n_feature=loader.n_feature,
         target_slice=loader.target_slice,
@@ -3917,6 +4424,8 @@ def _build_generic_runtime_data(args, train_generator):
         data_fingerprint=data_fingerprint,
         data_fingerprint_document=fingerprint_document,
         backend=loader,
+        evaluation_policy=evaluation_policy,
+        test_access_policy=test_access_policy,
     )
 
 
@@ -4116,6 +4625,24 @@ def _build_model(args, data_loader):
         teb_context_dim=args.teb_context_dim,
         task_mode=args.task_mode,
         aux_idx=args.aux_idx,
+        use_sonnet_mvca=args.use_sonnet_mvca,
+        sonnet_feature_schema=(
+            args.feature_names
+            if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            else None
+        ),
+        sonnet_schema_fingerprint=(
+            args.schema_fingerprint
+            if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            else None
+        ),
+        module_init_seed=args.module_init_seed,
+        sonnet_d_model=args.sonnet_d_model,
+        sonnet_n_atoms=args.sonnet_n_atoms,
+        sonnet_alpha=args.sonnet_alpha,
+        sonnet_epsilon=args.sonnet_epsilon,
+        sonnet_attention_dropout=args.sonnet_attention_dropout,
+        sonnet_gamma_init=args.sonnet_gamma_init,
         use_cce=args.use_cce,
         cce_kernel_size=args.cce_kernel_size,
         cce_lambda_init=args.cce_lambda_init,
@@ -4171,6 +4698,16 @@ def _main_impl(args, transcript=None):
     train_data = data_loader.train_data
     val_data = data_loader.val_data
     test_data = data_loader.test_data
+    if (
+        args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+        and args.evaluation_policy == TRAIN_VALIDATION_ONLY
+        and test_data is not None
+    ):
+        raise RuntimeError(
+            "train_validation_only RuntimeData must not contain a test loader"
+        )
+    if args.evaluation_policy == TRAIN_VALIDATION_TEST and test_data is None:
+        raise RuntimeError("train_validation_test requires a test loader")
     if len(train_data) == 0:
         raise ValueError(
             "training loader has zero full batches; batch_size exceeds the available training windows"
@@ -4190,6 +4727,8 @@ def _main_impl(args, transcript=None):
     gamma_zero_report = None
     prebuilt_model = None
 
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        prebuilt_model = _build_model(args, data_loader)
     # A warm-start source is fully checked while the target is still an
     # in-memory CPU model.  No artifact root/staging/log/optimizer exists yet.
     if _is_warm_start_protocol(args.training_protocol_id) and args.resume:
@@ -4301,6 +4840,17 @@ def _main_impl(args, transcript=None):
             manifest["target_exogenous_schema"] = deepcopy(
                 target_exogenous_schema
             )
+    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        manifest.update({
+            "evaluation_policy": args.evaluation_policy,
+            "artifact_purpose": args.artifact_purpose,
+            "test_access_policy": (
+                "forbidden"
+                if args.evaluation_policy == TRAIN_VALIDATION_ONLY
+                else "development_only"
+            ),
+            "training_protocol": deepcopy(training_protocol),
+        })
     resume_checkpoint = None
     if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _t2_candidate_contract(args)
@@ -4313,6 +4863,8 @@ def _main_impl(args, transcript=None):
         LATE_CCE_IMPLEMENTATION_VARIANT,
     }:
         manifest["candidate_contract"] = _cce_candidate_contract(args)
+    elif args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        manifest["candidate_contract"] = _sonnet_candidate_contract(args)
     previous_config = None
     manifest_is_mutable = False
     artifact_sealed = False
@@ -4337,6 +4889,28 @@ def _main_impl(args, transcript=None):
                 training_protocol=training_protocol,
                 source_lineage=source_lineage,
                 source_compatibility_proof=source_compatibility_proof,
+                candidate_contract=(
+                    _sonnet_candidate_contract(args)
+                    if args.implementation_variant
+                    == SONNET_IMPLEMENTATION_VARIANT
+                    else None
+                ),
+                evaluation_policy=args.evaluation_policy,
+                artifact_purpose=args.artifact_purpose,
+                test_access_policy=(
+                    "forbidden"
+                    if args.evaluation_policy == TRAIN_VALIDATION_ONLY
+                    else (
+                        "development_only"
+                        if args.evaluation_policy == TRAIN_VALIDATION_TEST
+                        else None
+                    )
+                ),
+                expected_model_state=(
+                    prebuilt_model.state_dict()
+                    if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+                    else None
+                ),
             )
             manifest["status"] = "running"
             manifest["updated_at"] = _utc_now()
@@ -4674,14 +5248,21 @@ def _main_impl(args, transcript=None):
         best_checkpoint["resolved_config"] = resolved_config
         atomic_torch_save(best_path, best_checkpoint)
         model.load_state_dict(best_checkpoint["model_state"], strict=True)
-        test_metrics = evaluate(
-            model,
-            test_data,
-            device,
-            description="Final Test",
-            show_progress=args.progress,
-            task_mode=args.task_mode,
-        )
+        evaluation_policy = args.evaluation_policy or TRAIN_VALIDATION_TEST
+        test_metrics = None
+        if evaluation_policy == TRAIN_VALIDATION_TEST:
+            test_metrics = evaluate(
+                model,
+                test_data,
+                device,
+                description="Final Test",
+                show_progress=args.progress,
+                task_mode=args.task_mode,
+            )
+        elif evaluation_policy != TRAIN_VALIDATION_ONLY:
+            raise RuntimeError(
+                f"unsupported evaluation policy {evaluation_policy!r}"
+            )
         elapsed = elapsed_before_resume + time.time() - run_started
         completed_at = _utc_now()
         completed_epochs = len(history)
@@ -4708,7 +5289,6 @@ def _main_impl(args, transcript=None):
             "metric_space": METRIC_SPACE,
             "best_epoch": best_epoch,
             "best_validation": best_val_metrics,
-            "test": test_metrics,
             "parameter_count": parameter_count,
             "train_epochs": args.train_epochs,
             "duration_seconds": elapsed,
@@ -4717,6 +5297,16 @@ def _main_impl(args, transcript=None):
             "artifact_dir": str(final_run_dir),
             "completed_at": completed_at,
         }
+        if test_metrics is not None:
+            metrics["test"] = test_metrics
+        if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            metrics.update({
+                "evaluation_policy": args.evaluation_policy,
+                "artifact_purpose": args.artifact_purpose,
+                "development_protocol_id": args.development_protocol_id,
+                "ablation_id": args.ablation_id,
+                "training_protocol": deepcopy(training_protocol),
+            })
         if _is_warm_start_protocol(args.training_protocol_id):
             metrics.update({
                 "training_protocol_id": args.training_protocol_id,
@@ -4747,9 +5337,12 @@ def _main_impl(args, transcript=None):
             "seed": args.seed,
             "best_epoch": best_epoch,
             "best_validation_mse": best_mse,
-            "test_mse": test_metrics["mse"],
-            "test_mae": test_metrics["mae"],
         })
+        if test_metrics is not None:
+            completed_manifest.update({
+                "test_mse": test_metrics["mse"],
+                "test_mae": test_metrics["mae"],
+            })
         if _is_warm_start_protocol(args.training_protocol_id):
             completed_manifest.update({
                 "completed_epochs": completed_epochs,
@@ -4757,12 +5350,19 @@ def _main_impl(args, transcript=None):
                 "initialization_validation": deepcopy(initialization_validation),
                 "epoch_zero_in_best_selection": True,
             })
-        completion_message = (
-            f"completed run={final_run_dir}\n"
-            f"best_epoch={best_epoch} val_mse={best_mse:.8g} "
-            f"test_mse={test_metrics['mse']:.8g} "
-            f"test_mae={test_metrics['mae']:.8g}"
-        )
+        if test_metrics is None:
+            completion_message = (
+                f"completed run={final_run_dir}\n"
+                f"best_epoch={best_epoch} val_mse={best_mse:.8g} "
+                "evaluation_policy=train_validation_only"
+            )
+        else:
+            completion_message = (
+                f"completed run={final_run_dir}\n"
+                f"best_epoch={best_epoch} val_mse={best_mse:.8g} "
+                f"test_mse={test_metrics['mse']:.8g} "
+                f"test_mae={test_metrics['mae']:.8g}"
+            )
         if artifact_paths.is_enhanced:
             if (
                 completed_manifest.get("target_exogenous_schema")

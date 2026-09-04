@@ -40,6 +40,15 @@ from models.modules.selective_patch_target_exogenous_bridge import (
     SELECTIVE_PATCH_V1,
     SelectivePatchTargetExogenousBridge,
 )
+from models.modules.sonnet_mvca_target_residual import (
+    SONNET_ALPHA,
+    SONNET_ATTENTION_DROPOUT,
+    SONNET_D_MODEL,
+    SONNET_EPSILON,
+    SONNET_GAMMA_INIT,
+    SONNET_N_ATOMS,
+    SonnetMVCATargetResidual,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     SUPPORTED_TASK_MODES,
@@ -105,6 +114,16 @@ class AMDEnhanced(AMD):
         teb_context_dim,
         task_mode=None,
         aux_idx=(),
+        use_sonnet_mvca=False,
+        sonnet_feature_schema=None,
+        sonnet_schema_fingerprint=None,
+        module_init_seed=None,
+        sonnet_d_model=SONNET_D_MODEL,
+        sonnet_n_atoms=SONNET_N_ATOMS,
+        sonnet_alpha=SONNET_ALPHA,
+        sonnet_epsilon=SONNET_EPSILON,
+        sonnet_attention_dropout=SONNET_ATTENTION_DROPOUT,
+        sonnet_gamma_init=SONNET_GAMMA_INIT,
         use_cce=False,
         cce_kernel_size=3,
         cce_lambda_init=0.1,
@@ -200,6 +219,10 @@ class AMDEnhanced(AMD):
                 "parallel_multivariate uses all other variables; aux_idx must be empty"
             )
 
+        if not isinstance(use_sonnet_mvca, bool):
+            raise TypeError(
+                "AMDEnhanced use_sonnet_mvca must be bool"
+            )
         if not isinstance(use_cce, bool):
             raise TypeError(
                 f"AMDEnhanced use_cce must be bool, got {type(use_cce).__name__}"
@@ -214,12 +237,81 @@ class AMDEnhanced(AMD):
                 "AMDEnhanced use_teb must be bool, "
                 f"got {type(use_teb).__name__}"
             )
-        if task_mode is None and (use_cce or use_teb):
-            raise ValueError("AMDEnhanced CCE/TEB requires an explicit task_mode")
+        if task_mode is None and (use_sonnet_mvca or use_cce or use_teb):
+            raise ValueError(
+                "AMDEnhanced Sonnet/CCE/TEB requires an explicit task_mode"
+            )
         if task_mode is None and ordered_aux:
             raise ValueError(
                 "AMDEnhanced legacy task_mode=None requires aux_idx to be empty"
             )
+        sonnet_contract_declared = (
+            use_sonnet_mvca
+            or sonnet_feature_schema is not None
+            or sonnet_schema_fingerprint is not None
+            or module_init_seed is not None
+        )
+        if sonnet_contract_declared:
+            if task_mode != TARGET_EXOGENOUS:
+                raise ValueError(
+                    "Sonnet S2 contract supports only target_exogenous"
+                )
+            if not ordered_aux:
+                raise ValueError(
+                    "Sonnet S2 contract requires non-empty ordered aux_idx"
+                )
+            if use_cce or use_pmcr or use_teb:
+                raise ValueError(
+                    "Sonnet S2 requires CCE, PMCR, and TEB to be disabled"
+                )
+            sonnet_schema = _ordered_feature_schema(
+                sonnet_feature_schema,
+                feature_num=self.feature_num,
+            )
+            if (
+                not isinstance(sonnet_schema_fingerprint, str)
+                or not sonnet_schema_fingerprint
+            ):
+                raise ValueError(
+                    "Sonnet S2 requires a non-empty schema fingerprint"
+                )
+            if (
+                isinstance(module_init_seed, bool)
+                or not isinstance(module_init_seed, int)
+                or module_init_seed < 0
+            ):
+                raise ValueError(
+                    "Sonnet S2 module_init_seed must be a non-negative integer"
+                )
+            fixed_sonnet = {
+                "sonnet_d_model": (sonnet_d_model, SONNET_D_MODEL),
+                "sonnet_n_atoms": (sonnet_n_atoms, SONNET_N_ATOMS),
+                "sonnet_alpha": (sonnet_alpha, SONNET_ALPHA),
+                "sonnet_epsilon": (sonnet_epsilon, SONNET_EPSILON),
+                "sonnet_attention_dropout": (
+                    sonnet_attention_dropout,
+                    SONNET_ATTENTION_DROPOUT,
+                ),
+                "sonnet_gamma_init": (
+                    sonnet_gamma_init,
+                    SONNET_GAMMA_INIT,
+                ),
+            }
+            mismatches = [
+                name
+                for name, (observed, expected) in fixed_sonnet.items()
+                if isinstance(observed, bool)
+                or not isinstance(observed, (int, float))
+                or not math.isfinite(observed)
+                or observed != expected
+            ]
+            if mismatches:
+                raise ValueError(
+                    "Sonnet S2 fixed contract mismatch for "
+                    + ", ".join(mismatches)
+                )
+        else:
+            sonnet_schema = None
         if use_cce and (use_pmcr or use_teb):
             raise ValueError(
                 "CrossLinear-inspired CCE v1 requires PMCR and TEB to be disabled"
@@ -443,6 +535,11 @@ class AMDEnhanced(AMD):
         self.teb_context_dim = teb_context_dim
         self.task_mode = task_mode
         self.aux_idx = ordered_aux
+        self.sonnet_contract_declared = sonnet_contract_declared
+        self.use_sonnet_mvca = use_sonnet_mvca
+        self.sonnet_feature_schema = sonnet_schema
+        self.sonnet_schema_fingerprint = sonnet_schema_fingerprint
+        self.module_init_seed = module_init_seed
         self.use_cce = use_cce
         self.use_pmcr = use_pmcr
         self.use_teb = use_teb
@@ -559,6 +656,33 @@ class AMDEnhanced(AMD):
                     global_prediction_role=self.teb_global_prediction_role,
                 )
 
+        self.sonnet_mvca = None
+        if self.use_sonnet_mvca:
+            cuda_devices = (
+                list(range(torch.cuda.device_count()))
+                if torch.cuda.is_initialized()
+                else []
+            )
+            with torch.random.fork_rng(devices=cuda_devices, enabled=True):
+                torch.manual_seed(self.module_init_seed)
+                if cuda_devices:
+                    torch.cuda.manual_seed_all(self.module_init_seed)
+                self.sonnet_mvca = SonnetMVCATargetResidual(
+                    seq_len=self.seq_len,
+                    feature_num=self.feature_num,
+                    task_mode=self.task_mode,
+                    target_idx=self.target_idx,
+                    ordered_aux_idx=self.aux_idx,
+                    feature_schema=self.sonnet_feature_schema,
+                    schema_fingerprint=self.sonnet_schema_fingerprint,
+                    d_model=sonnet_d_model,
+                    n_atoms=sonnet_n_atoms,
+                    alpha=sonnet_alpha,
+                    epsilon=sonnet_epsilon,
+                    attention_dropout=sonnet_attention_dropout,
+                    gamma_init=sonnet_gamma_init,
+                )
+
     def load_state_dict(self, state_dict, strict=True):
         """Keep strict restores same-structure and non-polluting.
 
@@ -566,7 +690,10 @@ class AMDEnhanced(AMD):
         restores. Cross-structure CCE initialization has a dedicated importer.
         """
 
-        requires_strict = getattr(self, "use_cce", False) or (
+        requires_strict = (
+            getattr(self, "sonnet_contract_declared", False)
+            or getattr(self, "use_cce", False)
+        ) or (
             getattr(self, "teb_architecture", GLOBAL_TEB_V1) in {
                 PATCH_CONDITIONED_V1,
                 GLOBAL_MEDIATED_PATCH_V1,
@@ -575,7 +702,7 @@ class AMDEnhanced(AMD):
         )
         if requires_strict and strict is not True:
             raise ValueError(
-                "CCE/T2/T2G/T3 checkpoint restore requires strict=True"
+                "Sonnet/CCE/T2/T2G/T3 checkpoint restore requires strict=True"
             )
         if strict is not True:
             return super().load_state_dict(state_dict, strict=strict)
@@ -596,7 +723,10 @@ class AMDEnhanced(AMD):
                 metadata_errors.append(
                     f"{key}: shape {tuple(incoming.shape)} != {tuple(expected.shape)}"
                 )
-            elif getattr(self, "use_cce", False) and incoming.dtype != expected.dtype:
+            elif (
+                getattr(self, "sonnet_contract_declared", False)
+                or getattr(self, "use_cce", False)
+            ) and incoming.dtype != expected.dtype:
                 metadata_errors.append(
                     f"{key}: dtype {incoming.dtype} != {expected.dtype}"
                 )
@@ -606,14 +736,28 @@ class AMDEnhanced(AMD):
                 f"missing={missing}, unexpected={unexpected}, "
                 f"tensor_errors={metadata_errors}"
             )
-        return super().load_state_dict(state_dict, strict=True)
+        if not getattr(self, "sonnet_contract_declared", False):
+            return super().load_state_dict(state_dict, strict=True)
+        snapshot = {
+            key: value.detach().clone() for key, value in current.items()
+        }
+        try:
+            return super().load_state_dict(state_dict, strict=True)
+        except BaseException:
+            super().load_state_dict(snapshot, strict=True)
+            raise
 
     def _state_key_groups(self):
         current_keys = set(self.state_dict())
+        sonnet_keys = {
+            key for key in current_keys if key.startswith("sonnet_mvca.")
+        }
         cce_keys = {key for key in current_keys if key.startswith("cce.")}
         pmcr_keys = {key for key in current_keys if key.startswith("pmcr.")}
         teb_keys = {key for key in current_keys if key.startswith("teb.")}
-        backbone_keys = current_keys - cce_keys - pmcr_keys - teb_keys
+        backbone_keys = (
+            current_keys - sonnet_keys - cce_keys - pmcr_keys - teb_keys
+        )
         return current_keys, backbone_keys, pmcr_keys, teb_keys
 
     def load_enhancement_state_dict(self, state_dict, *, source_kind):
@@ -624,6 +768,11 @@ class AMDEnhanced(AMD):
         load_state_dict(strict=True) instead.
         """
 
+        if getattr(self, "sonnet_contract_declared", False):
+            raise RuntimeError(
+                "Sonnet S2 forbids source import; use from-scratch or "
+                "same-structure strict restore"
+            )
         if getattr(self, "use_cce", False):
             raise RuntimeError(
                 "CCE source initialization requires load_cce_source_state_dict"
@@ -871,13 +1020,16 @@ class AMDEnhanced(AMD):
             )
 
         normalized_input = self.rev_norm(x, "norm") if self.norm else x
+        if self.use_sonnet_mvca:
+            normalized_input = self.sonnet_mvca(normalized_input)
         x_ch = torch.transpose(normalized_input, 1, 2)
 
         if self.use_cce and self.cce_insertion_point == CCE_INSERTION_POINT:
             x_ch = self.cce(x_ch)
 
         # Frozen paper-close inter-module connection:
-        #   RevIN -> CCE? -> MDM(u_mdm) -> DDI(v); AMS(v_final, u_mdm).
+        #   RevIN -> Sonnet?/CCE? -> MDM(u_mdm) -> DDI(v);
+        #   AMS(v_final, u_mdm).
         u_mdm = self.pastmixing(x_ch)
         v = u_mdm
         for fc_block in self.fc_blocks:

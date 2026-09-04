@@ -4008,5 +4008,372 @@ class CCERunnerContractTests(unittest.TestCase):
 
 
 
+class SonnetRunnerContractTests(unittest.TestCase):
+    FEATURES = ("HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT")
+
+    @classmethod
+    def _ett_args(cls, *, enabled=True, horizon=96, artifact_root=None):
+        values = [
+            "--implementation_variant", runner.SONNET_IMPLEMENTATION_VARIANT,
+            "--data", str(runner.ROOT / "data" / "ETTm1.csv"),
+            "--dataset_id", "ETTm1",
+            "--device", "cpu",
+            "--progress", "false",
+            "--feature_type", "MS",
+            "--target", "OT",
+            "--task_mode", "target_exogenous",
+            "--target_idx", "6",
+            "--aux_idx", "0", "1", "2", "3", "4", "5",
+            "--feature_names", *cls.FEATURES,
+            "--target_feature_name", "OT",
+            "--aux_feature_names", *cls.FEATURES[:-1],
+            "--schema_fingerprint", runner.stable_hash(cls.FEATURES),
+            "--fold", "official",
+            "--label_horizon", str(horizon),
+            "--seq_len", "512",
+            "--pred_len", str(horizon),
+            "--batch_size", "32",
+            "--train_epochs", "10",
+            "--learning_rate", "0.00003",
+            "--ablation_id", (
+                runner.SONNET_CANDIDATE_ABLATION_ID
+                if enabled else runner.SONNET_CONTROL_ABLATION_ID
+            ),
+            "--use_sonnet_mvca", str(enabled).lower(),
+            "--use_pmcr", "false",
+            "--use_teb", "false",
+            "--development_protocol_id", runner.SONNET_DEVELOPMENT_PROTOCOL,
+            "--training_protocol_id", runner.STANDARD_TRAINING_PROTOCOL,
+        ]
+        if artifact_root is not None:
+            values.extend(["--artifact_root", str(artifact_root)])
+        return runner.parse_args(values)
+
+    @staticmethod
+    def _urban_args(*, enabled=True, artifact_root=None):
+        values = [
+            "--implementation_variant", runner.SONNET_IMPLEMENTATION_VARIANT,
+            "--data", str(runner.ROOT / "data" / "UrbanEV" / "data"),
+            "--dataset_id", "UrbanEV",
+            "--device", "cpu",
+            "--progress", "false",
+            "--feature_type", "MS",
+            "--target", "volume",
+            "--task_mode", "target_exogenous",
+            "--feature_preset", "F4",
+            "--fold", "6",
+            "--label_horizon", "12",
+            "--seq_len", "12",
+            "--pred_len", "1",
+            "--patch", "12",
+            "--batch_size", "128",
+            "--train_epochs", "10",
+            "--learning_rate", "0.00003",
+            "--ablation_id", (
+                runner.SONNET_CANDIDATE_ABLATION_ID
+                if enabled else runner.SONNET_CONTROL_ABLATION_ID
+            ),
+            "--use_sonnet_mvca", str(enabled).lower(),
+            "--use_pmcr", "false",
+            "--use_teb", "false",
+            "--development_protocol_id", runner.SONNET_DEVELOPMENT_PROTOCOL,
+            "--training_protocol_id", runner.STANDARD_TRAINING_PROTOCOL,
+        ]
+        if artifact_root is not None:
+            values.extend(["--artifact_root", str(artifact_root)])
+        return runner.parse_args(values)
+
+    @classmethod
+    def _ett_preprocessing(cls, args):
+        return {
+            "feature_type": "MS",
+            "columns": list(cls.FEATURES),
+            "resolved_target": "OT",
+            "target_indices": [6],
+            "feature_schema_fingerprint": args.schema_fingerprint,
+        }
+
+    def test_exact_contract_identity_is_sealed_in_all_config_layers(self):
+        candidate = runner.prepare_args(self._ett_args(enabled=True))
+        control = runner.prepare_args(self._ett_args(enabled=False))
+        for args, enabled in ((candidate, True), (control, False)):
+            self.assertEqual(args.sonnet_d_model, 64)
+            self.assertEqual(args.sonnet_n_atoms, 8)
+            self.assertEqual(args.sonnet_alpha, 0.5)
+            self.assertEqual(args.sonnet_epsilon, 1e-6)
+            self.assertEqual(args.sonnet_attention_dropout, 0.1)
+            self.assertEqual(args.sonnet_gamma_init, 1e-3)
+            self.assertEqual(args.module_init_seed, 2024)
+            self.assertEqual(
+                args.evaluation_policy, runner.TRAIN_VALIDATION_TEST
+            )
+            self.assertIs(args.use_sonnet_mvca, enabled)
+
+            preprocessing = self._ett_preprocessing(args)
+            schema = runner._build_target_exogenous_schema_contract(
+                args, preprocessing
+            )
+            training = runner._training_protocol_block(args)
+            scientific = runner._scientific_config(
+                args,
+                "data-sha",
+                "source-sha",
+                preprocessing,
+                torch.device("cpu"),
+                _runtime_metadata(),
+                schema,
+                training,
+            )
+            expected_candidate = runner._sonnet_candidate_contract(args)
+            self.assertEqual(
+                summary._validate_sonnet_variant_contract(
+                    scientific, Path("/tmp/sonnet-contract")
+                ),
+                expected_candidate,
+            )
+            resolved = runner._resolved_config(
+                args,
+                scientific,
+                runner.stable_hash(scientific),
+                Path("/tmp/sonnet-run"),
+                {"sha256": "source-sha"},
+                _runtime_metadata(),
+                training,
+            )
+            checkpoint = runner._checkpoint_common(
+                resolved,
+                resolved["config_hash"],
+                "data-sha",
+                preprocessing,
+            )
+            self.assertEqual(resolved["training_protocol"], training)
+            self.assertEqual(checkpoint["training_protocol"], training)
+            self.assertEqual(
+                checkpoint["evaluation_policy"], runner.TRAIN_VALIDATION_TEST
+            )
+            self.assertEqual(
+                checkpoint["artifact_purpose"],
+                runner.M4_DEVELOPMENT_CANDIDATE,
+            )
+            self.assertIsNone(training["source_checkpoint"])
+            self.assertIsNone(training["source_importer"])
+
+            changed_seed = deepcopy(scientific)
+            changed_seed["execution"]["seed"] = 7
+            changed_seed["model"]["sonnet_mvca"]["module_init_seed"]["seed"] = 7
+            self.assertEqual(
+                runner._comparison_config_hash_from_scientific(scientific, 10),
+                runner._comparison_config_hash_from_scientific(changed_seed, 10),
+            )
+
+        generator = torch.Generator().manual_seed(candidate.seed)
+        runtime = runner._build_generic_runtime_data(candidate, generator)
+        self.assertEqual(
+            runtime.evaluation_policy, runner.TRAIN_VALIDATION_TEST
+        )
+        self.assertEqual(runtime.test_access_policy, "development_only")
+        self.assertIsNotNone(runtime.test_data)
+        self.assertEqual(
+            runtime.data_fingerprint_document["test_access_policy"],
+            "development_only",
+        )
+
+        self.assertEqual(len(runner.ENHANCED_CHECKSUM_FILES), 13)
+        self.assertEqual(
+            runner.ENHANCED_CHECKSUM_FILES,
+            summary.ENHANCED_CHECKSUM_FILES,
+        )
+
+    def test_contract_rejects_dataset_case_parallel_warm_and_numeric_drift(self):
+        cases = []
+        lowercase = self._ett_args()
+        lowercase.dataset_id = "ettm1"
+        cases.append(lowercase)
+        parallel = self._ett_args()
+        parallel.task_mode = runner.PARALLEL_MULTIVARIATE
+        cases.append(parallel)
+        wrong_width = self._ett_args()
+        wrong_width.sonnet_d_model = 32
+        cases.append(wrong_width)
+        wrong_switch = self._ett_args(enabled=False)
+        wrong_switch.use_sonnet_mvca = True
+        cases.append(wrong_switch)
+        warm = self._ett_args()
+        warm.training_protocol_id = runner.T2_ADAPTER_TRAINING_PROTOCOL
+        cases.append(warm)
+        wrong_policy = self._ett_args()
+        wrong_policy.evaluation_policy = runner.TRAIN_VALIDATION_ONLY
+        cases.append(wrong_policy)
+        for args in cases:
+            with self.subTest(case=args):
+                with self.assertRaises((TypeError, ValueError)):
+                    runner.prepare_args(args)
+
+    def test_validation_only_runtime_never_constructs_test_dataset_or_loader(self):
+        args = runner.prepare_args(self._urban_args())
+        calls = []
+        original = runner.TemporalRegionDataset
+
+        def recording_dataset(*positional, **keywords):
+            calls.append(keywords["split"])
+            return original(*positional, **keywords)
+
+        generator = torch.Generator().manual_seed(args.seed)
+        with mock.patch.object(
+            runner, "TemporalRegionDataset", side_effect=recording_dataset
+        ):
+            runtime = runner._build_urbanev_runtime_data(args, generator)
+        self.assertEqual(calls, ["train", "validation"])
+        self.assertIsNone(runtime.test_data)
+        self.assertEqual(
+            runtime.evaluation_policy, runner.TRAIN_VALIDATION_ONLY
+        )
+        self.assertEqual(runtime.test_access_policy, "forbidden")
+        self.assertEqual(
+            set(runtime.preprocessing["split_identity"]),
+            {"train", "validation"},
+        )
+        self.assertEqual(
+            runtime.preprocessing["preprocessing_state"]["fit_scope"],
+            "current_fold_raw_train_time_slice_only",
+        )
+        self.assertEqual(runtime.preprocessing["fold"]["fold"], 6)
+        self.assertEqual(runtime.preprocessing["preset"], "F4")
+        self.assertEqual(
+            tuple(runtime.preprocessing["columns"]),
+            tuple(args.feature_names),
+        )
+
+    def test_resume_candidate_mismatch_is_rejected_before_deserialization(self):
+        args = runner.prepare_args(self._ett_args())
+        preprocessing = self._ett_preprocessing(args)
+        schema = runner._build_target_exogenous_schema_contract(
+            args, preprocessing
+        )
+        expected = runner._sonnet_candidate_contract(args)
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory) / "run"
+            run_dir.mkdir()
+            manifest = {
+                "schema_version": runner.SCHEMA_VERSION,
+                "artifact_schema_version": runner.ENHANCED_ARTIFACT_SCHEMA_VERSION,
+                "implementation_variant": runner.SONNET_IMPLEMENTATION_VARIANT,
+                "run_id": "run",
+                "status": "failed",
+                "artifact_dir": str(run_dir.resolve()),
+                "config_hash": "config",
+                "data_sha256": "data",
+                "target_exogenous_schema": schema,
+                "candidate_contract": {**expected, "seq_len": 12},
+            }
+            (run_dir / "manifest.json").write_text(
+                json.dumps(manifest), encoding="utf-8"
+            )
+            (run_dir / "config.resolved.json").write_text(
+                "{}", encoding="utf-8"
+            )
+            (run_dir / "last.pt").write_bytes(b"must-not-load")
+            with mock.patch.object(torch, "load") as load:
+                with self.assertRaisesRegex(
+                    RuntimeError, "candidate contract mismatch"
+                ):
+                    runner._load_resume_checkpoint(
+                        run_dir,
+                        "config",
+                        "data",
+                        10,
+                        implementation_variant=runner.SONNET_IMPLEMENTATION_VARIANT,
+                        target_exogenous_schema=schema,
+                        candidate_contract=expected,
+                    )
+                load.assert_not_called()
+
+    def test_validation_only_artifact_has_no_test_surface_and_is_summarizable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root = Path(directory) / "artifacts"
+            prepared = runner.prepare_args(
+                self._urban_args(artifact_root=artifact_root)
+            )
+            generator = torch.Generator().manual_seed(prepared.seed)
+            runtime = runner._build_urbanev_runtime_data(prepared, generator)
+            calls = {"validation": 0, "test": 0}
+
+            def fake_train(*unused, **keywords):
+                return {
+                    "mse": 0.5,
+                    "mae": 0.4,
+                    "num_elements": 1,
+                    "num_batches": 1,
+                    "objective_mean_batches": 0.5,
+                    "auxiliary_mean_batches": 0.0,
+                }
+
+            def fake_evaluate(model, data, *unused, **keywords):
+                if data is runtime.val_data:
+                    calls["validation"] += 1
+                else:
+                    calls["test"] += 1
+                    raise AssertionError("validation-only run reached test data")
+                return {
+                    "mse": 0.5,
+                    "mae": 0.4,
+                    "num_elements": 1,
+                    "num_batches": 1,
+                }
+
+            stable_git = {"commit": "test", "dirty": False, "status": []}
+            with mock.patch.object(
+                runner, "_build_runtime_data", return_value=runtime
+            ), mock.patch.object(
+                runner, "environment_metadata", return_value=_runtime_metadata()
+            ), mock.patch.object(
+                runner, "git_metadata", return_value=stable_git
+            ), mock.patch.object(
+                runner, "train_one_epoch", side_effect=fake_train
+            ), mock.patch.object(
+                runner, "evaluate", side_effect=fake_evaluate
+            ):
+                metrics = runner.main(
+                    self._urban_args(artifact_root=artifact_root)
+                )
+
+            self.assertGreater(calls["validation"], 0)
+            self.assertEqual(calls["test"], 0)
+            self.assertNotIn("test", metrics)
+            run_dirs = [
+                path.parent
+                for path in artifact_root.rglob("metrics.json")
+            ]
+            self.assertEqual(len(run_dirs), 1)
+            run_dir = run_dirs[0]
+            self.assertFalse(run_dir.name.startswith("."))
+            runner.verify_checksums(run_dir)
+            self.assertEqual(len(runner.ENHANCED_CHECKSUM_FILES), 13)
+            manifest = json.loads(
+                (run_dir / "manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertNotIn("test_mse", manifest)
+            self.assertNotIn("test_mae", manifest)
+            self.assertEqual(manifest["test_access_policy"], "forbidden")
+            for log_name in ("stdout.log", "stderr.log", "train.log"):
+                log_text = (run_dir / log_name).read_text(
+                    encoding="utf-8"
+                ).casefold()
+                self.assertNotIn("final test", log_text)
+                self.assertNotIn("test_mse", log_text)
+                self.assertNotIn("test_mae", log_text)
+            rows = summary.load_completed_runs(
+                artifact_root,
+                implementation_variant=runner.SONNET_IMPLEMENTATION_VARIANT,
+            )
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(
+                rows[0]["evaluation_policy"],
+                runner.TRAIN_VALIDATION_ONLY,
+            )
+            self.assertNotIn("test_mse", rows[0])
+            self.assertNotIn("test_mae", rows[0])
+
+
 if __name__ == "__main__":
     unittest.main()

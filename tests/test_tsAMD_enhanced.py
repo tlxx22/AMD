@@ -1119,5 +1119,258 @@ class AMDEnhancedM3Tests(unittest.TestCase):
             self.assertTrue(torch.equal(value, full.state_dict()[key]), key)
 
 
+class AMDEnhancedSonnetS2Tests(unittest.TestCase):
+    def _kwargs(self, *, enabled, norm=True, n_block=1, pred_len=1):
+        return {
+            "input_shape": (12, 11),
+            "pred_len": pred_len,
+            "n_block": n_block,
+            "dropout": 0.1,
+            "patch": 4,
+            "k": 1,
+            "c": 2,
+            "alpha": 0.0,
+            "target_slice": None,
+            "norm": norm,
+            "layernorm": True,
+            "target_idx": 0,
+            "teb_context_dim": 32,
+            "task_mode": TARGET_EXOGENOUS,
+            "aux_idx": tuple(range(1, 11)),
+            "use_sonnet_mvca": enabled,
+            "sonnet_feature_schema": (
+                "volume", "e_price", "s_price", "Ta", "P", "h",
+                "hour_sin", "hour_cos", "weekday_sin", "weekday_cos",
+                "is_weekend",
+            ),
+            "sonnet_schema_fingerprint": "sonnet-test-schema",
+            "module_init_seed": 2024,
+        }
+
+    def test_module_off_has_no_keys_and_exact_frozen_amd_parity(self):
+        base_kwargs = {
+            key: value
+            for key, value in self._kwargs(enabled=False).items()
+            if key in {
+                "input_shape", "pred_len", "n_block", "dropout", "patch",
+                "k", "c", "alpha", "norm", "layernorm",
+            }
+        }
+        torch.manual_seed(71)
+        base = AMD(**base_kwargs, target_slice=slice(0, 1)).eval()
+        control = AMDEnhanced(**self._kwargs(enabled=False)).eval()
+        result = control.load_state_dict(base.state_dict(), strict=True)
+        self.assertEqual(result.missing_keys, [])
+        self.assertEqual(result.unexpected_keys, [])
+        self.assertIsNone(control.sonnet_mvca)
+        self.assertFalse(
+            any(key.startswith("sonnet_mvca.") for key in control.state_dict())
+        )
+        x = torch.randn(3, 12, 11)
+        with torch.no_grad():
+            base_prediction, base_moe = base(x)
+            prediction, moe, state = control(x, return_state_source=True)
+        self.assertTrue(torch.equal(prediction, base_prediction))
+        self.assertTrue(torch.equal(moe, base_moe))
+        self.assertTrue(torch.equal(state[:, -32:], torch.zeros_like(state[:, -32:])))
+
+    def test_route_is_after_revin_before_mdm_and_reaches_ddi_and_ams(self):
+        class AddTarget(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.input = None
+
+            def forward(self, value):
+                self.input = value.detach().clone()
+                output = value.clone()
+                output[:, :, 0] = output[:, :, 0] + 3.0
+                return output
+
+        class RecordMDM(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.input = None
+
+            def forward(self, value):
+                self.input = value.detach().clone()
+                return value + 10.0
+
+        class RecordDDI(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.input = None
+
+            def forward(self, value):
+                self.input = value.detach().clone()
+                return value + 20.0
+
+        class RecordAMS(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.experts = None
+                self.selector = None
+
+            def forward(self, experts, selector):
+                self.experts = experts.detach().clone()
+                self.selector = selector.detach().clone()
+                return experts, experts.new_zeros(())
+
+        candidate = AMDEnhanced(
+            **self._kwargs(enabled=True, pred_len=12)
+        ).eval()
+        sonnet = AddTarget()
+        mdm = RecordMDM()
+        ddi = RecordDDI()
+        ams = RecordAMS()
+        candidate.sonnet_mvca = sonnet
+        candidate.pastmixing = mdm
+        candidate.fc_blocks = nn.ModuleList([ddi])
+        candidate.moe = ams
+
+        x = torch.randn(2, 12, 11)
+        mean = x.mean(dim=1, keepdim=True)
+        stdev = torch.sqrt(x.var(dim=1, keepdim=True, unbiased=False) + 1e-5)
+        normalized = (x - mean) / stdev
+        _, _, state = candidate(x, return_state_source=True)
+        self.assertTrue(torch.equal(sonnet.input, normalized))
+        enhanced_ch = normalized.transpose(1, 2).clone()
+        enhanced_ch[:, 0, :] += 3.0
+        self.assertTrue(torch.equal(mdm.input, enhanced_ch))
+        self.assertTrue(torch.equal(ddi.input, enhanced_ch + 10.0))
+        self.assertTrue(torch.equal(ams.selector, enhanced_ch + 10.0))
+        self.assertTrue(torch.equal(ams.experts, ddi.input + 20.0))
+        self.assertTrue(torch.equal(state[:, :12], ams.experts[:, 0]))
+        self.assertTrue(torch.equal(state[:, 12:24], ams.selector[:, 0]))
+        self.assertTrue(torch.equal(state[:, 24:], torch.zeros_like(state[:, 24:])))
+
+    def test_isolated_initialization_preserves_backbone_global_rng_and_first_batch(self):
+        original = _capture_torch_rng_state()
+        try:
+            torch.manual_seed(2024)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(2024)
+            initial = _capture_torch_rng_state()
+
+            _restore_torch_rng_state(initial)
+            control_generator = torch.Generator().manual_seed(2024)
+            control = AMDEnhanced(**self._kwargs(enabled=False))
+            control_after = _capture_torch_rng_state()
+            control_generator_state = control_generator.get_state().clone()
+
+            _restore_torch_rng_state(initial)
+            candidate_generator = torch.Generator().manual_seed(2024)
+            candidate = AMDEnhanced(**self._kwargs(enabled=True))
+            candidate_after = _capture_torch_rng_state()
+            candidate_generator_state = candidate_generator.get_state().clone()
+
+            control_common = control.state_dict()
+            candidate_common = {
+                key: value
+                for key, value in candidate.state_dict().items()
+                if not key.startswith("sonnet_mvca.")
+            }
+            self.assertEqual(control_common.keys(), candidate_common.keys())
+            for key in control_common:
+                self.assertTrue(
+                    torch.equal(control_common[key], candidate_common[key]), key
+                )
+            self.assertTrue(torch.equal(control_after["cpu"], candidate_after["cpu"]))
+            if control_after["cuda"] is not None:
+                self.assertEqual(
+                    len(control_after["cuda"]), len(candidate_after["cuda"])
+                )
+                for left, right in zip(
+                    control_after["cuda"], candidate_after["cuda"]
+                ):
+                    self.assertTrue(torch.equal(left, right))
+            self.assertTrue(
+                torch.equal(control_generator_state, candidate_generator_state)
+            )
+
+            data = torch.arange(80)
+            control_loader = torch.utils.data.DataLoader(
+                data,
+                batch_size=8,
+                shuffle=True,
+                generator=control_generator,
+            )
+            candidate_loader = torch.utils.data.DataLoader(
+                data,
+                batch_size=8,
+                shuffle=True,
+                generator=candidate_generator,
+            )
+            self.assertTrue(
+                torch.equal(next(iter(control_loader)), next(iter(candidate_loader)))
+            )
+        finally:
+            _restore_torch_rng_state(original)
+
+    def test_same_structure_restore_and_atomic_rejections(self):
+        torch.manual_seed(1)
+        source = AMDEnhanced(**self._kwargs(enabled=True))
+        torch.manual_seed(2)
+        target = AMDEnhanced(**self._kwargs(enabled=True))
+        result = target.load_state_dict(source.state_dict(), strict=True)
+        self.assertEqual(result.missing_keys, [])
+        self.assertEqual(result.unexpected_keys, [])
+        for key, value in source.state_dict().items():
+            self.assertTrue(torch.equal(value, target.state_dict()[key]), key)
+
+        cases = {}
+        partial = dict(source.state_dict())
+        partial.pop("sonnet_mvca.freq_params")
+        cases["partial"] = partial
+        wrong_dtype = dict(source.state_dict())
+        wrong_dtype["sonnet_mvca.freq_params"] = wrong_dtype[
+            "sonnet_mvca.freq_params"
+        ].double()
+        cases["dtype"] = wrong_dtype
+        unexpected = dict(source.state_dict())
+        unexpected["teb.unexpected"] = torch.ones(1)
+        cases["cross_source"] = unexpected
+        control = AMDEnhanced(**self._kwargs(enabled=False))
+        cases["control_candidate"] = dict(control.state_dict())
+
+        for name, state in cases.items():
+            with self.subTest(name=name):
+                before = {
+                    key: value.detach().clone()
+                    for key, value in target.state_dict().items()
+                }
+                with self.assertRaisesRegex(RuntimeError, "strict checkpoint"):
+                    target.load_state_dict(state, strict=True)
+                for key, value in before.items():
+                    self.assertTrue(torch.equal(value, target.state_dict()[key]), key)
+        with self.assertRaisesRegex(ValueError, "strict=True"):
+            target.load_state_dict(source.state_dict(), strict=False)
+        with self.assertRaisesRegex(RuntimeError, "forbids source import"):
+            target.load_enhancement_state_dict(
+                source.state_dict(), source_kind="baseline"
+            )
+
+    def test_parallel_f0_and_mixed_modules_are_rejected(self):
+        parallel = self._kwargs(enabled=True)
+        parallel.update({"task_mode": PARALLEL_MULTIVARIATE, "aux_idx": ()})
+        with self.assertRaisesRegex(ValueError, "target_exogenous"):
+            AMDEnhanced(**parallel)
+
+        f0 = self._kwargs(enabled=True)
+        f0.update({
+            "input_shape": (12, 1),
+            "aux_idx": (),
+            "sonnet_feature_schema": ("volume",),
+        })
+        with self.assertRaisesRegex(ValueError, "non-empty"):
+            AMDEnhanced(**f0)
+
+        for switch in ("use_cce", "use_pmcr", "use_teb"):
+            with self.subTest(switch=switch):
+                mixed = self._kwargs(enabled=True)
+                mixed[switch] = True
+                with self.assertRaisesRegex(ValueError, "requires CCE, PMCR, and TEB"):
+                    AMDEnhanced(**mixed)
+
+
 if __name__ == "__main__":
     unittest.main()

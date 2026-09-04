@@ -45,6 +45,10 @@ from models.modules.selective_patch_target_exogenous_bridge import (
     SELECTIVE_PATCH_V1,
     SelectivePatchTargetExogenousBridge,
 )
+from models.modules.sonnet_mvca_target_residual import (
+    PaperDefinedMVCA,
+    SonnetMVCATargetResidual,
+)
 from models.modules.target_exogenous_bridge import (
     PARALLEL_MULTIVARIATE,
     TARGET_EXOGENOUS,
@@ -87,6 +91,8 @@ __all__ = [
     "PATCH_GATE_INPUT_QUERY_AND_ATTENTION",
     "SELECTIVE_PATCH_V1",
     "SelectivePatchTargetExogenousBridge",
+    "PaperDefinedMVCA",
+    "SonnetMVCATargetResidual",
     "PARALLEL_MULTIVARIATE",
     "TARGET_EXOGENOUS",
     "TargetExogenousBridge",

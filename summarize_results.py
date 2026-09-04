@@ -27,6 +27,8 @@ from models.modules.cross_correlation_embedding import (
     SIGMOID_LOGIT_PLUS_RHO,
     ZERO_SAME,
 )
+from models.modules import sonnet_mvca_target_residual as sonnet_spec
+from utils.feature_schema import CANONICAL_FEATURE_NAMES
 
 IMPLEMENTATION_VARIANT = "AMD-paper-norm-wd-ddi-v1"
 ENHANCED_IMPLEMENTATION_VARIANT = "el-amd-pmcr-teb-v1"
@@ -35,6 +37,7 @@ T2G_IMPLEMENTATION_VARIANT = "el-amd-m4-t2g-global-mediated-patch-teb-v1"
 T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
+SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
@@ -43,6 +46,7 @@ SUPPORTED_IMPLEMENTATION_VARIANTS = (
     T3_IMPLEMENTATION_VARIANT,
     CCE_IMPLEMENTATION_VARIANT,
     LATE_CCE_IMPLEMENTATION_VARIANT,
+    SONNET_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
@@ -61,6 +65,12 @@ CCE_CANDIDATE_ABLATION_ID = "M4_CCE"
 LATE_CCE_DEVELOPMENT_PROTOCOL = "m4_crosslinear_late_cce_from_scratch_pair_v1"
 LATE_CCE_CONTROL_ABLATION_ID = "M4_LATE_CCE_CONTROL"
 LATE_CCE_CANDIDATE_ABLATION_ID = "M4_LATE_CCE"
+SONNET_DEVELOPMENT_PROTOCOL = sonnet_spec.SONNET_DEVELOPMENT_PROTOCOL_ID
+SONNET_CONTROL_ABLATION_ID = sonnet_spec.SONNET_CONTROL_ABLATION_ID
+SONNET_CANDIDATE_ABLATION_ID = sonnet_spec.SONNET_CANDIDATE_ABLATION_ID
+TRAIN_VALIDATION_TEST = "train_validation_test"
+TRAIN_VALIDATION_ONLY = "train_validation_only"
+M4_DEVELOPMENT_CANDIDATE = "m4_development_candidate"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -169,6 +179,20 @@ AGGREGATE_FIELDS = (
     "val_mse_mean", "val_mse_sample_std", "val_mae_mean", "val_mae_sample_std",
     "test_mse_mean", "test_mse_sample_std", "test_mae_mean", "test_mae_sample_std",
 )
+SONNET_TEST_RUN_FIELDS = RUN_FIELDS + (
+    "evaluation_policy", "artifact_purpose",
+)
+SONNET_VALIDATION_RUN_FIELDS = tuple(
+    field for field in SONNET_TEST_RUN_FIELDS
+    if field not in {"test_mse", "test_mae"}
+)
+SONNET_TEST_AGGREGATE_FIELDS = AGGREGATE_FIELDS + (
+    "evaluation_policy", "artifact_purpose",
+)
+SONNET_VALIDATION_AGGREGATE_FIELDS = tuple(
+    field for field in SONNET_TEST_AGGREGATE_FIELDS
+    if not field.startswith("test_")
+)
 
 
 def _read_json(path):
@@ -203,6 +227,13 @@ def _comparison_hash(resolved_config, path, train_epochs):
         del scientific["execution"]["seed"]
     except (KeyError, TypeError) as exc:
         raise ValueError(f"missing scientific_config.execution.seed in {path}") from exc
+    if scientific.get("implementation_variant") == SONNET_IMPLEMENTATION_VARIANT:
+        try:
+            del scientific["model"]["sonnet_mvca"]["module_init_seed"]["seed"]
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                f"missing Sonnet module initialization seed in {path}"
+            ) from exc
     protocol = scientific.get("training_protocol")
     protocol_id = (
         protocol.get("training_protocol_id")
@@ -401,6 +432,282 @@ def _validate_cce_variant_contract(
     }
 
 
+def _expected_sonnet_model_contract(dataset, execution, enabled):
+    d_model = sonnet_spec.SONNET_D_MODEL
+    n_atoms = sonnet_spec.SONNET_N_ATOMS
+    aux_idx = dataset["aux_idx"]
+    target_idx = dataset["target_idx"]
+    return {
+        "source": deepcopy(sonnet_spec.SONNET_SOURCE_IDENTITY),
+        "enabled": enabled,
+        "architecture_identity": sonnet_spec.SONNET_ARCHITECTURE_IDENTITY,
+        "input_identity": sonnet_spec.SONNET_INPUT_IDENTITY,
+        "insertion_identity": sonnet_spec.SONNET_INSERTION_IDENTITY,
+        "retained_components": list(sonnet_spec.SONNET_RETAINED_COMPONENTS),
+        "deleted_components": list(sonnet_spec.SONNET_DELETED_COMPONENTS),
+        "raw_source_order": {
+            "policy": sonnet_spec.SONNET_RAW_SOURCE_ORDER,
+            "indices": [*aux_idx, target_idx],
+            "target_position": "last",
+        },
+        "joint_embedding": {
+            "aux_input_dim": len(aux_idx),
+            "aux_output_dim": 32,
+            "target_input_dim": 1,
+            "target_output_dim": 32,
+            "d_model": d_model,
+            "alpha": sonnet_spec.SONNET_ALPHA,
+            "alpha_parameter_policy": "fixed_hyperparameter_not_nn_parameter",
+            "aux_bias": True,
+            "target_bias": True,
+            "latent_concat_order": sonnet_spec.SONNET_LATENT_CONCAT_ORDER,
+            "post_embedding_normalization": None,
+            "post_embedding_dropout": None,
+        },
+        "learnable_wavelet": {
+            "n_atoms": n_atoms,
+            "freq_params_shape": [d_model, n_atoms, 3],
+            "freq_params_initialization": "standard_normal",
+            "freq_params_constraint": "none",
+            "time_grid": sonnet_spec.SONNET_WAVELET_TIME_GRID,
+            "atom_formula": "exp(-w_alpha*t^2)*cos(w_beta*t+w_gamma*t^2)",
+            "projection": "elementwise_B_by_K_by_T_by_d",
+            "padding": None,
+            "crop": None,
+            "time_compression": None,
+        },
+        "mvca": {
+            "hidden_width": d_model,
+            "qkv": "single_linear_d_to_3d_bias_true",
+            "fft_operator": "torch.fft.rfft",
+            "fft_axis_policy": sonnet_spec.SONNET_FFT_AXIS_POLICY,
+            "cross_spectral_density": "mean_frequency_Qf_times_conj_Kf",
+            "power_spectral_density": "mean_frequency_self_product_real",
+            "epsilon": sonnet_spec.SONNET_EPSILON,
+            "denominator_policy": (
+                sonnet_spec.SONNET_COHERENCE_DENOMINATOR_POLICY
+            ),
+            "hard_clamp": False,
+            "scale_policy": sonnet_spec.SONNET_COHERENCE_SCALE_POLICY,
+            "softmax_axis_policy": sonnet_spec.SONNET_SOFTMAX_AXIS_POLICY,
+            "attention_dropout": sonnet_spec.SONNET_ATTENTION_DROPOUT,
+            "attention_dropout_position": "after_softmax",
+            "value_policy": sonnet_spec.SONNET_VALUE_POLICY,
+            "time_attention_matrix": False,
+            "time_reduction": False,
+            "residual_mlp": "linear_d_d_gelu_linear_d_d_all_bias_true",
+            "output_projection": "linear_d_d_bias_true_nonzero_default_init",
+            "var_attn_policy": sonnet_spec.SONNET_VAR_ATTN_POLICY,
+        },
+        "reconstruction": {
+            "policy": sonnet_spec.SONNET_RECONSTRUCTION_POLICY,
+            "output_shape": "B_by_T_by_d",
+            "koopman": False,
+        },
+        "readout": {
+            "policy": sonnet_spec.SONNET_READOUT_POLICY,
+            "shape": "linear_d_to_one_bias_true",
+            "weight_initialization": "xavier_uniform",
+            "bias_initialization": 0.0,
+        },
+        "residual": {
+            "policy": sonnet_spec.SONNET_RESIDUAL_POLICY,
+            "gamma_name": "gamma_sonnet",
+            "gamma_scope": "global_shared_scalar",
+            "gamma_constraint": "none",
+            "gamma_init": sonnet_spec.SONNET_GAMMA_INIT,
+            "writeback": "target_only",
+            "non_target_policy": "bitwise_unchanged",
+            "off_policy": "not_instantiated_exact_amd_identity",
+            "on_identity": "near_identity_not_exact_identity",
+        },
+        "normalization_policy": sonnet_spec.SONNET_NORMALIZATION_POLICY,
+        "state_context_policy": sonnet_spec.SONNET_STATE_CONTEXT_POLICY,
+        "module_init_seed": {
+            "policy": sonnet_spec.SONNET_MODULE_INIT_SEED_POLICY,
+            "seed": execution["seed"],
+        },
+    }
+
+
+def _validate_sonnet_variant_contract(scientific, run_dir):
+    model = scientific.get("model")
+    dataset = scientific.get("dataset")
+    experiment = scientific.get("experiment")
+    execution = scientific.get("execution")
+    optimization = scientific.get("optimization")
+    evaluation = scientific.get("evaluation")
+    training_protocol = scientific.get("training_protocol")
+    if not all(
+        isinstance(value, dict)
+        for value in (
+            model,
+            dataset,
+            experiment,
+            execution,
+            optimization,
+            evaluation,
+            training_protocol,
+        )
+    ):
+        raise ValueError(f"Sonnet scientific contract is incomplete: {run_dir}")
+
+    expected_training = {
+        "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+        "warm_start_contract_version": None,
+        "initialization_policy": "matched_standard_from_scratch",
+        "source_checkpoint": None,
+        "source_importer": None,
+        "optimizer_state_policy": "fresh",
+        "parameter_scope": "all_model_parameters_trainable",
+    }
+    if training_protocol != expected_training:
+        raise ValueError(f"Sonnet training protocol mismatch: {run_dir}")
+    if scientific.get("source_lineage") is not None or scientific.get(
+        "source_compatibility_proof"
+    ) is not None:
+        raise ValueError(f"Sonnet must not carry source checkpoint lineage: {run_dir}")
+
+    ablation_id = experiment.get("ablation_id")
+    if ablation_id not in {
+        SONNET_CONTROL_ABLATION_ID,
+        SONNET_CANDIDATE_ABLATION_ID,
+    }:
+        raise ValueError(f"Sonnet ablation identity mismatch: {run_dir}")
+    enabled = ablation_id == SONNET_CANDIDATE_ABLATION_ID
+    if (
+        experiment.get("development_protocol_id")
+        != SONNET_DEVELOPMENT_PROTOCOL
+        or experiment.get("artifact_purpose")
+        != M4_DEVELOPMENT_CANDIDATE
+    ):
+        raise ValueError(f"Sonnet development identity mismatch: {run_dir}")
+
+    dataset_id = dataset.get("id")
+    label_horizon = dataset.get("label_horizon")
+    if dataset_id == "ETTm1":
+        expected_policy = TRAIN_VALIDATION_TEST
+        expected_features = [
+            "HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"
+        ]
+        expected_dataset = {
+            "feature_type": "MS",
+            "target": "OT",
+            "target_feature_name": "OT",
+            "target_idx": 6,
+            "target_indices": [6],
+            "aux_idx": [0, 1, 2, 3, 4, 5],
+            "aux_feature_names": expected_features[:-1],
+            "feature_names": expected_features,
+            "feature_preset": None,
+            "fold": "official",
+            "model_pred_len": label_horizon,
+            "artifact_horizon": label_horizon,
+        }
+        if label_horizon not in {96, 192, 336, 720}:
+            raise ValueError(f"Sonnet ETTm1 horizon mismatch: {run_dir}")
+        expected_seq_len = 512
+        expected_pred_len = label_horizon
+        expected_batch = 32
+    elif dataset_id == "UrbanEV":
+        expected_policy = TRAIN_VALIDATION_ONLY
+        expected_features = list(CANONICAL_FEATURE_NAMES)
+        expected_dataset = {
+            "feature_type": "MS",
+            "target": "volume",
+            "target_feature_name": "volume",
+            "target_idx": 0,
+            "target_indices": [0],
+            "aux_idx": list(range(1, 11)),
+            "aux_feature_names": expected_features[1:],
+            "feature_names": expected_features,
+            "feature_preset": "F4",
+            "fold": 6,
+            "model_pred_len": 1,
+            "artifact_horizon": label_horizon,
+        }
+        if label_horizon not in {3, 6, 9, 12}:
+            raise ValueError(f"Sonnet UrbanEV horizon mismatch: {run_dir}")
+        expected_seq_len = 12
+        expected_pred_len = 1
+        expected_batch = 128
+    else:
+        raise ValueError(f"Sonnet dataset identity mismatch: {run_dir}")
+    dataset_mismatches = [
+        field
+        for field, expected in expected_dataset.items()
+        if dataset.get(field) != expected
+    ]
+    if dataset_mismatches:
+        raise ValueError(
+            f"Sonnet dataset contract mismatch {dataset_mismatches}: {run_dir}"
+        )
+    expected_evaluation = {
+        "evaluation_policy": expected_policy,
+        "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+        "test_access_policy": (
+            "forbidden"
+            if expected_policy == TRAIN_VALIDATION_ONLY
+            else "development_only"
+        ),
+    }
+    if (
+        evaluation != expected_evaluation
+        or experiment.get("evaluation_policy") != expected_policy
+    ):
+        raise ValueError(f"Sonnet evaluation contract mismatch: {run_dir}")
+    if (
+        execution.get("seed") != 2024
+        or model.get("seq_len") != expected_seq_len
+        or model.get("pred_len") != expected_pred_len
+        or model.get("model_pred_len") != expected_pred_len
+        or model.get("norm") is not True
+        or model.get("target_idx") != dataset["target_idx"]
+        or model.get("use_sonnet_mvca") is not enabled
+        or model.get("use_cce") is not False
+        or model.get("use_pmcr") is not False
+        or model.get("use_teb") is not False
+        or model.get("module_connection")
+        != (
+            "X->RevIN->SonnetTargetResidual?->MDM(U)->DDI; "
+            "AMS(experts=DDI,selector=U)"
+        )
+    ):
+        raise ValueError(f"Sonnet AMD route/switch contract mismatch: {run_dir}")
+    expected_optimization = {
+        "optimizer": "Adam",
+        "learning_rate": 3e-5,
+        "weight_decay": 1e-7,
+        "batch_size": expected_batch,
+        "train_drop_last": True,
+        "validation_drop_last": False,
+    }
+    if optimization != expected_optimization:
+        raise ValueError(f"Sonnet optimization contract mismatch: {run_dir}")
+
+    expected_sonnet = _expected_sonnet_model_contract(
+        dataset, execution, enabled
+    )
+    if model.get("sonnet_mvca") != expected_sonnet:
+        raise ValueError(f"Sonnet model/source contract mismatch: {run_dir}")
+    return {
+        "development_protocol_id": SONNET_DEVELOPMENT_PROTOCOL,
+        "ablation_id": ablation_id,
+        "architecture_identity": sonnet_spec.SONNET_ARCHITECTURE_IDENTITY,
+        "input_identity": sonnet_spec.SONNET_INPUT_IDENTITY,
+        "insertion_identity": sonnet_spec.SONNET_INSERTION_IDENTITY,
+        "task_mode": "target_exogenous",
+        "feature_names": expected_features,
+        "target_idx": dataset["target_idx"],
+        "aux_idx": dataset["aux_idx"],
+        "schema_fingerprint": dataset["schema_fingerprint"],
+        "seq_len": expected_seq_len,
+        "evaluation_policy": expected_policy,
+        "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+        "sonnet_mvca": expected_sonnet,
+    }
+
+
 def _validate_enhanced_variant_contract(scientific, implementation_variant, run_dir):
     """Keep legacy TEB, warm-start, and CCE artifact identities distinct."""
 
@@ -408,6 +715,8 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
     experiment = scientific.get("experiment")
     if not isinstance(model, dict) or not isinstance(experiment, dict):
         raise ValueError(f"enhanced variant contract is incomplete: {run_dir}")
+    if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        return _validate_sonnet_variant_contract(scientific, run_dir)
     if implementation_variant in {
         CCE_IMPLEMENTATION_VARIANT,
         LATE_CCE_IMPLEMENTATION_VARIANT,
@@ -740,15 +1049,37 @@ def _validate_warm_start_artifact(
         else STANDARD_TRAINING_PROTOCOL
     )
     if protocol_id == STANDARD_TRAINING_PROTOCOL:
-        expected_default = {
-            "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
-            "warm_start_contract_version": None,
-        }
+        if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            expected_default = {
+                "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+                "warm_start_contract_version": None,
+                "initialization_policy": "matched_standard_from_scratch",
+                "source_checkpoint": None,
+                "source_importer": None,
+                "optimizer_state_policy": "fresh",
+                "parameter_scope": "all_model_parameters_trainable",
+            }
+            if scientific_protocol != expected_default:
+                raise ValueError(
+                    f"Sonnet scientific training protocol mismatch: {run_dir}"
+                )
+        else:
+            expected_default = {
+                "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
+                "warm_start_contract_version": None,
+            }
         for label, document in (
             ("config", config), ("manifest", manifest), ("metrics", metrics)
         ):
             observed = document.get("training_protocol")
-            if observed is not None and observed != expected_default:
+            if (
+                implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+                and observed != expected_default
+            ) or (
+                implementation_variant != SONNET_IMPLEMENTATION_VARIANT
+                and observed is not None
+                and observed != expected_default
+            ):
                 raise ValueError(
                     f"standard artifact carries a warm-start protocol: {run_dir}"
                 )
@@ -1163,6 +1494,119 @@ def _validate_cce_checkpoints(
         raise ValueError(f"CCE manifest/checkpoint source contract mismatch: {run_dir}")
 
 
+def _validate_sonnet_checkpoints(scientific, config, manifest, metrics, run_dir):
+    """Validate sealed Sonnet checkpoint identity and exact module state scope."""
+
+    model = scientific["model"]
+    dataset = scientific["dataset"]
+    enabled = model["use_sonnet_mvca"]
+    aux_count = len(dataset["aux_idx"])
+    expected_shapes = (
+        {
+            "sonnet_mvca.gamma_sonnet": (),
+            "sonnet_mvca.freq_params": (64, 8, 3),
+            "sonnet_mvca.aux_embedding.weight": (32, aux_count),
+            "sonnet_mvca.aux_embedding.bias": (32,),
+            "sonnet_mvca.target_embedding.weight": (32, 1),
+            "sonnet_mvca.target_embedding.bias": (32,),
+            "sonnet_mvca.mvca.qkv_projection.weight": (192, 64),
+            "sonnet_mvca.mvca.qkv_projection.bias": (192,),
+            "sonnet_mvca.mvca.residual_mlp.0.weight": (64, 64),
+            "sonnet_mvca.mvca.residual_mlp.0.bias": (64,),
+            "sonnet_mvca.mvca.residual_mlp.2.weight": (64, 64),
+            "sonnet_mvca.mvca.residual_mlp.2.bias": (64,),
+            "sonnet_mvca.mvca.output_projection.weight": (64, 64),
+            "sonnet_mvca.mvca.output_projection.bias": (64,),
+            "sonnet_mvca.readout.weight": (1, 64),
+            "sonnet_mvca.readout.bias": (1,),
+        }
+        if enabled
+        else {}
+    )
+    expected_protocol = scientific["training_protocol"]
+    expected_evaluation = scientific["evaluation"]
+    try:
+        checkpoints = {
+            role: torch.load(Path(run_dir) / f"{role}.pt", map_location="cpu")
+            for role in ("best", "last")
+        }
+    except Exception as exc:
+        raise ValueError(f"cannot read Sonnet checkpoints: {run_dir}") from exc
+    for role, checkpoint in checkpoints.items():
+        if not isinstance(checkpoint, dict):
+            raise ValueError(
+                f"Sonnet {role} checkpoint must be a dictionary: {run_dir}"
+            )
+        resolved = checkpoint.get("resolved_config")
+        if (
+            checkpoint.get("schema_version") != SCHEMA_VERSION
+            or checkpoint.get("artifact_schema_version")
+            != ENHANCED_ARTIFACT_SCHEMA_VERSION
+            or checkpoint.get("implementation_variant")
+            != SONNET_IMPLEMENTATION_VARIANT
+            or checkpoint.get("config_hash") != metrics.get("config_hash")
+            or checkpoint.get("data_sha256") != metrics.get("data_sha256")
+            or checkpoint.get("evaluation_policy")
+            != expected_evaluation["evaluation_policy"]
+            or checkpoint.get("artifact_purpose")
+            != expected_evaluation["artifact_purpose"]
+            or checkpoint.get("training_protocol") != expected_protocol
+            or not isinstance(resolved, dict)
+            or resolved.get("config_hash") != metrics.get("config_hash")
+            or resolved.get("scientific_config") != scientific
+            or resolved.get("evaluation_policy")
+            != expected_evaluation["evaluation_policy"]
+            or resolved.get("artifact_purpose")
+            != expected_evaluation["artifact_purpose"]
+        ):
+            raise ValueError(
+                f"Sonnet {role} checkpoint scientific identity mismatch: {run_dir}"
+            )
+
+        states = [("model_state", checkpoint.get("model_state"))]
+        if role == "last":
+            states.append(
+                ("best_model_state", checkpoint.get("best_model_state"))
+            )
+        for state_name, state in states:
+            if not isinstance(state, dict):
+                raise ValueError(
+                    f"Sonnet {role} checkpoint has no {state_name}: {run_dir}"
+                )
+            sonnet_keys = {
+                key for key in state if key.startswith("sonnet_mvca.")
+            }
+            forbidden = sorted(
+                key
+                for key in state
+                if key.startswith(("teb.", "cce.", "pmcr.", "xlinear."))
+            )
+            if sonnet_keys != set(expected_shapes) or forbidden:
+                raise ValueError(
+                    f"Sonnet {role} {state_name} module key mismatch: "
+                    f"sonnet={sorted(sonnet_keys)}, forbidden={forbidden}: {run_dir}"
+                )
+            for key, shape in expected_shapes.items():
+                tensor = state[key]
+                if (
+                    not torch.is_tensor(tensor)
+                    or tuple(tensor.shape) != shape
+                    or tensor.dtype != torch.float32
+                    or not bool(torch.isfinite(tensor).all())
+                ):
+                    raise ValueError(
+                        f"Sonnet {role} {state_name} tensor mismatch "
+                        f"for {key}: {run_dir}"
+                    )
+    if (
+        manifest.get("candidate_contract", {}).get("sonnet_mvca")
+        != model.get("sonnet_mvca")
+    ):
+        raise ValueError(
+            f"Sonnet manifest/checkpoint source contract mismatch: {run_dir}"
+        )
+
+
 _TARGET_EXOGENOUS_SCHEMA_FIELDS = {
     "contract_version",
     "feature_type",
@@ -1503,6 +1947,96 @@ def _verify_enhanced_checksums(run_dir):
     return observed
 
 
+def _test_result_paths(document, *, allow_access_policy=False):
+    paths = []
+
+    def walk(value, prefix=()):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                current = (*prefix, str(key))
+                is_test_field = key == "test" or str(key).startswith("test_")
+                allowed = (
+                    allow_access_policy
+                    and not prefix
+                    and key == "test_access_policy"
+                )
+                if is_test_field and not allowed:
+                    paths.append(".".join(current))
+                walk(child, current)
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                walk(child, (*prefix, str(index)))
+
+    walk(document)
+    return paths
+
+
+def _validate_sonnet_evaluation_artifact(
+    scientific, config, manifest, metrics, run_dir
+):
+    evaluation = scientific.get("evaluation")
+    if not isinstance(evaluation, dict):
+        raise ValueError(f"Sonnet evaluation block is missing: {run_dir}")
+    policy = evaluation.get("evaluation_policy")
+    purpose = evaluation.get("artifact_purpose")
+    access = evaluation.get("test_access_policy")
+    if (
+        purpose != M4_DEVELOPMENT_CANDIDATE
+        or policy not in {TRAIN_VALIDATION_TEST, TRAIN_VALIDATION_ONLY}
+    ):
+        raise ValueError(f"Sonnet evaluation identity mismatch: {run_dir}")
+    if (
+        config.get("evaluation_policy") != policy
+        or config.get("artifact_purpose") != purpose
+        or manifest.get("evaluation_policy") != policy
+        or manifest.get("artifact_purpose") != purpose
+        or manifest.get("test_access_policy") != access
+        or metrics.get("evaluation_policy") != policy
+        or metrics.get("artifact_purpose") != purpose
+    ):
+        raise ValueError(
+            f"Sonnet evaluation metadata mismatch across artifact: {run_dir}"
+        )
+
+    if policy == TRAIN_VALIDATION_ONLY:
+        if access != "forbidden":
+            raise ValueError(
+                f"validation-only test access must be forbidden: {run_dir}"
+            )
+        metric_test_paths = _test_result_paths(metrics)
+        manifest_test_paths = _test_result_paths(
+            manifest, allow_access_policy=True
+        )
+        if metric_test_paths or manifest_test_paths:
+            raise ValueError(
+                "validation-only artifact contains test result fields "
+                f"metrics={metric_test_paths}, manifest={manifest_test_paths}: "
+                f"{run_dir}"
+            )
+        forbidden_log_markers = ("final test", "test_mse", "test_mae")
+        for name in ("stdout.log", "stderr.log", "train.log"):
+            text = (Path(run_dir) / name).read_text(
+                encoding="utf-8", errors="replace"
+            ).casefold()
+            if any(marker in text for marker in forbidden_log_markers):
+                raise ValueError(
+                    f"validation-only artifact log contains test output: "
+                    f"{name}: {run_dir}"
+                )
+    else:
+        if access != "development_only":
+            raise ValueError(
+                f"ETTm1 test access must be development_only: {run_dir}"
+            )
+        if not isinstance(metrics.get("test"), dict):
+            raise ValueError(f"test-inclusive metrics are missing: {run_dir}")
+        if "test_mse" not in manifest or "test_mae" not in manifest:
+            raise ValueError(
+                f"test-inclusive manifest metrics are missing: {run_dir}"
+            )
+    return policy
+
+
 def _enhanced_path_identity(variant_root, run_dir):
     relative = run_dir.relative_to(variant_root)
     parts = relative.parts
@@ -1640,6 +2174,13 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
                 f"expected {expected_candidate_contract!r}, "
                 f"got {observed_candidate_contract!r}: {run_dir}"
             )
+        evaluation_policy = (
+            _validate_sonnet_evaluation_artifact(
+                scientific, config, manifest, metrics, run_dir
+            )
+            if implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            else TRAIN_VALIDATION_TEST
+        )
         protocol_info = _validate_warm_start_artifact(
             scientific,
             config,
@@ -1659,6 +2200,10 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
                 manifest,
                 metrics,
                 run_dir,
+            )
+        elif implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            _validate_sonnet_checkpoints(
+                scientific, config, manifest, metrics, run_dir
             )
         expected_weight_decay = (
             0.0
@@ -1717,6 +2262,11 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
         ):
             raise ValueError(f"enhanced data fingerprint mismatch: {run_dir}")
         train_epochs = int(metrics.get("train_epochs", -1))
+        if (
+            implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            and train_epochs != 10
+        ):
+            raise ValueError(f"Sonnet train_epochs must equal 10: {run_dir}")
         best_epoch = int(metrics.get("best_epoch", -1))
         if protocol_info["warm_start"]:
             completed_epochs = protocol_info["completed_epochs"]
@@ -1742,20 +2292,34 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
                 )
 
         validation = metrics.get("best_validation")
-        test = metrics.get("test")
-        if not isinstance(validation, dict) or not isinstance(test, dict):
-            raise ValueError(f"enhanced validation/test metrics are missing: {run_dir}")
+        if not isinstance(validation, dict):
+            raise ValueError(f"enhanced validation metrics are missing: {run_dir}")
         val_mse = _finite_number(validation.get("mse"), f"{run_id} val_mse")
         val_mae = _finite_number(validation.get("mae"), f"{run_id} val_mae")
-        test_mse = _finite_number(test.get("mse"), f"{run_id} test_mse")
-        test_mae = _finite_number(test.get("mae"), f"{run_id} test_mae")
-        for field, observed, expected in (
-            ("best_validation_mse", manifest.get("best_validation_mse"), val_mse),
-            ("test_mse", manifest.get("test_mse"), test_mse),
-            ("test_mae", manifest.get("test_mae"), test_mae),
-        ):
-            if _finite_number(observed, f"{run_id} manifest {field}") != expected:
-                raise ValueError(f"enhanced manifest {field} mismatch: {run_dir}")
+        if _finite_number(
+            manifest.get("best_validation_mse"),
+            f"{run_id} manifest best_validation_mse",
+        ) != val_mse:
+            raise ValueError(
+                f"enhanced manifest best_validation_mse mismatch: {run_dir}"
+            )
+        test_mse = test_mae = None
+        if evaluation_policy == TRAIN_VALIDATION_TEST:
+            test = metrics.get("test")
+            if not isinstance(test, dict):
+                raise ValueError(f"enhanced test metrics are missing: {run_dir}")
+            test_mse = _finite_number(test.get("mse"), f"{run_id} test_mse")
+            test_mae = _finite_number(test.get("mae"), f"{run_id} test_mae")
+            for field, observed, expected in (
+                ("test_mse", manifest.get("test_mse"), test_mse),
+                ("test_mae", manifest.get("test_mae"), test_mae),
+            ):
+                if _finite_number(
+                    observed, f"{run_id} manifest {field}"
+                ) != expected:
+                    raise ValueError(
+                        f"enhanced manifest {field} mismatch: {run_dir}"
+                    )
 
         comparison_hash = _comparison_hash(config, config_path, train_epochs)
         duplicate_identity = (comparison_hash, int(identity["seed"]))
@@ -1765,7 +2329,7 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
                 "identity and seed; no run was selected automatically"
             )
         seen_scientific_seed.add(duplicate_identity)
-        rows.append({
+        row = {
             "implementation_variant": implementation_variant,
             "training_protocol_id": protocol_info["training_protocol_id"],
             "development_protocol_id": experiment.get("development_protocol_id"),
@@ -1783,8 +2347,6 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             "best_epoch": best_epoch,
             "val_mse": val_mse,
             "val_mae": val_mae,
-            "test_mse": test_mse,
-            "test_mae": test_mae,
             "parameter_count": int(metrics.get("parameter_count", -1)),
             "train_epochs": train_epochs,
             "duration_seconds": _finite_number(
@@ -1795,7 +2357,21 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             "data_sha256": data_sha256,
             "completed_at": str(metrics.get("completed_at")),
             "artifact_dir": str(run_dir),
-        })
+        }
+        if evaluation_policy == TRAIN_VALIDATION_TEST:
+            row.update({"test_mse": test_mse, "test_mae": test_mae})
+        if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+            row.update({
+                "evaluation_policy": evaluation_policy,
+                "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+            })
+        rows.append(row)
+    if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        policies = {row["evaluation_policy"] for row in rows}
+        if len(policies) > 1:
+            raise ValueError(
+                "Sonnet summarizer refuses mixed evaluation_policy artifacts"
+            )
     rows.sort(
         key=lambda item: (
             item["dataset_id"],
@@ -1873,9 +2449,16 @@ def aggregate_runs(rows):
 
         val_mse_mean, val_mse_std = mean_and_std("val_mse")
         val_mae_mean, val_mae_std = mean_and_std("val_mae")
-        test_mse_mean, test_mse_std = mean_and_std("test_mse")
-        test_mae_mean, test_mae_std = mean_and_std("test_mae")
-        aggregates.append({
+        policies = {
+            row.get("evaluation_policy", TRAIN_VALIDATION_TEST)
+            for row in group
+        }
+        if len(policies) != 1:
+            raise ValueError(
+                "one comparison group contains mixed evaluation_policy values"
+            )
+        evaluation_policy = next(iter(policies))
+        aggregate = {
             "implementation_variant": key[0],
             "training_protocol_id": training_protocol_id,
             "development_protocol_id": development_protocol_id,
@@ -1890,11 +2473,22 @@ def aggregate_runs(rows):
             "val_mse_sample_std": val_mse_std,
             "val_mae_mean": val_mae_mean,
             "val_mae_sample_std": val_mae_std,
-            "test_mse_mean": test_mse_mean,
-            "test_mse_sample_std": test_mse_std,
-            "test_mae_mean": test_mae_mean,
-            "test_mae_sample_std": test_mae_std,
-        })
+        }
+        if evaluation_policy == TRAIN_VALIDATION_TEST:
+            test_mse_mean, test_mse_std = mean_and_std("test_mse")
+            test_mae_mean, test_mae_std = mean_and_std("test_mae")
+            aggregate.update({
+                "test_mse_mean": test_mse_mean,
+                "test_mse_sample_std": test_mse_std,
+                "test_mae_mean": test_mae_mean,
+                "test_mae_sample_std": test_mae_std,
+            })
+        if key[0] == SONNET_IMPLEMENTATION_VARIANT:
+            aggregate.update({
+                "evaluation_policy": evaluation_policy,
+                "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+            })
+        aggregates.append(aggregate)
     return aggregates
 
 
@@ -1928,8 +2522,25 @@ def write_summaries(
     output_dir = Path(output_dir).resolve()
     run_path = output_dir / f"{implementation_variant}.csv"
     aggregate_path = output_dir / f"{implementation_variant}-aggregate.csv"
-    _atomic_write_csv(run_path, RUN_FIELDS, rows)
-    _atomic_write_csv(aggregate_path, AGGREGATE_FIELDS, aggregates)
+    run_fields = RUN_FIELDS
+    aggregate_fields = AGGREGATE_FIELDS
+    if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        policies = {row["evaluation_policy"] for row in rows}
+        if len(policies) > 1:
+            raise ValueError(
+                "Sonnet summarizer refuses mixed evaluation_policy artifacts"
+            )
+        policy = (
+            next(iter(policies)) if policies else TRAIN_VALIDATION_TEST
+        )
+        if policy == TRAIN_VALIDATION_ONLY:
+            run_fields = SONNET_VALIDATION_RUN_FIELDS
+            aggregate_fields = SONNET_VALIDATION_AGGREGATE_FIELDS
+        else:
+            run_fields = SONNET_TEST_RUN_FIELDS
+            aggregate_fields = SONNET_TEST_AGGREGATE_FIELDS
+    _atomic_write_csv(run_path, run_fields, rows)
+    _atomic_write_csv(aggregate_path, aggregate_fields, aggregates)
     return run_path, aggregate_path, len(rows), len(aggregates)
 
 
