@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十一轮，Sonnet/MVCA 来源继承与只读候选合同审计
+当前轮次：第二十二轮，Sonnet S2 精确合同闭环与 production capability
 
 canonical 内部版本：v2.1-R1
 
@@ -3408,3 +3408,125 @@ artifact继续使用现有schema-v2、固定13个payload文件、受控checksums
 该建议保持Sonnet spectral coherence的可归因来源边界，并把完整预测职责留给AMD。它不支持parallel_multivariate，不把ETTm1-only作为充分adequacy gate，建议在另行锁定合同后增加UrbanEV train/validation-only共同证据。state_source第三段继续为deterministic zero placeholder。
 
 仍待ChatGPT审核并在后续canonical精确合同中锁定的内容包括：paper/code concat order裁决、epsilon与dropout、d、K、alpha、gate/初始化的最终值、具体variant/ablation identity、ETTm1 OT任务合同、UrbanEV folds/presets、seed/epoch/budget/threshold与停止线。完成该闭环前不得实现、训练或启动实验；不得同时启动XLinear、PMCR/P2，不进入M5/M7。Sonnet/MVCA当前只是用户选定的下一来源候选，不是最终外生模块或最终EL-AMD。
+
+## 44. 第二十二轮 Stage A：Sonnet S2 精确合同闭环
+
+### 44.1 用户裁决、门禁与阶段边界
+
+用户已对第 43 节只读审计建议作出一次性确认。本轮将 Sonnet S2 从“来源候选/审计建议”推进为有精确身份、数学、任务、初始化和 development protocol 的 M4 development candidate；这不是最终外生模块、最终 EL-AMD 或 M5 冻结结构。第 43 节保留其发生时“尚未锁定”的历史语义，不回写为当时已确认。
+
+Stage A 起点门禁全部通过：AMD branch 为 `AMD-paper-repro-custom-modules-v1`，local/tracking/live remote 均为 `1b8b94bbc5f8983b1badd67b4406782bd1892c48`，ahead/behind=`0/0`，worktree/index/untracked=`clean/empty/none`；canonical 与本 milestone SHA-256 分别为 `ac788602c90a453bff4150ae620f1a6b24a9714c63d6e2f037cefe47dad1400e`、`e49d6f47cf2b39d520278d18bdf79046a3809fc0b721aee345da04791149eaa2`。baseline tag 仍为 `amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`；executable source fingerprint 仍为 `sha256_length_prefixed_relative_path_and_content_v1`、21 files、`adba794cdbc03b6d83a7c89f40d95bb5bf8163d2d32e23d530deff674e566005`。
+
+Sonnet PDF、官方仓库 remote/commit/clean 状态及五个核心 SHA 均再次通过第 43.2 节来源门禁。本项目依据论文公式和已审计行为独立实现，不复制缺少独立 LICENSE/COPYING/NOTICE 的 Sonnet 源文件。Stage A 只修改 canonical 与本唯一 M4 milestone 并先完成 docs-only Git closure；只有从该 clean、三端一致新 HEAD 才进入 Stage B。Stage B 只实现 production capability、永久回归与单批/显存探针，不运行完整 epoch、不发布 development artifact、不作 adequacy 判定。XLinear、PMCR/P2、M5/M7 和空间模块继续不启动。
+
+### 44.2 身份与唯一结构
+
+固定身份：
+
+```text
+implementation_variant = el-amd-m4-sonnet-mvca-wavelet-residual-v1
+control ablation_id = M4_SONNET_MVCA_CONTROL
+candidate ablation_id = M4_SONNET_MVCA
+architecture_identity = sonnet_inspired_joint_wavelet_mvca_target_residual_v1
+input_identity = amd_revin_normalized_target_exogenous
+insertion_identity = after_revin_before_mdm
+development_protocol_id = m4_sonnet_mvca_from_scratch_pair_v1
+```
+
+唯一结构固定为 `S2 + 插入点 A + target_exogenous only + matched standard from-scratch`：
+
+```text
+AMD RevIN
+-> Sonnet-inspired Joint Embedding
+-> Learnable Wavelet
+-> paper-defined MVCA
+-> no-Koopman atom reconstruction
+-> Linear(d,1) minimal readout
+-> target-only gated residual
+-> MDM -> DDI -> AMS
+```
+
+本身份仅属于 M4 development candidate。TimeXer Global/T2/T2G/T3/rescue 与 CrossLinear Early/Late CCE 继续作为失败历史路线；不得复用或重新定义它们的 variant/ablation identity。
+
+### 44.3 Joint embedding 与 learnable wavelet
+
+`z` 是 AMD RevIN 后的 `[B,T,C]`。按显式 `ordered_aux_idx` gather `X_aux`，按 `target_idx` gather唯一目标 `y`；raw source order 固定 `[ordered_aux_idx...,target_idx]`，目标最后。固定 `d=64`、`K=8`、`alpha=0.5`；alpha 是超参数而非 `nn.Parameter`：
+
+```text
+E_aux = Linear(C_aux,32,bias=True)(X_aux)
+E_target = Linear(1,32,bias=True)(y)
+E = concat([E_aux,E_target],dim=-1)
+```
+
+latent concat 采用论文 `[E_aux,E_target]`，明确拒绝官方代码的相反顺序。joint embedding 后无 normalization/dropout，且不添加第二套 RevIN/InstanceNorm/BatchNorm/LayerNorm。
+
+`freq_params=[64,8,3]`，standard-normal 初始化，无任何正值约束。每次 forward 以输入实际 T 生成包含端点的 `torch.linspace(0,1,T)`：
+
+```text
+M_k(t)=exp(-w_alpha,k*t^2)*cos(w_beta,k*t+w_gamma,k*t^2)
+P=E 与 M 逐元素相乘=[B,8,T,64]
+```
+
+不得使用 abs、softplus、clamp、padding、crop、传统系数求和或时间压缩；T=12 与 T=512 均按实际 grid 运行。
+
+### 44.4 paper-defined MVCA 与 no-Koopman reconstruction
+
+MVCA 只接受 `[B,8,T,64]`。使用带 bias 的 `Linear(64,192)` 产生 Q/K/V；`torch.fft.rfft` 固定沿 latent d 维。对每 atom/时间位置：
+
+```text
+P_qk=Q_f*conj(K_f)
+P_qq=Q_f*conj(Q_f)
+P_kk=K_f*conj(K_f)
+coherence=abs(mean_freq(P_qk))^2 /
+          (real(mean_freq(P_qq))*real(mean_freq(P_kk))+1e-6)
+A=Dropout(Softmax(coherence/sqrt(64),dim=T),p=0.1)
+weighted_v=A[...,None]*V
+```
+
+不得 hard clamp，不使用官方代码实际的乘 `sqrt(K)`，不形成 `T×T` matrix 或跨时间求和。每个 atom hidden 保留 `weighted_v + Linear(64,64)->GELU->Linear(64,64)`，再经 `Linear(64,64)` output projection；上述 Linear 均有 bias。删除 paper-undefined/scalar-trace `var_attn`，且不放入替代 variable-mixing parameter。
+
+不使用 Koopman。复用同一 atoms，`r=sum_k(mvca_output_k*atom_k)=[B,T,64]`；最小 readout `Linear(64,1,bias=True)` 的 weight 用 Xavier uniform、bias=0，得到 `delta=[B,T,1]`。共享无约束 scalar `gamma_sonnet` 初始化 `1e-3`，仅写回 `y+gamma_sonnet*delta`；所有非目标通道 bitwise 不变。candidate-on 是 near identity；不得令 gamma、readout weight 或 MVCA output projection 为零。module-off 不实例化、不调用、无 `sonnet_mvca.*` keys，相对冻结 AMD exact identity。
+
+明确删除：Sonnet RevIN、Koopman、decoder/forecasting head、multiblock/downsampling、horizon-dependent head、新 context pooling/head、附录 D.8 head-split 插件、官方 `var_attn` 与 parallel Sonnet 路径。
+
+### 44.5 AMD 路由、state 与任务拒绝
+
+forward 固定：
+
+```text
+x -> AMD RevIN -> normalized_input z
+  -> Sonnet? z_new -> transpose -> MDM u_mdm -> DDI v_ddi
+  -> PMCR?（本 variant 强制 off） -> v_local
+  -> AMS(experts=v_local, selector=u_mdm)
+  -> full-channel RevIN denorm -> target selection
+```
+
+该 variant 同时强制全部 TimeXer TEB 和 Early/Late CCE off；不得实现 Sonnet+PMCR。state 保持 `concat(v_final_target,u_mdm_target,deterministic_zero_placeholder)`，第三段宽度/dtype/device/全零语义不变；不得创建 Sonnet exo_context 或更改 M7 接口。
+
+只支持 `task_mode=target_exogenous`，必须拒绝 parallel_multivariate。target_idx 必须是范围内非 bool 整数；ordered aux 必须非空、无 bool、无重复、不含目标且范围合法；feature schema/名称/顺序必须一致。F0/空 aux 不支持。不得通过逐目标循环完整 AMD 偷换 many-to-many。
+
+### 44.6 初始化公平性、恢复与首步梯度
+
+control/candidate 使用同一主 seed，并先以相同顺序构造完整公共 AMD 主干。candidate 的 Sonnet 分支在隔离 RNG 上下文中以 `module_init_seed=run seed` 初始化，随后恢复全局 CPU/CUDA RNG；不得改变 train DataLoader generator 初态。永久测试须证明公共 AMD parameter/persistent buffer、CPU/CUDA RNG、train generator state 与首个 train batch逐元素一致。
+
+两者均 standard from-scratch、全部自身参数 trainable、fresh Adam；source checkpoint=null，不使用 baseline importer、warm-start 或 frozen adapter。resume 只允许 Sonnet variant、ablation、task/schema/order、T/d/K/alpha、全部 paper/code policy、evaluation policy 和 scientific config 完全相同的 `strict=True` 恢复。跨 TimeXer/CrossLinear/XLinear/Sonnet 其他结构、control/candidate、target/parallel、schema/order/T/d/K/alpha/policy不匹配，以及 partial `sonnet_mvca.*`、key/shape/dtype不匹配，必须在 `load_state_dict` 前拒绝并保证全部 parameter/persistent buffer 原子不变。
+
+在非退化 batch 上，`gamma=1e-3` 与非零 readout/output projection 应使 joint embedding、wavelet、Q/K/V、residual MLP、output projection、readout 和 gamma 在第一次 production backward 均获得 finite nonzero task gradient。永久负例必须证明 gamma=0 或 zero readout 会切断上游；不执行 optimizer step 也不锁定其他训练超参数。
+
+### 44.7 Development protocol 与停止线
+
+ETTm1 固定：OT target 6、aux 0--5、T=512、H 96/192/336/720、seed 2024、10 epochs、batch 32、Adam lr `3e-5`、weight decay `1e-7`、PMCR/旧外生模块 off；evaluation policy 为 `train_validation_test`，但 test 只属 development 且不得进入 M6 主表。
+
+UrbanEV 固定：F4/fold 6/history 12、label horizon 3/6/9/12、volume target 0、aux 1--10、seed 2024、10 epochs、batch 128、相同 Adam/lr/weight decay，PMCR/旧外生模块 off；evaluation policy 为 `train_validation_only`。必须从构造层禁止 test Dataset/DataLoader/evaluate/prediction/metric/log/manifest字段，不得把 validation 写成 test；完整数据文件只可参与 bytes fingerprint，并继续复用 M1 fold/split/train-only scaler。
+
+UrbanEV 主门禁：validation MSE macro < control；MAE macro <= control；至少 3/4 horizon MSE 改善；改善不由单一 horizon 驱动；full precision 非相等/舍入伪差。ETTm1 安全门禁：validation MSE macro 退化 <=0.5%；development test MSE/MAE macro 各退化 <=0.5%；任一 horizon test MSE 退化 <=1.0%。positive signal 仅在两组门禁均通过时成立；任一失败立即按预登记停止，不自动调任何合同值，也不自动转向下一候选或 milestone。
+
+本轮只实现和探测，不运行上述 10-epoch protocol，不生成性能 artifact，不作 gate 判定。
+
+### 44.8 Artifact、summarizer 与测试预登记
+
+未来 ETTm1/UrbanEV roots 分别为 `artifacts/m4-development/ettm1-stage-i-sonnet-mvca-v1` 与 `artifacts/m4-development/urbanev-stage-i-sonnet-mvca-v1`。继续 schema-v2、13-file payload、checksum、hidden staging 与 atomic publication，并新增 `evaluation_policy` 和 `artifact_purpose=m4_development_candidate`。`train_validation_only` 的 `metrics.json` 不得含 `test` key，manifest 不得含 `test_mse`、`test_mae` 或其他 test result 字段，但必须固定 `test_access_policy=forbidden`；RuntimeData不得持有可遍历test loader；summarizer进入独立 validation-only branch并拒绝混合 policy。既有 test-inclusive schema-v2 不得降低或重定义。
+
+source paper/repo/commit/PDF/core SHA、license-text-missing、retained/deleted components、raw/latent order、d/K/alpha/epsilon/dropout/gamma、FFT/denominator/scale/softmax/var_attn/reconstruction/readout/init、input/insertion/task/schema/evaluation/module-seed policy必须进入 resolved/scientific/comparison config、checkpoint、manifest、resume和summarizer expected contract。
+
+Stage B 永久测试按用户锁定九组覆盖 joint embedding、wavelet、MVCA、target residual、首步梯度及切断负例、AMD 路由/off parity、RNG与首 batch parity、strict checkpoint/config/schema-v2 artifact/summarizer以及 UrbanEV test 构造/访问计数为零。所有新增测试均登记为 `permanent_regression_test`，不删除既有测试。单批 probe 只可写入 `/tmp` 并在结束时精确删除。
