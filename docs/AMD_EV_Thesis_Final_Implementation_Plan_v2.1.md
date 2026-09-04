@@ -17,7 +17,7 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 论文语义审计锚点：AMD-paper-norm-wd-ddi-v1 @ 5a718d5
 开发分支：AMD-paper-repro-custom-modules-v1
 M3 工程候选时间 variant：el-amd-pmcr-teb-v1
-M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已触发有限开发停止线；当前无已选定替代来源，下一来源等待用户确认
+M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已触发有限开发停止线；用户已选择 Sonnet / Multivariable Coherence Attention（MVCA）作为当前下一外生来源候选，具体实现合同仍待审核闭环
 时空模型 variant：st-el-amd-hst-sadr-sc-simgca-v1
 ```
 
@@ -64,9 +64,9 @@ M13：终稿审校、复现材料与答辩
 
 M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭环，不表示 PMCR 或 TEB 已通过最终性能验收。PMCR v1 与 Global TEB v1 均为可追溯工程候选；`el-amd-pmcr-teb-v1` 是 M3 时点的工程组合 variant，不是最终冻结模型。TimeXer-inspired Global/T2/T2G/T3 与 warm-start adapter rescue 的实现、artifact 和诊断继续作为失败路线及历史工程证据保留，不删除、不改写，也不得再称为当前领先外生候选。
 
-M4 只处理第三章时间模块诊断与候选迭代。第十七轮已按预登记停止线确认当前 TimeXer-inspired TEB 路线在 M4 有限开发中失败；第十九轮 Early CCE 与第二十轮 Late CCE 又均未通过既定 development adequacy gate，因此当前 CrossLinear-inspired CCE 路线也已在 M4 有限开发中失败。两条来源路线的实现、永久测试、artifact 与诊断仅作为历史工程和负向 development 证据保留；当前没有已选定的外生模块 leading/current candidate。下一外生模块来源必须由用户明确确认并先同步更新 canonical，之后才能实现。最终时间结构与正式 variant 仍只能在 M5 依据训练/验证证据冻结。
+M4 只处理第三章时间模块诊断与候选迭代。第十七轮已按预登记停止线确认 TimeXer-inspired TEB 路线在 M4 有限开发中失败；第十九轮 Early CCE 与第二十轮 Late CCE 又均未通过既定 development adequacy gate，因此 CrossLinear-inspired CCE 路线也已在 M4 有限开发中失败。两条来源路线的实现、永久测试、artifact 与诊断仅作为历史工程和负向 development 证据保留。用户现已明确选择 Sonnet 作为当前下一外生来源候选，重点组件为 Multivariable Coherence Attention（MVCA）；该选择只锁定来源身份，不把 Sonnet/MVCA 称为最终外生模块、最终 EL-AMD 或 M5 冻结结构。最终时间结构与正式 variant 仍只能在 M5 依据训练/验证证据冻结。
 
-M4 继续保持 In Progress。在用户确认下一来源并更新 canonical 前，不得自动转向 Sonnet/XLinear，不得启动 PMCR/P2、进入 M5/M7 或实现任何空间模块，也不得以 PMCR 潜在收益掩盖外生模块证据。科学合同一经用户锁定且前置 implementation closure 完成，ChatGPT 可以直接下发合同内的普通实现、测试和预登记实验，无需逐轮重复授权。只有改变结构、来源、超参数、预算、停止线、test 边界，启动新候选或进入下一 milestone 时，才需要用户重新决定。
+M4 继续保持 In Progress。Sonnet/MVCA 的具体保留范围、插入点、训练协议与 implementation variant 仍须依据第二十一轮只读审计接受 ChatGPT 审核，并在后续 canonical 精确合同闭环后方可实现；XLinear 尚未被选择，本轮不得同时启动。不得启动 PMCR/P2、进入 M5/M7 或实现任何空间模块，也不得以 PMCR 潜在收益掩盖外生模块证据。科学合同一经用户锁定且前置 implementation closure 完成，ChatGPT 可以直接下发合同内的普通实现、测试和预登记实验，无需逐轮重复授权。只有改变结构、来源、超参数、预算、停止线、test 边界，启动新候选或进入下一 milestone 时，才需要用户重新决定。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -111,7 +111,7 @@ RevIN -> CCE -> MDM -> DDI -> PMCR? -> AMS
 RevIN -> MDM -> DDI -> PMCR? -> Late CCE -> AMS
 ```
 
-Early CCE 与 Late CCE 均未通过 M4 development adequacy gate；上述路由只保留为历史实现和负向 development 证据，不构成现行锁定方案。当前没有已选定的外生模块候选，下一外生模块来源等待用户明确确认并更新 canonical。
+Early CCE 与 Late CCE 均未通过 M4 development adequacy gate；上述路由只保留为历史实现和负向 development 证据，不构成现行锁定方案。用户已选择 Sonnet/MVCA 作为当前下一来源候选，XLinear 尚未被选择；Sonnet/MVCA 的精确实现合同尚未锁定。
 
 M3 时点工程组合：
 
@@ -130,10 +130,12 @@ EL-AMD 名称继续作为第三章增强时间模型的项目名称（模型族�
   - 删除与 AMD-DDI 重复的 ConvFFN2 跨变量分支；
   - 改成只补偿局部时间细节的单块轻量旁路。
 
-- **外生模块：来源待用户确认**
-  - 必须来自近三年正式论文，并经过明确修改与验证；
-  - 来源须由用户明确确认并先同步更新 canonical，之后才能实现；
-  - 不预先填写 Sonnet、XLinear 或其他具体来源。
+- **外生模块当前来源候选：Sonnet / MVCA**
+  - 来源：Sonnet，AAAI 2026；当前重点组件为 Multivariable Coherence Attention；
+  - 用户已明确完成来源选择，但该候选尚不是最终外生模块或最终 EL-AMD；
+  - 第二十一轮只读审计只形成候选边界建议，具体保留范围、插入点、训练协议、implementation variant 及其数值配置仍须 ChatGPT 审核并在后续 canonical 精确合同中锁定，闭环前不得实现；
+  - XLinear 尚未被选择，本轮不得同时启动；
+  - TimeXer 与 CrossLinear 继续作为失败历史路线保留，不删除、不覆盖、不重新定义。
 
 TimeXer-inspired TEB 与 CrossLinear-inspired CCE 的来源边界、实现和失败证据保留在第 7、7A、7B 节与 M4 milestone 中，仅作历史工程及负向 development 证据，不占用当前外生模块候选身份。其中历史 CCE 仅借鉴 CrossLinear（KDD 2025）的单层一维跨变量卷积嵌入，并分别形成 RevIN 后、MDM 前的 Early identity-residual delta 与 post-PMCR/pre-AMS 的 Late hidden-state adaptation；均不复制 CrossLinear 的第二套 normalization、patch embedding、positional embedding 或 forecasting head。
 
@@ -194,7 +196,7 @@ SC-SimGCA residual       SC-SimGCA residual
 | 时间基准 | Adaptive Multi-Scale Decomposition Framework for Time Series Forecasting | AAAI 2025 | 完整 MDM + DDI + AMS |
 | 时间模块 T1（失败历史路线） | TimeXer: Empowering Transformers for Time Series Forecasting with Exogenous Variables | NeurIPS 2024 | Global/T2/T2G/T3/rescue 的来源边界与失败工程证据，不是当前候选 |
 | 时间模块 T1（失败历史替代路线） | CrossLinear: Plug-and-Play Cross-Correlation Embedding for Time Series Forecasting with Exogenous Variables | KDD 2025 | Early/Late Cross-Correlation Embedding 的来源边界、实现与负向 development 证据；不复制 normalization、patch、PE、head |
-| 时间模块 T1 下一来源 | 待用户确认 | 待用户确认 | 必须来自近三年正式论文并经过修改验证；确认并更新 canonical 前不得实现 |
+| 时间模块 T1 当前来源候选（待精确合同闭环） | Sonnet: Spectral Operator Neural Network for Multivariable Time Series Forecasting | AAAI 2026 | 用户已选择 Sonnet，当前重点为 MVCA；具体保留范围、插入点、训练协议与 variant 仍待审计记录和 ChatGPT 审核，不是最终外生模块 |
 | 时间模块 T2 | ModernTCN: A Modern Pure Convolution Structure for General Time Series Analysis | ICLR 2024 Spotlight | Reparam large/small DWConv、ConvFFN1、residual |
 | 空间基准 | Predicting Electric Vehicle Charging Demand Using a Heterogeneous Spatio-Temporal Graph Convolutional Network | TR-C 2023 | Geographic Graph + DTW Demand Graph + heterogeneous fusion |
 | 空间模块 S1 | An Adaptive Spatio-Temporal Graph Recurrent Network for Short-Term Electric Vehicle Charging Demand Prediction | Applied Energy 383 (2025) 125320 | 动态 embedding、embedding projection、相似度图 |
@@ -1510,7 +1512,7 @@ importer 在写参前必须校验完整 key set、shape、dtype、task mode、C�
 
 零 delta 初始化时任务损失对 `rho` 的第一次 backward 梯度为零，这是乘法结构的预期；由于 effective lambda 初始非零，forecast-connected delta weights（包括 target 模式的 auxiliary taps）在非退化真实 batch 上必须获得 finite nonzero gradient，公共 AMD gradient 必须与 matched CCE-off control 严格相等。第一次 optimizer step 后公共 AMD 参数须与 matched control 严格相等，delta 参数移动，`rho` 不得因 task gradient或 weight decay 漂移；构造 synthetic 非零 delta 后，第二次 backward 必须证明 `rho` 可获得 finite nonzero gradient。
 
-Early CCE 未通过 M4 adequacy gate，后续 Late CCE 也按第 7B.4 节结果失败，因此当前 CrossLinear-inspired CCE 路线已触发有限开发停止线。capability、smoke 与 development 结果均不得称为最终外生模块、最终 EL-AMD 或正式论文性能。当前没有已选定的外生模块候选；下一来源必须等待用户明确确认并更新 canonical，在此之前不得自行调参、转向其他来源、启动 PMCR/P2、进入 M5/M7 或实现空间模块。
+Early CCE 未通过 M4 adequacy gate，后续 Late CCE 也按第 7B.4 节结果失败，因此当前 CrossLinear-inspired CCE 路线已触发有限开发停止线。capability、smoke 与 development 结果均不得称为最终外生模块、最终 EL-AMD 或正式论文性能。用户随后已明确选择 Sonnet/MVCA 作为当前下一来源候选；该选择不恢复 CCE，也不授权实现 Sonnet、启动 XLinear、PMCR/P2、M5/M7 或空间模块，精确合同须经第二十一轮审计与 ChatGPT 审核后另行闭环。
 
 # 7B. CrossLinear-inspired CCE 历史候选与失败证据（Late CCE）
 
@@ -1615,7 +1617,7 @@ ETTm1 结果只用于 development，不是正式论文结果。matched-control �
 
 > 当前 CrossLinear-inspired CCE 路线在 M4 有限开发中失败。
 
-Early 与 Late CCE 的工程实现、永久测试和 development artifact 作为可复核负向证据保留，但不升级为最终外生模块、最终 EL-AMD 或 M5 冻结结构。不得自动调 kernel/lambda/gate、再换 CCE 插入位置、转向 Sonnet/XLinear、启动 PMCR/P2 或进入 M5；下一外生模块来源须由用户明确确认并先更新 canonical，之后才能实现。M4 继续保持 In Progress。
+Early 与 Late CCE 的工程实现、永久测试和 development artifact 作为可复核负向证据保留，但不升级为最终外生模块、最终 EL-AMD 或 M5 冻结结构。不得继续调 kernel/lambda/gate 或再换 CCE 插入位置。用户随后已明确选择 Sonnet/MVCA 作为当前下一来源候选，XLinear 尚未被选择；Sonnet/MVCA 的具体范围、插入点、训练协议与 variant 仍待审核和后续 canonical 精确合同闭环，在此之前不得实现，也不得启动 PMCR/P2 或进入 M5。M4 继续保持 In Progress。
 
 # 8. 历史 M3 与历史 CCE 候选的 forward / 时间状态接口
 
@@ -2319,7 +2321,7 @@ tests/
 | M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
-| M4 | 时间模块诊断与候选迭代 | 保留 TimeXer 与 CrossLinear 路线的失败证据；下一外生来源等待用户确认并更新 canonical，在此之前不解锁 PMCR/P2/M5 |
+| M4 | 时间模块诊断与候选迭代 | 保留 TimeXer 与 CrossLinear 路线的失败证据；Sonnet/MVCA 已由用户选为当前下一来源候选，精确合同仍待审核闭环；XLinear 未选择，不解锁 PMCR/P2/M5 |
 | M5 | 模型筛选与结构冻结 | 公平多数据集、多 seed 验证；锁定 practical-effect threshold、最终时间结构与正式 variant |
 | M6 | 第三章正式实验与定稿 | 结构冻结后运行正式 test；完成主表、消融、效率与第三章定稿 |
 | M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
@@ -2374,8 +2376,9 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 
 | 模块 | M4 诊断与候选边界 | 保留来源的备选实现 | 最终仍失败时 |
 |---|---|---|---|
-| TimeXer-inspired TEB（失败历史路线） | Global/T2/T2G/T3/rescue 的 artifact、实现与诊断保持可追溯；第十七轮已触发停止线 | 不再继续 T4/T5/T6、patch/gate/beta 调参或新 TimeXer-derived TEB | 后续 CrossLinear 路线也已失败；下一外生模块来源等待用户明确确认并更新 canonical |
-| CrossLinear-inspired CCE（失败历史路线） | Early（RevIN 后、MDM 前）与 Late（post-PMCR/pre-AMS）实现、artifact 和诊断保持可追溯；两者均未通过 M4 adequacy gate | 不再调 kernel/lambda/gate、增加插入位置或自动转向 Sonnet/XLinear | 当前路线已触发有限开发停止线；下一外生模块来源等待用户明确确认并更新 canonical |
+| TimeXer-inspired TEB（失败历史路线） | Global/T2/T2G/T3/rescue 的 artifact、实现与诊断保持可追溯；第十七轮已触发停止线 | 不再继续 T4/T5/T6、patch/gate/beta 调参或新 TimeXer-derived TEB | 后续 CrossLinear 路线也已失败；当前下一来源候选已转为 Sonnet/MVCA |
+| CrossLinear-inspired CCE（失败历史路线） | Early（RevIN 后、MDM 前）与 Late（post-PMCR/pre-AMS）实现、artifact 和诊断保持可追溯；两者均未通过 M4 adequacy gate | 不再调 kernel/lambda/gate 或增加插入位置 | 当前路线已触发有限开发停止线；当前下一来源候选已转为 Sonnet/MVCA |
+| Sonnet/MVCA（当前来源候选，精确合同待闭环） | 用户已选择来源与重点组件；第二十一轮只读审计形成最小可归因候选建议 | 具体保留范围、插入点、训练协议、variant 与数值配置须经 ChatGPT 审核和后续 canonical 精确合同锁定 | 未通过实现与 development 证据前不得称为最终外生模块或最终 EL-AMD；XLinear 不同时启动 |
 | PMCR | M4 只诊断 kernel、hidden、作用范围与 residual；任何参数或结构候选须经用户确认 | 可评估保留 Reparam DWConv + ConvFFN1 来源边界的候选；不得预先选定 | 更换另一篇近三年局部时间模块 |
 | SADR | b_lambda 更负；k/d_a；正则 | ASTGRN global adaptive graph 与 DTW 的残差融合 | 更换另一篇近三年空间图模块；退回静态双图只算排障结果 |
 | SC-SimGCA | rho 初始化；层数；SimAM lambda | 保留 G-STAN 层融合，移除 Graph-SimAM，改名 SC-GCF | 若仍失败，更换另一篇近三年空间传播模块 |
@@ -2432,7 +2435,7 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 ```text
 第三章：AMD
   + ModernTCN-inspired PMCR
-  + 待用户确认的下一外生模块来源候选
+  + Sonnet/MVCA 当前来源候选（精确合同待审核闭环）
 （TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均作为失败历史证据保留；最终内部结构仍只由 M5 冻结）
 数据：UrbanEV + EPF-PJM + ETTh1 + Weather + ECL + Exchange
 

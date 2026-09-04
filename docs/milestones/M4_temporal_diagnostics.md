@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十轮，CrossLinear-inspired Late CCE production capability 与 paired development 实验
+当前轮次：第二十一轮，Sonnet/MVCA 来源继承与只读候选合同审计
 
 canonical 内部版本：v2.1-R1
 
@@ -3064,3 +3064,347 @@ Early/Late CCE implementation、永久测试与 artifact 均作为历史工程�
 ### 42.8 实验后文件与测试边界
 
 implementation code/tests 与 commit `43403f6c7f38b06a6cb5b62eb6f554c9ac215c9b` 完全一致。实验后只修改 canonical 与本唯一 M4 milestone 以登记结果，index 保持 empty，不对结果文档执行 commit/push；M0--M3、`models/tsAMD.py`、DataLoader、PMCR/旧 TEB、数据与既有 Early CCE artifact 均未修改。`tests/test_cross_correlation_embedding.py` 与 `tests/test_runner.py` 是随 implementation commit 保留的 permanent regression tests；未删除或清理任何既有测试。一次性 probe/聚合/诊断内容仅在 `/tmp` 或进程内存中，结束前全部删除；production artifacts 不上传 ChatGPT Project。
+
+## 43. 第二十一轮：Sonnet/MVCA 来源继承与只读候选合同审计
+
+### 43.1 本轮性质、继承门禁与只读范围
+
+本轮是同一 M4 milestone 内的新服务器 Codex 会话，不创建第二份 milestone，不创建状态摘要，不改变 M4 的 In Progress 状态。用户已明确选择 Sonnet / Multivariable Coherence Attention（MVCA）作为当前下一外生来源候选；XLinear 未被选择且本轮未启动。TimeXer-inspired Global/T2/T2G/T3、warm-start adapter rescue，以及 CrossLinear-inspired Early/Late CCE 的失败结论、实现、永久测试和 artifact 均原样继承为历史工程与负向证据；PMCR v1 仍只是 M2 工程候选。
+
+任何读取或文档修改前完成 Git 继承门禁，结果如下：
+
+| 门禁 | 实际结果 | 判定 |
+|---|---|---|
+| branch | AMD-paper-repro-custom-modules-v1 | Passed |
+| HEAD | 96faf56c9f8db8509cae0c6e0a36be0301715b3e | Passed |
+| HEAD parent | 43403f6c7f38b06a6cb5b62eb6f554c9ac215c9b | Passed |
+| HEAD title | docs(m4): close CrossLinear route and clear current candidate | Passed |
+| HEAD 提交文件 | 仅 canonical 与本唯一 M4 milestone | Passed |
+| canonical 门禁 SHA-256 | c17b04b9429e88cd08643da01415f8877f1689c24eea95b7bda76b9d57c56181 | Passed |
+| M4 门禁 SHA-256 | d9a699bdb3fabe2573a904f840d3ff25f60cccbebfe05079e08e96ae5f466bda | Passed |
+| local / tracking / live remote HEAD | 三者均为 96faf56c9f8db8509cae0c6e0a36be0301715b3e | Passed |
+| ahead / behind | 0 / 0 | Passed |
+| worktree / index / untracked | clean / empty / empty | Passed |
+| baseline tag | amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6 | Passed |
+| executable source fingerprint | sha256_length_prefixed_relative_path_and_content_v1；21 files；adba794cdbc03b6d83a7c89f40d95bb5bf8163d2d32e23d530deff674e566005 | Passed |
+
+权威资料严格按用户顺序读取：canonical、本 M4、M3、M2、Sonnet 正式论文、官方代码、当前 AMD 六个指定源文件，以及 TimeXer、T2/T2G/T3、Early/Late CCE 和相关永久测试。docs/archive 未作为当前实现依据。本轮没有运行模型 forward/backward、训练、评价或测试，没有创建实验 artifact，没有修改源码、测试、数据、M0--M3，也没有执行 Git closure。
+
+### 43.2 Sonnet 来源身份与可追溯证据
+
+论文身份：
+
+| 字段 | 核验结果 |
+|---|---|
+| 正式标题 | Sonnet: Spectral Operator Neural Network for Multivariable Time Series Forecasting |
+| 作者 | Yuxuan Shu；Vasileios Lampos |
+| 会议与年份 | AAAI Conference on Artificial Intelligence，Vol. 40 No. 30，2026，25419--25427 |
+| DOI | 10.1609/aaai.v40i30.39736 |
+| 本地 PDF | /public/home/yueweiting/大论文/paper/Sonnet_ Spectral Operator Neural Network for Multivariable Time Series Forecasting.pdf |
+| PDF size | 165398 bytes |
+| PDF SHA-256 | b076e6fed68448d3c3382c96f6f6985a988ea019ef3c470353780385c4011079 |
+| 官方论文页 | https://ojs.aaai.org/index.php/AAAI/article/view/39736 |
+| 作者扩展版 | https://arxiv.org/abs/2505.15312 |
+
+官方代码身份：
+
+| 字段 | 核验结果 |
+|---|---|
+| 本地绝对路径 | /public/home/yueweiting/大论文/Sonnet |
+| 官方 URL | https://github.com/ClaudiaShu/Sonnet |
+| fetch / push remote | https://github.com/ClaudiaShu/Sonnet.git |
+| branch / tracking | main / origin/main |
+| local commit | bf3d4801d34c5e7261718490f287c6fb15cadfdb |
+| live remote main | bf3d4801d34c5e7261718490f287c6fb15cadfdb |
+| ahead / behind | 0 / 0 |
+| worktree / index / untracked | clean / empty / empty |
+| license | 仓库没有 LICENSE、COPYING 或 NOTICE 文件；setup.py 只以 classifier 声明 MIT License。来源身份通过，但未来若复用代码，许可文本缺失须作为工程/合规风险保留，不能仅凭 classifier 假定完整授权。 |
+
+核心实现 SHA-256：
+
+| 文件 | SHA-256 |
+|---|---|
+| sonnet/mts_model/models/Sonnet.py | be4fd33b9d1eb4a4f09be0a325a8aa87d5efd5d754e184606fc8a5808769b684 |
+| sonnet/mts_model/layers/RevIN.py | 0139409a58e57aca7c7e5423346db3f9224c6e871fecead418797ec4977e756b |
+| sonnet/lightning/lightning_module.py | f25e2e9ee1d12444eabf4ad6616c14f4f77c9bdad9a6886091193c6eca744d62 |
+| configs/model/sonnet.yaml | 329463667b7bb4aa80cf1a7761c3ac6adc7091c8a2cfda63545e69fd2f756346 |
+| setup.py | 85a9f7773200d374a04ad42006a78efbf580c5680602367150b09ebd9979dcc7 |
+
+发布配置默认 d=64、K=16、alpha=0.5、revin=0，声明 Python >=3.12；这些值只用于本节静态复杂度估算，不在本轮锁定为 AMD 候选配置。
+
+### 43.3 正式任务语义与 joint embedding
+
+论文任务是严格的 many-to-one multivariable forecasting：给定多个外生变量 X ∈ R^(L×C) 与一个内生目标 y ∈ R^L，预测该单一目标未来 H 步。论文将联合输入写为 Z=[X,y]。官方 Model.forward 接收 x=[B,L,N]，固定读取 x_target=x[:,:,-1:]，x_exog=x[:,:,:-1]，因此实际原始输入顺序必须是“有序外生变量在前、唯一目标在最后”。官方输出为 [B,H,c_out]，发布 runner/config 以 c_out=1 使用；代码没有原生多目标或 many-to-many Sonnet 路径。BaseModel 的测试逻辑也在多列标签存在时只评价最后一列。不得将该来源描述为原生 parallel multivariate 或 many-to-many。
+
+论文 joint embedding 为：
+
+E_x = Linear_x(X) ∈ R^(L×alpha d)
+
+E_y = Linear_y(y) ∈ R^(L×(1-alpha)d)
+
+E = concat(E_x,E_y) ∈ R^(L×d)
+
+alpha 是配置超参数，不是可学习参数。论文主文与附录 D.2 都把它作为 grid-search hyperparameter，作者扩展版附录 D.2 甚至包含 alpha=0.1；官方代码却只为 alpha 精确等于 0、0.25、0.5、0.75、1 建立分支，0.1 等其他论文候选值会因 embedding 属性未创建而失败。附录 E.5 最后一处把 alpha 称为 learnable parameter，与主文、调参表和代码均冲突，不能据此把 alpha 实现为可学习量。alpha=0 时只保留 target_embed: 1→d 并完全丢弃外生变量；alpha=1 时只保留 exog_embed: N-1→d 并完全丢弃目标。中间分支分别分配 target 为 (1-alpha)d、exogenous 为 alpha d，且要求整数维度可拼接。
+
+论文写出的拼接顺序是 [E_x,E_y]，官方代码中间分支实际是 [target_embedded,exog_embedded]，顺序相反。两个 Linear 都使用 PyTorch 默认 bias；joint embedding 后没有 normalization 或 dropout。完整 Sonnet 可选的 RevIN 只作用于目标，默认配置关闭。未来 AMD 适配必须显式记录 raw source order、latent concat order 和 alpha 分配；不得加入第二套 RevIN/instance normalization。论文/代码的 concat 顺序差异须在后续精确合同中裁决，本轮不静默选边。
+
+### 43.4 Learnable wavelet transform
+
+论文的每个 learnable atom 形式为：
+
+M_k(t) = exp(-w_alpha,k t²) · cos(w_beta,k t + w_gamma,k t²)
+
+其中 K 是 atom 数，L 是当前输入时间长度，d 是 joint embedding 的 latent width。对 E ∈ R^(L×d) 做逐元素投影后得到 P ∈ R^(K×L×d)；它不是沿时间或 latent 维求和的传统小波系数压缩。
+
+官方 AdaptiveWavelet 的事实边界：
+
+- 参数 freq_params shape 为 [d,K,3]，依次提供每个 latent dimension、每个 atom 的 alpha、beta、gamma；初始化为无约束标准正态，未使用正值变换、归一化或 clamp。负 w_alpha 会产生随 t 增大的 envelope。
+- time grid 在每次 forward 由 torch.linspace(0,1,T) 生成，包括两个端点；t² 同 shape [T]。
+- atom shape 为 [d,K,T]；einsum “btn,nkt->bktn” 将 embedding 与 atom 逐元素相乘，输出 [B,K,T,d]。
+- 构造器保存 seq_len，但 forward 不使用保存值；实际 T 来自输入。故 wavelet 参数本身不绑定 seq_len，也无 padding、裁剪或边界延拓。
+- T=12 与 T=512 在发布代码中都能形成合法 shape；T=12 只有 12 个采样点而默认 K=16，可能出现 atom 欠分辨、冗余或难以识别，属于 adequacy 风险而不是 shape blocker。T=512 不需特殊边界处理。
+- 单个 wavelet 的参数量为 3dK；state_dict key 为 freq_params，在完整模型中是 blocks.i.wavelet.freq_params。
+- downsample_factors 大于 1 时，SonnetBlock 先做 AvgPool1d，再按实际缩短后的 T 生成 grid；保存的 block_seq_len 仍不控制 forward。多 block 输出最后插值回原 T 并平均。最小 AMD 候选没有证据需要复制该多尺度 wrapper。
+
+### 43.5 MVCA：论文公式与官方实现不能混同
+
+论文定义的 MVCA 输入是 wavelet-space P ∈ R^(B×K×L×d)，K 个 learnable wavelet atoms 充当 attention heads，而不是把普通 [B,L,d] embedding 直接当作 heads。每个 atom 内做 Q/K/V 投影；Q、K 沿 latent d 维进入 real FFT，频率长度为 floor(d/2)+1。论文计算 cross spectral density 与两个 power spectral density，在频率维求均值，再用：
+
+coh = |mean(Q_f · conj(K_f))|² /
+      (mean(Q_f · conj(Q_f)) · mean(K_f · conj(K_f)) + epsilon)
+
+得到每 atom、每时间点的 coherence。随后按时间 L 维执行 softmax(coh/sqrt(d))，dropout 后逐元素加权 V；它不像普通 attention 那样形成 L×L 矩阵或跨时间求和。残差 MLP 与 output projection 均在每个 atom 的 hidden 上执行，atom 维保留给后续重构。
+
+官方 CoherenceAttention 的实际输入/输出和状态如下：
+
+- 输入 coeffs=[B,K,T,d]；不存在消费普通 [B,T,d] 的 overload。输出仍为 [B,K,T,d]。
+- proj 是带 bias 的 Linear(d,3h)；发布 Sonnet 令 h=d。q/k/v 先为 [B,K,T,h]，再转成 [B,K,h,T]。
+- torch.fft.rfft 的真实 dim=2，即沿 h/d latent 维，而不是沿 T；Q_fft/K_fft shape 为 [B,K,floor(h/2)+1,T]。
+- P_xy、P_xx、P_yy 在 dim=-2 的频率维求平均，coherence shape 为 [B,K,T]。
+- 代码分母是 (abs(P_xx)·abs(P_yy)).clamp(min=1e-6)，而论文是乘积后加 epsilon。用户已禁止硬 clamp，因此未来候选不能把该代码差异原样带入而不登记。
+- self.scale=K^(-1/2)，代码执行 coherence/self.scale，等价乘 sqrt(K)；这既不是变量名所暗示的除 sqrt(K)，也不是论文的除 sqrt(d)。
+- softmax 的 dim=-1 是时间 T；Dropout 固定 p=0.1，作用于 softmax 后的时间权重。AdaptiveWavelet/CoherenceAttention 内没有 LayerNorm、BatchNorm、instance normalization 或其他 normalization。
+- 时间权重广播到 hidden 维并逐元素乘 V，不跨时间求和。
+- out_time 将 K 和 h 展平为 [B,T,K·h]。随后 var_attn 参数 shape [d,d] 先按最后一维 softmax，但 einsum “bld,cc->bld” 只把 out_time 乘以 var_attn 的 softmax 对角线之和；它没有执行注释所称的 variable mixing。该 var_attn 和这一步不见于论文。
+- var_mlp 是 h→h→h 的两层带 bias MLP，中间 GELU，采用 out_var+MLP(out_var)；out_proj 是带 bias 的 h→d，之后恢复 [B,K,T,d]。
+- CoherenceAttention 局部 state_dict keys 精确为 proj.weight、proj.bias、var_attn、var_mlp.0.weight、var_mlp.0.bias、var_mlp.2.weight、var_mlp.2.bias、out_proj.weight、out_proj.bias；完整 Sonnet 中统一加前缀 blocks.i.attention.。
+- 一般参数量为 4dh+2h²+d²+5h+d；h=d 时为 7d²+6d，d=64 时为 29056。删除论文不存在且实现不产生 variable mixing 的 var_attn 后减少 d²。
+- float32 的 q/k 经 rfft 成为 complex64；abs、coherence 和对实值 V 的权重乘法回到实数，CoherenceAttention 本身不把 complex tensor传给 MLP。CPU 与 CUDA 的 float32 路径在算子层面均受支持，但跨设备、驱动和 PyTorch 版本的 bitwise 确定性不能假定，必须以永久测试和环境 fingerprint 约束。
+
+因此，对“MVCA 可替代普通 attention”必须区分两条来源路径。发布仓库中的 CoherenceAttention 不能直接消费普通 [B,L,d]，只接受 wavelet-space [B,K,L,d]，所以对官方核心代码而言选项1不成立、完整Sonnet路径对应选项2；唯一能接收[B,L,d]的发布SonnetBlock会隐式执行wavelet并继续执行Koopman，不是仅包装wavelet+MVCA的插件，官方仓库也没有发布standalone baseline wrapper。
+
+作者扩展版附录D.8则明确给出另一条paper-only插件合同：把普通embedding [B,L,D]沿feature维拆成K个head，得到[B,K,L,D/K]，运行其余MVCA后再拼回[B,L,D]，实验固定K=8；这一步是显式head split，不是learnable wavelet，也不含Koopman。故不能仅凭“stand-alone effectiveness”四个字猜测frontend，但完成附录审计后可以确认：论文插件实验确实不需要wavelet；它仍不是“MVCA直接吃3D输入”，且由于官方实现缺失只能称paper-specified、不能称code-verified。三个给定选项不足以完整描述该第四种paper-only head-split适配。
+
+对未来最小适配的公式级建议是采用论文的“分母乘积 + epsilon”和除 sqrt(d)，并删除代码中无论文依据、实际只形成 scalar trace 的 var_attn；这是审计建议，不是已锁定实现合同。concat order、epsilon、dropout、d、K、alpha 和初始化仍须 ChatGPT 审核后精确锁定。
+
+### 43.6 Koopman operator 与完整 forecasting head
+
+官方 KoopmanLayer 接收 MVCA 输出 [B,K,T,d]，先转 complex64。参数 U=[K,K] complex64、theta=[K] real；U 在初始化时只做列归一化，每次 forward 再以 torch.linalg.qr 得到 unitary basis，并构造 U·diag(exp(i theta))·Uᴴ。输入按每个 latent dimension reshape 为 [B·d,K,T]，在 atom K 维左乘 Koopman matrix，恢复 [B,K,T,d] 后取 real，与 atoms [d,K,T] 逐元素相乘并对 K 求和，重构 [B,T,d]。KoopmanLayer 局部 state keys 是 U 与 theta，完整 Sonnet 中是 blocks.i.koopman.U 与 blocks.i.koopman.theta；逻辑参数量为 K² complex + K real。
+
+完整 Sonnet 主预测路径是 joint embedding → wavelet → MVCA → Koopman → atom reconstruction → 多 block 平均 → decoder → project。decoder 把 seq_len 当 Conv1d 输入 channels，把 latent d 当长度，依次映射到 4H、2H、H channels，再 AdaptiveAvgPool1d(H)，最后 Linear(H,c_out)；发布 c_out=1，最终 [B,H,1]。单目标时 decoder/project 参数量为 20HT+30H²+8H+1，因此同时绑定 seq_len 与 forecast horizon。
+
+结论：
+
+- Koopman 和 decoder/head 都参与 Sonnet 主预测器，承担动态演化与完整 forecasting 职责。
+- 作者扩展版附录D.8的MVCA attention-replacement合同只做embedding feature-head split、MVCA与head rejoin，不含wavelet、Koopman或Sonnet decoder；官方仓库未发布这套插件代码，因此“插件不含Koopman”有论文级证据，但没有可执行官方实现可复核。
+- 外生依赖建模的最小来源边界是 joint embedding + learnable wavelet + MVCA；Koopman、Sonnet decoder/head 属于完整预测器职责，没有必要性证据时会重复 AMD 的 MDM/DDI/AMS 与 forecast head。
+
+### 43.7 S1/S2/S3 范围比较与唯一推荐
+
+| 维度 | S1：MVCA-only 直接作用 AMD 表示 | S2：joint embedding + wavelet + MVCA + 最小重构残差 | S3：wavelet + MVCA + Koopman/近完整 Sonnet |
+|---|---|---|---|
+| 官方输入合同 | 发布代码不支持3D直入；附录D.8支持先把[B,L,D]按feature拆成[B,K,L,D/K]的paper-only插件 | 成立；保留产生wavelet-space [B,K,L,d]的发布核心frontend | 成立 |
+| spectral coherence | head-split后可保留FFT/CSD/PSD/coherence，但不含learnable wavelet | 保留learnable atom、latent FFT、CSD/PSD/coherence | 保留 |
+| 来源可归因性 | 中等：附录合同明确，但无官方插件代码；AMD现有D=C且跨schema通常不能统一被K整除 | 强：主文、ablation与repo核心路径可逐项追踪 | 强但范围过大 |
+| 重复 AMD 预测职责 | 低，但来源结构残缺 | 低；删除 Koopman 与 Sonnet head，只输出 target residual | 高；Koopman与新 decoder重复 MDM/DDI/AMS/head |
+| 第二套 normalization | 可避免 | 明确不加入，直接消费 AMD RevIN 后张量 | 完整复制时有引入 Sonnet RevIN 风险 |
+| 独立消融 | 若另加projection才可跨schema稳定拆head，会超出“直接作用已有表示”；否则K/head width随C变化 | 单一开关、只写回目标、可精确bypass | 多组件耦合，难以归因 |
+| identity/首步梯度 | 无来源一致定义 | 非零小 gate 可近 identity 且主体首步有梯度 | 可做但复杂且风险高 |
+| 参数/计算 | paper插件本体较低，但D/K整除与D=C会随schema改变；加fixed-D projection又新增合同 | O(BKTd²)主项，无T²/C² | 另加complex K² QR与horizon/seq decoder |
+| 绑定 | direct版本绑定C及其可分head数；projection版本绑定新D | embedding绑定schema/order；核心不绑定H，wavelet参数不绑定T | 绑定T、H，checkpoint更复杂 |
+| artifact/checkpoint | 必须区分paper-only head-split与released wavelet MVCA，且无官方插件state可对照 | 可形成单一architecture/input/insertion identity | 多块、多尺度、Koopman、head均需额外身份 |
+| 合理论文表述 | 若严格实现附录D.8可称MVCA attention adaptation，但本题“直接作用AMD已有表示”缺少跨schema一致D/K合同 | 可以，前提是明确写“保留joint embedding、learnable wavelet与paper-defined MVCA，删除Koopman/head” | 更像Sonnet predictor graft，难称最小外生模块 |
+
+唯一推荐仍为S2，但这里的S2是最小many-to-one residual adapter，而不是复制完整SonnetBlock：显式target/exogenous gather → Sonnet joint embedding → learnable wavelet → paper-defined MVCA → 不含Koopman的atom reconstruction → 最小d→1 target residual readout。作者扩展版的“¬Koop”ablation也明确规定，去掉Koopman后直接从MVCA输出重构序列，因此该重构不是自行猜测。删除Sonnet RevIN、Koopman、multiblock downsampling、decoder和forecasting head；不改PMCR，不替换AMD。该范围能够保留spectral coherence的来源实质，又不复制AMD的预测器职责。
+
+S1不是因为“MVCA必然需要wavelet”而被排除，而是因为本题要求直接作用AMD已有表示：A位置的D就是随数据schema变化且很小的C（7、6/8/9/11、321），不存在一个跨这些schema稳定的K>1整除合同；K=1会丢失附录多head设计，而增加fixed-D projection又不再是MVCA-only direct。再加上官方插件代码缺失，S1在当前AMD边界上的可复核性弱于S2。
+
+“Sonnet-inspired MVCA adaptation”可以作为来源描述；当前仍只是审计推荐，不是最终模块、最终 EL-AMD、已锁定 class 或 implementation variant。论文/代码差异和全部数值合同须在后续 ChatGPT 审核与 canonical 精确闭环中解决后才可实现。
+
+### 43.8 A/B/C 插入位置比较与唯一推荐
+
+当前 AMDEnhanced 的真实路径是：RevIN 得到 normalized_input，转为 x_ch=[B,C,T]；可选历史 Early CCE 后进入 MDM 得到 u_mdm；DDI 后可选 PMCR 得到 v_local；历史 Late CCE/TEB 形成 v_final；AMS 以 v_final 驱动 experts、以 u_mdm 驱动 selector；target_exogenous 在完整反归一化后选目标。state_source 是目标 v_final、目标 u_mdm 与固定宽度 exo_context 的拼接。
+
+| 影响 | A：RevIN 后、MDM 前 | B：DDI/PMCR 后、AMS 前 | C：只进 state_source |
+|---|---|---|---|
+| 推荐消费 shape | normalized_input=[B,T,C]，目标 residual 写回后再转 x_ch | v_local=[B,C,T]，需把 AMD hidden重新解释为 Sonnet variables | 需额外 pool/project 成固定 context |
+| MDM 输入 | 改变目标通道输入 | 不变 | 不变 |
+| DDI 输入/输出 | 经 MDM 间接改变 | DDI 本身不变 | 不变 |
+| AMS experts | 经完整主路径改变 | 直接改变 | 不变 |
+| AMS selector u_mdm | 改变，selector与experts仍共享同一增强上游 | 不变，experts改变但selector看不到候选 | 不变 |
+| prediction | 直接受监督影响 | 直接受监督影响 | 完全不影响 |
+| state_source | 第一、第二段随主路径自然变化；第三段仍为零 | 第一段变化，第二段不变；第三段仍为零 | 只为第三段制造新值 |
+| 上游梯度 | task loss 可进入 readout、MVCA、wavelet、embedding及 RevIN 前公共主干 | task loss可进入候选与此前主干，但不经候选改变 selector | 无辅助目标时候选没有 prediction task gradient |
+| 与 PMCR 职责重叠 | 较低：观测变量的外生 spectral relation 在 MDM 前；PMCR仍做 DDI 后局部 refinement | 较高：二者都成为 post-DDI hidden refinement | 不与 PMCR 重叠，但侵入冻结 M7 state 接口 |
+| 来源语义 | 最强；Sonnet本来消费归一化后的观测变量 | 较弱；C 个 hidden channel 已经过 MDM/DDI，不再是清晰的 endogenous/exogenous 观测 | 弱；任意 pooling 不是 Sonnet 的预测路径 |
+
+唯一推荐插入点是 A，并明确消费 AMD 已有 RevIN 后的 normalized_input=[B,T,C]，在目标通道上做 residual writeback 后再进入现有 x_ch→MDM。选择 A 不是机械复用失败 Early CCE；依据是 Sonnet 的来源输入语义必须是原始目标/外生历史，且只有 A 能让 coherence 同时影响 MDM、DDI、AMS experts 与 selector。B 会把来源变量语义换成 AMD hidden refinement并与 PMCR重叠；C 没有当前预测监督且会提前改动 M7 合同。
+
+### 43.9 target_exogenous 与 parallel 边界
+
+推荐候选只定义 target_exogenous：
+
+1. target_idx 必须显式、范围合法；
+2. aux_idx 是除目标外由 feature schema 给出的有序序列，必须无重复且不含 target_idx；
+3. gather 的 source order 固定为 [aux_idx...,target_idx]，使原始目标位于最后，符合官方 Model.forward；joint embedding 内部 concat order须另行显式锁定，不能把 raw source order与 latent concat order混为一谈；
+4. 输入是 AMD RevIN 后 z=[B,T,C]；候选输出 delta=[B,T,1]；
+5. 只更新 z[:,:,target_idx]；全部 non-target channels逐元素保持不变，输出整体 shape仍为 [B,T,C]；
+6. 不得把 candidate 输出扩散到所有通道，也不得在 wrapper 内逐变量循环完整 AMD。
+
+Sonnet 来源不支持现有 parallel_multivariate 的 many-to-many 任务语义。虽然未来理论上可设计“每个变量轮流作为 target、共享全部参数并向量化”的新扩展，但官方论文/代码没有该合同，它会改变任务身份、计算和 checkpoint schema。因此本轮采用允许结论 2：parallel_multivariate 当前不支持；是否为 ETT/ECL另建正式 target_exogenous 任务，必须由用户/ChatGPT 另行锁定，不能为了兼容 runner 静默循环完整 AMD或把 many-to-one改写成 many-to-many。
+
+### 43.10 ETTm1 domain mismatch、UrbanEV validation 与 EPF-PJM
+
+ETTm1 事实：
+
+- 本地 data/ETTm1.csv 共有 69680 条数据记录，时间从 2016-07-01 00:00:00 到 2018-06-26 19:45:00，约两年；SHA-256 为 6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e。
+- 顺序为 HUFL,HULL,MUFL,MULL,LUFL,LULL,OT；Sonnet语义下 target=OT、target_idx=6、ordered aux_idx=[0,1,2,3,4,5]，共 6 个外生变量。
+- 本项目当前 ETTm1 development 采用 T=512。Sonnet 论文明确将 ETT 相对较弱归因于外生变量较少和训练历史有限；该数据的 6 个 aux、约两年历史与论文所述弱项一致。
+- 因此只用 ETTm1 作为 Sonnet/MVCA adequacy gate 会产生明显的 source-specific domain mismatch 和 false-negative 风险。它仍适合长序列、FFT、显存、确定性和退化安全检查，但不应成为唯一 adequacy 裁决。
+- ETTm1 的既有 development-only test 例外保持不变；若执行本候选，必须新锁定 OT many-to-one matched control/candidate，不能把既有 parallel all-variable artifact当作同任务对照。
+
+UrbanEV 事实：
+
+| preset | C | target / aux 语义 |
+|---|---:|---|
+| F1 | 6 | volume + 5 个真实 calendar features |
+| F2 | 8 | volume + e_price、s_price + 5 calendar |
+| F3 | 9 | volume + Ta、P、h + 5 calendar |
+| F4 | 11 | volume + 2 price + 3 weather + 5 calendar |
+
+UrbanEV history_len=12，目标 volume 固定 target_idx=0；F1--F4 逐步提供真实时间、价格、天气外生变量，比 ETTm1 更直接检验“外生变量是否为目标预测提供增量”。但 T=12 对 K 个 wavelet atoms 的可识别性更弱，且 UrbanEV 只有约六个月，不能将它视为无条件有利数据。
+
+development protocol 建议是“双证据而非 ETTm1-only”：ETTm1 OT many-to-one 用于长 T 工程/安全与开发信号；UrbanEV 用一个经另行锁定的 F1--F4 范围做 train/validation-only 外生价值检查。UrbanEV 必须复用 M1 的累计月份 fold、floor 80%/10%/余数 split、split 内独立窗口、同一 UrbanEVFoldBundle 与仅当前 fold train slice 拟合的 scaler/fingerprint；不得构造、遍历、评价、汇总或输出 UrbanEV test。具体 fold、preset、seed、epoch、预算、threshold 和停止线仍需用户/ChatGPT 单独锁定后才能执行，本轮不改变任何 test 边界。
+
+AMD 当前没有可执行的 EPF-PJM DataLoader、runner config 或 artifact pipeline。限定搜索只发现规划文字；仓库外 TimeXer 目录存在 PJM.csv 不等于 AMD 已有可复现实验管线。不得假定 EPF-PJM pipeline 存在，也不得把补建该管线混入 Sonnet 候选实现。
+
+### 43.11 identity、首轮梯度与训练协议预审
+
+对推荐 S2/A，最小 residual 结构为：
+
+s = gather(z,[aux_idx...,target_idx])
+
+e = JointEmbed(s)
+
+P = Wavelet(e)
+
+A = MVCA(P)
+
+r = sum_k A_k ⊙ M_k
+
+delta = Readout(r) ∈ R^(B×T×1)
+
+z_target' = z_target + gamma · delta
+
+z_non_target' = z_non_target
+
+其中 z 是 AMD RevIN 后输入；不使用 Koopman、Sonnet decoder/head或第二套 normalization。module 开关关闭时完全不实例化/不调用候选并严格恢复冻结 AMD 数学，属于 exact identity；开关开启时采用小 gate 是 near-identity residual。
+
+初始化建议：
+
+- gamma 是可学习 scalar，建议初始 1e-3；不选 0，因为 gamma=0 时第一次 backward 只有 gate 可获得任务梯度，embedding、wavelet、Q/K/V、MLP、MVCA output projection和readout全部为零任务梯度。
+- 不选 0.1，因为在未经 development 证据时会把随机 spectral branch 以较大幅度注入 MDM。
+- joint embedding、wavelet、Q/K/V、MLP、MVCA output projection和最终 d→1 readout均采用非零、非退化初始化；readout bias可为0，但 readout weight不能全零。MVCA output projection也不能全零，否则其上游第一次 backward为零。
+- 不使用 hard clamp；coherence denominator按论文采用乘积 + epsilon，finite 风险通过输入/输出检查与测试处理，而不是改变梯度的硬截断。
+- 在非退化 batch、delta非零且gamma=1e-3时，wavelet参数、Q/K/V、MVCA output projection、readout和gamma理论上均可在第一次 backward获得 finite nonzero task gradient；branch主体梯度被1e-3缩放。若数据/初始化造成coherence或delta退化，永久测试必须失败并阻止实验。
+- 对单一乘法 residual 而言，“candidate-on 初始化严格 exact identity”与“所有 branch 主体第一次 backward均非零”不能同时满足：gamma=0或最终 projection=0都会切断上游首步梯度。本建议选择开关关闭 exact identity、开关开启 1e-3 near-identity，并把该取舍显式写入合同。
+
+训练建议是 matched standard from-scratch pair：在完全相同 seed/config 下，先按相同构造顺序建立公共 AMD主干，再只为 candidate实例化新模块；control与candidate均从头训练。理由是 Sonnet 的 joint embedding/wavelet/MVCA原本联合训练，且A位置需要与MDM/DDI/AMS共同适配。warm-start会引入来源无关的已有 AMD checkpoint lineage；frozen-adapter会阻止上游共同适配，均不作为首选。本轮不锁定 optimizer、学习率、epoch、batch、dropout、epsilon或预算，也不执行 epoch-0/backward。
+
+### 43.12 参数、activation、FFT 与工程风险
+
+以下只是用官方默认 d=64、K=16、alpha=0.5 对“单 joint embedding + 单 wavelet + 单 MVCA + d→1 readout + scalar gate”做静态风险估算，不是配置锁定。N 是该 target_exogenous schema 的总变量数。
+
+alpha=0.5 时 joint embedding 参数为 32N+64；wavelet 为 3072；发布 literal MVCA 为 29056；readout+gate 为66。故 literal released-code 边界总量为 32N+32258。按审计建议删除论文不存在的 var_attn 后减少4096，成为 32N+28162。
+
+| 数据/Schema | T | N | literal released-code 参数 | paper-defined、无 var_attn 参数 |
+|---|---:|---:|---:|---:|
+| ETTm1 | 512 | 7 | 32482 | 28386 |
+| UrbanEV F1 | 12 | 6 | 32450 | 28354 |
+| UrbanEV F2 | 12 | 8 | 32514 | 28418 |
+| UrbanEV F3 | 12 | 9 | 32546 | 28450 |
+| UrbanEV F4 | 12 | 11 | 32610 | 28514 |
+| ECL | 512 | 321 | 42530 | 38434 |
+
+每 sample、d=64、K=16 的主要 forward tensor：
+
+| T | wavelet P 或 MVCA output [K,T,d] | qkv [K,T,3d] | 单个 Q/K FFT [K,33,T] complex64 |
+|---:|---:|---:|---:|
+| 12 | 12288 float32 ≈ 48 KiB | 36864 float32 ≈ 144 KiB | 6336 complex64 ≈ 49.5 KiB |
+| 512 | 524288 float32 ≈ 2 MiB | 1572864 float32 ≈ 6 MiB | 270336 complex64 ≈ 2.06 MiB |
+
+Q_fft 与 K_fft 合计约为表中 complex64 的两倍；autograd还会保留多个中间量，因此真实训练显存远高于单个 forward tensor，且按 batch size线性增长。
+
+时间复杂度主项为 O(BT(N-1)alpha d + BKTd² + BKTd log d + BKTd)：变量输入投影对 N 线性，QKV/MLP/output projection包含 d²，FFT沿 d而不是T。推荐 S2 不产生 T² attention matrix，也没有 C² 项；发布 var_attn是 d²而不是数据变量 C²。ECL 的 C=321 只增加首个 exogenous Linear，核心 spectral tensor与C无关，故不是C²爆炸，但 T=512、K、d、batch和反向保存仍可能成为显存/吞吐风险。
+
+seq_len风险边界：
+
+- wavelet freq_params不绑定T；T=12/512均shape合法，但time grid采样数不同，checkpoint虽可载入，科学身份仍必须包含T，因为同一参数在不同grid上的函数采样不同。
+- joint embedding绑定N、target/aux schema/order与alpha分配。
+- 推荐S2不绑定forecast horizon H。
+- S3 的decoder显式绑定T和H，Koopman每次forward增加complex K×K QR及O(BdK²T)演化；checkpoint与artifact复杂度明显增加，因此排除。
+- T=12 时默认 K=16可能欠分辨/冗余，必须通过独立检查而不能以shape合法替代adequacy；T=512时主要风险是激活/反向内存。
+- 推荐S2只需要rfft的complex64中间量并在MVCA后回到real；排除complex QR降低CUDA风险。仍需记录torch/CUDA/cuFFT/device fingerprint，并分别做CPU/CUDA float32 shape、finite、gradient和repeatability测试；不得假定不同硬件/版本bitwise一致。
+
+### 43.13 state_source 边界
+
+官方 MVCA自然输出的是atom-level [B,K,T,d]，去掉Koopman后的最小重构得到[B,T,d]，最终只形成受预测监督的增强目标历史/hidden。它没有来源定义的固定宽度sample-level exogenous context，也没有独立target-level spectral context head。对atom/time做任意mean/max/attention pooling再投影到teb_context_dim会新增没有来源与监督合同的模块，不能只为填满state_source第三段而包装成“外生 context”。
+
+因此第二十一轮建议继续使用现有deterministic zero placeholder作为state_source第三段，不修改M7 StateAdapter宽度或语义。A位置若未来实现，会通过主预测路径自然改变目标v_final与u_mdm，因而影响state_source第一、第二段；这不等于产生独立exo_context。本轮只报告未来影响，不实现M7。
+
+### 43.14 checkpoint、artifact 与永久测试建议（均未实现）
+
+非锁定命名提议：
+
+| 身份字段 | 提议值 |
+|---|---|
+| implementation variant | el-amd-m4-sonnet-mvca-wavelet-residual-v1 |
+| control ablation_id | M4_SONNET_MVCA_CONTROL |
+| candidate ablation_id | M4_SONNET_MVCA |
+| architecture_identity | sonnet_inspired_joint_wavelet_mvca_target_residual_v1 |
+| input_identity | amd_revin_normalized_target_exogenous |
+| insertion_identity | after_revin_before_mdm |
+| training_protocol | m4_sonnet_mvca_from_scratch_pair_v1 |
+
+以上仅用于说明未来身份空间，不能在本轮进入runner、源码或canonical精确合同；不得复用或重新定义 el-amd-pmcr-teb-v1、el-amd-m4-t2-patch-teb-v1、任何T2G/T3 identity、el-amd-m4-crosslinear-cce-v1或el-amd-m4-crosslinear-late-cce-v1。
+
+未来manifest必须原生记录：正式论文标题/作者/会议/年份/DOI/PDF SHA，官方repo URL/commit/core file SHA/license状态；paper-vs-code resolution（concat order、FFT axis、denominator epsilon、scale、var_attn policy、dropout）；task_mode、target_idx、ordered aux_idx、feature names/order/schema fingerprint；T、N、H、d、K、alpha；normalization ownership、input/insertion identity、wavelet/reconstruction/readout/gate/init；architecture/implementation/ablation/training identity。上述字段与源码/数据fingerprint共同进入scientific_config_hash与comparison_config_hash，不能只凭variant字符串比较。
+
+推荐from-scratch，所以source checkpoint字段应为null、source allowlist为空；resume只允许同一Sonnet结构与全部科学身份完全一致的checkpoint并strict restore。必须显式拒绝TimeXer、CrossLinear、Sonnet其他结构、XLinear之间的权重迁移，以及target/parallel、target_idx、aux order、schema、N、T、d、K、alpha、concat order、paper/code policy或insertion不匹配。若未来确需公共AMD映射，importer必须先完整校验key set、shape、dtype与身份，再一次性写入；任一失败时所有parameter与persistent buffer逐tensor原子不变，不允许strict=False或partial candidate mapping。
+
+artifact继续使用现有schema-v2、固定13个payload文件、受控checksums.sha256、隐藏staging、writer关闭、completed manifest、Python verifier、sha256sum -c与同文件系统atomic rename；summarizer只接受已验证发布目录。新增variant不得降低或重定义现有artifact合同。
+
+建议的最小永久回归集：
+
+- source metadata、paper/repo/commit/core SHA和scientific/comparison hash稳定性；
+- joint embedding的target/aux顺序、alpha边界、shape、bias与无第二套normalization；
+- wavelet公式、freq_params key/shape/参数量、T=12/512、无padding/crop、finite；
+- 推荐S2的released-core MVCA必须拒绝普通3D输入并验证wavelet-space4D输入；另以metadata测试防止将附录D.8 paper-only head-split插件冒充官方repo wrapper；验证FFT axis=d、complex64→real、CSD/PSD、论文分母“乘积+epsilon”、除sqrt(d)、time softmax/dropout维度和无code-only scalar var_attn；
+- CPU/CUDA float32 shape、finite、gradient和同设备重复性；
+- target_exogenous只改target、non-target bitwise不变；parallel_multivariate明确拒绝；
+- module off相对冻结AMD prediction/MoE/state exact parity；candidate-on gamma=1e-3 near-identity；
+- 首次backward分别检查wavelet、Q/K/V、MVCA output projection、readout和gate的finite nonzero task gradient，并设负例证明gamma=0或zero output/readout会切断上游；
+- A位置routing trace证明MDM input、u_mdm、DDI、experts、selector与prediction均在预期路径，state_source第三段仍exact zero；
+- same-structure strict restore成功；跨来源/结构/task/schema/order拒绝且mapping失败原子不变；
+- runner与summarizer拒绝identity/hash不一致；schema-v2、13-file checksum、hidden staging和atomic publish继续通过；
+- UrbanEV development guard证明不构造、不遍历、不汇总、不输出test，并复用M1 fold/split/train-only scaler。
+
+本轮没有创建这些测试文件，也没有运行现有或建议测试。
+
+### 43.15 本轮唯一建议与后续决策边界
+
+证据足以给出唯一范围建议：S2 + 插入点A + target_exogenous only + matched standard from-scratch。也就是在AMD现有RevIN后、MDM前，以显式有序aux与单一target构造最小Sonnet joint embedding、learnable wavelet和paper-defined MVCA，经无Koopman的atom reconstruction与最小readout产生只写回目标的1e-3-gated residual；non-target保持不变，不加入Sonnet RevIN、Koopman、forecasting head、多尺度wrapper或新state context。
+
+该建议保持Sonnet spectral coherence的可归因来源边界，并把完整预测职责留给AMD。它不支持parallel_multivariate，不把ETTm1-only作为充分adequacy gate，建议在另行锁定合同后增加UrbanEV train/validation-only共同证据。state_source第三段继续为deterministic zero placeholder。
+
+仍待ChatGPT审核并在后续canonical精确合同中锁定的内容包括：paper/code concat order裁决、epsilon与dropout、d、K、alpha、gate/初始化的最终值、具体variant/ablation identity、ETTm1 OT任务合同、UrbanEV folds/presets、seed/epoch/budget/threshold与停止线。完成该闭环前不得实现、训练或启动实验；不得同时启动XLinear、PMCR/P2，不进入M5/M7。Sonnet/MVCA当前只是用户选定的下一来源候选，不是最终外生模块或最终EL-AMD。
