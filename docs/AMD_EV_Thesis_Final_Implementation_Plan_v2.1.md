@@ -2535,7 +2535,7 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 ```text
 第三章：AMD
   + ModernTCN-inspired PMCR
-  + Sonnet-inspired S2 MVCA target-residual development 候选（精确合同已锁定，尚未通过 development gate）
+  + Sonnet-inspired S2 MVCA target-residual development 候选（development adequacy gate 已 Passed，仅为 M4 leading development candidate）
 （TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均作为失败历史证据保留；最终内部结构仍只由 M5 冻结）
 数据：UrbanEV + EPF-PJM + ETTh1 + Weather + ECL + Exchange
 
