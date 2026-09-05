@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十二轮，Sonnet S2 精确合同闭环与 production capability
+当前轮次：第二十三轮，Sonnet S2 ETTm1 + UrbanEV paired development 与有限归因诊断
 
 canonical 内部版本：v2.1-R1
 
@@ -3621,3 +3621,214 @@ Stage B executable source fingerprint为sha256_length_prefixed_relative_path_and
 source paper/repo/commit/PDF/core SHA、license-text-missing、retained/deleted components、raw/latent order、d/K/alpha/epsilon/dropout/gamma、FFT/denominator/scale/softmax/var_attn/reconstruction/readout/init、input/insertion/task/schema/evaluation/module-seed policy必须进入 resolved/scientific/comparison config、checkpoint、manifest、resume和summarizer expected contract。
 
 Stage B 永久测试按用户锁定九组覆盖 joint embedding、wavelet、MVCA、target residual、首步梯度及切断负例、AMD 路由/off parity、RNG与首 batch parity、strict checkpoint/config/schema-v2 artifact/summarizer以及 UrbanEV test 构造/访问计数为零。所有新增测试均登记为 `permanent_regression_test`，不删除既有测试。单批 probe 只可写入 `/tmp` 并在结束时精确删除。
+
+## 46. 第二十三轮：Sonnet S2 ETTm1 + UrbanEV paired development 与有限归因诊断
+
+### 46.1 执行身份、范围与完成状态
+
+本轮从已审核并完成 closure 的 clean commit `bd1e0ab45f7329d3eb8c24eed106de19e21d9884` 启动；其 parent=`460fa64f800ed66275d4d25018c1714deb542ef6`、title=`feat(m4): implement Sonnet-inspired MVCA residual candidate`。执行期间 branch/local/tracking/live remote 保持 `AMD-paper-repro-custom-modules-v1` 与该 commit，source fingerprint 始终为 `sha256_length_prefixed_relative_path_and_content_v1`、22 files、`b1bfc174dcec275d6eb4e953e3ba3475a73a6383aa90b21fb7bd1110c8e86632`；baseline tag 仍为 `amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
+
+训练前完整回归为 280/280 passed、failed=0、errors=0、skipped=0。随后严格按第 44.7 节顺序单 GPU、非并行地执行 16 个预登记 run；每个 control/candidate 均为 seed 2024、fresh Adam、standard matched from-scratch、10 epochs、best 从 epoch 1 开始，PMCR/TimeXer/CrossLinear/XLinear 全部 off。UrbanEV h6 candidate 曾在 epoch 1 完整落盘后被安全中断，之后使用同 run identity 与严格 `last.pt` resume；optimizer、best/history、train generator 与 RNG 均由 checkpoint 恢复，最终 history 仍精确为 epochs 1..10，没有把 partial epoch 或新 run 拼入证据。
+
+本节只登记 paired development 与有限归因；没有自动调 d/K/alpha/gamma/dropout/epsilon、batch、epoch 或 lr，没有创建 S1/S3、启动下一候选、PMCR/P2、M5/M7 或空间模块。M4 仍为 **In Progress**。
+
+### 46.2 Artifact 完整性、公平性与 UrbanEV test 隔离
+
+固定 roots：
+
+- `artifacts/m4-development/ettm1-stage-i-sonnet-mvca-v1`：8 且仅 8 个 completed manifests；
+- `artifacts/m4-development/urbanev-stage-i-sonnet-mvca-v1`：8 且仅 8 个 completed manifests。
+
+16 个 artifact 均为 schema-v2、status=completed、history=epochs 1..10、best.pt/last.pt 齐全、精确 13/13 checksum payload；Python verifier、对应 evaluation-policy summarizer 与系统 `sha256sum -c` 全部通过。source/data/schema/scientific config/checkpoint/manifest/path identity 一致，scientific identity 无重复，指标全部 finite；两个 root 均无 hidden staging、running 或 failed 内容。16 个目录共 224 个文件（每 run 的 13 个被校验 payload 加 `checksums.sha256`）；有限诊断前后按相对路径、size、逐文件 SHA-256 聚合摘要均为 `ca5b504d3bc1118bc1b3f997c66d94209ce997e6052bf4c94dd0b24d944d17e1`，证明 artifact 字节与 checksum 未被诊断改写。
+
+每个 matched pair 在训练前均核验公共 AMD parameter/persistent buffer 60 keys 的 key/shape/dtype/value exact parity，`max_abs_error=0`；control/candidate 构造后全局 CPU/CUDA RNG、train generator 初态与首个 train batch input/target 均 exact parity。control 不实例化 Sonnet 且有 0 个 `sonnet_mvca.*` key；candidate 恰有 16 个。唯一结构差异为已封存的 Sonnet 开关、candidate identity 与其参数。
+
+UrbanEV 八个 run 的 RuntimeData 均为 `train_validation_only`、`test_access_policy=forbidden`、`test_data=None`，split identity 只有 train/validation。每 run Dataset 构造计数为 train/validation/test=`1/1/0`，八 run 合计 `8/8/0`；test getitem=0、test DataLoader=0、evaluate(test)=0。所有 metrics/manifest/config/log 的 test-result 字段与 `test_mse|test_mae|test_metric|test_prediction` 命中均为 0；没有将 validation 复制为 test。F4 fold 6、train-only scaler、feature/schema/preprocessing fingerprint 均保持 M1 合同。
+
+### 46.3 16 个 completed artifact 清单与资源摘要
+
+下表 arm 中 `C` 为 `M4_SONNET_MVCA_CONTROL`，`S2` 为 `M4_SONNET_MVCA`。完整命令不在本节重复，统一以每个 `<run_dir>/command.txt` 为准。
+
+| data | H | arm | run_id | best epoch | best.pt SHA-256 | last.pt SHA-256 | active min | params | artifact MiB |
+|---|---:|---|---|---:|---|---|---:|---:|---:|
+| ETTm1 | 96 | C | `20260904T124922.061772Z-2dd9c047` | 3 | `a88cf91c58f3f73890bf0f936b373d47bf78eb1375f0a4b9846da71805b36bff` | `fa31507b17499028c2555286f179ce1e15932f10d6db8494581a331224155645` | 10.409 | 10,244,742 | 195.595 |
+| ETTm1 | 96 | S2 | `20260904T125952.998427Z-8a2be9c5` | 5 | `4b8021822f6ec4c8811cb748fbd8c653d5b5baa576c1565fa85793d5c41e25db` | `10461b935905a7577bea09fb586643f11ef8bc4eb0a52af929e5fd44d74df28c` | 11.017 | 10,271,592 | 196.136 |
+| ETTm1 | 192 | C | `20260904T131058.599783Z-5681e758` | 1 | `668daa259e943c8feb4f56b3883d6ad8902b473689d869a54b0b4919fce53df1` | `7bdbefc8a424e621f850a02f6b98fc7351ea1f56c66e4ce6670a794bef2dacd9` | 9.831 | 11,818,374 | 225.610 |
+| ETTm1 | 192 | S2 | `20260904T132052.997834Z-ba76f259` | 1 | `8834ee931a919cfad4ef34f409625bdfb0487e44f65274e155630f6e3a4342ad` | `80ee4f579aa17dded81b29f255e3b5496898932434dde357c860e28ebf41b3cd` | 11.382 | 11,845,224 | 226.150 |
+| ETTm1 | 336 | C | `20260904T133220.986606Z-fcb7152d` | 2 | `2de1c3257afead08235c90177c6afb3905702549628275b640749367c981482c` | `ac82ef61aad169d7ea45fe04d2521bcd9bf5a7f6386e4a2bf10fa41c8f0e653f` | 9.838 | 14,178,822 | 270.632 |
+| ETTm1 | 336 | S2 | `20260904T134217.017834Z-57ee0e1f` | 2 | `912768397dd3f012d4f34486f5fcbafdbecb87bd7c4fb85de833908df966fbde` | `4e9301d8e291366784a0cf1bf8ff3e85828b4aa474aa758e77601b31b43fc9cf` | 11.247 | 14,205,672 | 271.173 |
+| ETTm1 | 720 | C | `20260904T135336.931626Z-ca0ab18d` | 6 | `dc2b42953143daa0322d6a3a216a66bfee7c3fc6fd01e4f0db0a6ddb4770ae70` | `c3898c213c030326863994a8ac9fefa23e7c195bfc6a2b3328d3ab9b77af72b5` | 10.142 | 20,473,350 | 390.690 |
+| ETTm1 | 720 | S2 | `20260904T140357.737492Z-683384f9` | 4 | `7044735fdf502d927010939aa696b81abaac2ba832ca9e92114701d280ba6419` | `68fbd5e21f758ed0d9d1f1ec7b6669b0a32aaa1d10e52bf80eaced5b61f898d6` | 10.920 | 20,500,200 | 391.231 |
+| UrbanEV | 3 | C | `20260904T141459.255132Z-e5d37723` | 10 | `abdb4469ed6f3487850f31fa6a03c380e08a6db132781f216c51a165d07238b7` | `7da7ba061fa9170d1859174a1c1db97d0e1b2acc4a880198279b1ef1ee3c4bef` | 62.047 | 230,212 | 4.715 |
+| UrbanEV | 3 | S2 | `20260904T151712.509885Z-5138c831` | 10 | `c5721181acad1874ee5be8049d74abb9851ba3171c98db285a47f745672f5fd2` | `187ba775b2e714a7eaedab2d2c236d774fcd363590ed5eae613a44d1d3e90d41` | 66.314 | 257,190 | 5.258 |
+| UrbanEV | 6 | C | `20260904T162336.634124Z-ede8f576` | 10 | `465b5807432053854faad162ccc5ca0ce2ef0b2e8bd62e2d045a30ed641be03f` | `7d0bb414e743776380b8789b217330ece2583e2f39cbab400f7865e92317c95c` | 62.049 | 230,212 | 4.715 |
+| UrbanEV | 6 | S2 | `20260904T172543.441743Z-94cb1703` | 10 | `72780842ce640a5b3718dad77b40bc05b3cc6091bc5721afacf716f01acdd6d6` | `42a6f5a4c759e72916be90df23b11c91cac0838abc0b37bb4648b0afdeb78ba5` | 67.768 | 257,190 | 5.295 |
+| UrbanEV | 9 | C | `20260904T190337.809074Z-acf35fff` | 9 | `6540ccff37eb810f4ed50be73e8355f6635009f47d80457a2e2798ab983ea9d4` | `17dc0b06f0f991d700b10b08d5a987f842cbc714682354054819f9109c9c0243` | 64.555 | 230,212 | 4.715 |
+| UrbanEV | 9 | S2 | `20260904T200814.661264Z-9849086c` | 10 | `31b5ab63703c6f7c63277d96fd66f86900f4f16cb3dc1fc7e790194a68c73603` | `1ab97e10c97e4499db6422efee9d1629e02e32fbf25d38c31c9d628414b8c60b` | 68.686 | 257,190 | 5.258 |
+| UrbanEV | 12 | C | `20260904T211700.064010Z-5900bf11` | 8 | `6beb062caf49639d9b402fc7a286738d1987fa92fb5b98788448e17b38258ac3` | `5cbefa345dd33487e358616f8b49ec470c783ab5f306d347f0e7086107056170` | 60.969 | 230,212 | 4.715 |
+| UrbanEV | 12 | S2 | `20260904T221801.734945Z-e5b787c9` | 10 | `44779fc26680f675dcce408eee5e4844ffd9f9554f9e24cffb3eda323d38797f` | `f117b06fb86d5086ea93cff29af85502e9bcca5533831fcddf920406fd4a95bf` | 68.985 | 257,190 | 5.258 |
+
+ETTm1 八 run active duration 合计 5,087.140 s（84.786 min）、artifact 2,167.216 MiB；UrbanEV 合计 31,282.383 s（8.690 h）、artifact 39.931 MiB；总 active duration 36,369.524 s（10.103 h），磁盘 2.155 GiB。Sonnet 参数增量为 ETTm1 26,850、UrbanEV 26,978；训练峰值显存未由 artifact 另行记录，production 单批的已核验上界继续以第 45.5--45.6 节为准，不把单批 probe 冒充 epoch peak。
+
+### 46.4 ETTm1 结果与安全门禁
+
+相对变化统一为 `(candidate-control)/control`，负值表示改善。ETTm1 test 仅是 development-only test、used for candidate development、not a formal paper result、not eligible for the M6 formal table。
+
+| H | val MSE C / S2 / Δ | val MAE C / S2 / Δ | dev-test MSE C / S2 / Δ | dev-test MAE C / S2 / Δ |
+|---:|---|---|---|---|
+| 96 | 0.051354151 / 0.051249037 / -0.204684% | 0.168437986 / 0.167677302 / -0.451611% | 0.027810945 / 0.027133604 / -2.435519% | 0.126885552 / 0.125038896 / -1.455372% |
+| 192 | 0.073866953 / 0.073736047 / -0.177219% | 0.207835347 / 0.207747488 / -0.042273% | 0.041334444 / 0.041369098 / +0.083839% | 0.155162380 / 0.155257285 / +0.061165% |
+| 336 | 0.090018595 / 0.089900381 / -0.131322% | 0.235000000 / 0.234868558 / -0.055933% | 0.053219419 / 0.053132194 / -0.163898% | 0.175023331 / 0.174892230 / -0.074905% |
+| 720 | 0.103157385 / 0.103603760 / +0.432712% | 0.255361809 / 0.255242505 / -0.046719% | 0.071405353 / 0.070050144 / -1.897910% | 0.203260558 / 0.200287188 / -1.462836% |
+| macro | 0.079599271 / 0.079622306 / +0.028939% | 0.216658785 / 0.216383963 / -0.126846% | 0.048442540 / 0.047921260 / -1.076080% | 0.165082955 / 0.163868900 / -0.735422% |
+
+| statistic | val MSE | val MAE | dev-test MSE | dev-test MAE |
+|---|---:|---:|---:|---:|
+| mean_horizon_relative_change | -0.020128% | -0.149134% | -1.103372% | -0.732987% |
+| relative_change_of_macro_means | +0.028939% | -0.126846% | -1.076080% | -0.735422% |
+
+两种相对统计没有混称。按未舍入值，validation MSE macro 仅退化 0.0289387586%（<=0.5%）；development-test MSE/MAE macro 分别改善 1.0760798073%/0.7354215004%；唯一 test MSE 退化的 h192 为 0.0838385937%（<=1.0%）。四项 ETTm1 安全门禁全部通过。
+
+### 46.5 UrbanEV 结果、主门禁与总裁决
+
+UrbanEV 只报告 validation；训练和本节诊断都未构造、访问或评价 test。
+
+| label H | validation MSE C / S2 / Δ | validation MAE C / S2 / Δ |
+|---:|---|---|
+| 3 | 0.332088817 / 0.304887462 / -8.190988% | 0.358230249 / 0.335974532 / -6.212685% |
+| 6 | 0.503334115 / 0.451879816 / -10.222692% | 0.478212306 / 0.441816933 / -7.610715% |
+| 9 | 0.588857437 / 0.528922792 / -10.178125% | 0.529301755 / 0.492124979 / -7.023739% |
+| 12 | 0.527619166 / 0.499926870 / -5.248539% | 0.498012640 / 0.483551578 / -2.903754% |
+| macro | 0.487974884 / 0.446404235 / -8.519014% | 0.465939237 / 0.438367005 / -5.917560% |
+
+| statistic | validation MSE | validation MAE |
+|---|---:|---:|
+| mean_horizon_relative_change | -8.460086% | -5.937723% |
+| relative_change_of_macro_means | -8.519014% | -5.917560% |
+
+未舍入值证明 candidate MSE macro < control、MAE macro <= control，且 4/4 horizon MSE 均改善；改善分布于全部 horizon，不由单一 horizon 驱动，也不是相等值或显示舍入伪差。UrbanEV 五项主门禁全部通过。结合第 46.4 节，预登记总体裁决为：
+
+```text
+positive development signal
+Sonnet S2 development adequacy gate = Passed
+```
+
+该结论只覆盖 `el-amd-m4-sonnet-mvca-wavelet-residual-v1` 的锁定 S2、seed 2024、两数据协议与 10-epoch 预算。它不外推为所有 Sonnet 结构有效，不是 M5 多 seed/practical-effect/组合筛选，不把 Sonnet 称为最终外生模块、最终 EL-AMD 或 M5 冻结结构。当前只能称 **M4 leading development candidate**。
+
+### 46.6 Best/last 动力学与参数移动
+
+| data | H | best epoch | last-vs-best val MSE | last-vs-best val MAE | gamma init / best / last |
+|---|---:|---:|---|---|---|
+| ETTm1 | 96 | 5 | +0.006670985 / +13.016801% | +0.012854989 / +7.666505% | 0.001000000 / 0.005809715 / 0.008909442 |
+| ETTm1 | 192 | 1 | +0.010324030 / +14.001333% | +0.015118092 / +7.277148% | 0.001000000 / 0.001962031 / 0.021012334 |
+| ETTm1 | 336 | 2 | +0.012750783 / +14.183235% | +0.016350899 / +6.961723% | 0.001000000 / 0.002233726 / 0.026113726 |
+| ETTm1 | 720 | 4 | +0.008634292 / +8.333956% | +0.010532165 / +4.126337% | 0.001000000 / 0.012618456 / 0.032056548 |
+| UrbanEV | 3 | 10 | 0 / 0% | 0 / 0% | 0.001000000 / 0.060296074 / 0.060296074 |
+| UrbanEV | 6 | 10 | 0 / 0% | 0 / 0% | 0.001000000 / 0.055929884 / 0.055929884 |
+| UrbanEV | 9 | 10 | 0 / 0% | 0 / 0% | 0.001000000 / -0.066997156 / -0.066997156 |
+| UrbanEV | 12 | 10 | 0 / 0% | 0 / 0% | 0.001000000 / 0.052359592 / 0.052359592 |
+
+下表每格为 `init→best / init→last` 的整组 L2 movement；Q/K/V 为三者合并组。所有逻辑组在所有 run 都为 finite nonzero，说明非零 gate/readout/output projection 允许整条分支实际学习。UrbanEV best=last；h9 gamma 穿过零并变为负值，符合无约束 scalar 合同。ETTm1 last 普遍继续远离初始化且 validation 明显劣于 best，说明 checkpoint selection 是结果的一部分，不能以 last 替代 best。
+
+| data | H | joint | wavelet | Q/K/V | residual MLP | output proj | readout | gamma |
+|---|---:|---|---|---|---|---|---|---|---|
+| ETTm1 | 96 | 1.164608 / 1.718861 | 3.439365 / 5.863014 | 4.357803 / 5.834622 | 2.560942 / 3.592347 | 0.782644 / 1.161639 | 0.044033 / 0.081083 | 0.004810 / 0.007909 |
+| ETTm1 | 192 | 0.242751 / 1.675582 | 0.630378 / 5.067511 | 1.090529 / 5.920691 | 0.612734 / 5.048103 | 0.149314 / 1.805426 | 0.009049 / 0.199998 | 0.000962 / 0.020012 |
+| ETTm1 | 336 | 0.534161 / 1.505129 | 1.434507 / 4.033497 | 2.102893 / 5.633059 | 1.260872 / 5.471192 | 0.358942 / 1.902819 | 0.020098 / 0.218360 | 0.001234 / 0.025114 |
+| ETTm1 | 720 | 0.974485 / 1.282380 | 2.727143 / 3.317735 | 3.777771 / 4.976905 | 2.572165 / 4.972272 | 1.090619 / 2.249336 | 0.118289 / 0.286545 | 0.011618 / 0.031057 |
+| UrbanEV | 3 | 1.351612 / 1.351612 | 2.681869 / 2.681869 | 6.796571 / 6.796571 | 3.980539 / 3.980539 | 2.663442 / 2.663442 | 0.502820 / 0.502820 | 0.059296 / 0.059296 |
+| UrbanEV | 6 | 1.781407 / 1.781407 | 3.039707 / 3.039707 | 6.886131 / 6.886131 | 4.218763 / 4.218763 | 2.501079 / 2.501079 | 0.455693 / 0.455693 | 0.054930 / 0.054930 |
+| UrbanEV | 9 | 1.669529 / 1.669529 | 3.088729 / 3.088729 | 6.854095 / 6.854095 | 4.672108 / 4.672108 | 2.820038 / 2.820038 | 0.508133 / 0.508133 | 0.067997 / 0.067997 |
+| UrbanEV | 12 | 1.231774 / 1.231774 | 4.340520 / 4.340520 | 4.692464 / 4.692464 | 4.315178 / 4.315178 | 2.470668 / 2.470668 | 0.374897 / 0.374897 | 0.051360 / 0.051360 |
+
+### 46.7 Residual、coherence、attention 与 atom 诊断
+
+诊断只读取八个 candidate best checkpoint；ETTm1 只遍历 validation+development test，UrbanEV 只遍历 validation。每样本 ratio 定义为 `L2(gamma_sonnet*delta_target)/(L2(RevIN-normalized target history)+1e-12)`：
+
+| data | H | split | mean | median | p10 | p90 | p99 | max |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| ETTm1 | 96 | val / test | 0.008948 / 0.008949 | 0.008948 / 0.008949 | 0.008932 / 0.008938 | 0.008965 / 0.008960 | 0.008974 / 0.008966 | 0.008976 / 0.008976 |
+| ETTm1 | 192 | val / test | 0.000458 / 0.000458 | 0.000458 / 0.000458 | 0.000452 / 0.000452 | 0.000465 / 0.000464 | 0.000468 / 0.000469 | 0.000469 / 0.000470 |
+| ETTm1 | 336 | val / test | 0.000754 / 0.000753 | 0.000754 / 0.000754 | 0.000750 / 0.000749 | 0.000757 / 0.000758 | 0.000760 / 0.000763 | 0.000761 / 0.000766 |
+| ETTm1 | 720 | val / test | 0.057399 / 0.057428 | 0.057392 / 0.057434 | 0.057060 / 0.057188 | 0.057734 / 0.057666 | 0.057907 / 0.057853 | 0.058007 / 0.057991 |
+| UrbanEV | 3 | val | 53.378816 | 0.732210 | 0.520695 | 276.234314 | 363.433777 | 383.046509 |
+| UrbanEV | 6 | val | 24.590035 | 0.635711 | 0.497676 | 120.517494 | 168.842911 | 192.902649 |
+| UrbanEV | 9 | val | 166.564988 | 2.344857 | 1.911883 | 866.787354 | 1042.067383 | 1100.251343 |
+| UrbanEV | 12 | val | 21.887396 | 0.467673 | 0.326041 | 109.233711 | 173.705536 | 220.022446 |
+
+UrbanEV ratio 的 mean/tail 被大量 target-history norm 接近零的样本放大；这是一项分母敏感的描述统计，不等价于 prediction 爆炸。所有 prediction/residual/coherence 均 finite，且下节的绝对 prediction change 保持有限，因此不能单独用这些大 ratio 作不稳定性结论。
+
+Coherence 全量摘要如下，所有元素 finite：
+
+| data | H | split | mean | median | p10 | p90 | p99 | max |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| ETTm1 | 96 | val / test | 0.030256 / 0.029491 | 0.021509 / 0.020386 | 0.004066 / 0.003480 | 0.069151 / 0.068868 | 0.126495 / 0.130260 | 0.274280 / 0.274995 |
+| ETTm1 | 192 | val / test | 0.025115 / 0.024746 | 0.020443 / 0.020653 | 0.003305 / 0.003460 | 0.053428 / 0.051881 | 0.081975 / 0.079005 | 0.295772 / 0.289744 |
+| ETTm1 | 336 | val / test | 0.024813 / 0.024487 | 0.020541 / 0.020694 | 0.003373 / 0.003428 | 0.051966 / 0.050847 | 0.080693 / 0.078615 | 0.291291 / 0.281593 |
+| ETTm1 | 720 | val / test | 0.205557 / 0.215607 | 0.129520 / 0.123481 | 0.014230 / 0.011518 | 0.529592 / 0.582250 | 0.808248 / 0.820187 | 0.965766 / 0.964495 |
+| UrbanEV | 3 | val | 0.396641 | 0.338911 | 0.021037 | 0.866227 | 0.975457 | 0.998751 |
+| UrbanEV | 6 | val | 0.356596 | 0.297169 | 0.036843 | 0.784895 | 0.942033 | 0.992202 |
+| UrbanEV | 9 | val | 0.312356 | 0.248213 | 0.033027 | 0.710317 | 0.916283 | 0.993985 |
+| UrbanEV | 12 | val | 0.297740 | 0.205187 | 0.023107 | 0.730673 | 0.906180 | 0.986112 |
+
+Eval-mode pre-dropout attention（dropout no-op）也全部 finite；`sum_T(attention)` 最大绝对误差不超过 `2.384186e-7`：
+
+| data | H | split | mean | median | p10 | p90 | p99 | max | entropy mean / median / p10 / p90 / p99 / max |
+|---|---:|---|---:|---:|---:|---:|---:|---:|---|
+| ETTm1 | 96 | val / test | 0.001953 / 0.001953 | 0.001951 / 0.001951 | 0.001947 / 0.001947 | 0.001962 / 0.001962 | 0.001976 / 0.001977 | 0.002012 / 0.002012 | 6.238319/6.238319/6.238315/6.238322/6.238323/6.238324；6.238319/6.238319/6.238315/6.238322/6.238323/6.238324 |
+| ETTm1 | 192 | val / test | 0.001953 / 0.001953 | 0.001952 / 0.001952 | 0.001948 / 0.001948 | 0.001960 / 0.001960 | 0.001966 / 0.001966 | 0.002019 / 0.002017 | 6.238322/6.238322/6.238320/6.238323/6.238324/6.238325；6.238322/6.238322/6.238320/6.238323/6.238324/6.238324 |
+| ETTm1 | 336 | val / test | 0.001953 / 0.001953 | 0.001952 / 0.001952 | 0.001948 / 0.001948 | 0.001959 / 0.001959 | 0.001966 / 0.001966 | 0.002018 / 0.002016 | 6.238322/6.238322/6.238320/6.238323/6.238324/6.238325；6.238322/6.238322/6.238320/6.238323/6.238324/6.238325 |
+| ETTm1 | 720 | val / test | 0.001953 / 0.001953 | 0.001936 / 0.001933 | 0.001906 / 0.001902 | 0.002031 / 0.002039 | 0.002101 / 0.002101 | 0.002155 / 0.002162 | 6.238001/6.238003/6.237866/6.238135/6.238204/6.238244；6.237950/6.237959/6.237802/6.238089/6.238173/6.238205 |
+| UrbanEV | 3 | val | 0.083333 | 0.083083 | 0.080178 | 0.086821 | 0.089445 | 0.092846 | 2.484430/2.484435/2.484117/2.484750/2.484877/2.484906 |
+| UrbanEV | 6 | val | 0.083333 | 0.082961 | 0.080470 | 0.086768 | 0.089405 | 0.092467 | 2.484476/2.484489/2.484200/2.484737/2.484854/2.484905 |
+| UrbanEV | 9 | val | 0.083333 | 0.082900 | 0.080612 | 0.086793 | 0.089586 | 0.092572 | 2.484494/2.484514/2.484202/2.484762/2.484854/2.484902 |
+| UrbanEV | 12 | val | 0.083333 | 0.082727 | 0.080439 | 0.087190 | 0.089728 | 0.092463 | 2.484441/2.484452/2.484135/2.484731/2.484843/2.484904 |
+
+ETTm1 attention mean 恰为 `1/512`、entropy 接近 `log(512)`；UrbanEV mean 恰为 `1/12`、entropy 接近 `log(12)`。虽然 coherence 本身分布非退化，固定 `/sqrt(64)` 后的时间 softmax 很接近均匀；attention 不得被叙述为尖锐时间选择或因果解释。
+
+逐 atom 的 `mean_sample L2(mvca_output_k*atom_k over T,d)` 均 finite nonzero：
+
+| data | H | split | atom 0..7 mean output norms |
+|---|---:|---|---|
+| ETTm1 | 96 | val / test | 16.657446,14.518086,21.872251,18.047527,15.996466,14.635343,15.394153,14.077576 / 16.657023,14.517973,21.870134,18.047577,15.996195,14.634565,15.394057,14.077655 |
+| ETTm1 | 192 | val / test | 15.313301,14.087786,20.747523,15.927812,14.817419,14.658860,14.420075,12.749240 / 15.312956,14.087544,20.744988,15.927420,14.817104,14.657349,14.419748,12.749552 |
+| ETTm1 | 336 | val / test | 15.187418,13.887291,20.290336,15.985981,14.790748,14.226933,14.178713,12.622226 / 15.187117,13.887078,20.287179,15.985585,14.790522,14.225628,14.178435,12.622469 |
+| ETTm1 | 720 | val / test | 21.796948,18.499982,26.003442,23.773138,20.569886,18.551709,19.595723,18.850179 / 21.799813,18.502217,26.005025,23.777575,20.572114,18.554013,19.597168,18.851724 |
+| UrbanEV | 3 | val | 12.512662,7.228985,8.646684,7.877472,8.152044,11.999589,9.803507,14.408774 |
+| UrbanEV | 6 | val | 9.435152,5.152367,7.087383,7.523528,6.604544,7.156858,6.092990,10.433784 |
+| UrbanEV | 9 | val | 16.708653,8.812598,11.752822,12.763504,10.260439,11.774104,10.241813,16.759804 |
+| UrbanEV | 12 | val | 13.435713,4.272956,9.247912,5.722485,5.587919,7.376515,5.146841,8.678374 |
+
+### 46.8 Same-checkpoint bypass、aux permutation 与只读证明
+
+Bypass 使用同一 best checkpoint、仅令 Sonnet adapter 返回其输入；permutation 保持 target history 不变，只在 batch 维对全部 ordered aux channels/time 共同执行固定 cyclic shifts 1/2/3。下表 MSE Δ 均相对同一可比较 normal 样本集合；`pred Δ` 是与 normal prediction 的 mean absolute difference：
+
+| data | H | split | bypass MSE Δ / pred Δ | shift 1 | shift 2 | shift 3 |
+|---|---:|---|---|---|---|---|
+| ETTm1 | 96 | val / test | +0.112492%/0.001225 / +0.073211%/0.000849 | -0.000010%/1.40e-6 / -0.000049%/1.34e-6 | +0.000058%/2.52e-6 / +0.000002%/2.04e-6 | -0.000019%/3.44e-6 / +0.000068%/2.91e-6 |
+| ETTm1 | 192 | val / test | +0.016345%/0.000154 / +0.009382%/0.000108 | -0.000001%/8.38e-8 / -0.000002%/5.54e-8 | -0.000002%/1.42e-7 / -0.000004%/9.19e-8 | -0.000002%/1.97e-7 / -0.000006%/1.26e-7 |
+| ETTm1 | 336 | val / test | +0.013214%/0.000138 / +0.004514%/0.000099 | +0.000001%/1.72e-7 / -0.000004%/1.47e-7 | +0.000002%/2.99e-7 / -0.000006%/2.54e-7 | +0.000003%/4.17e-7 / -0.000008%/3.51e-7 |
+| ETTm1 | 720 | val / test | +0.275837%/0.002138 / +0.061361%/0.001490 | +0.001241%/3.92e-5 / -0.000657%/3.49e-5 | +0.002351%/6.45e-5 / -0.001012%/5.89e-5 | +0.003462%/8.95e-5 / -0.001869%/8.03e-5 |
+| UrbanEV | 3 | val | +69.698415% / 0.296174 | +1.480575% / 0.024647 | +1.367077% / 0.025375 | +1.107499% / 0.028168 |
+| UrbanEV | 6 | val | +19.247188% / 0.162016 | +1.344379% / 0.025404 | +0.671707% / 0.026517 | +1.208671% / 0.029388 |
+| UrbanEV | 9 | val | +27.685015% / 0.214830 | +0.961572% / 0.024608 | +0.837026% / 0.025519 | +0.794396% / 0.028413 |
+| UrbanEV | 12 | val | +12.021718% / 0.127645 | +0.349587% / 0.015410 | +0.305055% / 0.016673 | +0.402286% / 0.017863 |
+
+ETTm1 h96/h192 的 val/test 以及 UrbanEV h12 validation 最后一个 batch 为 B=1；三个 shift 在该 batch 都会成为 identity，因此全部明确跳过，各统计实际少 1 batch，并与同样排除该 batch 的 normal 子集比较，没有伪造 permutation。其余 split 每个 shift 覆盖全部 batch。
+
+结果显示：同-checkpoint bypass 在全部 split 都使 MSE 变差，UrbanEV 变差 12.02%--69.70%，证明已训练 residual 对该 checkpoint 的预测有实质作用。UrbanEV 三种 aux permutation 均使 MSE 变差 0.305%--1.481%，说明输出实际依赖 ordered auxiliary histories；ETTm1 permutation 变化接近数值零，提示其 S2 收益主要不能归因于 auxiliary ordering。由于 bypass 同时移除整个 target residual，而 permutation 也不是重新训练的消融，这些仅是描述性归因，不是因果证明、独立训练消融或 gate 替代。
+
+诊断 wrapper 的 normal 路径调用同一 production `forward_with_diagnostics`；在 12 个允许 split 各取 1 个代表 batch，与未包装 formal forward 的 prediction、MoE、state_source 最大绝对误差均为 0。12 个完整 split 的 normal metrics 与 sealed artifact 指标最大误差也均为 0。八个 model state_dict 在诊断前后逐 tensor exact equal；对应 digest 为 ETTm1 h96/h192/h336/h720=`d41e14fa...`/`e0ac14db...`/`fc43f2d3...`/`f7448c8d...`，UrbanEV h3/h6/h9/h12=`67de6941...`/`cbfd315b...`/`c5a086b0...`/`b4c8accf...`。诊断使用 CUDA float32、仅 `/tmp` wrapper/hook，无 optimizer、无 backward、无 artifact 发布；临时脚本、patch 与 JSON 在登记后删除。
+
+### 46.9 当前结论与停止点
+
+- Stage B implementation Git closure = Completed，commit=`bd1e0ab45f7329d3eb8c24eed106de19e21d9884`；
+- paired development = Completed（16/16 completed artifacts）；
+- UrbanEV main gate = Passed；
+- ETTm1 safety gate = Passed；
+- development signal = `positive development signal`；
+- Sonnet S2 development adequacy gate = **Passed**；
+- Sonnet S2 status = **M4 leading development candidate**；
+- final exogenous module / final EL-AMD / M5 frozen structure = **Not decided**。
+
+本轮结论不改写 TimeXer/CrossLinear 失败历史，不选择 XLinear，不解锁 PMCR/P2，不进入 M5/M7。M4 保持 In Progress；等待 ChatGPT 对第二十三轮结果文档审核，不自行执行文档 Git closure，也不在当前轮次设计或启动下一候选。

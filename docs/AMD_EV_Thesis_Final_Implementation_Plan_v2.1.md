@@ -17,7 +17,7 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 论文语义审计锚点：AMD-paper-norm-wd-ddi-v1 @ 5a718d5
 开发分支：AMD-paper-repro-custom-modules-v1
 M3 工程候选时间 variant：el-amd-pmcr-teb-v1
-M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已触发有限开发停止线；Sonnet / Multivariable Coherence Attention（MVCA）S2 target residual 的精确 development-candidate 合同已由用户确认，production capability 已完成且 ChatGPT implementation review 已 Passed，当前等待 Stage B implementation Git closure；ETTm1/UrbanEV paired development 尚未执行
+M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已触发有限开发停止线；Sonnet / Multivariable Coherence Attention（MVCA）S2 target residual 的 production capability、implementation review 与 Git closure 均已完成，ETTm1/UrbanEV 16-run paired development 得到 positive development signal，S2 adequacy gate 已 Passed，现仅是 M4 leading development candidate
 时空模型 variant：st-el-amd-hst-sadr-sc-simgca-v1
 ```
 
@@ -66,7 +66,7 @@ M2/M3 的 `Closed` 只表示对应工程实现、测试、文档和 Git 已闭�
 
 M4 只处理第三章时间模块诊断与候选迭代。第十七轮已按预登记停止线确认 TimeXer-inspired TEB 路线在 M4 有限开发中失败；第十九轮 Early CCE 与第二十轮 Late CCE 又均未通过既定 development adequacy gate，因此 CrossLinear-inspired CCE 路线也已在 M4 有限开发中失败。两条来源路线的实现、永久测试、artifact 与诊断仅作为历史工程和负向 development 证据保留。用户已选择 Sonnet / Multivariable Coherence Attention（MVCA）作为当前下一来源，并在第二十二轮进一步确认第 1.1.1 节 S2 精确 development-candidate 合同；这不把 Sonnet/MVCA 称为最终外生模块、最终 EL-AMD 或 M5 冻结结构。最终时间结构与正式 variant 仍只能在 M5 依据训练/验证证据冻结。
 
-M4 继续保持 In Progress。第二十二轮已由用户一次性确认 Sonnet/MVCA 的 S2 保留范围、RevIN 后/MDM 前插入点、target_exogenous-only 任务语义、matched standard from-scratch 协议、全部数值配置、development 数据边界与停止线；精确合同见第 1.1.1 节。Sonnet S2 production capability、永久测试和非训练单批探针已经完成，ChatGPT implementation review 已 Passed；当前等待 Stage B implementation Git closure。ETTm1/UrbanEV paired development 尚未执行，尚无 adequacy 或最终结构结论；Sonnet/MVCA 仍只是 M4 development candidate，不是最终外生模块、最终 EL-AMD 或 M5 冻结结构。XLinear 仍未选择；不得启动 PMCR/P2、进入 M5/M7 或实现任何空间模块。Stage B implementation Git closure 完成后，可以按 canonical 已锁定合同直接执行 paired development，无需用户重复授权。只有改变结构、来源、超参数、预算、停止线、test 边界，启动新候选或进入下一 milestone 时，才需要用户重新决定。
+M4 继续保持 In Progress。第二十二轮已由用户一次性确认 Sonnet/MVCA 的 S2 保留范围、RevIN 后/MDM 前插入点、target_exogenous-only 任务语义、matched standard from-scratch 协议、全部数值配置、development 数据边界与停止线；精确合同见第 1.1.1 节。Sonnet S2 production capability、永久测试和非训练单批探针已经完成，ChatGPT implementation review 已 Passed，Stage B implementation 已由 `bd1e0ab45f7329d3eb8c24eed106de19e21d9884` 完成 Git closure。第二十三轮又完整执行 ETTm1/UrbanEV 16-run paired development：UrbanEV 主门禁与 ETTm1 安全门禁均通过，登记 `positive development signal` 与 `Sonnet S2 development adequacy gate = Passed`。Sonnet S2 因而只是当前 M4 leading development candidate，仍不是最终外生模块、最终 EL-AMD 或 M5 冻结结构；单 seed、固定 S2 与 development-only ETTm1 证据不能替代 M5 多 seed 筛选。XLinear 仍未选择；不得自动调参、启动 PMCR/P2、进入 M5/M7 或实现任何空间模块。只有改变结构、来源、超参数、预算、停止线、test 边界，启动新候选或进入下一 milestone 时，才需要用户重新决定。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -111,7 +111,7 @@ RevIN -> CCE -> MDM -> DDI -> PMCR? -> AMS
 RevIN -> MDM -> DDI -> PMCR? -> Late CCE -> AMS
 ```
 
-Early CCE 与 Late CCE 均未通过 M4 development adequacy gate；上述路由只保留为历史实现和负向 development 证据，不构成现行锁定方案。Sonnet/MVCA 的 S2 development-candidate 精确合同现已锁定，XLinear 尚未被选择；production implementation gate 与 ChatGPT implementation review 已 Passed，当前等待 Stage B implementation Git closure，后续 paired development 尚未执行且 adequacy 尚未评估，不能称为最终结构。
+Early CCE 与 Late CCE 均未通过 M4 development adequacy gate；上述路由只保留为历史实现和负向 development 证据，不构成现行锁定方案。Sonnet/MVCA 的 S2 development-candidate 精确合同现已锁定，XLinear 尚未被选择；production implementation gate、ChatGPT implementation review 与 Git closure 均已完成，第二十三轮 paired development 得到 positive development signal 且 S2 adequacy gate 已 Passed。该结论只使 S2 成为当前 M4 leading development candidate，不能称为最终结构。
 
 M3 时点工程组合：
 
@@ -134,7 +134,7 @@ EL-AMD 名称继续作为第三章增强时间模型的项目名称（模型族�
   - 来源：Sonnet，AAAI 2026；当前重点组件为 Multivariable Coherence Attention；
   - 用户已明确完成来源选择，但该候选尚不是最终外生模块或最终 EL-AMD；
   - 第二十一轮只读审计建议已经用户审核；第二十二轮锁定 S2、插入点 A、target_exogenous only、matched standard from-scratch 及第 1.1.1 节全部数值、来源裁决、evaluation 与 artifact 合同；
-  - production capability 已完成且 ChatGPT implementation review 已 Passed；当前等待 Stage B implementation Git closure，ETTm1/UrbanEV 10-epoch paired development 尚未执行，也尚无 adequacy 或最终结构结论；closure 完成后可按已锁定合同直接执行，无需用户重复授权；
+  - production capability、ChatGPT implementation review 与 Git closure 已完成；ETTm1/UrbanEV 16-run paired development 已按锁定合同完成并通过双数据 gate，当前只登记 S2 为 M4 leading development candidate，尚无最终结构结论；
   - XLinear 尚未被选择，本轮不得同时启动；
   - TimeXer 与 CrossLinear 继续作为失败历史路线保留，不删除、不覆盖、不重新定义。
 
@@ -213,7 +213,7 @@ x -> AMD RevIN -> z -> Sonnet adapter? -> z_new
 
 control 与 candidate 使用相同主 seed，先以完全相同顺序构造公共 AMD 主干；candidate 分支在隔离 RNG 上下文中以 `module_init_seed=run seed` 初始化，并恢复全局 CPU/CUDA RNG，不改变 train DataLoader generator 初态。永久门禁必须证明公共 AMD parameter/persistent buffer、全局 CPU/CUDA RNG、train generator state 与首个 train batch逐元素一致。control 与 candidate 均为 standard from-scratch、全部自身参数可训练、fresh Adam；source checkpoint 为 null，不使用 importer、warm-start 或 frozen adapter。非零 gamma/readout/output projection 用来保证非退化 batch 首次 backward 中 joint embedding、wavelet、Q/K/V、residual MLP、output projection、readout 与 gamma 均可获得 finite nonzero 任务梯度；负例必须证明 gamma=0 或 zero readout 会切断上游。
 
-development 协议固定如下；第二十二轮 production capability 阶段未执行这些 10-epoch 实验，paired development 当前仍为 Not started，须在 Stage B implementation Git closure 后按已锁定合同直接执行：
+development 协议固定如下；第二十三轮已经从 Stage B clean closure commit 按此合同顺序完成全部 16 个 10-epoch paired runs：
 
 | 数据 | 固定合同 |
 |---|---|
@@ -222,7 +222,20 @@ development 协议固定如下；第二十二轮 production capability 阶段未
 
 UrbanEV 的 `train_validation_only` 必须在数据构造层隔离：不创建 test Dataset/DataLoader，不遍历 test，不预测或输出 test metrics，不伪造 test 字段，也不把 validation 写入 test。完整数据文件只可参与 byte-level fingerprint。必须复用 M1 fold/split/train-only scaler。其主门禁为 validation MSE macro 小于 control、validation MAE macro 不高于 control、至少 3/4 horizon validation MSE 改善、改善不由单一 horizon 驱动且是 full-precision 非舍入差。ETTm1 安全门禁为 validation MSE macro 退化不超过 0.5%、development test MSE/MAE macro 各退化不超过 0.5%、任一 horizon development test MSE 退化不超过 1.0%。只有 UrbanEV 主门禁与 ETTm1 安全门禁同时通过，才是 positive development signal；任一失败即按预登记停止，禁止自动调 d/K/alpha/gamma/dropout/epsilon/预算/batch 或转向其他阶段。
 
-未来 artifact root 固定为 `artifacts/m4-development/ettm1-stage-i-sonnet-mvca-v1` 与 `artifacts/m4-development/urbanev-stage-i-sonnet-mvca-v1`。沿用 schema-v2 的 13-file payload、checksums、hidden staging 与 atomic publication，并显式记录 `evaluation_policy=train_validation_test|train_validation_only`、`artifact_purpose=m4_development_candidate`。`train_validation_only` 的 `metrics.json` 不得含 `test` key，manifest 不得含 `test_mse`、`test_mae` 或其他 test result 字段，但必须固定 `test_access_policy=forbidden`；RuntimeData 不得持有可遍历 test loader；summarizer 使用独立 validation-only 分支并拒绝混合 evaluation policy。不得降低既有 test-inclusive schema-v2 合同。
+第二十三轮实际结果从 clean implementation commit `bd1e0ab45f7329d3eb8c24eed106de19e21d9884` 启动，8 个 ETTm1 与 8 个 UrbanEV artifact 均完成 10 epochs 并通过 schema-v2、13/13 checksum、Python verifier、系统 `sha256sum -c`、identity、finite 与无 staging 检查。full-precision macro 证据为：
+
+| development gate | control | candidate | relative change of macro means | 结论 |
+|---|---:|---:|---:|---|
+| UrbanEV validation MSE | 0.487974883666633 | 0.446404234951513 | -8.519014% | 4/4 horizon 改善，主门禁通过 |
+| UrbanEV validation MAE | 0.465939237469093 | 0.438367005436726 | -5.917560% | 不退化，主门禁通过 |
+| ETTm1 validation MSE | 0.079599271299896 | 0.079622306340827 | +0.028939% | 低于 +0.5% 安全上限 |
+| ETTm1 development-test MSE | 0.048442540257879 | 0.047921259864012 | -1.076080% | 改善 |
+| ETTm1 development-test MAE | 0.165082955197693 | 0.163868899651695 | -0.735422% | 改善；最大单 horizon test MSE 退化仅 h192 +0.083839% |
+
+因此登记 `positive development signal` 与 `Sonnet S2 development adequacy gate = Passed`。该裁决只覆盖已锁定的 S2、两个 development 数据协议、seed 2024 与 10-epoch 预算；ETTm1 test 是 candidate-development feedback，不能进入 M6 正式主表。它不证明所有 Sonnet 结构有效，也不构成因果归因、M5 冻结、最终外生模块或最终 EL-AMD 结论。Sonnet S2 仅成为当前 M4 leading development candidate；M4 保持 In Progress，下一结构未选择。
+
+
+第二十三轮实际 artifact root 为 `artifacts/m4-development/ettm1-stage-i-sonnet-mvca-v1` 与 `artifacts/m4-development/urbanev-stage-i-sonnet-mvca-v1`。两者沿用 schema-v2 的 13-file payload、checksums、hidden staging 与 atomic publication，并显式记录 `evaluation_policy=train_validation_test|train_validation_only`、`artifact_purpose=m4_development_candidate`。`train_validation_only` 的 `metrics.json` 不得含 `test` key，manifest 不得含 `test_mse`、`test_mae` 或其他 test result 字段，但必须固定 `test_access_policy=forbidden`；RuntimeData 不得持有可遍历 test loader；summarizer 使用独立 validation-only 分支并拒绝混合 evaluation policy。不得降低既有 test-inclusive schema-v2 合同。
 
 上述全部结构、source paper/repo/commit/PDF/core SHA、license-text-missing、retained/deleted components、raw/latent order、d/K/alpha/epsilon/dropout/gamma、FFT/denominator/scale/softmax/var_attn/reconstruction/readout/init policy、task/schema/order、evaluation policy 与 module-init-seed policy必须进入 resolved config、scientific/comparison hash、checkpoint、manifest、resume preflight 和 summarizer。resume 只允许同一 Sonnet variant/ablation/task/schema/order/T/d/K/alpha/policy/evaluation/scientific config 的 `strict=True` restore；跨 TimeXer/CrossLinear/XLinear、control/candidate、target/parallel、schema/order或结构不匹配、partial `sonnet_mvca.*`、key/shape/dtype 不匹配均须在写参前原子拒绝。
 
@@ -2408,7 +2421,7 @@ tests/
 | M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
-| M4 | 时间模块诊断与候选迭代 | 保留 TimeXer 与 CrossLinear 失败证据；Sonnet S2/MVCA residual 精确 development 合同已锁定，production capability 与 ChatGPT implementation review 已 Passed，implementation Git closure Pending、paired development Not started、adequacy Not evaluated；XLinear 未选择，不解锁 PMCR/P2/M5 |
+| M4 | 时间模块诊断与候选迭代 | 保留 TimeXer 与 CrossLinear 失败证据；Sonnet S2 production/review/Git closure 已完成，16-run paired development 为 positive development signal、S2 adequacy Passed，现为 M4 leading development candidate；仍非最终结构，XLinear 未选择，不解锁 PMCR/P2/M5 |
 | M5 | 模型筛选与结构冻结 | 公平多数据集、多 seed 验证；锁定 practical-effect threshold、最终时间结构与正式 variant |
 | M6 | 第三章正式实验与定稿 | 结构冻结后运行正式 test；完成主表、消融、效率与第三章定稿 |
 | M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
@@ -2465,7 +2478,7 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 |---|---|---|---|
 | TimeXer-inspired TEB（失败历史路线） | Global/T2/T2G/T3/rescue 的 artifact、实现与诊断保持可追溯；第十七轮已触发停止线 | 不再继续 T4/T5/T6、patch/gate/beta 调参或新 TimeXer-derived TEB | 后续 CrossLinear 路线也已失败；当前下一来源候选已转为 Sonnet/MVCA |
 | CrossLinear-inspired CCE（失败历史路线） | Early（RevIN 后、MDM 前）与 Late（post-PMCR/pre-AMS）实现、artifact 和诊断保持可追溯；两者均未通过 M4 adequacy gate | 不再调 kernel/lambda/gate 或增加插入位置 | 当前路线已触发有限开发停止线；当前下一来源候选已转为 Sonnet/MVCA |
-| Sonnet/MVCA（当前 S2 development 候选，精确合同已闭环） | joint embedding + learnable wavelet + paper-defined MVCA + no-Koopman reconstruction + target residual | RevIN 后/MDM 前；target_exogenous only；matched from-scratch；固定 d/K/alpha/gamma 与双数据 development gate | production implementation gate 与 ChatGPT implementation review 已 Passed；paired development 与 adequacy 尚未执行/评估，在取得 development 证据前不得称为最终外生模块或最终 EL-AMD；XLinear 不同时启动 |
+| Sonnet/MVCA（当前 M4 leading development candidate） | joint embedding + learnable wavelet + paper-defined MVCA + no-Koopman reconstruction + target residual | RevIN 后/MDM 前；target_exogenous only；matched from-scratch；固定 d/K/alpha/gamma 与双数据 development gate | implementation/review/closure 完成；16-run paired development 为 positive signal 且 S2 adequacy Passed；证据仅覆盖单 seed 固定 S2，仍不得称为最终外生模块或最终 EL-AMD，XLinear 不同时启动 |
 | PMCR | M4 只诊断 kernel、hidden、作用范围与 residual；任何参数或结构候选须经用户确认 | 可评估保留 Reparam DWConv + ConvFFN1 来源边界的候选；不得预先选定 | 更换另一篇近三年局部时间模块 |
 | SADR | b_lambda 更负；k/d_a；正则 | ASTGRN global adaptive graph 与 DTW 的残差融合 | 更换另一篇近三年空间图模块；退回静态双图只算排障结果 |
 | SC-SimGCA | rho 初始化；层数；SimAM lambda | 保留 G-STAN 层融合，移除 Graph-SimAM，改名 SC-GCF | 若仍失败，更换另一篇近三年空间传播模块 |
