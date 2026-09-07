@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十六轮，正式MS任务口径对齐与单seed政策修订（P2 On hold；仅文档与只读核验）
+当前轮次：第二十七轮，MS精确合同确认与P2条件性工程授权（仅文档；待ChatGPT审核/closure，P2生产实现Not started）
 
 canonical 内部版本：v2.1-R1
 
@@ -4290,3 +4290,126 @@ canonical §9.6 的Measured/Extrapolated/Scenario/Unknown标签、A800效率预�
 已决定的单seed政策、S2结构/来源/Passed结论、PMCR v1历史工程及P2规格/合成证据不再请求重复确认。原M5多数据集、两个来源模块独立消融及practical-effect要求保留，随机初始化稳定性未验证的局限明确披露。
 
 本轮仅修订canonical有效任务/seed/资源条款，更新唯一M4当前轮次并追加§49；§§47–48字节原样保留。反向移除本轮增量可恢复两份起始SHA，git diff --check和精确两文件范围核验通过；AGENTS、M0–M3、源码指纹、baseline及既有artifact保持不变。没有构造Dataset/DataLoader、forward/backward、optimizer、训练/evaluation/profiling、checkpoint反序列化或完整回归；不stage/commit/push，不进入M5/M6/M7。M4 In Progress，P2 On hold，文档完成后停止等待ChatGPT审核。
+
+## 50. 第二十七轮：MS精确合同确认与P2条件性工程授权（2026-09-07 UTC）
+
+### 50.1 继承现场、决定来源与本轮范围
+
+本轮继承分支 AMD-paper-repro-custom-modules-v1、HEAD ed106768a9b47f2ba0711677883b6fbcab0d0e6a，parent 为 2ccbf28d66d6c10ab56f5097a7faaf422c1b1910；起始 local/tracking/live remote 一致、ahead/behind=0/0、worktree/index clean、untracked none，canonical/M4审核字节、AGENTS、M0–M3、22-file executable source fingerprint及baseline均核验一致。指纹算法沿用sha256_length_prefixed_relative_path_and_content_v1；不移动baseline。
+
+用户已明确确认目标字段、MS精确合同、有限依赖调整及“文档收口 → 最小接口实现验收 → P2生产实现”的条件性工程授权；不再要求重复确认同一决定。本节登记用户决定和上一轮Codex只读补证，不称ChatGPT直接查过服务器。§§1–49保留当时原文及批准状态，本节是对当前合同和依赖的增量更新，不倒改历史Proposed/On hold记录。
+
+本轮仅修改canonical有效条款和本milestone文件头/新增§50。内部版本仍为v2.1-R1；文档待ChatGPT审核及另行closure，不实施接口/P2，不训练、不stage/commit/push，不跨越本轮审核停止点。
+
+### 50.2 已确认字段目标与仍未闭环的事实
+
+索引均为去掉时间列后的0-based feature index；名称、索引、数据版本/SHA、输入列和ordered aux绑定§49.3，不改CSV、不按test、相关性排名或模型表现重新筛选。
+
+| 数据集 | 用户确认的目标字段/index | 当前正式任务的事实边界 |
+|---|---|---|
+| UrbanEV | volume / 0，沿用既定合同 | 既有M1定义保留；正式运行仍须相应冻结与接口验收 |
+| EPF-PJM | 业务名price ↔ 原CSV字段OT / 2，项目合同显式双向映射 | 字段选择已确认；市场/结算口径、单位/转换链、forecast as-of可用性、项目正式split/retraining/fit政策及公开管线待闭环，正式任务blocked |
+| ETTh1 | OT / 6，沿用已核验目标 | §49.3原字段/数据版本证据保留；本轮不新增原始单位声明，新正式接口待验收 |
+| Weather | T (degC) / 1，User confirmed | 当前版本时间粒度仍Not verified，正式任务blocked |
+| ECL | OT / 320，User confirmed | 原客户/序列映射及单位转换链仍Not verified，正式任务blocked |
+| Exchange | OT / 7，User confirmed | 币种、基准币、报价方向及原列映射仍Not verified，正式任务blocked |
+
+字段确认不代表原始业务身份已经核验；用户没有批准“以匿名字段替代最终业务身份要求”。上述blocked只在取得可信证据并闭环对应正式合同/接口后解除，不按本次确认自动消失；Weather当前数据不替换成WeatherBench，ECL也不替换成Sonnet ELEC。
+
+上一轮Codex只读补证复用如下，本轮不重新搜索或读取数据观测值：
+
+- Weather/ECL/Exchange沿用§49.3 header、索引及数据SHA。限定的AMD数据元数据目录未发现对应说明/生成映射，三个CSV不在本地Git跟踪历史中；`../ModernTCN/README.md:32`只给数据下载入口，不能证明当前Weather的采样周期。默认freq或上游通用说明不能补成本地版本频率、ECL原客户/单位转换或Exchange币种/报价映射。
+- PJM代码级OT价格目标角色已有依据：`../TimeXer/README.md:21`将dataset/EPF定义为电价预测数据，`scripts/forecast_exogenous/EPF/TimeXer.sh:31–49`使用PJM.csv、MS、T168/H24，`run.py:35`默认target=OT。这里确认代码角色和项目字段映射，不声称市场/单位转换链已核验。
+- PJM两列原名 ` System load forecast`、` Zonal COMED load foecast` 的前导空格和拼写不改；只切入既有历史窗口。`../TimeXer/data_provider/data_loader.py::Dataset_Custom.__getitem__:290–301`取seq_x历史段，`models/TimeXer.py::forecast:157–184`以历史x_enc的目标/其余变量构造预测。该证据不证明forecast当时已发布或未经事后修订；仍缺发布时点/vintage/as-of说明。
+- `../TimeXer/data_provider/data_loader.py::Dataset_Custom.__read_data__:245–266`给出target重排、custom 70/10/20和train-only scaler fit路径；`scripts/forecast_exogenous/EPF/TimeXer.sh:49`的itr=1与`run.py:170–196`对应一次训练调用。PJM.csv的有限Git历史只有初始提交8e0667b9b89a2a17a376b762f0760f09e65beedd，未提供项目rolling/retraining政策。来源itr=1不等于项目F_PJM=1已获批准。
+- 来源`../TimeXer/exp/exp_long_term_forecasting.py::train:80–82,158–166`会构造test并逐epoch评价，不能直接用于项目冻结前训练。项目正式split/retraining/fit及公开管线仍待闭环，不以来源静态路径替代项目验收。
+
+### 50.3 MS历史输入、监督、指标与正式汇总（User confirmed）
+
+同一数据任务内各比较模型共同lookback固定：ETTh1/Weather/ECL=512，Exchange=96，UrbanEV=12，PJM=168。标准长序列H=[96,192,336,720]均评价完整未来1..H区间；PJM预测完整24步。UrbanEV保持label_horizon=[3,6,9,12]、model_pred_len=1，对窗口末观测后的指定未来偏移作单点预测，保留全部区域样本。
+
+MS是多变量历史输入、一个指定目标输出，不是S-to-S。输入列、名称及ordered aux沿用§49.3；重排须确定、可逆并绑定配置。标准CSV日期列仅作索引，不给个别baseline额外calendar/time-mark；UrbanEV保留F4已有历史日历特征。不得输入未来真实协变量。特殊baseline所需未来占位/接口仍须另行验收，本轮不自动批准或启用未完成适配，也不擅加跨变量融合模块。
+
+主预测loss、validation best selection与指标只覆盖指定目标。允许内部输出全C后显式选目标，不允许监督全部未来变量后仅报目标分数；MoE等模型固有辅助正则单列，不借其引入其他未来标签。
+
+主指标空间为metric_space=train-standardized。单run全体有效目标元素累加SSE/SAE后除以Q，评价末尾不完整batch全覆盖，不平均batch均值。标准任务覆盖所有H点，PJM覆盖24点，UrbanEV覆盖规定偏移单点及全部区域。仅在目标validation MSE严格下降时更新best，等值保留较早epoch；不以test或事后改用原单位指标选best。
+
+正式汇总先列逐fold/horizon未舍入指标：UrbanEV每horizon对六fold等权macro，再对四horizon等权macro；标准数据对四horizon等权macro。pooled SSE/SAE除以全部元素数只作明确加权的补充，另列；不同数据集原始误差不直接平均。若以后另列原单位指标，必须使用目标scaler，UrbanEV还绑定node，并标明metric space与可信单位；模型内部RevIN还原不代替数据scaler的目标反归一化。
+
+formal seed list=[2024]、seed std=N/A继续有效，不追加seed、不择优，M5原三seed稳定性仍暂缓且未验证；fold/horizon/city差异不作seed方差。不追溯修改S2等既有development指标、门槛、hash或结论。正式六fold宏平均合同不扩大P2 development：P2的UrbanEV仍只用fold6。
+
+### 50.4 正式身份、恢复与历史隔离（User confirmed，尚未注册）
+
+正式任务合同名确认：`ch3-ms-specified-target-full-horizon-v1`。本轮只锁定文档语义，不注册生产入口、不宣称正式管线可用；未来formal purpose与M4 development purpose分开，P2不得借用该正式身份冒充正式结果。
+
+沿§49.6绑定数据版本/SHA、task_mode/feature_type、target业务名/原字段/原始身份/index、feature_names/ordered aux/重排、split/scaler、T/H及标签位置、target-only loss、metric scope/space/macro、test policy、初始化/seed/训练身份与source/hash。config、checkpoint、resume、manifest和summarizer必须一致。跨task、target、metric scope、purpose、schema等不一致的恢复须在权重反序列化/写参前拒绝；同shape不等于同协议。
+
+不重定义历史U/M、旧M-to-M、S2、PMCR v1身份或hash；旧checkpoint/指标不能改名复用为新MS结果。历史开发artifact继续独立保留，不覆盖、不迁移，不以真实checkpoint warm-start替代matched from-scratch。
+
+### 50.5 对旧§49.7恢复依赖的有限调整与最小接口范围
+
+用户确认：未用于下一轮两项P2 development任务的正式元数据缺口，不再阻塞P2工程开发，但继续阻塞各自正式任务；不是把Not verified改为Verified。旧§49.7关于“等待用户确认三个字段/同一工程授权”的前置已由本次确认满足；关于未用正式元数据必须先全部补齐的依赖按本节有限调整。旧条文本身保留历史原貌。
+
+P2必需的实际任务范围固定为：
+
+- ETTm1：OT/index6、MS、T512、H=[96,192,336,720]完整区间；保留development-test边界，test可参与M4开发，不进入M6正式主表。
+- UrbanEV：volume/index0、F4、fold6、T12、label_horizon=[3,6,9,12]、model_pred_len=1；仅train/validation。从构造层排除test Dataset/DataLoader，不遍历、不评价test，也不伪造test metrics；完整文件只参与获准的字节级指纹核验。
+
+下一工程轮最小接入与验收清单（本轮未实现、未运行）：
+
+| 文件/函数 | 必须闭环的接口与验收 |
+|---|---|
+| main.py::_prepare_enhanced_contract / _build_urbanev_runtime_data / _build_generic_runtime_data | 非Sonnet独立development接入，保留旧协议及S2/组合guard；UrbanEV从构造层排除test，ETTm1保留既有development-test路径，不把正式六数据集全面接入混入该范围 |
+| utils/dataloader.py::_resolve_target_column / _make_dataset / inverse_transform；utils/dataloader_urbanev.py；main.py::_prediction_for_loss / evaluate / should_update_best | 复用现有单目标路径并验收：目标标签/loss、ETTm1完整H与UrbanEV偏移单点、全元素/末尾batch指标、严格validation best、目标scaler及UrbanEV node反归一化绑定；源码存在路径不等于新合同动态验收完成 |
+| main.py::_scientific_config / _checkpoint_common / _load_resume_checkpoint / _enhanced_artifact_parent；summarize_results.py::_validate_target_exogenous_schema / aggregate_runs | task/purpose/schema/resume、target与metric scope贯通config/hash/checkpoint/manifest/summary；跨身份在反序列化/写参前拒绝，validation-only产物和汇总没有伪造test面；不得沿用Sonnet专属协议身份 |
+| 既有tests/test_runner.py中的目标adapter、resume前置拒绝、validation-only runtime/artifact回归及对应数据/summary永久回归 | 在上述实际任务范围验收标签/指标、恢复拒绝、无test构造及manifest/summary一致性；保留原永久测试，不以旧S2或CPU合成证据替代新接入验收 |
+
+六数据集全部baseline接入、EPF完整管线、其余正式S2任务及第四章能力可继续blocked，不增设为P2前置；不要求先独立完成PMCR v1的16-run。既有baseline清单含TimeMixer完整保留，不替换、不增加模型。对应正式任务真正启用前仍须闭环本域元数据、信息集、接口、test隔离与正式执行配置。
+
+### 50.6 P2条件性工程授权、身份及构造初始化
+
+工程授权状态为 **Conditional authorization granted**，按唯一顺序执行：
+
+1. 本轮文档经ChatGPT审核并另行完成Git closure；
+2. 最小接口实现、测试、ChatGPT review及closure；
+3. 上述依赖通过后，沿已审核§§47.2–47.3开展P2生产实现及工程验收。
+
+各阶段依赖通过后由ChatGPT下发增量执行指令，不再请求用户重复确认这份已批准工程合同；Codex不得凭本条在同一轮越过review/closure停止点。当前仅执行第1步中的文档修改，接口及P2生产实现均未开始。
+
+沿用§47.4工程身份及独立命名空间，下表是User confirmed的工程合同，不是本轮生产注册或实验启动：
+
+| 工程字段 | 确认值 |
+|---|---|
+| gate / P2 class | LocalChangeGate / LocalChangeGatedPMCR |
+| implementation_variant | el-amd-m4-pmcr-local-change-p2-v1 |
+| development_protocol_id | m4_pmcr_p2_local_change_three_arm_from_scratch_v1 |
+| A / B / C ablation_id | M4_PMCR_P2_CONTROL / M4_PMCR_P2_V1 / M4_PMCR_P2 |
+| training_protocol_id | standard_from_scratch |
+| initialization_policy | matched_amd_pmcr_body_and_isolated_gate_v1 |
+| gate_contract_version | pmcr_p2_absdiff_bounded_gate_v1 |
+| artifact purpose / schema | m4_development_candidate / 2 |
+| run seed / body_init_seed / gate_init_seed | 2024 / 2024 / 2025 |
+
+2025是隔离的gate初始化子流，不是第二个实验seed。三臂先按同run seed构造公共AMD；B/C分别在恢复CPU RNG的独立作用域内，以body_init_seed=2024 fresh构造同一v1主体；C gate在另一独立CPU RNG作用域以2025完整构造/初始化，不改写现有或延迟CUDA seed。A不实例化主体，A/B不实例化gate，共同协议记录政策与适用臂。
+
+生产验收须匹配A/B/C公共AMD参数/buffer、构造后Python/NumPy/Torch CPU/CUDA RNG、独立train generator(seed=2024)及首batch；B/C另匹配全部v1主体参数/buffer和gamma。B/C初始gate=1时在matched RNG下预测应一致；A与B/C因gamma非零不要求相等，不把gamma改零或重置主体求输出相等。不同模型训练全过程不承诺完全相同随机轨迹。
+
+C保留独立pmcr_p2.body.* / pmcr_p2.gate.*命名空间；A/B沿用U1/U3科学语义但使用新同期身份，不重定义历史v1、U/M或hash。沿用已审核gate规格及训练/部署边界，不新增结构；动态gate不能静态融合，部署只融合原大小核分支。matched from-scratch、全部自身参数训练、fresh Adam、无warm-start/epoch-0 best；不改造旧PMCR importer，CPU合成同权重比较不授权真实checkpoint warm-start。新checkpoint绑定variant/臂/protocol、gate合同/配置、初始化policy/seed、数据/schema/source/runtime及train/deploy形态，仅允许本run严格resume，拒绝跨臂、旧v1/S2或其他协议恢复，不重置gate/gamma。
+
+§§47.6–47.8的24-run预算、epoch、性能门槛、真实数据完整训练、调参及启动仍为Proposed / Not authorized；§47.4工程身份、run seed和初始化子流的确认不批准这些实验事项。三臂Sonnet、CCE及全部TEB关闭，不批准Sonnet+PMCR/P2组合，所有组合guard保留。不自动启用正式矩阵，不进入M5/M7。长时实验仍须在后续实现review/closure后另行审核预算与训练前准备，提供经核验的守护启动、日志、状态、完成判断和安全停止命令，默认由用户启动。
+
+### 50.7 当前状态、文档验收与停止点
+
+| 项目 | 当前状态 |
+|---|---|
+| MS精确任务合同 | User confirmed；本轮文档待ChatGPT审核/closure |
+| P2工程授权 | Conditional authorization granted |
+| P2当前执行前置 | 文档closure、最小接口实现/测试/review/closure尚待完成 |
+| P2 production implementation | Not started |
+| P2 production review / CUDA / 真实batch / checkpoint / deploy验收 | 尚未完成；旧有限CPU合成证据不替代生产验收 |
+| P2 performance / development gate | Not evaluated |
+| P2实验预算 / epoch / 性能阈值 / 训练启动 | Not authorized |
+
+M4保持In Progress，S2 adequacy Passed、仅M4 leading development candidate的结论不变；PMCR v1、M0–M3历史结论及EL-AMD模型族身份保留。第四章全部节点/城市、原图路线、state_source=concat(v_final_target,u_mdm_target,zero_context)、[B,2*T+teb_context_dim]和state keys不变；零占位不是有效外生摘要，M5冻结后的M7状态适配器不提前实施。
+
+本轮仅两份权威文档变化；M4旧§§1–49逐字节保留，仅更新文件头当前轮次并追加§50，canonical当前摘要同步消除旧“等待目标/同一工程授权”的阻塞。校验精确Git范围、diff --check、旧正文保留、版本/标题/引用与当前语义一致性，并核验AGENTS、M0–M3、源码指纹及baseline不变。未修改或操作代码/测试、数据、参考仓库及既有artifact，未运行动态测试；未构造Dataset/DataLoader、执行模型/forward/backward/optimizer/evaluation/profiling、反序列化checkpoint或训练。未stage/commit/push，HEAD保持本轮起点，index无暂存、worktree仅两文档修改且无新增untracked；此状态不是worktree clean。完成文档校验后停止，等待ChatGPT审核及另行closure。
