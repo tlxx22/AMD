@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十三轮，Sonnet S2 ETTm1 + UrbanEV paired development 与有限归因诊断
+当前轮次：第二十六轮，正式MS任务口径对齐与单seed政策修订（P2 On hold；仅文档与只读核验）
 
 canonical 内部版本：v2.1-R1
 
@@ -3832,3 +3832,461 @@ ETTm1 h96/h192 的 val/test 以及 UrbanEV h12 validation 最后一个 batch 为
 - final exogenous module / final EL-AMD / M5 frozen structure = **Not decided**。
 
 本轮结论不改写 TimeXer/CrossLinear 失败历史，不选择 XLinear，不解锁 PMCR/P2，不进入 M5/M7。M4 保持 In Progress；等待 ChatGPT 对第二十三轮结果文档审核，不自行执行文档 Git closure，也不在当前轮次设计或启动下一候选。
+
+## 47. 第二十四轮：P2 规格/协议准备与有限合成可行性验证（2026-09-07 UTC）
+
+### 47.1 继承门禁、已确认方向与本轮权限
+
+起始 branch=AMD-paper-repro-custom-modules-v1，local/tracking/live remote HEAD 均为 2ccbf28d66d6c10ab56f5097a7faaf422c1b1910，parent=dde5aee47aa9d346237e3d8876cabe68d22fa980；ahead/behind=0/0，worktree/index clean，untracked none。显式读取并遵守根 AGENTS.md，不把 cwd 变化作为指导链自动加载证明。
+
+起始 SHA-256：AGENTS.md=19ad363ce989f741375d9448aad79554eee27218e5dd4563f7cf3486d9dc4aaf；canonical=84f8d2dfe3bfb07c6a4452dc27f0c0c589dc622947c32152aa90842e2231cee2；M4=f1d5897685c4160062903a390007b9ee0fca6509a1583dc5e270d673c1db079d；22-file executable source fingerprint=b1bfc174dcec275d6eb4e953e3ba3475a73a6383aa90b21fb7bd1110c8e86632。M0–M3 匹配第 2 节冻结 SHA；baseline tag 仍指向 fa9665627e6fcfb1d0c2bc22d943ca9666304fd6。
+
+用户已确认改进 PMCR 的顺序及 A/B/C 同期比较方向：不要求 v1 先在当前任务独立通过 adequacy；B 是参照，不能因其相对 A 的性能未通过而跳过 C。第 9、19、21 节的旧 parallel_multivariate/v1/P1 证据保留；不能据此称 v1 在 target_exogenous 或 UrbanEV 有效，也不能称 v1 已失败。第 46 节 Sonnet S2 adequacy Passed、M4 leading development candidate 保持继承，不重审或追溯修改其 gate。
+
+本轮只获准形成规格/协议、在唯一 /tmp 目录做有限合成 forward/backward，并修改 canonical 与本 milestone。以下补定数学、身份、初始化政策、seed/epoch、24-run 预算、阈值和顺序全部为 **Proposed**，等待 ChatGPT 审核；不是生产实现或训练授权。旧 U1/U3 独立 16-run 方案不启动。
+
+### 47.2 唯一推荐的 P2 数学规格（Proposed）
+
+输入为 DDI 后、进入 PMCR 前的 H=v_ddi，shape=[B,C,T]；B 是样本轴，C 是 DDI hidden channels/变量轴，T 是完整已观测历史时间轴。每个 (b,c) 独立处理，当前目标 T=12/512；建议 P2 接口拒绝 T<3。H 的差分不直接解释为原始充电量变化，也不预设 v1 抹平峰值或残差普遍过弱。
+
+下式对 b,c 分别成立，时间从 0 编号：
+
+~~~text
+D1[t] = 0                              if t = 0
+        H[t] - H[t-1]                  if 1 <= t < T
+D2[t] = 0                              if t < 2
+        D1[t] - D1[t-1]                if 2 <= t < T
+      = H[t] - 2*H[t-1] + H[t-2]      (t >= 2)
+
+a_j[t] = abs(Dj[t])                     j in {1,2}
+mu_j   = mean_t(a_j[t])                 shape [B,C,1]
+f_j[t] = a_j[t] / (a_j[t] + mu_j + 1e-6)
+F      = stack(f_1,f_2,dim=2)           [B,C,2,T]
+~~~
+
+两路均取绝对值，不编码变化正负。开头补确定性零，末端用实际 backward difference，不使用窗口外 H。均值只沿 T 求取；分子、均值及分母保留全部 autograd 路径，不 detach；abs 在零处沿用 PyTorch 零次梯度。归一化特征理论为 [0,1)，浮点按 [0,1] 检查。全窗均值引入同变量历史窗口内的尺度依赖，不跨 batch/C；不将门控称为严格三步感受野或严格 causal operator。
+
+共享网络唯一建议为：
+
+~~~text
+F.reshape(B*C,2,T)
+ -> Conv1d(2,4,kernel=3,stride=1,dilation=1,bias=True,
+           padding=1,padding_mode=replicate)
+ -> GELU(approximate="none")
+ -> Conv1d(4,1,kernel=1,stride=1,padding=0,bias=True)
+ -> z.reshape(B,C,T)
+gate(H) = 1 + tanh(z)
+~~~
+
+B*C 仅折叠独立序列，所有变量/样本共用上述 33 个参数。gate 首层复制首/尾变化特征作 padding，原 v1 主体的 zeros padding 完全不改。邻域卷积只使用已观测历史，不读取预测区间。gate 理论范围 (0,2)，浮点可到 0/2；只抑制/放大 base_delta，不额外翻转其符号，gamma 继续保持既有无约束标量语义。
+
+常数 H 的两路特征为零，无虚构边界差分；斜坡仅 D1 非零，D2 为零（浮点舍入除外）；单位阶跃的 D1 在跃迁处非零，D2 在该处及下一位置取 +1/-1，再取绝对值。近常数/近零且变化远小于 1e-6 时，f 随变化趋零，无零方差除法。初始 gate 对全部输入均为 1；训练后常数输入可因 learned bias 形成常值 gate，不强制永远为 1。
+
+唯一推荐理由：保留卷积主体、新增参数小、初始等价可核验；两路特征分别描述变化和变化的变化；有界归一化降低孤立突变随 T 增长导致的饱和风险。它是项目修改假说，不是有效性结论。
+
+### 47.3 主体、初始化、分析接口与复杂度（Proposed）
+
+~~~text
+base_delta      = PMCR_v1.compute_delta(H)  # 未乘 gamma
+effective_delta = gate(H) * base_delta
+residual        = gamma_pmcr * effective_delta
+H_out           = H + residual
+~~~
+
+原 v1 大小核、共享 feature-wise LayerNorm(d,eps=1e-5)、FFN d→2d→d、GELU/两处 dropout、投影及初始化公式不变；d=8、dropout=.1、gamma_init=1e-3。ETTm1 显式 kernels=5/31，UrbanEV=3/7。作用于全部 hidden channels，仍为 DDI→PMCR/P2→AMS experts，selector 继续使用 u_mdm。禁止 ConvFFN2、attention、额外预测头或新来源模块。
+
+gate 首层 weight=Xavier uniform(gain=1)、bias=0；末层 weight/bias 全零，因此 z=0、gate=1。同主体权重及 matched dropout RNG 下，P2 初始输出、输入梯度和全部公共主体梯度与 v1 一致。初始 gate 对输入的导数、首层参数梯度为零是预期；末层可从非退化输出 loss 取得梯度，不将 gate 的零输入导数误判为 H_out 输入梯度断开。不改 gamma=0、不零化主体 output projection。
+
+建议 API：
+- compute_base_delta(H)：v1 raw delta；
+- compute_gate(H)：gate；
+- compute_delta(H)：P2 effective_delta，仍未乘 gamma；
+- compute_components(H)：一次主体采样返回 base_delta/gate/effective_delta/residual/output；
+- forward(H)：只返回 output，维持 AMD 原调用接口。
+
+各分析张量均为 [B,C,T]，API 不自动 detach、切换 mode 或重复采样。train-mode 代数对照用一次 components 或恢复相同 RNG，不能拼接独立 dropout 采样的结果。
+
+新增参数=(2×4×3+4)+(4×1×1+1)=**33**。gate 卷积新增 **28BCT MAC**，不含 bias、GELU/tanh、差分、归一化和逐元素运算；这些额外工作及激活空间均为 O(BCT)。按 1 MAC=2 arithmetic FLOPs，卷积部分为 56BCT FLOPs，不冒充完整算子 FLOPs 或时延。
+
+| T / kernels | v1 train-form 参数 | P2 train-form 参数 | v1/P2 卷积 MAC，每个 BCT 元素 |
+|---|---:|---:|---:|
+| 12 / 3,7 | 418 | 451 | 352 / 380 |
+| 512 / 5,31 | 626 | 659 | 560 / 588 |
+
+动态 gate 不能融合成静态卷积。部署仅融合原 v1 大小核分支，LayerNorm/FFN/gate/外 residual 保留；to_deploy() 应深拷贝整个 P2 后 eval 并融合副本主体，原训练模块不变。解析推导 P2 deploy 参数为 T12:419、T512:611；本轮未执行 P2 deploy 验收。训练/best/last/resume 保持 train-form，拒绝 deploy checkpoint 训练恢复。
+
+ModernTCN 来源继承 M2 §4–5，并定向核对本地官方 commit 56a9a2c018385cd5acef015378cae7f084d1b11c、clean 状态及 ModernTCN-Long-term-forecasting/models/ModernTCN.py 的 ReparamLargeKernelConv/Block（文件 SHA-256=daf74722e40d928e5ed6bc871b528a5d5d2c9090f30cafb89110cc88dc60fa30）。来源依据仅为既有卷积/FFN1/结构重参数化路线；项目 normalization 适配及删除 ConvFFN2 已在 M2 锁定。局部变化 gate 是本项目修改，不声称原论文提出或验证了它。本轮不重读论文全文、不复制官方源码。
+
+### 47.4 新身份、构造公平性与 checkpoint 隔离（Proposed）
+
+| 字段 | 建议值 |
+|---|---|
+| gate / P2 class | LocalChangeGate / LocalChangeGatedPMCR |
+| 三臂共同新 implementation_variant | el-amd-m4-pmcr-local-change-p2-v1 |
+| development_protocol_id | m4_pmcr_p2_local_change_three_arm_from_scratch_v1 |
+| A / B / C ablation_id | M4_PMCR_P2_CONTROL / M4_PMCR_P2_V1 / M4_PMCR_P2 |
+| training_protocol_id | standard_from_scratch |
+| initialization_policy | matched_amd_pmcr_body_and_isolated_gate_v1 |
+| gate_contract_version | pmcr_p2_absdiff_bounded_gate_v1 |
+| artifact purpose / schema | m4_development_candidate / 2 |
+
+A/B/C 都是新同期身份；A/B 沿用 U1/U3 科学语义，不重定义历史 U1/U3、v1 class、el-amd-pmcr-teb-v1 或旧 hash。C 建议独立参数命名空间 pmcr_p2.body.*、pmcr_p2.gate.*；B 保持 v1 主体，A 无 PMCR 参数。新增配置仅对新 variant/协议显式生效，旧协议路径及默认序列化保持原样。
+
+三臂先按同 run seed 构造公共 AMD；B/C 再分别在恢复 CPU RNG 的独立作用域内，以 body_init_seed=seed=2024 fresh 构造同一 v1 主体；C gate 以 gate_init_seed=seed+1=2025 在另一独立 CPU RNG 作用域完整构造/初始化，不改写 CUDA 现有或延迟 seed。A 不实例化主体，A/B 不实例化 gate，但共同协议记录初始化政策及适用臂。
+
+未来生产验收必须比较公共 AMD 参数/buffer、构造后 Python/NumPy/Torch CPU/CUDA RNG、独立 train generator(seed=2024) 与首 batch；B/C 另比较全部主体参数/buffer，包括 gamma。B/C 初始预测在 matched RNG 下应一致；A 与 B/C 因非零 gamma 不要求相等。不承诺独立模型训练全过程随机轨迹一致。
+
+全部自身参数训练、fresh Adam，不读取源 checkpoint/importer、无 warm-start/epoch-0 best；合成中的内存 deepcopy 不授权真实 checkpoint warm-start。新 checkpoint 封存 variant/ablation/protocol、gate 公式版本/配置、初始化 seed/policy、数据/schema/source/runtime 身份及 train/deploy 形态；拒绝跨臂、旧 v1、旧 Sonnet 或其他协议作为 P2 resume。仅恢复本 run 自身 last.pt，严格恢复模型、optimizer、RNG、train generator、history/best；不重置 gate/gamma、不改造旧 PMCR importer。
+
+### 47.5 有限合成验证：方法、结果与限度
+
+唯一临时目录为 /tmp/amd-m4-p2-spec-4n85z4pt。指定 amd Python、torch 2.0.1、CPU、1 thread、float32/float64；无 CUDA、optimizer、step、真实 Dataset/DataLoader/checkpoint/artifact。最终 prototype SHA-256=728e49cc770cda8cf2794d9079d204fdf0cf4196ffad9ed4fd0190f0fc97f61d。
+
+首次试算 a/(mean(a)+epsilon)，在确定性非零末层扰动下 T512 gate 达到数值 0/2；这不是有限性失败，但暴露了稀疏突变的尺度/饱和风险。最终唯一推荐改为 §47.2 有界公式，重跑同一有限矩阵；没有训练或比较多个真实候选。初稿不是第二个候选或锁定合同。
+
+可复现核心伪代码（仅用于本节合成复核）：
+
+~~~python
+def isolated_cpu(seed, factory):
+    with torch.random.fork_rng(devices=[]):
+        torch.default_generator.manual_seed(seed)
+        return factory()  # 完整构造/初始化都在作用域内
+
+def features(H):
+    d1 = cat([zeros_like(H[..., :1]), H[..., 1:] - H[..., :-1]], -1)
+    d2 = cat([zeros_like(H[..., :2]), d1[..., 2:] - d1[..., 1:-1]], -1)
+    a1, a2 = abs(d1), abs(d2)
+    f1 = a1 / (a1 + mean(a1, -1, keepdim=True) + 1e-6)
+    f2 = a2 / (a2 + mean(a2, -1, keepdim=True) + 1e-6)
+    return stack([f1, f2], dim=2)
+
+def make_gate():
+    g = Sequential(Conv1d(2,4,3,padding=1,padding_mode="replicate"),
+                   GELU(approximate="none"), Conv1d(4,1,1))
+    xavier_uniform_(g[0].weight); zeros_(g[0].bias)
+    zeros_(g[2].weight); zeros_(g[2].bias)
+    return g
+
+def components(H):
+    B,C,T = H.shape
+    raw = body_C.compute_delta(H)  # 只采样一次主体
+    G = 1 + tanh(gate(features(H).reshape(B*C,2,T))).reshape(B,C,T)
+    effective = G * raw
+    residual = body_C.gamma_pmcr * effective
+    return raw, G, effective, residual, H + residual
+
+for T,(ks,kl) in [(12,(3,7)), (512,(5,31))]:
+    for dtype in [float32, float64]:
+        body_B = isolated_cpu(2024, lambda: existing_PMCR_v1(
+            hidden_dim=8, kernel_small=ks, kernel_large=kl,
+            dropout=.1, gamma_init=.001)).to(dtype)
+        body_C = deepcopy(body_B)  # 仅合成内存副本，无 checkpoint
+        gate = isolated_cpu(2025, make_gate).to(dtype)
+        for H in five_inputs(T,dtype):
+            for mode in [eval, train]:  # train 仅启用原 v1 dropout
+                set_mode(body_B, body_C, gate, mode)
+                body_B.zero_grad(); body_C.zero_grad(); gate.zero_grad()
+                H_B = H.clone().requires_grad_(True)
+                H_C = H.clone().requires_grad_(True)
+                seed_cpu(9001); r = cpu_rng()
+                Y_B = body_B(H_B)
+                restore_cpu_rng(r)
+                raw,G,effective,residual,Y_C = components(H_C)
+                mean((Y_B-Q)**2).backward()
+                mean((Y_C-Q)**2).backward()  # 无 optimizer/step
+                # 比较输出、H.grad、全部主体 parameter grads；
+                # 检查 forward 后 RNG、gate==1、shape/finite。
+~~~
+
+输入精确定义：B=2、C=3，u=linspace(0,1,T)，factor=[[1,.7,1.3],[.9,1.2,.8]][...,None]，offset=[[.15,-.05,.3],[-.2,.1,.25]][...,None]，q=sin(2*pi*u)+.1*u。五类依次为 .25*ones*factor+offset、u*factor+offset、1[u>=.5]*factor+offset、1e-10*q*factor、.25+1e-6*q*factor。目标 Q=.2+.3*cos(3*pi*u)，广播为 [2,3,T]；loss 仅 mean((H_out-Q)^2)，未添加无关训练辅助 loss。body/gate 分别用 2024/2025；forward 用 9001；背景 Python/NumPy/CPU seed=8001。
+
+额外以 H=arange(T)、中点单位阶跃、全零/常数核对边界。对 H=arange(T) 的内部 f1[t]，最后 H[T-1] 的解析导数为 -1/(T*(1+(T-1)/T+1e-6)^2；归一化梯度检查 float64 误差 0、float32 最大误差 2.794e-9，证明没有 detach 全窗统计。
+
+最终 **20 个输入组合、train/eval 共 40 组 B/C 成对 forward/backward 检查全部通过**。各 components shape 正确且 finite；初始 gate=1；输出/输入梯度/公共主体梯度最大绝对误差为 **0/0/0**；CPU/Python/NumPy 构造 RNG 与 matched forward RNG 一致。atol=float32:1e-6、float64:1e-12，实际初始误差均为精确 0。
+
+阶跃、train-mode 的原输出 MSE 下，末层 weight 梯度范数：T12 float32=2.25715674e-4，T512 float32=6.20103322e-7；末层 bias 梯度也有限非零。首层梯度、初始 gate 对 H 的导数为 0，符合零末层设计；整个模型输入梯度非零且匹配 v1。
+
+确定性扰动仅将末层 weight 设为 [.20,-.10,.15,.05]、bias=.03，无 step。在阶跃 eval 样本的 (b=1,c=2,t=T//3) 位置加 .4，其他样本/变量所有 components 最大变化=0；变量置换 [2,0,1]、batch 置换 [1,0] 的最大误差=0。加权 gate VJP 的权重 linspace(.7,1.3,T) 仅用于路径检查，不作为训练辅助 loss。
+
+| float32 非零 gate 探针 | T=12 | T=512 |
+|---|---:|---:|
+| 原阶跃 gate min/max | 0.917133 / 1.044834 | 0.903537 / 1.048787 |
+| 被扰动变量 gate 最大变化 | 0.142402 | 0.202898 |
+| gate 对 H 加权 VJP norm | 9.041009e-3 | 3.351763e-4 |
+| 原输出 MSE 的首层 weight grad norm | 6.037690e-5 | 2.173232e-7 |
+| 新增参数实际计数 | 33 | 33 |
+| [2,3,T] 新增卷积 MAC（hook 计数） | 2,016 | 86,016 |
+
+float64 同项均通过；非零末层后，首层也能从原输出 MSE 获得有限非零梯度。非零 gate 独立/置换检查限于阶跃和两种 dtype，不宣称任意输入、train 随机 mask 下逐值置换等价。
+
+本节仅证明有限合成可行性。未测 CUDA、整 AMD 三臂构造/首 batch、真实数据、生产 checkpoint/resume、P2 deploy、显存/时延或完整回归，未证明预测收益。公式、伪代码及关键结果保存于此；随后精确清理唯一临时目录，不保留临时 prototype/log/result 副本，不清理历史资产。
+
+### 47.6 三臂配置与执行顺序（全部 Proposed）
+
+A=AMD-Concat；B=A+PMCR v1；C=A+上述 P2。三臂均关闭 Sonnet/CCE/全部 TEB，同输入输出、同源码、matched standard from-scratch。旧 parallel run、U1/U3 或 Sonnet control 权重/指标不填入新三臂表。
+
+公共 AMD 配置沿用已审计 control 模板：AMDEnhanced，alpha=0、n_block=1、mix_layer_num=3、mix_layer_scale=2、dropout=.1、norm=true、layernorm=true、selector_mode=horizon_shared_dense_emphasis、target_slice=None、full_denorm_then_task_select；保留 auxiliary loss，teb_context_dim=32 仅为零 context 宽度。B/C 主体 d=8、dropout=.1、gamma=.001 初值、FFN ratio=2、train-form；gate 不增 dropout。
+
+| 配置 | ETTm1 | UrbanEV |
+|---|---|---|
+| task / target | target_exogenous / OT / MS | target_exogenous / volume / MS |
+| 仓库相对数据路径 | data/ETTm1.csv | data/UrbanEV/data |
+| schema / indices | HUFL,HULL,MUFL,MULL,LUFL,LULL,OT；target=6，aux=0…5 | F4：volume,e_price,s_price,Ta,P,h,hour_sin,hour_cos,weekday_sin,weekday_cos,is_weekend；target=0，aux=1…10 |
+| seq_len / patch | 512 / 16 | 12 / 12 |
+| label_horizon | 96,192,336,720 | 3,6,9,12 |
+| model_pred_len / artifact_horizon | H / H | 1 / label_horizon |
+| fold | official | 6 |
+| B/C kernels | 5/31 | 3/7 |
+| batch_size | 32 | 128 |
+| evaluation_policy / test_access | train_validation_test / development_only | train_validation_only / forbidden |
+| 新 artifact root | artifacts/m4-development/ettm1-pmcr-p2-three-arm-v1 | artifacts/m4-development/urbanev-pmcr-p2-three-arm-v1 |
+
+数据定义继承前轮核验：ETTm1 train [0,34560)、validation [34560,46080)、development-test [46080,57600)，验证/测试使用边界前 512 点 context，scaler 仅 train 拟合。UrbanEV fold6=2022-09…2023-02、275 nodes，train [0,3475)、validation [3475,3909)，split-local 不借跨 split 历史；标签 volume[t+12+label_horizon-1]，不是连续多步输出。沿用 train-only 预处理、节点及时间顺序。UrbanEV 从 Dataset/DataLoader 构造层排除 test，RuntimeData/evaluation/metrics/manifest/log/summarizer 全链路禁止 test 结果。其他正式数据集 test 边界不变。
+
+继承的 control 模板元数据：ETTm1 data SHA=6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e，schema SHA=f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc；UrbanEV data fingerprint=9ec565783011c83dfb56d1ac76e2b0027cd1821647d15c2f534173e5440c75d1，schema fingerprint=8e43cc3835b913f43357d98573c57c902e3c42d38024df32b6ea93735c00a0f8，preprocessing-state fingerprint=35c23f4634e325c87beb29c7484b6010fd4a6f6d0a14b19f00266e242385f7e3。本轮未重算这些数据指纹或历史性能，未来准备时必须现场匹配。
+
+Proposed 训练值：seed=2024、固定 10 epochs、lr=3e-5、weight_decay=1e-7；fresh Adam，betas=(.9,.999)、eps=1e-8、amsgrad/maximize/capturable/differentiable=false、foreach/fused=None，全部自身参数可训练；MSE+既有 selector auxiliary loss。无 warm-start、epoch-0 best、scheduler、AMP、gradient clipping 或 early stopping。train shuffle/drop_last=true，独立 generator(seed=2024)；validation/test shuffle/drop_last=false，num_workers=0。每 epoch 以有限 validation MSE 严格改善选 best，同值保留较早 epoch，best 仅来自 1…10。ETTm1 只评估 validation-selected best 的 development-test；UrbanEV 只报告 validation。
+
+环境建议沿用 control 模板：指定 amd Python，cuda:0、NVIDIA A800 80GB PCIe、num_threads=4、progress=false；Python3.11.15、torch2.0.1/CUDA11.8/cuDNN8700、NumPy1.24.3、pandas2.0.3、SciPy1.11.4、scikit-learn1.3.2；cudnn_benchmark=false、cudnn_deterministic=true、deterministic_algorithms=false、cuda_matmul_allow_tf32=false、cudnn_allow_tf32=true。这是拟沿用记录，不是本轮 GPU 可用性/时延实测。
+
+全部三臂必须使用同一次 implementation review/closure 后的源码。实际 commit/source fingerprint、环境、容量结果在后续填写，不能预填本轮尚未实现 P2 的 22-file 指纹。每臂 config hash 保留差异；三臂匹配键核对共同 protocol、dataset/schema/data/preprocessing、fold、T/两种 horizon、seed、主干/优化/runtime/source。comparison hash 的种子去除规则须同步处理 run/body/gate seed，保留 seed 派生政策；不强求三臂 config hash 相同。
+
+唯一建议顺序：ETTm1 H=96→192→336→720，每个 H 按 A→B→C，完成 12 runs 后判安全 gate；通过后 UrbanEV label_horizon=3→6→9→12，各 H 按 A→B→C，再完成 12 runs。单卡串行；不得在阶段中途按 B vs A 的性能取消 C，阶段内完成全组三臂后判性能，技术失败则暂停审计。
+
+总预算 **24 个新 run（8 A+8 B+8 C），上限 240 run-epochs**；前半 12、后半 12，不是 16。seed、epoch、预算及顺序全部待确认；本轮未锁定或消耗真实实验预算。
+
+### 47.7 两个问题分别判定：指标与门槛（全部 Proposed）
+
+指标空间为 train-standardized。每个 horizon 累计全部目标元素 SSE/SAE 再除以元素数，包含末尾不满 batch，不平均 batch 指标。四 H 等权 macro，不按样本数跨 H pooling。reference R=A 或 B，P2 指标为 C_h、参照为 R_h，正值表示退化：
+
+~~~text
+relative_change_of_macro_means
+  = 100*(mean_h(C_h)/mean_h(R_h)-1)       # gate 使用
+mean_horizon_relative_change
+  = mean_h(100*(C_h/R_h-1))              # 同时报告
+leave_one_horizon_out_relative[j]
+  = 100*(sum_{h!=j}(C_h)/sum_{h!=j}(R_h)-1)
+~~~
+
+判定用未舍入值。非有限、空结果、非正相对分母、缺臂/重复身份或不匹配合同不能判 Passed，按技术/证据无效处理，不加 epsilon 掩盖。分别报告 C vs B、C vs A；B vs A 仅描述，不设 B 前置 adequacy gate。
+
+| 检查 | C vs B：是否改进原版 | C vs A：AMD 收益/安全性 |
+|---|---|---|
+| ETTm1 安全 | validation MSE macro、development-test MSE/MAE macro 各退化≤0.5%；任一 H development-test MSE 退化≤1% | 同左，独立计算 |
+| UrbanEV 主检查 | validation MSE macro 至少改善0.5%（relative≤-0.5%）；MAE macro≤0；至少3/4 H MSE严格改善；任一 H MSE退化≤1%；移除任意 H 后其余3个 MSE macro仍严格改善 | 同左，独立计算 |
+
+本轮新建议 0.5% 最低 UrbanEV 改善幅度，为这一次 P2 开发提供机械可核验的最小效应标准，不称已验证 practical threshold、统计显著性或 M5 最终门槛。ETTm1 0.5%/1% 及移除单 H 检查也是本次 Proposed，不因上轮出现过就获准，不追溯用于 Sonnet。
+
+报告每 H 原值、绝对差、relative、两种 macro、四个 leave-one-out 值。“非单 H 驱动”在本草案定义为移除任意单 H 后改善方向仍成立：排除单 H 对改善方向不可或缺，不声称贡献均衡。完整精度加最低 0.5% macro 改善处理非舍入假象，不保留同名不可机械判定项。
+
+只有 ETTm1 两个安全比较及 UrbanEV 两个主比较全通过，才登记本协议下 P2 positive development signal。C 优于 B 但相对 A 未通过，不得称 AMD 获益；分别报告哪个问题未被支持。不能倒写为 v1 普遍有效/失败，也不等于 M4 关闭、M5 冻结或组合授权。
+
+### 47.8 停止线、成本估算与启动边界（Proposed）
+
+ETTm1 任一安全比较未通过，记录该阶段 12 runs 后停止，不启动 UrbanEV；UrbanEV 任一主比较未通过，停止该 24-run 序列。保留各比较结果，不自动调参、补 seed、扩 epochs/run、换 gate/来源、恢复失败 TEB、启动 Sonnet+PMCR/P2 或推进 M5。技术失败（OOM、NaN、身份/数据不一致、中断或恢复证据缺损）先暂停审计，不判性能失败，不删证据、不自动 fresh rerun。只有恢复合同核验及授权范围成立时才恢复同 run last.pt，总 epochs 仍为10；否则等待裁决。
+
+仅用 §46.3 已登记同机 AMD control 的资源字段估算，不读权重或复算指标：ETTm1 四个 control 共40.220 min、UrbanEV 共249.620 min（表中舍入值）。各乘三得约2.01和12.48 GPU h，合计 **14.49 GPU h**；新 PMCR/P2 耗时未实测，建议串行预留约 **22 GPU h**（1.5倍余量），不是保证上界或自动强杀时限。按旧16-run约2.155 GiB外推，24-run约3.3 GiB，建议准备至少5 GiB可用空间；不代替新源码实测。
+
+长时训练须在另获实现授权、永久回归及 implementation review/closure 后，单独完成准备：固定 batch CUDA 单批/显存及耗时估计、三臂初始化/首 batch 公平性、环境/数据身份。守护方式实测后按 tmux > systemd-run --user > nohup+setsid 选择，提供完整启动、日志、进程/状态、完成判断及安全停止命令，默认用户启动。本轮不操作守护进程、不提交训练任务。
+
+### 47.9 最小未来生产文件清单与状态边界
+
+| 文件（未来实施另获授权） | 最小职责 |
+|---|---|
+| 新 models/modules/local_change_gated_pmcr.py | 两路有界特征、33参数gate、复用v1 body、components API、仅主体部署融合 |
+| models/tsAMD_enhanced.py | P2路由/身份、B/C主体和C gate构造RNG隔离；保持旧协议/importer及组合guard |
+| main.py | 三臂注册/参数校验、非Sonnet UrbanEV validation-only、config/hash/checkpoint/resume/manifest一致性 |
+| summarize_results.py | 新身份、test排除、三臂完整性、两套gate、两种macro和leave-one-out |
+| 新 tests/test_local_change_gated_pmcr.py | 数学/边界、梯度/等价/独立性、参数量和train/deploy动态gate回归 |
+| tests/test_tsAMD_enhanced.py、tests/test_runner.py、tests/test_summarize_results.py | 公共初始化/首batch、严格恢复拒绝及无污染、旧hash/行为、validation-only全链路和gate边界 |
+
+无需改 v1 数学模块、旧 PMCR importer、UrbanEV 数据定义或 Sonnet 模块；已有 PMCR 数学/变量独立/重参数化永久测试保留。新增回归覆盖可观察行为与拒绝边界，不只复刻实现；本轮未执行上述 production tests、真实单批/显存或完整回归。
+
+state_source 依 canonical §8.2 保持 concat(v_final_target,u_mdm_target,zero_context)、[B,2*T+teb_context_dim]；第三段仅兼容零占位，S2 预测路径影响不等于独立 exo_context。M5冻结后才在M7依最终时间模型落实StateAdapter及监督。本轮不锁新公式/宽度/训练协议，不改state keys/宽度，不加Sonnet context head、H_time、Graph Mode或空间模块。
+
+### 47.10 完成状态与待审核新增决策
+
+当前为 **P2规格/协议准备；有限合成可行性通过；production implementation/真实性能/训练预算授权均未完成**。已确认的改进方向、三臂分工、v1实现/数据定义及Sonnet结论不再请求重复确认。
+
+仅待审核新增科学决策：是否采纳上述唯一P2差分/归一化/网络/初始化/身份精确值，以及三臂seed=2024、10 epochs、12+12顺序、24-run预算与§47.7两套数值门槛。采纳协议不自动启动训练；生产实现、review/closure、训练准备后续按授权推进。
+
+本轮仓库仅修改canonical与唯一M4；AGENTS、M0–M3、生产代码、永久测试、数据、Sonnet/其他artifact与baseline保持不变。临时目录在关键证据入本节后精确清理；不stage/commit/push，M4继续In Progress，停止等待ChatGPT审核。
+
+## 48. 第二十五轮：P2 specification review 与正式实验资源/效率规划（2026-09-07 UTC）
+
+### 48.1 继承现场与本轮范围
+
+根 AGENTS.md 已在当前会话显式读取并遵守；不把 shell cwd 变化当作自动加载证明。本轮起始 branch=AMD-paper-repro-custom-modules-v1，local/tracking/live remote HEAD 均为 2ccbf28d66d6c10ab56f5097a7faaf422c1b1910，parent=dde5aee47aa9d346237e3d8876cabe68d22fa980，ahead/behind=0/0。index empty、untracked none；worktree 精确只有 canonical 与本 milestone 的第二十四轮既有未提交修改，不将它误报为 clean，也不覆盖这些修改。
+
+起始 SHA-256：canonical=2a3fa2439b611f45da291c14f6ac7f1375989519ee1747979980b22c80a8d0b1；M4=ef9ff58e531131f01b6e52890cced06f2c56c26cd76d43c7b62d67b6ef1431a1；AGENTS.md=19ad363ce989f741375d9448aad79554eee27218e5dd4563f7cf3486d9dc4aaf；22-file executable source fingerprint=b1bfc174dcec275d6eb4e953e3ba3475a73a6383aa90b21fb7bd1110c8e86632。M0–M3 仍匹配冻结 SHA，baseline tag 仍指向 fa9665627e6fcfb1d0c2bc22d943ca9666304fd6。
+
+只采用服务器 canonical/M4，按 §9、§46.3、§47.8 及 M1 §12/§21 定向读取和确定性核算。本轮只获准文档与有限只读资源观察；未重复 P2 合成验证、旧性能审计或 artifact 扫描。
+
+### 48.2 ChatGPT 审核登记及权限分离
+
+| 审核/验收对象 | 本轮登记 |
+|---|---|
+| P2 精确数学规格 | specification review：审查通过 |
+| 有限 CPU 合成可行性证据 | Accepted |
+| production implementation | Not started |
+| CUDA / 真实 batch / checkpoint / deploy 集成验收 | Not performed |
+| 性能 / development gate | Not evaluated |
+
+§47 全文保留为第二十四轮的历史 Proposed 记录；本节登记其最新审核状态，不追溯改写历史。保持 §47 的唯一数学、初始化、分析接口及身份建议：D1/D2 绝对差分；f=a/(a+mean_t(a)+1e-6) 且保留梯度；共享 Conv(2→4,k3,replicate)→GELU→Conv(4→1,k1)；gate=1+tanh(z)，末层零初始化；H_out=H+gamma×gate×PMCR_v1.compute_delta(H)。无结构修订，未调整 v1 主体、gamma 或 residual 语义。
+
+继续限定新增 33 参数与 28BCT 卷积 MAC 的计数口径：不等同于完整 FLOPs 或实际时延。全窗尺度归一化不是严格局部/因果算子，hidden 差分不是原始充电量变化；末层零初始化导致首层初始零梯度属于预期，不追加结构 repair。CPU 合成证据接受不等于生产、CUDA、真实 batch、checkpoint 或部署集成验收通过。
+
+§47 的 **24-run、seed/epoch、初始化身份及数值门槛**继续标为 **ChatGPT reviewed proposal，待用户精确合同确认**，不将本次登记或资源规划解释为精确实验合同、生产实现或训练启动授权。尤其不能写成 implementation review Passed；不启动旧 U1/U3 独立 16-run，不重跑 Sonnet，不解锁组合。已确认的 PMCR 改进顺序、三臂角色与 S2 结论不再请求重复确认。
+
+### 48.3 canonical 资源规划登记与核算结果
+
+长期规划集中写入 canonical §9.6，不在本 milestone 复制整套表格或效率计划：
+
+- §9.6.1：按 §9.1–9.4 登记 N_main=8×(40+F_PJM)×S；名义 F_PJM=1 时主比较 328/984/1640 trains（1/3/5 seeds）。完整消融展开为 579/seed，明确 F4/F0/AMD/EL-AMD 去重、覆盖假设与排除项，均是 Scenario，未批准预算。
+- §9.6.2：第四章在 CHARGED 切分与完全匹配 S0 复用条件成立时约新增 216 trains/seed，独立于时间模型小时；总小时 Unknown。登记 S2 的 M-to-M 覆盖缺口、EPF pipeline/fit 次数、未授权组合和正式 epoch/早停/搜索预算缺口，不提前实施或删减任务。
+- §9.6.3：保留 §46.3 的历史 Measured 资源记录（总计 10.103 h）及 §47.8 的 P2 14.49 h 外推/22 h 预留情景。M1 训练窗口六折总量与 fold6 比值为 48548/13826=3.5113554173，按 249.620 min 外推约 14.6084 h，不简单乘六；validation 与固定开销的差异限制该外推。源记录已显示分项和总计有 0.001 s 精度差异，保留原数值并注明，不复算旧指标。
+- §9.6.3–9.6.4：区分完整 run 成本、串行等效工作量、物理 GPU 占用小时与 makespan；时间敏感性表为 Scenario，正式成本仍需校准。P0 瓶颈、P1 batch/数据管线、P2 并发、P3 配置冻结均仅设计，精确 probe 预算/命令另审；效率步骤 P2 与 PMCR P2 结构授权无关。
+
+资源规划不表示 M5/M6 已开始、最终模型/baseline 已冻结，或 P2 预算已获确认。正式多 seed 要求不因以 1 seed 计价而降低；正式 test 不参与效率参数或模型选择。第四章阶段、空间消融及图构建另计，不能凭时间模型推算第四章总小时。
+
+### 48.4 本轮只读机器快照（Measured，非 profiling）
+
+观察时间为 2026-09-07 09:52:37 UTC；仅查询可见设备、进程 CPU affinity、可读 cgroup 限额及文件系统容量，未启动 CUDA 计算或 benchmark。
+
+| 资源 | 本轮观察值 | 不能据此推断 |
+|---|---|---|
+| GPU | 1 张 NVIDIA A800 80GB PCIe；81920 MiB，总显存当时使用 1 MiB；CUDA_VISIBLE_DEVICES 未设置 | 不保证未来独占、无竞争或全部显存可供新任务 |
+| CPU | 主机 64 个逻辑 CPU；当前进程 affinity 为 5 个；读取到的 CFS quota=-1、period=100000 | 主机总数不是当前可用线程数；该层无 quota 不代表全部父级/调度约束均无限制 |
+| RAM | 可读 memory.limit_in_bytes=214748364800（200 GiB）；主机 MemTotal=1584478484 kB，MemAvailable=1309217516 kB | 主机可用内存不是本任务配额余量；未据此保证未来 RAM |
+| 仓库所在文件系统 | 可用约 295795.816 GiB | 共享文件系统容量不等于个人 quota 或持久空间保证 |
+| /tmp 所在文件系统 | 可用约 268.673 GiB | 不是实验 artifact 位置授权或未来空间保证 |
+
+当前快照不能替代完整训练状态的 allocated/reserved、进程显存、epoch 峰值、H2D/数据等待、吞吐、并发 makespan 或公平 batch 效果检查；以上仍未测量。未来 CPU/RAM/存储和 GPU 竞争须在审定预检时重新记录。
+
+### 48.5 文档验收与停止状态
+
+本轮核对计数公式、1/3/5-seed 口径、条件假设、去重和时间标签；只在 canonical §0.1 登记审核摘要、§9.6 保存长期规划，并更新本 milestone 当前轮次及追加 §48。通过反向还原本轮增量核验两份起始 SHA，确认第二十四轮既有修改与 §47 历史记录保留；git diff --check 与精确两文件范围核验通过。
+
+AGENTS、M0–M3、22-file 源码指纹和 baseline 保持不变；未修改生产代码、永久测试、数据、来源仓库或既有 artifact。本轮没有 forward/backward、optimizer、吞吐 benchmark、真实 train/validation/test、checkpoint 反序列化或新增实验 artifact；没有环境升级、系统配置或守护进程操作。
+
+M4 保持 In Progress，当前仍为 P2 规格/协议准备；S2 adequacy Passed / M4 leading development candidate 不变。state_source 及 zero_context 兼容占位依 canonical §8.2 保持，M5 冻结后才在 M7 落实状态适配器，不提前改变公式、宽度或训练监督。本轮不进入 M5/M7，不 stage/commit/push；文档完成后停止，等待 ChatGPT 审核，再另行 Git closure。
+
+## 49. 第二十六轮：正式 MS 任务口径对齐与固定单 seed 政策（2026-09-07 UTC）
+
+### 49.1 继承门禁、新决定与暂停状态
+
+起始 branch=AMD-paper-repro-custom-modules-v1，local/tracking/live remote HEAD=2ccbf28d66d6c10ab56f5097a7faaf422c1b1910，parent=dde5aee47aa9d346237e3d8876cabe68d22fa980；ahead/behind=0/0。index empty、untracked none，worktree 精确为 canonical 与本 milestone 的两份既有未提交修改，不误报 clean。根 AGENTS.md 已读取并沿用，不重复全文加载、不将 cwd 变化作为自动加载证明。
+
+起始 SHA-256：canonical=a2ff8d799d8b926575b21bb0abb7ce69e0939d42f9643a246bdfc7649394861d；M4=db84303b87fde484d79ab632c985880a62819fe6d68cda46e51edfb4fc58374a；AGENTS.md=19ad363ce989f741375d9448aad79554eee27218e5dd4563f7cf3486d9dc4aaf；22-file source fingerprint=b1bfc174dcec275d6eb4e953e3ba3475a73a6383aa90b21fb7bd1110c8e86632。M0–M3 冻结 SHA 与 baseline tag→fa9665627e6fcfb1d0c2bc22d943ca9666304fd6 核验一致。
+
+用户决定先解决 S2 与正式任务矩阵不一致，再继续 PMCR。P2 当前状态改为 **On hold pending task-protocol alignment**；§§47–48 原文和当时权限边界保留，数学 specification review 通过、有限 CPU 合成证据 Accepted 不变，不改写为失败或 implementation Passed。production implementation 仍 Not started，CUDA/真实 batch/checkpoint/deploy 集成 Not performed，性能 gate Not evaluated；24-run、epoch、初始化身份、数值门槛仍为 reviewed proposal，不因正式 seed 政策而授权。
+
+第三章统一“多变量历史输入、单个指定目标输出”的 target_exogenous/MS 方向；本节形成可审核新任务合同，Weather/ECL/Exchange 目标未由用户选择。正式比较、消融及第三/四章对应预算现固定 **formal seed list=[2024]**，不追加、不择优；模块内部已登记的初始化子流政策不变。M5 原三 seed 一致性暂缓、未验证且不记 Passed；多数据集、独立模块及 practical-effect 等要求保持。
+
+### 49.2 必要来源核验与不迁移事项
+
+- Sonnet 正式 PDF（§43.2 路径，SHA b076e6fed68448d3c3382c96f6f6985a988ea019ef3c470353780385c4011079）§2（PDF p.2）定义多变量历史→指定单目标；可产生完整 H 步，但论文评价使用末时刻。§4.1（p.4）明确 ETTh1/ETTh2 油温目标；其 WEA 来自 WeatherBench 的 T850，ELEC 来自 Darts 的苏黎世用电数据。项目现有 weather.csv 与 ECL 不替换为上述数据。来源的单目标评价定义也不自动证明每个 baseline 的训练损失只监督目标，本项目另行明确目标 loss。
+- TimeXer 正式 PDF（../paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf；SHA c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964）§3（pp.4/6）支持历史内生/外生→目标未来区间、目标预测 loss；Appendix I.3（p.22，Table 11 caption p.23）给出 T=96、H=96/192/336/720 的外生预测实验，不据此猜每个匿名目标的原始身份，也不把该 T 强制覆盖 AMD 模板。
+- 只读参考代码以 TimeXer@76011909357972bd55a27adba2e1be994d81b327、ModernTCN@56a9a2c018385cd5acef015378cae7f084d1b11c 为定位；本轮读到的文件与各自 HEAD 一致。TimeXer 的 forecast_exogenous/ECL/TimeXer.sh 明确 MS，target 默认 OT；Weather 脚本同样默认 OT，不能把本轮气温建议称为完全复用其目标。未在已定位脚本中发现 Exchange 专属 MS 协议。
+- 补核公开原始 README，仅用于列定义/来源，不下载数据：[ETDataset README](https://github.com/zhouhaoyi/ETDataset/blob/main/README.md) 将 OT 定义为 Oil Temperature，六个其余通道为外部负荷；[LSTNet 数据 README](https://github.com/laiguokun/multivariate-time-series-data/blob/master/README.md) 描述 321 客户小时用电量及八国日汇率，但没有当前 CSV 的客户 ID / 币种到匿名列的重命名映射。不能仅凭国家列举顺序把 OT 断言为 SGD，也不能臆定 UCI MT_* 客户编号。README 访问于 2026-09-07，不是对本地 CSV 转换链的校验。
+
+只使用定义与接口证据，不用论文性能表为目标选择排序，不复算历史性能。来源与 S2 结构合同不重审；不实现 parallel Sonnet，不解锁 Sonnet+PMCR/P2。
+
+### 49.3 唯一任务建议表、数据版本与目标映射缺口
+
+索引统一使用**去掉时间列后的 0-based feature index**；CSV index 则从含 date 的原 header 0 开始计数。B 为样本数，T 为历史长度，H 为输出长度。ordered aux 为源 feature 顺序去掉目标后的全部其余字段，不依赖模型效果筛选。表中标准数据的 T 取现有 AMD scripts 模板，属于新 MS 共同输入合同建议：ETTh1/Weather/ECL 为512，Exchange 为96。
+
+| dataset / 当前版本 | 唯一目标、含义/单位、索引与状态 | 输入与 ordered aux | 输入 / 标签 / 预测 shape；预测范围 | split/scaler 与指标 |
+|---|---|---|---|---|
+| UrbanEV，M1 锁定的 1 h/275 区域版本 | volume，充电量 kWh；feature idx=0；既定不变 | F4 C=11；aux=[e_price,s_price,Ta,P,h,hour_sin,hour_cos,weekday_sin,weekday_cos,is_weekend] | [B,12,11] / [B,1] / [B,1,1]；仅窗口末观测后第3/6/9/12小时对应单点，全部区域均作为样本 | 六折累计月前缀80/10/10，split内独立取窗；M1 §21 scaler；每run全目标元素汇总，全部275区，见§49.4 |
+| EPF-PJM，TimeXer dataset/EPF/PJM.csv，SHA见下 | 语义 price 既定；原 header OT，feature idx=2 / CSV idx=3；price别名与原字段双向映射 Proposed；原市场口径/物理单位转换链待核 | 源顺序=[ System load forecast, Zonal COMED load foecast,OT]（两列保留前导空格及原拼写）；aux idx=[0,1]；只用已有历史段 | [B,168,3] / [B,24,1] / [B,24,1]；未来1..24小时完整目标区间 | 当前官方脚本使用custom 70/10/20、train-fit StandardScaler；项目精确切分/rolling/retraining/F_PJM与公开pipeline仍缺，不能把名义1 fit锁为事实 |
+| ETTh1，data/ETTh1.csv，17420行 | OT=Oil Temperature；feature idx=6 / CSV idx=7；目标字段核验；来源README未明确单位，本轮不凭别名补造单位声明 | C=7；aux=[HUFL,HULL,MUFL,MULL,LUFL,LULL] | [B,512,7] / [B,H,1] / [B,H,1]；未来1..H小时，H=96/192/336/720 | train/val/test端点8640/11520/14400；train-only StandardScaler；仅完整H步目标，尾部不在既有切分内的行不新增为任务 |
+| Weather，data/weather.csv，52696行/21变量；非WeatherBench | **Proposed：T (degC)**，气温 ℃；feature idx=1 / CSV idx=2；按明确物理字段选择，待用户确认 | C=21，aux idx=[0,2,3,…,20]；源feature顺序见下，包含原OT作为历史辅助而不猜其物理身份 | [B,512,21] / [B,H,1] / [B,H,1]；未来1..H采样点，H同上；物理时间步长尚需版本元数据核定，不据名称改成WeatherBench六小时 | 端点36887/42157/52696；train-only StandardScaler；完整H步目标汇总 |
+| ECL，data/electricity.csv，26304行/321变量；非Sonnet ELEC | **Proposed：OT**，当前CSV第321个匿名用电序列；feature idx=320 / CSV idx=321；公开上游README称小时用电量kWh，但本地转换链/原客户ID待核，不能称油温或猜MT_* | feature_names=["0","1",…,"319","OT"]；aux=["0","1",…,"319"]，idx=0..319 | [B,512,321] / [B,H,1] / [B,H,1]；未来1..H采样点，按上游小时定义解释前须闭环版本；H同上 | 端点18412/21044/26304；train-only StandardScaler；目标选择沿用可复核TimeXer ECL MS/OT约定，但原身份未锁 |
+| Exchange，data/exchange_rate.csv，7588行/8变量 | **Proposed：OT**，当前CSV第8个匿名汇率序列；feature idx=7 / CSV idx=8；币种、基准币/报价方向及原始列映射待核，不能猜成新加坡币 | feature_names=["0","1",…,"6","OT"]；aux=["0","1",…,"6"]，idx=0..6 | [B,96,8] / [B,H,1] / [B,H,1]；未来1..H采样点，公开上游为日频；不从改造CSV名称推断交易日历；H同上 | 端点5311/6071/7588；train-only StandardScaler；固定末列OT只是可复现的字段级建议，依据既有AMD模板target OT及通用MS解析，不声称已有Exchange专属MS实验证明 |
+
+Weather 源 feature 顺序精确为：[p (mbar), T (degC), Tpot (K), Tdew (degC), rh (%), VPmax (mbar), VPact (mbar), VPdef (mbar), sh (g/kg), H2OC (mmol/mol), rho (g/m**3), wv (m/s), max. wv (m/s), wd (deg), rain (mm), raining (s), SWDR (W/m�), PAR (�mol/m�/s), max. PAR (�mol/m�/s), Tlog (degC), OT]。其中“�”为当前文件实际 U+FFFD 字符；本轮不修复编码、不改列名。原 OT 的物理映射缺失不影响按名称定位 T (degC)，但必须作为辅助元数据限制披露。
+
+标准 CSV 的日期列只作索引；额外 calendar/time-mark 不能只给个别 baseline。共同 feature_names 保持源序；TimeXer 等目标末列接口应使用明确 permutation=[ordered_aux_idx,target_idx]，记入配置并能反解，不改原数据文件。EPF 的两列是 forecast 字段，不能据此自动获取窗口之外或未验证发布时间的值；本轮不改变原历史输入范围。
+
+一般长序列切分为原 loader 的边界：train=[0,e1)，val标签=[e1,e2)，test标签=[e2,e3)，val/test 只借边界前 T 个历史点作 context，所有 H 个标签均在对应 split；每字段 scaler 只拟合train。ETTh1固定端点，其他三个按 floor(0.7n)、n−floor(0.2n)、n。UrbanEV 与这些数据的借历史策略不同，保持 M1 合同：每个split自己起窗；volume按node做train-only StandardScaler、价格按node MinMax、天气按城市字段StandardScaler、calendar不缩放。
+
+完整数据字节 SHA-256（只做字节散列/行数/header核算，不解析或分析正式test观测值）：
+
+| 文件 | SHA-256 | 证据范围 |
+|---|---|---|
+| data/ETTh1.csv | f18de3ad269cef59bb07b5438d79bb3042d3be49bdeecf01c1cd6d29695ee066 | 本轮完整字节核验 |
+| data/weather.csv | 9b2b19b13e342d9c9b9c51620d42b4be232df7fba30e7f5c4968b7c79ab138ad | 本轮完整字节核验 |
+| data/electricity.csv | 10b4ddd095548839274ce4d55d3c7d6842b4bfa69ac2a4321a7608622da7b4eb | 本轮完整字节核验 |
+| data/exchange_rate.csv | d55e7aa2641009814a18ba3279431b13f6d413b0eab195b9ff21988d8cf94e97 | 本轮完整字节核验 |
+| ../TimeXer/dataset/EPF/PJM.csv | 58cc0ad32e22e61d9e183b0dc8201747f8c2ef822e469832c5beea8d88251cc0 | 本轮字节/header核验，存在文件不等于AMD已接入 |
+| data/UrbanEV/data/volume.csv | a55a095ce75af33c59aece2643d5d71b5cd5a0dc73bb97bc553f0a48f40ace32 | 继承M1 §5/§6既有冻结记录，本轮不重扫整套UrbanEV |
+
+Weather/ECL/Exchange 均只有上述一个建议，不分叉候选、不按数值挑目标。其中 ECL 原客户→当前OT与物理单位转换链、Exchange 原币种/报价方向→当前OT缺少可定位映射材料；所读README、header、已定位脚本/loader均不足以补齐。需有对应数据版本的列映射/生成脚本或经确认的原始列定义；在补证据前，字段可定位不等于原始身份已锁定，也不将通用OT全部解释为油温。
+
+### 49.4 比较公平性、指标与单 seed 正式报告
+
+新合同建议所有主比较均满足：同一可用历史信息集、仅指定目标的未来标签监督、目标validation MSE选择best、相同完整预测区间与评价元素。允许内部输出全C后明确切目标；不允许全未来变量监督后仅对目标报分。MoE等固有辅助正则单列，不能接入其他未来标签。训练期不能直接照搬来源runner每epoch读取test的做法；正式test仍在M5冻结后使用，ETTm1的development例外不扩散。
+
+主指标建议沿用当前 AMD runner 的 metric_space=train-standardized。单run按所有窗口×目标预测步（UrbanEV还包含全部区域样本）的全元素SSE/Q、SAE/Q计算MSE/MAE；末尾batch完整计入。标准长序列使用所有H点，UrbanEV只用约定偏移单点，PJM使用完整24点。建议保持validation MSE严格下降才更新best，等值保留较早epoch；新增正式epoch/早停/search预算仍须独立锁定，不能继承M4固定10epoch。
+
+跨任务的汇总 Proposed 为：先逐fold/horizon给未舍入指标；UrbanEV每个horizon对六fold等权macro，再对四horizon等权macro，标准数据对四horizon等权macro。pooled SSE/SAE÷全元素数只作另列、明确加权的补充，不冒充上述macro；不同数据集原始指标不直接数值平均，只报告明确面板内排名。原单位指标若列报，须显式使用目标的scaler（UrbanEV还绑定node），单独标metric space/单位，不用于事后换best；EPF单位/预处理尚缺时不能假装原单位指标已可验收。以上新聚合与目标合同一起待审核，不追溯修改Sonnet或P2已登记门槛。
+
+用户已决定第三、第四章正式主比较、消融及对应预算 **S=1、seed=2024**。主表报告这个固定seed的实际结果，seed std=N/A，不伪造均值±0；fold/horizon/city差异不是seed方差。原M5三seed方向一致性暂缓、未核验，不能写Passed或声称随机初始化稳定性已验证。其他多数据集、模块独立消融、practical-effect、数据/test边界要求不变。以后若增加seed必须另获授权，不seed择优，也不修改既定模块初始化子流。
+
+旧development artifact仍不得进入正式主表；未来按冻结的新正式协议运行的single-seed结果可进入正式表。旧M-to-M checkpoint/指标不能改名为MS，Sonnet 16-run artifacts、S2 adequacy Passed、leading身份及全部历史hash保持。
+
+### 49.5 当前公开接口、baseline逐项适配与真实缺口
+
+以下全部是静态核验，未执行新的动态验收；“源码有路径”不等于“六数据集正式运行已可用”。
+
+| 当前AMD位置 | 已确认的源码能力 | 新合同仍需完成 |
+|---|---|---|
+| utils/dataloader.py::_resolve_target_column / _read_data / _make_dataset | MS保留全部输入列，按唯一名称解析target_idx，仅创建单目标标签；S才裁成单变量输入；目标无需在源文件末列 | 固定新目标/version/order；正式train/validation-only访问边界。当前构造器读并缩放全表，main::_build_generic_runtime_data还无条件get_test，不能称冻结前test已被隔离 |
+| models/tsAMD_enhanced.py::__init__/forward | target_exogenous全通道RevIN denorm后切[B,H,1]；S2以ordered aux/target gather，数学不限定数据集名字 | 新shape/目标动态验收未做；S2要求非空aux、禁CCE/PMCR/TEB组合，guard保留；只将任务规划改MS不新增public capability |
+| main.py::_prepare_enhanced_contract | S2公开身份锁定M4 development；ETTm1 OT/T512、UrbanEV F4/fold6/T12及固定10epoch等 | 拒绝ETTh1/Weather/ECL/Exchange/EPF与UrbanEV其他fold正式配置；须新增独立正式任务接入并保留旧分支，不解除旧guard |
+| main.py::_prediction_for_loss / evaluate / should_update_best | 严格[B,H,1]或对应[B,H]单目标adapter；全元素float64 SSE/SAE；val MSE严格下降选best | 全baseline共用同一目标loss/metric scope；实际evaluate输出train-standardized，不能因loader有inverse_transform便声称已发布原单位指标 |
+| utils/dataloader.py::inverse_transform | 支持full-width及S/MS目标宽度，用target_indices选scaler | 新目标、顺序、UrbanEV节点映射与baseline独立denorm的等价/拒绝验收 |
+| main.py::_scientific_config / _load_resume_checkpoint / artifact路径 | 已绑定target/schema/aux/data SHA；路径含variant/dataset/task/target/horizon/fold/seed；resume先核对schema再反序列化；严格恢复公共设施存在 | 新task/metric-scope/formal-purpose身份尚未实现；不能沿用development协议名或只改目录；不得用旧checkpoint静默warm-start |
+| summarize_results.py::_validate_target_exogenous_schema / _validate_sonnet_variant_contract / aggregate_runs | 校验目标schema、拒绝重复成功seed；单seed std当前为空字符串而非0；S2同样仅接受两类development配置 | 正式协议/目标原身份/完整H指标作用域、正式purpose、seed=2024及显示N/A需端到端绑定；新baseline artifact接入和新summary动态验收未做 |
+
+已有永久测试可复用的行为依据包括：目标唯一解析及inverse_transform、loss adapter两种合法shape、runtime schema不匹配在staging前拒绝、resume schema不匹配在权重反序列化前拒绝、Sonnet UrbanEV validation-only不构造test。这里只定位测试，不运行、不新增、不删除；既有S2单批及16-run证据不替代新正式矩阵验收。
+
+参考实现均尚未作为新正式baseline接入AMD公开runner；逐项登记如下，保留原面板模型数量：
+
+| baseline / 原适用面板 | 已定位适配方式 | 限制及待验收 |
+|---|---|---|
+| Last Observation / 仅UrbanEV | 每区域最后历史volume对约定偏移作预测；同节点/scaler/标签 | 单列无训练成本，全部区域评价与adapter待正式接入 |
+| DLinear / 两面板 | TimeXer models/DLinear.py逐通道输出，目标列在train/val/eval前切片 | 无跨变量信息路径，不加融合；同历史输入可提供但不能声称利用了全部aux |
+| PatchTST / 两面板 | TimeXer models/PatchTST.py按变量展开到batch的channel-independent预测，保留内部C输出后选目标 | 不添加跨变量模块；patch/短T=12合法性、目标denorm和梯度/聚合待验收 |
+| iTransformer / 两面板 | TimeXer models/iTransformer.py变量token注意力，full output后选目标 | 源time-mark作为额外token时须统一信息集；新目标/shape与完整区间adapter待验收 |
+| TiDE / 仅UrbanEV、PJM | TimeXer models/TiDE.py逐列forecast；通过mark/feature_encoder消费动态特征，forecast需要历史+未来长度的feature张量 | 不能只设MS就证明已消费全部规定aux；历史aux接入、未来占位/已知时间特征、feature_dim和全部模型的信息集须单独闭环，不给予未来真实covariate或擅改结构 |
+| TimeMixer / 仅四个标准数据 | 保留既有模型；native C输出后显式切目标。CI路径reshape使用configs.c_out，且全通道denorm；建议保留enc_in=c_out=C再切目标 | 必须记录channel_independence及downsampling配置；不能直接c_out=1冒充已适配，不删该baseline；CI=1时不声称跨变量融合 |
+| TimeXer / 两面板 | features由旧M改MS，n_vars由C改1；canonical输入经[aux,target]重排；forecast使用最后目标及其余外生，输出[B,H,1] | 保持enc_in=C；来源c_out/dec_in不等于实际输出宽度（ECL官方MS仍填321）。patch、mark、目标scaler及M/MS恢复拒绝待验收；旧parallel结果不迁移 |
+| ModernTCN / 两面板 | 完整ModernTCN保留跨变量ConvFFN2与C输出；exp_ModernTCN.py的train/val已有MS末列切片 | 完整baseline不按PMCR删结构；需显式目标映射、全元素聚合、短T/大C验收；来源val使用batch均值且train访问test，不能原样承担新正式协议 |
+| AMD / AMD-Concat / 两面板 | AMDEnhanced所有增强off，保持同输入主干与full denorm后target输出 | 新正式control身份和不同C/T/目标的动态验收；不复用Sonnet旧control指标 |
+| EL-AMD / 两面板 | 仅为M5最终冻结模型族，按同输入目标合同 | 最终结构/组合未定，当前不能把S2+PMCR/P2称为已实现或授权；不为填资源表实施 |
+
+TimeXer exp_long_term_forecasting.py在train/val均先选MS末列再计算criterion，说明有目标监督静态路径；但train中会构造test并每epoch计算test_loss，且来源validation采用batch均值。ModernTCN来源runner有同类问题。未来应在获准的项目适配层修复正式访问/聚合合同，不能直接启动来源训练脚本，也不在本轮修改来源仓库。
+
+### 49.6 新正式身份、资源计数与第四章边界
+
+建议新正式任务合同名为 **ch3-ms-specified-target-full-horizon-v1（Proposed，尚未注册）**；仅描述任务/指标范围，不改变S2架构身份。配置与恢复至少绑定：formal purpose、data版本与SHA、task_mode/feature_type、目标语义名/原字段/原始身份及index、feature_names/ordered aux/permutation、split/scaler、T/label_horizon/model_pred_len、target-only loss、metric_scope/metric_space/macro、evaluation/test-access policy、seed list=[2024]、模型与模块初始化政策、训练预算、source/hash。跨M-to-M、target、metric scope、purpose或schema须在写参前拒绝恢复；同shape也不能视为同一协议。旧U/M及S2/P2 development identity不重定义。
+
+当前默认S=1。六数据集各一个目标、原模型数和fold/horizon不变时，主比较仍为8×(40+F_PJM)，名义F_PJM=1为328；不按输出变量数C除法缩减训练数。旧579完整展开情景按原覆盖复核：328 + [3×25+2×16] + [3×2×24] =579；统一MS未扩增四个标准数据的TargetOnly/U0。若未来另加这16项覆盖，须作为Proposed额外16/seed单列，本轮不采纳、不授权。3/5seed表只保留未授权扩展情景，不再是当前强制计划。
+
+canonical §9.6 的Measured/Extrapolated/Scenario/Unknown标签、A800效率预检设计保留；历史开发时延不是新MS实测，不能假定目标少了按C倍加速。P2旧14.49h/22h仍为暂停提案的外推/预留，不改原参数或变相批准24run。batch/并发/profiling本轮不执行。
+
+第四章仍按每节点一个目标特征、全部节点和原图路线；有条件216新增主比较/seed的计数与S0完全匹配复用要求保持，当前S=1。CHARGED六城市、PEMS未来12点与节点数不减；无辅助输入时S2适用问题留到后续本域输入合同。本轮不实现图能力，不改变state_source=concat(v_final_target,u_mdm_target,zero_context)、[B,2*T+teb_context_dim]或state keys；零占位不是有效exo摘要，M5冻结后才在M7落实状态适配器。
+
+### 49.7 恢复PMCR前的有限闭环与验收停止点
+
+恢复条件是任务协议对齐，不是“全部正式实验已经跑完”。需要闭环的新增事项为：
+
+1. 审核本轮统一MS的精确目标/历史输入/标签区间/指标合同；用户确认Weather、ECL、Exchange的唯一目标建议。ECL/Exchange原始身份与单位/报价映射缺失须补可信元数据；EPF的price字段映射、输入可用性、split/fit政策须明确状态，不能靠猜测填齐。
+2. 审核独立正式task/target/metric-scope/purpose身份及baseline适配边界；明确S2公开runner的development限制和冻结前test隔离需要的最小工程范围。任务规划对齐不自动等于这些接口已经实现。
+3. 与下一轮PMCR实际使用任务有关的接入与验收范围确认后，另行授权实现/review/closure及训练前准备。无需先跑完六数据集全部baseline或第四章；未用到的EPF完整管线/图输入等缺口可继续显式tracked blocked，不当作已完成。P2精确实验预算、epoch、身份及门槛仍另行确认；本轮不恢复生产实施或启动任何run。
+
+已决定的单seed政策、S2结构/来源/Passed结论、PMCR v1历史工程及P2规格/合成证据不再请求重复确认。原M5多数据集、两个来源模块独立消融及practical-effect要求保留，随机初始化稳定性未验证的局限明确披露。
+
+本轮仅修订canonical有效任务/seed/资源条款，更新唯一M4当前轮次并追加§49；§§47–48字节原样保留。反向移除本轮增量可恢复两份起始SHA，git diff --check和精确两文件范围核验通过；AGENTS、M0–M3、源码指纹、baseline及既有artifact保持不变。没有构造Dataset/DataLoader、forward/backward、optimizer、训练/evaluation/profiling、checkpoint反序列化或完整回归；不stage/commit/push，不进入M5/M6/M7。M4 In Progress，P2 On hold，文档完成后停止等待ChatGPT审核。
