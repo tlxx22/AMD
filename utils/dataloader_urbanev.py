@@ -11,6 +11,8 @@ from dataclasses import dataclass
 import csv
 import hashlib
 import json
+from io import StringIO
+from itertools import islice
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -78,6 +80,15 @@ def _read_csv_header(path: Path) -> tuple[str, ...]:
             return tuple(next(csv.reader(handle)))
         except StopIteration as exc:
             raise UrbanEVDataContractError(f"empty CSV file: {path}") from exc
+
+
+def _read_csv_frame(path: Path, *, row_stop: int | None = None, **kwargs):
+    """Expose only a permitted CSV prefix to the numeric parser."""
+    if row_stop is None:
+        return pd.read_csv(path, **kwargs)
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        prefix = "".join(islice(handle, row_stop + 1))
+    return pd.read_csv(StringIO(prefix), **kwargs)
 
 
 def _require_files(data_root: Path, names: Iterable[str]) -> dict[str, Path]:
@@ -188,6 +199,7 @@ class UrbanEVRawData:
     weather_feature_names: tuple[str, ...] = ("Ta", "P", "h")
     timezone: str = "unknown"
     timestamp_semantics: str = "naive_wall_clock"
+    restricted_fold: UrbanEVFoldDefinition | None = None
 
     @property
     def num_timestamps(self) -> int:
@@ -208,6 +220,7 @@ class UrbanEVRawData:
         *,
         expected_timestamp_hash: str = EXPECTED_TIMESTAMP_ORDER_SHA256,
         expected_node_hash: str = EXPECTED_NODE_ORDER_SHA256,
+        train_validation_fold: int | None = None,
     ) -> "UrbanEVRawData":
         """Load and strictly validate the audited official source files."""
 
@@ -236,6 +249,29 @@ class UrbanEVRawData:
                 "volume.csv: node headers must be non-empty and unique"
             )
 
+        restricted_fold = None
+        row_stop = None
+        full_timestamp_strings = None
+        if train_validation_fold is not None:
+            if isinstance(train_validation_fold, bool) or train_validation_fold != 6:
+                raise UrbanEVDataContractError("restricted UrbanEV access is fold6 only")
+            first = _read_csv_frame(
+                paths["volume.csv"], row_stop=1, usecols=["time"],
+                dtype={"time": "string"},
+            )
+            first_timestamp, _ = _parse_timestamps(first["time"], source="volume.csv prefix")
+            if len(first_timestamp) != 1:
+                raise UrbanEVDataContractError("missing first timestamp")
+            # The frozen hourly calendar is metadata, not future observations.
+            full_clock = pd.date_range(
+                first_timestamp[0], periods=EXPECTED_TIMESTAMPS, freq="h"
+            )
+            full_timestamp_strings = tuple(ts.isoformat() for ts in full_clock)
+            if sequence_sha256(full_timestamp_strings) != expected_timestamp_hash:
+                raise UrbanEVDataContractError("frozen calendar identity mismatch")
+            restricted_fold = build_fold_definition(full_clock, train_validation_fold)
+            row_stop = restricted_fold.n_train + restricted_fold.n_validation
+
         matrices: dict[str, np.ndarray] = {}
         reference_timestamps: pd.DatetimeIndex | None = None
         timestamp_strings: tuple[str, ...] | None = None
@@ -249,7 +285,9 @@ class UrbanEVRawData:
                 raise UrbanEVDataContractError(
                     f"{filename}: node columns differ in order from volume.csv"
                 )
-            frame = pd.read_csv(paths[filename], dtype={"time": "string"})
+            frame = _read_csv_frame(
+                paths[filename], row_stop=row_stop, dtype={"time": "string"}
+            )
             if tuple(str(column) for column in frame.columns) != header:
                 raise UrbanEVDataContractError(f"{filename}: parsed header changed unexpectedly")
             parsed, normalized = _parse_timestamps(frame["time"], source=filename)
@@ -267,9 +305,10 @@ class UrbanEVRawData:
             )
 
         assert reference_timestamps is not None and timestamp_strings is not None
-        if len(reference_timestamps) != EXPECTED_TIMESTAMPS:
+        expected_rows = EXPECTED_TIMESTAMPS if row_stop is None else row_stop
+        if len(reference_timestamps) != expected_rows:
             raise UrbanEVDataContractError(
-                f"expected {EXPECTED_TIMESTAMPS} hourly timestamps, "
+                f"expected {expected_rows} permitted hourly timestamps, "
                 f"got {len(reference_timestamps)}"
             )
 
@@ -280,8 +319,8 @@ class UrbanEVRawData:
             raise UrbanEVDataContractError(
                 f"{WEATHER_SOURCE}: missing required fields {sorted(missing_weather)}"
             )
-        weather_frame = pd.read_csv(
-            paths[WEATHER_SOURCE],
+        weather_frame = _read_csv_frame(
+            paths[WEATHER_SOURCE], row_stop=row_stop,
             usecols=list(required_weather),
             dtype={"time": "string"},
         )
@@ -328,7 +367,13 @@ class UrbanEVRawData:
                 f"inf.csv: TAZID coverage mismatch; missing={missing}, extra={extra}"
             )
 
-        timestamp_hash = sequence_sha256(timestamp_strings)
+        if full_timestamp_strings is not None:
+            if timestamp_strings != full_timestamp_strings[:row_stop]:
+                raise UrbanEVDataContractError("permitted timestamp prefix differs from frozen calendar")
+        timestamp_hash = sequence_sha256(
+            full_timestamp_strings if full_timestamp_strings is not None
+            else timestamp_strings
+        )
         node_hash = sequence_sha256(node_ids)
         if timestamp_hash != expected_timestamp_hash:
             raise UrbanEVDataContractError(
@@ -369,6 +414,7 @@ class UrbanEVRawData:
             graph_headers_verified=True,
             inf_node_coverage_verified=True,
             data_root=root,
+            restricted_fold=restricted_fold,
         )
 
     @classmethod
@@ -647,6 +693,8 @@ class UrbanEVFoldBundle:
         return self.preprocessing_state.fingerprint
 
     def split_slice(self, split: str) -> slice:
+        if self.raw.restricted_fold is not None and split not in ("train", "validation"):
+            raise UrbanEVDataContractError("test access is forbidden for this fold bundle")
         return self.fold_definition.split_slice(split)
 
     def split_features(self, split: str) -> np.ndarray:
@@ -730,7 +778,11 @@ class UrbanEVFoldPreprocessor:
         self.raw = raw
 
     def fit_transform(self, fold: int, preset: str = "F4") -> UrbanEVFoldBundle:
-        definition = build_fold_definition(self.raw.timestamps, fold)
+        definition = self.raw.restricted_fold
+        if definition is None:
+            definition = build_fold_definition(self.raw.timestamps, fold)
+        elif fold != definition.fold:
+            raise UrbanEVDataContractError("restricted fold identity mismatch")
         schema = get_feature_schema(preset)
         train = slice(0, definition.n_train)
         if definition.n_train <= 0:
@@ -743,7 +795,10 @@ class UrbanEVFoldPreprocessor:
             self.raw.weather_central[train]
         )
 
-        fold_end = definition.fold_length
+        fold_end = (
+            definition.n_train + definition.n_validation
+            if self.raw.restricted_fold is not None else definition.fold_length
+        )
         volume = (self.raw.volume[:fold_end] - volume_mean) / volume_scale
         e_price = (self.raw.e_price[:fold_end] - e_min) / e_safe
         s_price = (self.raw.s_price[:fold_end] - s_min) / s_safe

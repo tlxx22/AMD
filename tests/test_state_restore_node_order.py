@@ -19,13 +19,6 @@ from utils.graph_window_dataset import GraphWindowDataset
 
 
 class StateRestoreNodeOrderTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        root = Path(__file__).resolve().parents[1] / "data" / "UrbanEV" / "data"
-        cls.bundle = UrbanEVFoldPreprocessor(UrbanEVRawData.load(root)).fit_transform(
-            1, "F0"
-        )
-
     def test_flatten_restore_is_reversible_and_window_node_major(self):
         batch_size, history_len, node_count, channels = 2, 3, 4, 2
         graph_x = torch.arange(
@@ -72,10 +65,12 @@ class StateRestoreNodeOrderTests(unittest.TestCase):
         self.assertTrue(torch.equal(flatten_graph_targets(target), y_time))
 
     def test_actual_node_ids_remain_strings_and_canonical(self):
+        root = Path(__file__).resolve().parents[1] / "data" / "UrbanEV" / "data"
+        bundle = UrbanEVFoldPreprocessor(UrbanEVRawData.load(root)).fit_transform(1, "F0")
         dataset = GraphWindowDataset(
-            self.bundle, split="train", label_horizon=3
+            bundle, split="train", label_horizon=3
         )
-        self.assertEqual(dataset.node_ids, self.bundle.raw.node_ids)
+        self.assertEqual(dataset.node_ids, bundle.raw.node_ids)
         self.assertEqual(len(dataset.node_ids), 275)
         self.assertTrue(all(isinstance(node_id, str) for node_id in dataset.node_ids))
         self.assertEqual(dataset.node_ids[0], "102")

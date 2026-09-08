@@ -38,6 +38,7 @@ T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
+PMCR_P2_IMPLEMENTATION_VARIANT = "el-amd-m4-pmcr-local-change-p2-v1"
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     IMPLEMENTATION_VARIANT,
     ENHANCED_IMPLEMENTATION_VARIANT,
@@ -47,6 +48,7 @@ SUPPORTED_IMPLEMENTATION_VARIANTS = (
     CCE_IMPLEMENTATION_VARIANT,
     LATE_CCE_IMPLEMENTATION_VARIANT,
     SONNET_IMPLEMENTATION_VARIANT,
+    PMCR_P2_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
@@ -71,6 +73,10 @@ SONNET_CANDIDATE_ABLATION_ID = sonnet_spec.SONNET_CANDIDATE_ABLATION_ID
 TRAIN_VALIDATION_TEST = "train_validation_test"
 TRAIN_VALIDATION_ONLY = "train_validation_only"
 M4_DEVELOPMENT_CANDIDATE = "m4_development_candidate"
+PMCR_P2_DEVELOPMENT_PROTOCOL = "m4_pmcr_p2_local_change_three_arm_from_scratch_v1"
+PMCR_P2_CONTROL_ABLATION_ID = "M4_PMCR_P2_CONTROL"
+PMCR_P2_V1_ABLATION_ID = "M4_PMCR_P2_V1"
+PMCR_P2_INITIALIZATION_POLICY = "matched_amd_pmcr_body_and_isolated_gate_v1"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
 WARM_START_TRAINING_PROTOCOLS = (
@@ -708,6 +714,199 @@ def _validate_sonnet_variant_contract(scientific, run_dir):
     }
 
 
+
+def _is_policy_development_variant(variant):
+    return variant in {SONNET_IMPLEMENTATION_VARIANT, PMCR_P2_IMPLEMENTATION_VARIANT}
+
+
+def _expected_pmcr_ms_interface(enabled):
+    return {
+        "contract_version": "m4_pmcr_ms_interface_v1",
+        "capability_stage": "ab_interfaces_only",
+        "initialization_policy": PMCR_P2_INITIALIZATION_POLICY,
+        "run_seed": 2024,
+        "body_init_seed": 2024,
+        "body_instantiated": enabled,
+        "gate_init_seed": 2025,
+        "gate_instantiated": False,
+        "gate_contract_version": "pmcr_p2_absdiff_bounded_gate_v1",
+        "gate_configuration": None,  # A/B record the C policy without constructing C.
+        "model_form": "train",
+        "input_reorder": "none",
+        "future_observed_covariates": False,
+        "loss_scope": "specified_target_full_model_pred_len",
+        "metric_scope": "all_valid_target_elements",
+        "metric_space": METRIC_SPACE,
+        "metric_aggregation": "sum_SSE_SAE_divide_Q",
+        "evaluation_tail": "keep_all",
+        "best_selection": "finite_validation_mse_strict_decrease_earlier_tie",
+        "experiment_budget_authorized": False,
+    }
+
+
+
+def _validate_pmcr_variant_contract(scientific, run_dir):
+    model, dataset = scientific["model"], scientific["dataset"]
+    experiment, execution = scientific["experiment"], scientific["execution"]
+    ablation = experiment.get("ablation_id")
+    if ablation not in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID}:
+        raise ValueError(f"PMCR A/B ablation identity mismatch: {run_dir}")
+    enabled = ablation == PMCR_P2_V1_ABLATION_ID
+    horizon = dataset.get("label_horizon")
+    if dataset.get("id") == "ETTm1":
+        features = ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+        target, index, aux, fold, preset = "OT", 6, list(range(6)), "official", None
+        length, pred_len, kernels = 512, horizon, (5, 31)
+        allowed_horizons, policy = {96, 192, 336, 720}, TRAIN_VALIDATION_TEST
+    elif dataset.get("id") == "UrbanEV":
+        features = list(CANONICAL_FEATURE_NAMES)
+        target, index, aux, fold, preset = "volume", 0, list(range(1, 11)), 6, "F4"
+        length, pred_len, kernels = 12, 1, (3, 7)
+        allowed_horizons, policy = {3, 6, 9, 12}, TRAIN_VALIDATION_ONLY
+    else:
+        raise ValueError(f"PMCR A/B dataset is unsupported: {run_dir}")
+    expected_dataset = {
+        "task_mode": "target_exogenous", "feature_type": "MS",
+        "target": target, "target_feature_name": target, "target_idx": index,
+        "target_indices": [index], "feature_names": features, "aux_idx": aux,
+        "aux_feature_names": [features[i] for i in aux],
+        "fold": fold, "feature_preset": preset,
+        "model_pred_len": pred_len, "artifact_horizon": horizon,
+        "target_exogenous_schema_contract_version": TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+    }
+    if horizon not in allowed_horizons or any(
+        dataset.get(key) != value for key, value in expected_dataset.items()
+    ):
+        raise ValueError(f"PMCR A/B target/input/horizon contract mismatch: {run_dir}")
+    expected_evaluation = {
+        "evaluation_policy": policy,
+        "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+        "test_access_policy": "forbidden" if policy == TRAIN_VALIDATION_ONLY else "development_only",
+    }
+    expected_experiment = {
+        "development_protocol_id": PMCR_P2_DEVELOPMENT_PROTOCOL,
+        "ablation_id": ablation, "task_mode": "target_exogenous", "target": target,
+        "label_horizon": horizon, "model_pred_len": pred_len,
+        "artifact_horizon": horizon, "fold": fold,
+        "evaluation_policy": policy, "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+    }
+    if scientific.get("evaluation") != expected_evaluation or any(
+        experiment.get(key) != value for key, value in expected_experiment.items()
+    ):
+        raise ValueError(f"PMCR A/B evaluation/development identity mismatch: {run_dir}")
+    expected_body = {
+        "hidden_dim": 8 if enabled else None,
+        "kernel_small": kernels[0] if enabled else None,
+        "kernel_large": kernels[1] if enabled else None,
+        "dropout": 0.1, "gamma_init": 1e-3, "deploy": False,
+        "norm": "feature_wise_layernorm", "ffn_ratio": 2,
+    }
+    interface = _expected_pmcr_ms_interface(enabled)
+    if (
+        execution.get("seed") != 2024 or execution.get("metric_space") != METRIC_SPACE
+        or model.get("seq_len") != length or model.get("pred_len") != pred_len
+        or model.get("model_pred_len") != pred_len or model.get("target_idx") != index
+        or model.get("use_pmcr") is not enabled or model.get("use_teb") is not False
+        or model.get("use_cce") is not False or model.get("use_sonnet_mvca") is not False
+        or model.get("pmcr") != expected_body or model.get("pmcr_ms_interface") != interface
+        or model.get("module_connection") != "X->RevIN->MDM(U)->DDI->PMCR?; AMS_selector<-U"
+        or model.get("target_selection_policy") != "full_denorm_then_task_select"
+    ):
+        raise ValueError(f"PMCR A/B model/init/metric contract mismatch: {run_dir}")
+    optimization = scientific["optimization"]
+    epochs = optimization.get("requested_train_epochs")
+    if (
+        type(epochs) is not int or epochs <= 0
+        or optimization.get("train_drop_last") is not True
+        or optimization.get("validation_drop_last") is not False
+    ):
+        raise ValueError(f"PMCR engineering run budget/aggregation mismatch: {run_dir}")
+    return {
+        "development_protocol_id": PMCR_P2_DEVELOPMENT_PROTOCOL,
+        "ablation_id": ablation, "task_mode": "target_exogenous",
+        "feature_names": features, "target_idx": index, "aux_idx": aux,
+        "schema_fingerprint": dataset["schema_fingerprint"],
+        "seq_len": length, "label_horizon": horizon, "model_pred_len": pred_len,
+        "evaluation_policy": policy, "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
+        "pmcr_ms_interface": interface,
+    }
+
+
+def _validate_pmcr_checkpoints(scientific, config, manifest, metrics, run_dir):
+    """External identity has already passed before these synthetic/owned loads."""
+    if config.get("model_form") != "train" or manifest.get("model_form") != "train":
+        raise ValueError(f"PMCR external checkpoint model form mismatch: {run_dir}")
+    if (
+        scientific["optimization"]["requested_train_epochs"] != metrics.get("train_epochs")
+        or metrics.get("epoch_zero_in_best_selection", False) is not False
+    ):
+        raise ValueError(f"PMCR budget/epoch-zero mismatch: {run_dir}")
+    for field in ("development_protocol_id", "ablation_id"):
+        if metrics.get(field) != scientific["experiment"].get(field):
+            raise ValueError(f"PMCR metrics {field} mismatch: {run_dir}")
+    body = scientific["model"]["pmcr"]
+    shapes = {}
+    if scientific["model"]["use_pmcr"]:
+        d = body["hidden_dim"]
+        shapes = {
+            "gamma_pmcr": (), "input_projection.weight": (d, 1, 1),
+            "input_projection.bias": (d,), "feature_norm.weight": (d,),
+            "feature_norm.bias": (d,), "ffn_expand.weight": (2*d, d, 1),
+            "ffn_expand.bias": (2*d,), "ffn_reduce.weight": (d, 2*d, 1),
+            "ffn_reduce.bias": (d,), "output_projection.weight": (1, d, 1),
+            "output_projection.bias": (1,),
+        }
+        for branch in ("small", "large"):
+            shapes[f"temporal_conv.{branch}_branch.weight"] = (d, 1, body[f"kernel_{branch}"])
+            shapes[f"temporal_conv.{branch}_branch.bias"] = (d,)
+    shapes = {"pmcr." + key: shape for key, shape in shapes.items()}
+    previous_spec = None
+    for role in ("best", "last"):
+        checkpoint = torch.load(Path(run_dir) / f"{role}.pt", map_location="cpu")
+        if not isinstance(checkpoint, dict):
+            raise ValueError(f"PMCR {role} checkpoint is not a dictionary: {run_dir}")
+        resolved = checkpoint.get("resolved_config", {})
+        if (
+            checkpoint.get("schema_version") != SCHEMA_VERSION
+            or checkpoint.get("artifact_schema_version") != ENHANCED_ARTIFACT_SCHEMA_VERSION
+            or checkpoint.get("implementation_variant") != PMCR_P2_IMPLEMENTATION_VARIANT
+            or checkpoint.get("config_hash") != metrics["config_hash"]
+            or checkpoint.get("data_sha256") != metrics["data_sha256"]
+            or checkpoint.get("model_form") != "train"
+            or checkpoint.get("training_protocol") != scientific["training_protocol"]
+            or resolved.get("scientific_config") != scientific
+            or resolved.get("config_hash") != config["config_hash"]
+            or resolved.get("model_form") != "train"
+            or any(checkpoint.get(k) != scientific["evaluation"][k]
+                   or resolved.get(k) != scientific["evaluation"][k]
+                   for k in ("evaluation_policy", "artifact_purpose"))
+        ):
+            raise ValueError(f"PMCR {role} checkpoint identity mismatch: {run_dir}")
+        states = [checkpoint.get("model_state")]
+        if role == "last":
+            states.append(checkpoint.get("best_model_state"))
+        for state in states:
+            if not isinstance(state, dict) or not state:
+                raise ValueError(f"PMCR checkpoint state missing: {run_dir}")
+            module_keys = {k for k in state if k.startswith("pmcr.")}
+            if module_keys != set(shapes) or any(
+                k.startswith(("sonnet_mvca.", "cce.", "teb.", "xlinear.", "gate.", "pmcr_p2."))
+                for k in state
+            ):
+                raise ValueError(f"PMCR checkpoint module/train-form key mismatch: {run_dir}")
+            for key, tensor in state.items():
+                if not torch.is_tensor(tensor) or not bool(torch.isfinite(tensor).all()):
+                    raise ValueError(f"PMCR checkpoint non-finite tensor {key}: {run_dir}")
+                if key in shapes and (
+                    tuple(tensor.shape) != shapes[key] or tensor.dtype != torch.float32
+                ):
+                    raise ValueError(f"PMCR checkpoint tensor mismatch {key}: {run_dir}")
+            spec = {k: (tuple(v.shape), v.dtype) for k, v in state.items()}
+            if previous_spec is not None and spec != previous_spec:
+                raise ValueError(f"PMCR checkpoint state specifications disagree: {run_dir}")
+            previous_spec = spec
+
+
 def _validate_enhanced_variant_contract(scientific, implementation_variant, run_dir):
     """Keep legacy TEB, warm-start, and CCE artifact identities distinct."""
 
@@ -715,6 +914,8 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
     experiment = scientific.get("experiment")
     if not isinstance(model, dict) or not isinstance(experiment, dict):
         raise ValueError(f"enhanced variant contract is incomplete: {run_dir}")
+    if implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
+        return _validate_pmcr_variant_contract(scientific, run_dir)
     if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
         return _validate_sonnet_variant_contract(scientific, run_dir)
     if implementation_variant in {
@@ -1049,11 +1250,15 @@ def _validate_warm_start_artifact(
         else STANDARD_TRAINING_PROTOCOL
     )
     if protocol_id == STANDARD_TRAINING_PROTOCOL:
-        if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        if _is_policy_development_variant(implementation_variant):
             expected_default = {
                 "training_protocol_id": STANDARD_TRAINING_PROTOCOL,
                 "warm_start_contract_version": None,
-                "initialization_policy": "matched_standard_from_scratch",
+                "initialization_policy": (
+                    PMCR_P2_INITIALIZATION_POLICY
+                    if implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+                    else "matched_standard_from_scratch"
+                ),
                 "source_checkpoint": None,
                 "source_importer": None,
                 "optimizer_state_policy": "fresh",
@@ -1073,10 +1278,10 @@ def _validate_warm_start_artifact(
         ):
             observed = document.get("training_protocol")
             if (
-                implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+                _is_policy_development_variant(implementation_variant)
                 and observed != expected_default
             ) or (
-                implementation_variant != SONNET_IMPLEMENTATION_VARIANT
+                not _is_policy_development_variant(implementation_variant)
                 and observed is not None
                 and observed != expected_default
             ):
@@ -2178,7 +2383,7 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             _validate_sonnet_evaluation_artifact(
                 scientific, config, manifest, metrics, run_dir
             )
-            if implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            if _is_policy_development_variant(implementation_variant)
             else TRAIN_VALIDATION_TEST
         )
         protocol_info = _validate_warm_start_artifact(
@@ -2203,6 +2408,10 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             )
         elif implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
             _validate_sonnet_checkpoints(
+                scientific, config, manifest, metrics, run_dir
+            )
+        elif implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
+            _validate_pmcr_checkpoints(
                 scientific, config, manifest, metrics, run_dir
             )
         expected_weight_decay = (
@@ -2360,13 +2569,13 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
         }
         if evaluation_policy == TRAIN_VALIDATION_TEST:
             row.update({"test_mse": test_mse, "test_mae": test_mae})
-        if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+        if _is_policy_development_variant(implementation_variant):
             row.update({
                 "evaluation_policy": evaluation_policy,
                 "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
             })
         rows.append(row)
-    if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+    if _is_policy_development_variant(implementation_variant):
         policies = {row["evaluation_policy"] for row in rows}
         if len(policies) > 1:
             raise ValueError(
@@ -2444,7 +2653,9 @@ def aggregate_runs(rows):
         def mean_and_std(field):
             values = [row[field] for row in group]
             return statistics.mean(values), (
-                statistics.stdev(values) if len(values) > 1 else ""
+                statistics.stdev(values) if len(values) > 1 else (
+                    "N/A" if key[0] == PMCR_P2_IMPLEMENTATION_VARIANT else ""
+                )
             )
 
         val_mse_mean, val_mse_std = mean_and_std("val_mse")
@@ -2483,7 +2694,7 @@ def aggregate_runs(rows):
                 "test_mae_mean": test_mae_mean,
                 "test_mae_sample_std": test_mae_std,
             })
-        if key[0] == SONNET_IMPLEMENTATION_VARIANT:
+        if _is_policy_development_variant(key[0]):
             aggregate.update({
                 "evaluation_policy": evaluation_policy,
                 "artifact_purpose": M4_DEVELOPMENT_CANDIDATE,
@@ -2524,7 +2735,7 @@ def write_summaries(
     aggregate_path = output_dir / f"{implementation_variant}-aggregate.csv"
     run_fields = RUN_FIELDS
     aggregate_fields = AGGREGATE_FIELDS
-    if implementation_variant == SONNET_IMPLEMENTATION_VARIANT:
+    if _is_policy_development_variant(implementation_variant):
         policies = {row["evaluation_policy"] for row in rows}
         if len(policies) > 1:
             raise ValueError(

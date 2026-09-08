@@ -61,13 +61,6 @@ def _synthetic_raw(*, contaminate_future: bool = False) -> UrbanEVRawData:
 
 
 class FoldScalerNoLeakageTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        root = Path(__file__).resolve().parents[1] / "data" / "UrbanEV" / "data"
-        cls.actual_bundle = UrbanEVFoldPreprocessor(
-            UrbanEVRawData.load(root)
-        ).fit_transform(6, "F4")
-
     def test_future_pollution_cannot_change_fitted_scalers(self):
         clean = UrbanEVFoldPreprocessor(_synthetic_raw()).fit_transform(6, "F4")
         polluted = UrbanEVFoldPreprocessor(
@@ -175,7 +168,9 @@ class FoldScalerNoLeakageTests(unittest.TestCase):
         )
 
     def test_target_transform_inverse_round_trip_numpy_and_torch(self):
-        bundle = self.actual_bundle
+        # Only this method depends on official observations.
+        root = Path(__file__).resolve().parents[1] / "data" / "UrbanEV" / "data"
+        bundle = UrbanEVFoldPreprocessor(UrbanEVRawData.load(root)).fit_transform(6, "F4")
         raw_graph = bundle.raw.volume[:32]
         transformed_graph = bundle.transform_target(raw_graph)
         restored_graph = bundle.inverse_transform_target(transformed_graph)

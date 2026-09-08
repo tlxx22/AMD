@@ -4,6 +4,8 @@ import subprocess
 import tempfile
 import unittest
 from copy import deepcopy
+from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -2897,15 +2899,21 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
         )
 
     @classmethod
-    def _protocol_args(cls, horizon=96, *, continuation=False, artifact_root=None):
-        source = cls._source_dir(horizon)
-        command = next(
-            line for line in (source / "command.txt").read_text(
-                encoding="utf-8"
-            ).splitlines() if line and not line.startswith("#")
-        )
-        argv = shlex.split(command)
-        args = runner.parse_args(argv[2:])
+    def _protocol_args(cls, horizon=96, *, continuation=False, artifact_root=None,
+                       source_fixture=None):
+        if source_fixture is None:
+            # Only the five declared historical-asset methods use this branch.
+            source = cls._source_dir(horizon)
+            command = next(
+                line for line in (source / "command.txt").read_text(
+                    encoding="utf-8"
+                ).splitlines() if line and not line.startswith("#")
+            )
+            argv = shlex.split(command)
+            args = runner.parse_args(argv[2:])
+        else:
+            source = source_fixture.source
+            args = deepcopy(source_fixture.args)
         args.device = "cpu"
         args.artifact_root = str(
             artifact_root if artifact_root is not None else Path("/tmp/m4-warm-test")
@@ -2972,6 +2980,172 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
             current,
             apply_mapping=apply_mapping,
         )
+
+
+    @contextmanager
+    def _synthetic_source(self, root):
+        """Seal a new test-only U1 source; never inspect historical artifacts."""
+        root = Path(root)
+        root.mkdir(parents=True)
+        features = ("HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT")
+        data_path = root / "ETTm1.csv"
+        t = np.arange(57600, dtype=np.float64)
+        frame = pd.DataFrame({
+            name: (i + 1) * np.sin(t / (17 + i)) + t / 1000 + i
+            for i, name in enumerate(features)
+        })
+        frame.insert(0, "date", pd.date_range(
+            "2024-01-01", periods=len(t), freq="15min"
+        ))
+        frame.to_csv(data_path, index=False)
+        args = runner.prepare_args(runner.parse_args([
+            "--implementation_variant", runner.ENHANCED_IMPLEMENTATION_VARIANT,
+            "--data", str(data_path), "--dataset_id", "ETTm1",
+            "--artifact_root", str(root / "unused-output"),
+            "--device", "cpu", "--num_threads", "1", "--progress", "false",
+            "--seed", "2024", "--feature_type", "MS", "--target", "OT",
+            "--task_mode", "target_exogenous", "--target_idx", "6",
+            "--aux_idx", "0", "1", "2", "3", "4", "5",
+            "--feature_names", *features, "--target_feature_name", "OT",
+            "--aux_feature_names", *features[:-1],
+            "--schema_fingerprint", runner.stable_hash(features),
+            "--fold", "official", "--label_horizon", "96",
+            "--seq_len", "512", "--pred_len", "96",
+            "--batch_size", "32", "--train_epochs", "10",
+            "--learning_rate", "0.00003", "--weight_decay", "0.0000001",
+            "--n_block", "1", "--alpha", "0", "--mix_layer_num", "3",
+            "--mix_layer_scale", "2", "--patch", "16",
+            "--norm", "true", "--layernorm", "true", "--dropout", "0.1",
+            "--ablation_id", "U1", "--use_pmcr", "false", "--use_teb", "false",
+        ]))
+        runtime = runner._build_runtime_data(
+            args, torch.Generator().manual_seed(args.seed)
+        )
+        schema = runner._build_target_exogenous_schema_contract(
+            args, runtime.preprocessing
+        )
+        source_document = runner.source_fingerprint_metadata()
+        source = root / "synthetic-u1-source"
+        source.mkdir()
+        # This is explicit fixture metadata, not a claim about a real Git run.
+        source_metadata = {
+            "sha256": source_document["sha256"],
+            "git": {"commit": "synthetic-u1-source", "dirty": False},
+            "synthetic_test_fixture": True,
+        }
+        environment = _runtime_metadata()
+        scientific = runner._scientific_config(
+            args, runtime.data_fingerprint, source_document["sha256"],
+            runtime.preprocessing, torch.device("cpu"), environment, schema,
+            runner._training_protocol_block(args),
+        )
+        config_hash = runner.stable_hash(scientific)
+        resolved = runner._resolved_config(
+            args, scientific, config_hash, source, source_metadata,
+            environment, runner._training_protocol_block(args),
+        )
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(2024)
+            source_state = runner._cpu_state_dict(
+                runner._build_model(args, runtime).state_dict()
+            )
+        self.assertEqual(len(source_state), 60)
+        checkpoint = {
+            **runner._checkpoint_common(
+                resolved, config_hash, runtime.data_fingerprint,
+                runtime.preprocessing,
+            ),
+            "model_state": source_state, "best_epoch": 1,
+            "synthetic_test_fixture": True,
+        }
+        manifest = {
+            "schema_version": runner.SCHEMA_VERSION,
+            "artifact_schema_version": runner.ENHANCED_ARTIFACT_SCHEMA_VERSION,
+            "implementation_variant": runner.ENHANCED_IMPLEMENTATION_VARIANT,
+            "run_id": source.name, "status": "completed",
+            "artifact_dir": str(source), "config_hash": config_hash,
+            "data_sha256": runtime.data_fingerprint, "best_epoch": 1,
+            "target_exogenous_schema": schema, "synthetic_test_fixture": True,
+        }
+        documents = {
+            "config.resolved.json": resolved, "manifest.json": manifest,
+            "source_fingerprint.json": source_document,
+            "data_fingerprint.json": runtime.data_fingerprint_document,
+        }
+        for name, document in documents.items():
+            runner.atomic_write_json(source / name, document)
+        for name in ("best.pt", "last.pt"):
+            torch.save(checkpoint, source / name)
+        for name in runner.ENHANCED_CHECKSUM_FILES:
+            path = source / name
+            if not path.exists():
+                path.write_text(
+                    '{"synthetic_test_fixture": true}\n', encoding="utf-8"
+                )
+        runner.write_checksums(source)
+        self.assertEqual(len(runner.verify_checksums(source)), 13)
+        self.assertIn("OK", runner.verify_checksums_with_sha256sum(source))
+        identity = {
+            "run_id": source.name, "config_hash": config_hash, "best_epoch": 1,
+            "checkpoint_sha256": runner.sha256_file(source / "best.pt"),
+            "comparison_config_hash": runner._comparison_config_hash_from_scientific(
+                scientific, args.train_epochs
+            ),
+        }
+        fixture = SimpleNamespace(
+            args=args, source=source, runtime=runtime, schema=schema,
+            state=source_state, identity=identity,
+        )
+        # Substitute fixture reference identities only; every production
+        # preflight/checksum/config/mapping predicate still executes unchanged.
+        with mock.patch.multiple(
+            runner,
+            M4_U1_SOURCE_IDENTITIES={**runner.M4_U1_SOURCE_IDENTITIES, 96: identity},
+            M4_U1_SOURCE_COMMIT=source_metadata["git"]["commit"],
+            M4_U1_SOURCE_FINGERPRINT=source_document["sha256"],
+            M4_U1_DATA_FINGERPRINT=runtime.data_fingerprint,
+            M4_U1_SCHEMA_FINGERPRINT=args.schema_fingerprint,
+        ):
+            yield fixture
+
+    @staticmethod
+    def _limit_synthetic_runtime(runtime):
+        """Keep the actual parser/scaler/split, then bound synthetic work."""
+        limited = {}
+        for name in ("train_data", "val_data", "test_data"):
+            loader = getattr(runtime, name)
+            limited[name] = torch.utils.data.DataLoader(
+                torch.utils.data.Subset(loader.dataset, range(2)),
+                batch_size=loader.batch_size, shuffle=name == "train_data",
+                generator=loader.generator, drop_last=False,
+            )
+        return replace(runtime, **limited)
+
+    def _assert_synthetic_lineage(self, run_dir, fixture):
+        config = json.loads((run_dir / "config.resolved.json").read_text())
+        lineage = config["source_lineage"]
+        self.assertEqual(lineage["source_artifact_path"], str(fixture.source))
+        self.assertEqual(lineage["source_run_id"], fixture.source.name)
+        self.assertEqual(lineage["source_checkpoint_sha256"],
+                         fixture.identity["checkpoint_sha256"])
+        self.assertEqual(lineage["source_data_fingerprint"],
+                         fixture.runtime.data_fingerprint)
+        proof = config["source_compatibility_proof"]
+        self.assertEqual(proof["mapped_key_count"], 60)
+        self.assertEqual(proof["target_state_key_count"], 79)
+        self.assertEqual(len(proof["allowed_missing_keys"]), 19)
+        self.assertEqual(len(proof["critical_files"]),
+                         len(runner.SOURCE_COMPATIBILITY_CRITICAL_FILES))
+        last = torch.load(run_dir / "last.pt", map_location="cpu")
+        for name, source_tensor in fixture.state.items():
+            self.assertTrue(torch.equal(last["model_state"][name], source_tensor), name)
+        self.assertEqual(len(last["optimizer_state"]["param_groups"][0]["params"]), 15)
+        self.assertEqual(last["optimizer_state"]["param_groups"][0]["weight_decay"], 0.0)
+        self.assertEqual(
+            config["training_protocol"]["adapter_trainable_parameter_names"],
+            list(runner.T2_ADAPTER_FORECAST_PARAMETER_NAMES),
+        )
+        self.assertIn("OK", runner.verify_checksums_with_sha256sum(run_dir))
 
     def test_live_historical_source_gate_rejects_post_cce_file_change(self):
         args = self._protocol_args(96)
@@ -3096,63 +3270,68 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
         }
 
     def test_protocol_config_and_standard_artifact_metadata_are_isolated(self):
-        adapter = self._protocol_args()
-        continuation = self._protocol_args(continuation=True)
-        self.assertEqual(adapter.ablation_id, runner.T2_ADAPTER_ABLATION_ID)
-        self.assertEqual(adapter.weight_decay, 0.0)
-        self.assertEqual(
-            continuation.ablation_id, runner.U1_CONTINUATION_ABLATION_ID
-        )
-        self.assertFalse(continuation.use_teb)
-        self.assertFalse(continuation.use_pmcr)
-        adapter_block = runner._training_protocol_block(adapter)
-        self.assertEqual(adapter_block["adapter_trainable_tensor_count"], 15)
-        self.assertEqual(adapter_block["adapter_trainable_parameter_count"], 22881)
-        self.assertEqual(adapter_block["global_query_tensor_count"], 4)
-        self.assertEqual(adapter_block["global_query_parameter_count"], 16480)
+        with tempfile.TemporaryDirectory() as directory:
+            with self._synthetic_source(Path(directory) / "source") as fixture:
+                adapter = self._protocol_args(source_fixture=fixture)
+                continuation = self._protocol_args(continuation=True, source_fixture=fixture)
+                self.assertEqual(adapter.ablation_id, runner.T2_ADAPTER_ABLATION_ID)
+                self.assertEqual(adapter.weight_decay, 0.0)
+                self.assertEqual(
+                    continuation.ablation_id, runner.U1_CONTINUATION_ABLATION_ID
+                )
+                self.assertFalse(continuation.use_teb)
+                self.assertFalse(continuation.use_pmcr)
+                adapter_block = runner._training_protocol_block(adapter)
+                self.assertEqual(adapter_block["adapter_trainable_tensor_count"], 15)
+                self.assertEqual(adapter_block["adapter_trainable_parameter_count"], 22881)
+                self.assertEqual(adapter_block["global_query_tensor_count"], 4)
+                self.assertEqual(adapter_block["global_query_parameter_count"], 16480)
 
-        standard = runner.prepare_args(runner.parse_args([]))
-        scientific = runner._scientific_config(
-            standard, "data", "source", {}, torch.device("cpu"), _runtime_metadata()
-        )
-        resolved = runner._resolved_config(
-            standard, scientific, runner.stable_hash(scientific), Path("/tmp/run"),
-            {"sha256": "source"}, _runtime_metadata(),
-            runner._training_protocol_block(standard),
-        )
-        self.assertNotIn("training_protocol", scientific)
-        self.assertNotIn("training_protocol", resolved)
-        self.assertNotIn("source_lineage", resolved)
-        self.assertNotIn("training_protocol", runner._checkpoint_common(
-            resolved, resolved["config_hash"], "data", {}
-        ))
+                standard = runner.prepare_args(runner.parse_args([]))
+                scientific = runner._scientific_config(
+                    standard, "data", "source", {}, torch.device("cpu"), _runtime_metadata()
+                )
+                resolved = runner._resolved_config(
+                    standard, scientific, runner.stable_hash(scientific), Path("/tmp/run"),
+                    {"sha256": "source"}, _runtime_metadata(),
+                    runner._training_protocol_block(standard),
+                )
+                self.assertNotIn("training_protocol", scientific)
+                self.assertNotIn("training_protocol", resolved)
+                self.assertNotIn("source_lineage", resolved)
+                self.assertNotIn("training_protocol", runner._checkpoint_common(
+                    resolved, resolved["config_hash"], "data", {}
+                ))
 
-        warm_preflight = self._fake_preflight(adapter, None)
-        warm_scientific = runner._scientific_config(
-            adapter,
-            runner.M4_U1_DATA_FINGERPRINT,
-            runner.source_fingerprint(),
-            {},
-            torch.device("cpu"),
-            _runtime_metadata(),
-            self._schema(),
-            adapter_block,
-            warm_preflight["source_lineage"],
-            warm_preflight["source_compatibility_proof"],
-        )
-        identity_before = runner.stable_hash(warm_scientific)
-        diagnostic_state = {"weight": torch.zeros(1)}
-        diagnostic_before = runner._state_dict_digest(diagnostic_state)
-        diagnostic_state["weight"][0] = 1
-        diagnostic_after = runner._state_dict_digest(diagnostic_state)
-        self.assertNotEqual(diagnostic_before, diagnostic_after)
-        self.assertEqual(identity_before, runner.stable_hash(warm_scientific))
-        self.assertNotIn("state_digest", json.dumps(warm_scientific))
+                warm_preflight = runner._preflight_warm_start_source(
+                    adapter, self._model(adapter), fixture.runtime.data_fingerprint,
+                    fixture.schema, runner.source_fingerprint_metadata(), apply_mapping=True,
+                )
+                warm_scientific = runner._scientific_config(
+                    adapter,
+                    runner.M4_U1_DATA_FINGERPRINT,
+                    runner.source_fingerprint(),
+                    {},
+                    torch.device("cpu"),
+                    _runtime_metadata(),
+                    fixture.schema,
+                    adapter_block,
+                    warm_preflight["source_lineage"],
+                    warm_preflight["source_compatibility_proof"],
+                )
+                identity_before = runner.stable_hash(warm_scientific)
+                diagnostic_state = {"weight": torch.zeros(1)}
+                diagnostic_before = runner._state_dict_digest(diagnostic_state)
+                diagnostic_state["weight"][0] = 1
+                diagnostic_after = runner._state_dict_digest(diagnostic_state)
+                self.assertNotEqual(diagnostic_before, diagnostic_after)
+                self.assertEqual(identity_before, runner.stable_hash(warm_scientific))
+                self.assertNotIn("state_digest", json.dumps(warm_scientific))
 
-        wrong = self._protocol_args()
-        wrong.ablation_id = "M4_T2"
-        with self.assertRaisesRegex(ValueError, "contract mismatch|contradicts"):
-            runner.prepare_args(wrong)
+                wrong = self._protocol_args(source_fixture=fixture)
+                wrong.ablation_id = "M4_T2"
+                with self.assertRaisesRegex(ValueError, "contract mismatch|contradicts"):
+                    runner.prepare_args(wrong)
 
     def test_four_locked_sources_preflight_and_atomic_mapping(self):
         for horizon in (96, 192, 336, 720):
@@ -3335,8 +3514,10 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
         for name, before in global_before.items():
             self.assertTrue(torch.equal(named[name], before), name)
 
-    def _run_tiny_lifecycle(self, root, validation_values):
-        args = self._protocol_args(96, artifact_root=root)
+    def _run_tiny_lifecycle(self, root, validation_values, fixture):
+        args = self._protocol_args(
+            96, artifact_root=root, source_fixture=fixture
+        )
         evaluations = iter(validation_values)
 
         def fake_evaluate(*unused, **kwargs):
@@ -3344,97 +3525,127 @@ class WarmStartAdapterRunnerTests(unittest.TestCase):
             return {"mse": value, "mae": value / 2, "num_elements": 1,
                     "num_batches": 1}
 
-        patches = (
-            mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()),
-            mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()),
-            mock.patch.object(runner, "_preflight_warm_start_source", side_effect=self._fake_preflight),
-            mock.patch.object(runner, "_zero_adapter_gamma", return_value={"effective_teb_gamma_init": 0.0}),
-            mock.patch.object(runner, "_configure_protocol_parameters", side_effect=self._fake_scope),
-            mock.patch.object(runner, "_build_optimizer", side_effect=self._fake_optimizer),
-            mock.patch.object(runner, "train_one_epoch", side_effect=self._fake_train),
-            mock.patch.object(runner, "evaluate", side_effect=fake_evaluate),
-        )
-        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+        real_runtime = runner._build_runtime_data
+        with mock.patch.object(
+            runner, "_build_runtime_data",
+            side_effect=lambda *a, **kw: self._limit_synthetic_runtime(
+                real_runtime(*a, **kw)
+            ),
+        ), mock.patch.object(
+            runner, "_preflight_warm_start_source",
+            wraps=runner._preflight_warm_start_source,
+        ) as preflight, mock.patch.object(
+            runner, "evaluate", side_effect=fake_evaluate
+        ):
             metrics = runner.main(args)
+        self.assertEqual(preflight.call_count, 1)
+        self.assertTrue(preflight.call_args.kwargs["apply_mapping"])
         parent = (
             Path(root) / runner.T2_IMPLEMENTATION_VARIANT / "ETTm1"
             / "target_exogenous/OT/horizon_96/fold_official/seed_2024"
         )
         run_dir = next(path for path in parent.iterdir() if not path.name.startswith("."))
+        self._assert_synthetic_lineage(run_dir, fixture)
         return run_dir, metrics
 
     def test_epoch_zero_lifecycle_worse_and_improved(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            worse, worse_metrics = self._run_tiny_lifecycle(
-                root / "worse", [0.1] + [0.2] * 10 + [0.3]
-            )
-            self.assertEqual(worse_metrics["best_epoch"], 0)
-            self.assertEqual(worse_metrics["best_checkpoint_role"],
-                             "epoch_zero_initialization")
-            self.assertEqual(worse_metrics["completed_epochs"], 10)
-            history = [json.loads(line) for line in
-                       (worse / "history.jsonl").read_text().splitlines()]
-            self.assertEqual([row["epoch"] for row in history], list(range(1, 11)))
-            self.assertEqual(torch.load(worse / "best.pt", map_location="cpu")[
-                "checkpoint_role"], "epoch_zero_initialization")
-            runner.verify_checksums(worse)
+            with self._synthetic_source(root / "source") as fixture:
+                worse, worse_metrics = self._run_tiny_lifecycle(
+                    root / "worse", [0.1] + [0.2] * 10 + [0.3], fixture
+                )
+                self.assertEqual(worse_metrics["best_epoch"], 0)
+                self.assertEqual(worse_metrics["best_checkpoint_role"],
+                                 "epoch_zero_initialization")
+                self.assertEqual(worse_metrics["completed_epochs"], 10)
+                history = [json.loads(line) for line in
+                           (worse / "history.jsonl").read_text().splitlines()]
+                self.assertEqual([row["epoch"] for row in history], list(range(1, 11)))
+                self.assertEqual(torch.load(worse / "best.pt", map_location="cpu")[
+                    "checkpoint_role"], "epoch_zero_initialization")
+                runner.verify_checksums(worse)
 
-            improved, improved_metrics = self._run_tiny_lifecycle(
-                root / "improved", [0.2, 0.1] + [0.15] * 9 + [0.3]
-            )
-            self.assertEqual(improved_metrics["best_epoch"], 1)
-            self.assertEqual(improved_metrics["best_checkpoint_role"], "trained_epoch")
-            self.assertEqual(torch.load(improved / "best.pt", map_location="cpu")[
-                "checkpoint_role"], "trained_epoch")
-            runner.verify_checksums(improved)
+                improved, improved_metrics = self._run_tiny_lifecycle(
+                    root / "improved", [0.2, 0.1] + [0.15] * 9 + [0.3], fixture
+                )
+                self.assertEqual(improved_metrics["best_epoch"], 1)
+                self.assertEqual(improved_metrics["best_checkpoint_role"], "trained_epoch")
+                self.assertEqual(torch.load(improved / "best.pt", map_location="cpu")[
+                    "checkpoint_role"], "trained_epoch")
+                runner.verify_checksums(improved)
 
     def test_preflight_failure_creates_no_artifact_and_warm_resume_skips_source_reload(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            args = self._protocol_args(96, artifact_root=root / "preflight-failure")
-            with mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()), \
-                 mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()), \
-                 mock.patch.object(runner, "_preflight_warm_start_source", side_effect=RuntimeError("source rejected")):
-                with self.assertRaisesRegex(RuntimeError, "source rejected"):
-                    runner.main(args)
-            self.assertFalse((root / "preflight-failure").exists())
+            with self._synthetic_source(root / "source") as fixture:
+                real_runtime = runner._build_runtime_data
+                def bounded_runtime(*a, **kw):
+                    return self._limit_synthetic_runtime(real_runtime(*a, **kw))
 
-            resume_root = root / "resume"
-            args = self._protocol_args(96, artifact_root=resume_root)
-            eval_values = iter([0.1])
-            def initial_eval(*unused, **kwargs):
-                return {"mse": next(eval_values), "mae": 0.05,
-                        "num_elements": 1, "num_batches": 1}
-            with mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()), \
-                 mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()), \
-                 mock.patch.object(runner, "_preflight_warm_start_source", side_effect=self._fake_preflight), \
-                 mock.patch.object(runner, "_zero_adapter_gamma", return_value={}), \
-                 mock.patch.object(runner, "_configure_protocol_parameters", side_effect=self._fake_scope), \
-                 mock.patch.object(runner, "_build_optimizer", side_effect=self._fake_optimizer), \
-                 mock.patch.object(runner, "evaluate", side_effect=initial_eval), \
-                 mock.patch.object(runner, "train_one_epoch", side_effect=RuntimeError("interrupt")):
-                with self.assertRaisesRegex(RuntimeError, "interrupt"):
-                    runner.main(args)
-            staging = next(resume_root.rglob(".*.staging"))
-            args = self._protocol_args(96, artifact_root=resume_root)
-            args.resume = str(staging)
-            evaluations = iter([0.2] * 10 + [0.3])
-            def resumed_eval(*unused, **kwargs):
-                value = next(evaluations)
-                return {"mse": value, "mae": value / 2,
-                        "num_elements": 1, "num_batches": 1}
-            with mock.patch.object(runner, "_build_runtime_data", return_value=self._fake_runtime()), \
-                 mock.patch.object(runner, "_build_model", return_value=_TinyCheckpointModel()), \
-                 mock.patch.object(runner, "_preflight_warm_start_source", side_effect=AssertionError("source reopened")), \
-                 mock.patch.object(runner, "_zero_adapter_gamma", side_effect=AssertionError("gamma reset")), \
-                 mock.patch.object(runner, "_configure_protocol_parameters", side_effect=self._fake_scope), \
-                 mock.patch.object(runner, "_build_optimizer", side_effect=self._fake_optimizer), \
-                 mock.patch.object(runner, "train_one_epoch", side_effect=self._fake_train), \
-                 mock.patch.object(runner, "evaluate", side_effect=resumed_eval):
-                metrics = runner.main(args)
-            self.assertEqual(metrics["best_epoch"], 0)
-            self.assertEqual(metrics["completed_epochs"], 10)
+                args = self._protocol_args(
+                    96, artifact_root=root / "preflight-failure",
+                    source_fixture=fixture,
+                )
+                # A real SHA mismatch must fail before target artifact creation.
+                args.source_checkpoint_sha256 = "0" * 64
+                with mock.patch.object(
+                    runner, "_build_runtime_data", side_effect=bounded_runtime
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError, "source best.pt SHA-256 mismatch"
+                    ):
+                        runner.main(args)
+                self.assertFalse((root / "preflight-failure").exists())
+
+                resume_root = root / "resume"
+                args = self._protocol_args(
+                    96, artifact_root=resume_root, source_fixture=fixture
+                )
+                eval_values = iter([0.1])
+                def initial_eval(*unused, **kwargs):
+                    return {"mse": next(eval_values), "mae": 0.05,
+                            "num_elements": 1, "num_batches": 1}
+                with mock.patch.object(
+                    runner, "_build_runtime_data", side_effect=bounded_runtime
+                ), mock.patch.object(
+                    runner, "_preflight_warm_start_source",
+                    wraps=runner._preflight_warm_start_source,
+                ) as preflight, mock.patch.object(
+                    runner, "evaluate", side_effect=initial_eval
+                ), mock.patch.object(
+                    runner, "train_one_epoch", side_effect=RuntimeError("interrupt")
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "interrupt"):
+                        runner.main(args)
+                self.assertEqual(preflight.call_count, 1)
+                staging = next(resume_root.rglob(".*.staging"))
+                args = self._protocol_args(
+                    96, artifact_root=resume_root, source_fixture=fixture
+                )
+                args.resume = str(staging)
+                evaluations = iter([0.2] * 10 + [0.3])
+                def resumed_eval(*unused, **kwargs):
+                    value = next(evaluations)
+                    return {"mse": value, "mae": value / 2,
+                            "num_elements": 1, "num_batches": 1}
+                with mock.patch.object(
+                    runner, "_build_runtime_data", side_effect=bounded_runtime
+                ), mock.patch.object(
+                    runner, "_preflight_warm_start_source",
+                    side_effect=AssertionError("source reopened"),
+                ), mock.patch.object(
+                    runner, "_zero_adapter_gamma",
+                    side_effect=AssertionError("gamma reset"),
+                ), mock.patch.object(
+                    runner, "evaluate", side_effect=resumed_eval
+                ):
+                    metrics = runner.main(args)
+                self.assertEqual(metrics["best_epoch"], 0)
+                self.assertEqual(metrics["completed_epochs"], 10)
+                final = next(p for p in staging.parent.iterdir()
+                             if p.is_dir() and not p.name.startswith("."))
+                self._assert_synthetic_lineage(final, fixture)
 
     def test_continuation_strict_mapping_fresh_optimizer_and_epoch_zero_policy(self):
         args = self._protocol_args(96, continuation=True)
@@ -4050,10 +4261,10 @@ class SonnetRunnerContractTests(unittest.TestCase):
         return runner.parse_args(values)
 
     @staticmethod
-    def _urban_args(*, enabled=True, artifact_root=None):
+    def _urban_args(*, enabled=True, artifact_root=None, data_root=None):
         values = [
             "--implementation_variant", runner.SONNET_IMPLEMENTATION_VARIANT,
-            "--data", str(runner.ROOT / "data" / "UrbanEV" / "data"),
+            "--data", str(data_root if data_root is not None else runner.ROOT / "data" / "UrbanEV" / "data"),
             "--dataset_id", "UrbanEV",
             "--device", "cpu",
             "--progress", "false",
@@ -4094,8 +4305,26 @@ class SonnetRunnerContractTests(unittest.TestCase):
         }
 
     def test_exact_contract_identity_is_sealed_in_all_config_layers(self):
-        candidate = runner.prepare_args(self._ett_args(enabled=True))
-        control = runner.prepare_args(self._ett_args(enabled=False))
+        import hashlib
+
+        fixture = tempfile.TemporaryDirectory(prefix="sonnet-ett-identity-")
+        self.addCleanup(fixture.cleanup)
+        data_path = Path(fixture.name) / "ETTm1.csv"
+        # Reuse the PMCRMSInterfaceTests synthetic ETT formula and full split size.
+        t = np.arange(57600, dtype=np.float64)
+        frame = pd.DataFrame({
+            name: (i + 1)*np.sin(t / (17 + i)) + t / 1000 + i
+            for i, name in enumerate(self.FEATURES)
+        })
+        frame.insert(0, "date", pd.date_range("2024-01-01", periods=len(t), freq="15min"))
+        frame.to_csv(data_path, index=False)
+        data_sha = runner.sha256_file(data_path)
+        self.assertEqual(data_sha, hashlib.sha256(data_path.read_bytes()).hexdigest())
+        source_sha = runner.source_fingerprint()
+        candidate_args, control_args = self._ett_args(enabled=True), self._ett_args(enabled=False)
+        candidate_args.data = control_args.data = str(data_path)
+        candidate = runner.prepare_args(candidate_args)
+        control = runner.prepare_args(control_args)
         for args, enabled in ((candidate, True), (control, False)):
             self.assertEqual(args.sonnet_d_model, 64)
             self.assertEqual(args.sonnet_n_atoms, 8)
@@ -4116,8 +4345,8 @@ class SonnetRunnerContractTests(unittest.TestCase):
             training = runner._training_protocol_block(args)
             scientific = runner._scientific_config(
                 args,
-                "data-sha",
-                "source-sha",
+                data_sha,
+                source_sha,
                 preprocessing,
                 torch.device("cpu"),
                 _runtime_metadata(),
@@ -4136,14 +4365,14 @@ class SonnetRunnerContractTests(unittest.TestCase):
                 scientific,
                 runner.stable_hash(scientific),
                 Path("/tmp/sonnet-run"),
-                {"sha256": "source-sha"},
+                {"sha256": source_sha},
                 _runtime_metadata(),
                 training,
             )
             checkpoint = runner._checkpoint_common(
                 resolved,
                 resolved["config_hash"],
-                "data-sha",
+                data_sha,
                 preprocessing,
             )
             self.assertEqual(resolved["training_protocol"], training)
@@ -4168,6 +4397,15 @@ class SonnetRunnerContractTests(unittest.TestCase):
 
         generator = torch.Generator().manual_seed(candidate.seed)
         runtime = runner._build_generic_runtime_data(candidate, generator)
+        self.assertEqual(runtime.data_fingerprint, data_sha)
+        self.assertEqual(runtime.n_feature, 7)
+        self.assertEqual(tuple(runtime.preprocessing["columns"]), self.FEATURES)
+        self.assertEqual(runtime.preprocessing["target_indices"], [6])
+        self.assertEqual(
+            tuple(len(loader.dataset) for loader in (runtime.train_data, runtime.val_data, runtime.test_data)),
+            (33953, 11425, 11425),
+        )
+        print("SONNET_ETT_SYNTHETIC_RUNTIME rows=57600 columns=7 T=512 H=96 windows=33953,11425,11425 sha256=" + data_sha)
         self.assertEqual(
             runtime.evaluation_policy, runner.TRAIN_VALIDATION_TEST
         )
@@ -4210,39 +4448,39 @@ class SonnetRunnerContractTests(unittest.TestCase):
                     runner.prepare_args(args)
 
     def test_validation_only_runtime_never_constructs_test_dataset_or_loader(self):
-        args = runner.prepare_args(self._urban_args())
-        calls = []
-        original = runner.TemporalRegionDataset
+        from urbanev_synthetic_fixture import write_synthetic_urbanev
+        with tempfile.TemporaryDirectory(prefix="sonnet-runtime-csv-") as directory:
+            data_root = Path(directory) / "synthetic-data"
+            write_synthetic_urbanev(data_root)
+            for enabled in (False, True):
+                with self.subTest(enabled=enabled):
+                    args = runner.prepare_args(self._urban_args(enabled=enabled, data_root=data_root))
+                    calls = []
+                    original = runner.TemporalRegionDataset
+                    original_load = runner.UrbanEVRawData.load
 
-        def recording_dataset(*positional, **keywords):
-            calls.append(keywords["split"])
-            return original(*positional, **keywords)
+                    def recording_dataset(*positional, **keywords):
+                        if keywords["split"] == "test":
+                            raise AssertionError("legacy validation-only constructed test Dataset")
+                        calls.append(keywords["split"])
+                        return original(*positional, **keywords)
 
-        generator = torch.Generator().manual_seed(args.seed)
-        with mock.patch.object(
-            runner, "TemporalRegionDataset", side_effect=recording_dataset
-        ):
-            runtime = runner._build_urbanev_runtime_data(args, generator)
-        self.assertEqual(calls, ["train", "validation"])
-        self.assertIsNone(runtime.test_data)
-        self.assertEqual(
-            runtime.evaluation_policy, runner.TRAIN_VALIDATION_ONLY
-        )
-        self.assertEqual(runtime.test_access_policy, "forbidden")
-        self.assertEqual(
-            set(runtime.preprocessing["split_identity"]),
-            {"train", "validation"},
-        )
-        self.assertEqual(
-            runtime.preprocessing["preprocessing_state"]["fit_scope"],
-            "current_fold_raw_train_time_slice_only",
-        )
-        self.assertEqual(runtime.preprocessing["fold"]["fold"], 6)
-        self.assertEqual(runtime.preprocessing["preset"], "F4")
-        self.assertEqual(
-            tuple(runtime.preprocessing["columns"]),
-            tuple(args.feature_names),
-        )
+                    with mock.patch.object(runner, "TemporalRegionDataset", side_effect=recording_dataset), \
+                            mock.patch.object(runner.UrbanEVRawData, "load", wraps=original_load) as load:
+                        runtime = runner._build_urbanev_runtime_data(args, torch.Generator().manual_seed(args.seed))
+                    load.assert_called_once_with(str(data_root.resolve()))
+                    self.assertEqual(calls, ["train", "validation"])
+                    self.assertIsNone(runtime.test_data)
+                    self.assertEqual(runtime.evaluation_policy, runner.TRAIN_VALIDATION_ONLY)
+                    self.assertEqual(runtime.test_access_policy, "forbidden")
+                    self.assertEqual(set(runtime.preprocessing["split_identity"]), {"train", "validation"})
+                    self.assertEqual(runtime.preprocessing["preprocessing_state"]["fit_scope"], "current_fold_raw_train_time_slice_only")
+                    self.assertEqual(runtime.preprocessing["fold"]["fold"], 6)
+                    self.assertEqual(runtime.preprocessing["preset"], "F4")
+                    self.assertEqual(tuple(runtime.preprocessing["columns"]), tuple(args.feature_names))
+                    # Old Sonnet compatibility: still the default complete synthetic reader.
+                    self.assertIsNone(runtime.backend.raw.restricted_fold)
+                    self.assertEqual(runtime.backend.features.shape, (4344, 275, 11))
 
     def test_resume_candidate_mismatch_is_rejected_before_deserialization(self):
         args = runner.prepare_args(self._ett_args())
@@ -4289,90 +4527,622 @@ class SonnetRunnerContractTests(unittest.TestCase):
                 load.assert_not_called()
 
     def test_validation_only_artifact_has_no_test_surface_and_is_summarizable(self):
-        with tempfile.TemporaryDirectory() as directory:
-            artifact_root = Path(directory) / "artifacts"
-            prepared = runner.prepare_args(
-                self._urban_args(artifact_root=artifact_root)
-            )
-            generator = torch.Generator().manual_seed(prepared.seed)
-            runtime = runner._build_urbanev_runtime_data(prepared, generator)
-            calls = {"validation": 0, "test": 0}
+        from torch.utils.data import DataLoader, Subset
+        from urbanev_synthetic_fixture import write_synthetic_urbanev
+        with tempfile.TemporaryDirectory(prefix="sonnet-lifecycle-csv-") as directory:
+            root = Path(directory)
+            data_root, artifact_root = root / "synthetic-data", root / "synthetic-artifacts"
+            write_synthetic_urbanev(data_root)
+            for enabled in (False, True):
+                with self.subTest(enabled=enabled):
+                    args = self._urban_args(enabled=enabled, artifact_root=artifact_root, data_root=data_root)
+                    calls = {"dataset_train": 0, "dataset_validation": 0, "test": 0, "loader": 0, "validation": 0, "target_adapter": 0}
+                    original_dataset = runner.TemporalRegionDataset
+                    original_evaluate = runner.evaluate
+                    original_adapter = runner._prediction_for_loss
 
-            def fake_train(*unused, **keywords):
-                return {
-                    "mse": 0.5,
-                    "mae": 0.4,
-                    "num_elements": 1,
-                    "num_batches": 1,
-                    "objective_mean_batches": 0.5,
-                    "auxiliary_mean_batches": 0.0,
-                }
+                    def recording_dataset(*positional, **keywords):
+                        split = keywords["split"]
+                        if split == "test":
+                            calls["test"] += 1
+                            raise AssertionError("legacy Sonnet reached test Dataset")
+                        calls["dataset_" + split] += 1
+                        return original_dataset(*positional, **keywords)
 
-            def fake_evaluate(model, data, *unused, **keywords):
-                if data is runtime.val_data:
-                    calls["validation"] += 1
-                else:
-                    calls["test"] += 1
-                    raise AssertionError("validation-only run reached test data")
-                return {
-                    "mse": 0.5,
-                    "mae": 0.4,
-                    "num_elements": 1,
-                    "num_batches": 1,
-                }
+                    def bounded_loader(dataset, *positional, **keywords):
+                        # Real DataLoader and Dataset; only the synthetic sample set is bounded.
+                        if dataset.split == "test":
+                            calls["test"] += 1
+                            raise AssertionError("legacy Sonnet reached test DataLoader")
+                        count = 128 if dataset.split == "train" else 129
+                        selected = list(range(count - 1)) + [len(dataset) - 1]
+                        calls["loader"] += 1
+                        return DataLoader(Subset(dataset, selected), *positional, **keywords)
 
-            stable_git = {"commit": "test", "dirty": False, "status": []}
-            with mock.patch.object(
-                runner, "_build_runtime_data", return_value=runtime
-            ), mock.patch.object(
-                runner, "environment_metadata", return_value=_runtime_metadata()
-            ), mock.patch.object(
-                runner, "git_metadata", return_value=stable_git
-            ), mock.patch.object(
-                runner, "train_one_epoch", side_effect=fake_train
-            ), mock.patch.object(
-                runner, "evaluate", side_effect=fake_evaluate
-            ):
-                metrics = runner.main(
-                    self._urban_args(artifact_root=artifact_root)
-                )
+                    def observed_evaluate(model, data, *positional, **keywords):
+                        if data.dataset.dataset.split != "validation" or keywords.get("description") == "Final Test":
+                            calls["test"] += 1
+                            raise AssertionError("legacy Sonnet reached test evaluation")
+                        calls["validation"] += 1
+                        value = original_evaluate(model, data, *positional, **keywords)
+                        self.assertEqual(value["num_elements"], 129)
+                        self.assertEqual(value["num_batches"], 2)
+                        return value
 
-            self.assertGreater(calls["validation"], 0)
-            self.assertEqual(calls["test"], 0)
-            self.assertNotIn("test", metrics)
-            run_dirs = [
-                path.parent
-                for path in artifact_root.rglob("metrics.json")
+                    def observed_adapter(prediction, target, task_mode=None):
+                        self.assertEqual(task_mode, runner.TARGET_EXOGENOUS)
+                        self.assertEqual(prediction.shape, (target.shape[0], 1, 1))
+                        self.assertEqual(target.shape, (target.shape[0], 1))
+                        calls["target_adapter"] += 1
+                        return original_adapter(prediction, target, task_mode=task_mode)
+
+                    with mock.patch.object(runner, "TemporalRegionDataset", side_effect=recording_dataset), \
+                            mock.patch.object(runner, "DataLoader", side_effect=bounded_loader), \
+                            mock.patch.object(runner, "evaluate", side_effect=observed_evaluate), \
+                            mock.patch.object(runner, "_prediction_for_loss", side_effect=observed_adapter):
+                        metrics = runner.main(args)
+                    self.assertEqual(calls["dataset_train"], 1)
+                    self.assertEqual(calls["dataset_validation"], 1)
+                    self.assertEqual(calls["loader"], 2)
+                    self.assertEqual(calls["test"], 0)
+                    self.assertGreaterEqual(calls["validation"], 10)
+                    self.assertGreater(calls["target_adapter"], 0)
+                    self.assertNotIn("test", metrics)
+                    expected_arm = runner.SONNET_CANDIDATE_ABLATION_ID if enabled else runner.SONNET_CONTROL_ABLATION_ID
+                    self.assertEqual(metrics["development_protocol_id"], runner.SONNET_DEVELOPMENT_PROTOCOL)
+                    self.assertEqual(metrics["ablation_id"], expected_arm)
+                    run_dirs = [
+                        p.parent for p in artifact_root.rglob("metrics.json")
+                        if json.loads(p.read_text())["ablation_id"] == expected_arm
+                    ]
+                    self.assertEqual(len(run_dirs), 1)
+                    run_dir = run_dirs[0]
+                    self.assertFalse(run_dir.name.startswith("."))
+                    runner.verify_checksums(run_dir)
+                    checked = subprocess.run(["sha256sum", "-c", "checksums.sha256"], cwd=run_dir, capture_output=True, text=True, check=True)
+                    self.assertEqual(checked.stdout.count(": OK"), 13)
+                    self.assertEqual(len(runner.ENHANCED_CHECKSUM_FILES), 13)
+                    config = json.loads((run_dir / "config.resolved.json").read_text())
+                    manifest = json.loads((run_dir / "manifest.json").read_text())
+                    last = torch.load(run_dir / "last.pt", map_location="cpu")
+                    best = torch.load(run_dir / "best.pt", map_location="cpu")
+                    history = last["history"]
+                    self.assertEqual(len(history), 10)
+                    values = [row["validation"]["mse"] for row in history]
+                    self.assertTrue(np.isfinite(values).all())
+                    best_epoch = min(range(len(values)), key=values.__getitem__) + 1
+                    self.assertEqual(metrics["best_epoch"], best_epoch)
+                    self.assertEqual(last["best_epoch"], best_epoch)
+                    _assert_nested_equal(self, last["best_model_state"], best["model_state"])
+                    running_best = float("inf")
+                    for row in history:
+                        improved = row["validation"]["mse"] < running_best
+                        self.assertEqual(row["is_best"], improved)
+                        running_best = min(running_best, row["validation"]["mse"])
+                        self.assertEqual(row["train"]["num_elements"], 128)
+                        self.assertEqual(row["train"]["num_batches"], 1)
+                        self.assertEqual(row["validation"]["num_elements"], 129)
+                    steps = [float(state["step"]) for state in last["optimizer_state"]["state"].values()]
+                    self.assertTrue(steps)
+                    self.assertTrue(all(step == 10 for step in steps))
+                    for document in (config, manifest, metrics):
+                        self.assertEqual(document["implementation_variant"], runner.SONNET_IMPLEMENTATION_VARIANT)
+                        self.assertEqual(document["artifact_schema_version"], 2)
+                        self.assertEqual(document["evaluation_policy"], runner.TRAIN_VALIDATION_ONLY)
+                        self.assertEqual(document["artifact_purpose"], runner.M4_DEVELOPMENT_CANDIDATE)
+                        self.assertEqual(document["training_protocol"]["initialization_policy"], "matched_standard_from_scratch")
+                        self.assertNotIn("model_form", document)
+                    self.assertNotIn("pmcr_ms_interface", config["scientific_config"]["model"])
+                    self.assertNotIn("requested_train_epochs", config["scientific_config"]["optimization"])
+                    self.assertNotIn("test_mse", manifest)
+                    self.assertNotIn("test_mae", manifest)
+                    self.assertEqual(manifest["test_access_policy"], "forbidden")
+                    for log_name in ("stdout.log", "stderr.log", "train.log"):
+                        text = (run_dir / log_name).read_text().casefold()
+                        self.assertNotIn("final test", text)
+                        self.assertNotIn("test_mse", text)
+                        self.assertNotIn("test_mae", text)
+                    print("SONNET_SYNTHETIC", expected_arm, "epochs=10 optimizer_steps=10 train_Q=128 validation_Q=129 test_calls=0 checksum_files=13")
+            rows = summary.load_completed_runs(artifact_root, implementation_variant=runner.SONNET_IMPLEMENTATION_VARIANT)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual({row["ablation_id"] for row in rows}, {runner.SONNET_CONTROL_ABLATION_ID, runner.SONNET_CANDIDATE_ABLATION_ID})
+            for row in rows:
+                self.assertEqual(row["evaluation_policy"], runner.TRAIN_VALIDATION_ONLY)
+                self.assertNotIn("test_mse", row)
+                self.assertNotIn("test_mae", row)
+            aggregate = summary.aggregate_runs(rows)
+            for row in aggregate:
+                self.assertEqual(row["val_mse_sample_std"], "")
+            summary.write_summaries(artifact_root, root / "summary", implementation_variant=runner.SONNET_IMPLEMENTATION_VARIANT)
+            for output in (root / "summary").glob("*.csv"):
+                self.assertNotIn("test_mse", output.read_text())
+                self.assertNotIn("test_mae", output.read_text())
+
+
+
+
+class PMCRMSInterfaceTests(unittest.TestCase):
+    """Bounded synthetic A/B checks; none of these fixtures are development runs."""
+    FEATURES = ("HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.previous_threads = torch.get_num_threads()
+        torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.previous_threads)
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="pmcr-ms-interface-")
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.ett_path = self.root / "ETTm1.csv"
+        self.ett_path.write_text("synthetic fixture identity only\n", encoding="utf-8")
+
+    def _args(self, dataset="UrbanEV", enabled=False, horizon=None, root=None, resume=None):
+        urban = dataset == "UrbanEV"
+        horizon = horizon or (3 if urban else 96)
+        values = [
+            "--implementation_variant", runner.PMCR_P2_IMPLEMENTATION_VARIANT,
+            "--development_protocol_id", runner.PMCR_P2_DEVELOPMENT_PROTOCOL,
+            "--training_protocol_id", runner.STANDARD_TRAINING_PROTOCOL,
+            "--ablation_id", runner.PMCR_P2_V1_ABLATION_ID if enabled else runner.PMCR_P2_CONTROL_ABLATION_ID,
+            "--data", str(self.root if urban else self.ett_path),
+            "--artifact_root", str(root or self.root / "artifacts"),
+            "--dataset_id", dataset, "--task_mode", "target_exogenous",
+            "--feature_type", "MS", "--target", "volume" if urban else "OT",
+            "--seq_len", "12" if urban else "512",
+            "--pred_len", "1" if urban else str(horizon),
+            "--label_horizon", str(horizon), "--fold", "6" if urban else "official",
+            "--device", "cpu", "--seed", "2024", "--num_threads", "1",
+            "--progress", "false", "--batch_size", "2", "--train_epochs", "2",
+            "--learning_rate", "0.00003", "--n_block", "1", "--alpha", "0.5",
+            "--mix_layer_num", "0", "--patch", "12" if urban else "512",
+            "--norm", "true", "--layernorm", "true", "--dropout", "0.1",
+            "--use_pmcr", str(enabled).lower(), "--use_teb", "false",
+        ]
+        if urban:
+            values += ["--feature_preset", "F4"]
+        else:
+            values += [
+                "--target_idx", "6", "--aux_idx", "0", "1", "2", "3", "4", "5",
+                "--feature_names", *self.FEATURES, "--target_feature_name", "OT",
+                "--aux_feature_names", *self.FEATURES[:-1],
+                "--schema_fingerprint", runner.stable_hash(self.FEATURES),
             ]
-            self.assertEqual(len(run_dirs), 1)
-            run_dir = run_dirs[0]
+        if enabled:
+            values += ["--pmcr_hidden_dim", "8", "--pmcr_kernel_small", "3" if urban else "5",
+                       "--pmcr_kernel_large", "7" if urban else "31"]
+        if resume:
+            values += ["--resume", str(resume)]
+        return runner.parse_args(values)
+
+    @staticmethod
+    def _raw_prefix():
+        from dataclasses import replace
+        from utils.dataloader_urbanev import build_fold_definition
+        clock = pd.date_range("2022-09-01", periods=4344, freq="h")
+        fold = build_fold_definition(clock, 6)
+        stop = fold.n_train + fold.n_validation
+        t = np.arange(stop, dtype=np.float64)
+        volume = np.stack((np.sin(t / 17) + t / 1000, 2*np.cos(t / 13) + 9), axis=1)
+        raw = runner.UrbanEVRawData.from_arrays(
+            timestamps=clock[:stop], node_ids=("node-a", "node-b"), volume=volume,
+            e_price=volume + 30, s_price=volume + 50,
+            weather_central=np.stack((t / 50, 950 + np.sin(t / 9), 50 + np.cos(t / 11)), axis=1),
+        )
+        return replace(raw, restricted_fold=fold)
+
+    def _runtime(self, args, generator, *, bounded=True, calls=None):
+        from dataclasses import replace
+        from torch.utils.data import DataLoader, Subset
+        if args.dataset_id == "UrbanEV":
+            raw = self._raw_prefix()
+            original_dataset = runner.TemporalRegionDataset
+
+            def raw_load(path, **kwargs):
+                self.assertEqual(kwargs, {"train_validation_fold": 6})
+                return raw
+
+            def dataset(*positional, **kwargs):
+                if kwargs["split"] == "test":
+                    if calls is not None:
+                        calls["test"] += 1
+                    raise AssertionError("forbidden test Dataset constructor")
+                if calls is not None:
+                    calls[kwargs["split"]] += 1
+                return original_dataset(*positional, **kwargs)
+
+            with mock.patch.object(runner.UrbanEVRawData, "load", side_effect=raw_load), \
+                    mock.patch.object(runner, "TemporalRegionDataset", side_effect=dataset):
+                runtime = runner._build_urbanev_runtime_data(args, generator)
+        else:
+            t = np.arange(57600, dtype=np.float64)
+            frame = pd.DataFrame(
+                {name: (i + 1)*np.sin(t / (17 + i)) + t / 1000 + i
+                 for i, name in enumerate(self.FEATURES)}
+            )
+            with mock.patch.object(runner.CustomDataLoader, "_read_raw_dataframe",
+                                   return_value=(frame, "ettm")):
+                runtime = runner._build_generic_runtime_data(args, generator)
+        if not bounded:
+            return runtime
+
+        def small(loader, training=False):
+            if loader is None:
+                return None
+            return DataLoader(
+                Subset(loader.dataset, range(4 if training else 3)),
+                batch_size=args.batch_size, shuffle=training,
+                drop_last=training, generator=generator if training else None,
+            )
+        return replace(runtime, train_data=small(runtime.train_data, True),
+                       val_data=small(runtime.val_data), test_data=small(runtime.test_data))
+
+    @staticmethod
+    def _run_dir(root, status="completed"):
+        paths = [
+            p.parent for p in Path(root).rglob("manifest.json")
+            if json.loads(p.read_text())["status"] == status
+        ]
+        if len(paths) != 1:
+            raise AssertionError(paths)
+        return paths[0]
+
+    def _execute(self, args, *, interrupt=False, calls=None):
+        original_train = runner.train_one_epoch
+
+        def train(*positional, **kwargs):
+            epoch = positional[5] if len(positional) > 5 else kwargs["epoch"]
+            if interrupt and epoch == 2:
+                raise RuntimeError("synthetic interruption")
+            return original_train(*positional, **kwargs)
+
+        original_evaluate = runner.evaluate
+
+        def evaluate(*positional, **kwargs):
+            if args.dataset_id == "UrbanEV" and kwargs.get("description") == "Final Test":
+                raise AssertionError("forbidden test evaluation")
+            return original_evaluate(*positional, **kwargs)
+
+        with mock.patch.object(runner, "_build_runtime_data",
+                               side_effect=lambda a, g: self._runtime(a, g, calls=calls)), \
+                mock.patch.object(runner, "environment_metadata", return_value=_runtime_metadata()), \
+                mock.patch.object(runner, "git_metadata", return_value={"commit": "fixture", "dirty": False, "status": []}), \
+                mock.patch.object(runner, "train_one_epoch", side_effect=train), \
+                mock.patch.object(runner, "evaluate", side_effect=evaluate):
+            return runner.main(args)
+
+    def test_all_horizons_target_labels_context_and_inverse_scaler(self):
+        for dataset, horizons in (("ETTm1", (96, 192, 336, 720)), ("UrbanEV", (3, 6, 9, 12))):
+            for horizon in horizons:
+                with self.subTest(dataset=dataset, horizon=horizon):
+                    args = runner.prepare_args(self._args(dataset, horizon=horizon))
+                    runtime = self._runtime(args, torch.Generator().manual_seed(2024), bounded=False)
+                    runner._validate_loader_contract(args, runtime, runtime.preprocessing)
+                    schema = runner._build_target_exogenous_schema_contract(args, runtime.preprocessing)
+                    self.assertEqual(schema["target_indices"], [args.target_idx])
+                    for loader in (runtime.train_data, runtime.val_data):
+                        dataset_view = loader.dataset
+                        for i in (0, len(dataset_view)-1):
+                            x, y = dataset_view[i]
+                            self.assertEqual(tuple(x.shape), (args.seq_len, runtime.n_feature))
+                            self.assertEqual(tuple(y.shape), (1,) if dataset == "UrbanEV" else (args.model_pred_len, 1))
+                            if dataset == "UrbanEV":
+                                meta = dataset_view.metadata(i)
+                                self.assertEqual(meta["label_idx"] - (meta["window_start_idx"] + 11), horizon)
+                                node = meta["node_position"]
+                                restored = runtime.backend.inverse_transform_target(y, node_position=node)
+                                expected = runtime.backend.raw.volume[meta["label_idx"], node]
+                                self.assertAlmostEqual(float(restored.item()), float(expected), places=5)
+                            else:
+                                target = dataset_view.data_y[i+args.seq_len:i+args.seq_len+horizon]
+                                self.assertTrue(torch.equal(y, target))
+                                restored = runtime.backend.inverse_transform(y.numpy())
+                                scaler = runtime.backend.scaler
+                                np.testing.assert_allclose(restored, y.numpy().astype(np.float64)*scaler.scale_[6]+scaler.mean_[6], atol=1e-7)
+                    if dataset == "UrbanEV":
+                        self.assertEqual(runtime.backend.features.shape[0], 3909)
+                        self.assertEqual(len(runtime.backend.raw.timestamps), 3909)
+                        with self.assertRaisesRegex(ValueError, "forbidden"):
+                            runner.TemporalRegionDataset(runtime.backend, split="test", history_len=12, label_horizon=horizon)
+                        with self.assertRaises(ValueError):
+                            runtime.backend.inverse_transform_target(torch.ones(3, 1))
+                        with self.assertRaises(IndexError):
+                            runtime.backend.inverse_transform_target(torch.ones(1, 1), node_position=2)
+                    else:
+                        first_validation = runtime.val_data.dataset[0]
+                        expected = runtime.backend.train_df[-512:]
+                        np.testing.assert_allclose(first_validation[0].numpy(), expected, atol=1e-7)
+                        self.assertEqual(first_validation[1].shape[0], horizon)
+
+    def test_tail_element_aggregation_and_strict_target_shapes(self):
+        class ZeroTarget(torch.nn.Module):
+            def __init__(self, horizon):
+                super().__init__()
+                self.horizon = horizon
+
+            def forward(self, x):
+                return x.new_zeros((x.shape[0], self.horizon, 1)), x.new_zeros(())
+
+        for horizon in (1, 96, 192, 336, 720):
+            target = torch.arange(1, 6, dtype=torch.float32)[:, None, None].expand(5, horizon, 1)
+            loader = torch.utils.data.DataLoader(
+                torch.utils.data.TensorDataset(torch.ones(5, 12, 7), target), batch_size=2, drop_last=False)
+            metrics = runner.evaluate(ZeroTarget(horizon), loader, torch.device("cpu"),
+                                      show_progress=False, task_mode=runner.TARGET_EXOGENOUS)
+            self.assertEqual(metrics["num_elements"], 5*horizon)
+            self.assertEqual(metrics["num_batches"], 3)
+            self.assertAlmostEqual(metrics["mse"], 11.0)
+            self.assertAlmostEqual(metrics["mae"], 3.0)
+            prediction = torch.zeros(2, horizon, 1)
+            for correct in (prediction.clone(), prediction[..., 0].clone()):
+                self.assertEqual(runner._prediction_for_loss(prediction, correct,
+                                 task_mode=runner.TARGET_EXOGENOUS).shape, correct.shape)
+            for bad in (torch.zeros(1, horizon, 1), torch.zeros(2, horizon, 7),
+                        torch.zeros(2, horizon+1, 1)):
+                with self.assertRaises(RuntimeError):
+                    runner._prediction_for_loss(prediction, bad, task_mode=runner.TARGET_EXOGENOUS)
+
+    def test_c_and_out_of_scope_contracts_reject_before_runtime_model_artifacts(self):
+        changes = (
+            {"ablation_id": runner.PMCR_P2_ABLATION_ID},
+            {"dataset_id": "ETTh1"}, {"task_mode": runner.PARALLEL_MULTIVARIATE},
+            {"use_sonnet_mvca": True}, {"use_cce": True}, {"use_teb": True},
+            {"fold": "5"}, {"feature_preset": "F3"}, {"seed": 2025},
+            {"artifact_purpose": "formal"}, {"evaluation_policy": runner.TRAIN_VALIDATION_TEST},
+            {"development_protocol_id": runner.SONNET_DEVELOPMENT_PROTOCOL},
+            {"training_protocol_id": runner.T2_ADAPTER_TRAINING_PROTOCOL},
+            {"pmcr_deploy": True},
+        )
+        for change in changes:
+            args = self._args()
+            for key, value in change.items():
+                setattr(args, key, value)
+            with self.subTest(change=change), mock.patch.object(runner, "_build_runtime_data") as data, \
+                    mock.patch.object(runner, "_build_model") as model:
+                with self.assertRaises((ValueError, TypeError)):
+                    runner.main(args)
+                data.assert_not_called()
+                model.assert_not_called()
+                self.assertFalse((self.root/"artifacts").exists())
+
+    def _assert_initialization(self, device):
+        args_a = runner.prepare_args(self._args(enabled=False))
+        args_b = runner.prepare_args(self._args(enabled=True))
+        runtime = SimpleNamespace(n_feature=11, target_slice=None)
+        generator = torch.Generator().manual_seed(2024)
+        initial_generator = generator.get_state().clone()
+        runner.set_seed(2024)
+        a = runner._build_model(args_a, runtime)
+        state_a, rng_a = runner._cpu_state_dict(a.state_dict()), runner.capture_rng_state()
+        runner.set_seed(2024)
+        b = runner._build_model(args_b, runtime)
+        rng_b = runner.capture_rng_state()
+        _assert_nested_equal(self, rng_a, rng_b)
+        _assert_nested_equal(self, state_a, {k: v for k, v in b.state_dict().items() if not k.startswith("pmcr.")})
+        self.assertTrue(torch.equal(initial_generator, generator.get_state()))
+        self.assertIsNone(a.pmcr)
+        self.assertFalse(hasattr(b.pmcr, "gate"))
+        self.assertFalse(hasattr(b, "pmcr_gate"))
+        with torch.random.fork_rng(devices=[]):
+            torch.random.default_generator.manual_seed(2024)
+            from models.modules.modern_conv_refinement import PeakPreservingModernConvRefinement
+            body = PeakPreservingModernConvRefinement(8, 3, 7, 0.1, 1e-3)
+        _assert_nested_equal(self, b.pmcr.state_dict(), body.state_dict())
+        runner.set_seed(2024)
+        frozen = runner.AMD(input_shape=(12, 11), pred_len=1, n_block=1, alpha=0.5,
+                            k=0, c=2, patch=12, dropout=0.1,
+                            norm=True, layernorm=True, target_slice=slice(0, 1))
+        _assert_nested_equal(self, a.state_dict(), frozen.state_dict())
+        x = torch.randn(4, 12, 11, generator=torch.Generator().manual_seed(8)).to(device)
+        a, b, frozen = a.to(device).eval(), b.to(device).eval(), frozen.to(device).eval()
+        with torch.no_grad():
+            prediction_a, auxiliary_a = a(x)
+            prediction_f, auxiliary_f = frozen(x)
+            self.assertTrue(torch.equal(prediction_a, prediction_f))
+            self.assertTrue(torch.equal(auxiliary_a, auxiliary_f))
+            observed_residual = []
+            hook = b.pmcr.register_forward_hook(
+                lambda module, inputs, output: observed_residual.append(output - inputs[0]))
+            try:
+                b(x)
+            finally:
+                hook.remove()
+            self.assertEqual(len(observed_residual), 1)
+            self.assertGreater(float(observed_residual[0].abs().max()), 0)
+            hidden = torch.randn(4, 32, 12, generator=torch.Generator().manual_seed(9)).to(device)
+            residual = b.pmcr.gamma_pmcr * b.pmcr.compute_delta(hidden)
+            self.assertTrue(torch.isfinite(residual).all())
+            self.assertGreater(float(residual.abs().max()), 0)
+        first_batches = []
+        for args in (args_a, args_b):
+            train_generator = torch.Generator().manual_seed(2024)
+            runtime = self._runtime(args, train_generator)
+            runner.set_seed(2024)
+            runner._build_model(args, runtime)
+            first_batches.append(next(iter(runtime.train_data)))
+        _assert_nested_equal(self, first_batches[0], first_batches[1])
+
+    def test_cpu_amd_equivalence_body_rng_generator_first_batch(self):
+        self._assert_initialization(torch.device("cpu"))
+
+    @unittest.skipUnless(torch.cuda.is_available(), "CUDA unavailable")
+    def test_cuda_amd_equivalence_body_rng_generator_first_batch(self):
+        self._assert_initialization(torch.device("cuda"))
+
+    def test_validation_only_lifecycle_checksum_summary_and_duplicates(self):
+        calls = {"train": 0, "validation": 0, "test": 0}
+        for enabled in (False, True):
+            root = self.root / ("b" if enabled else "a")
+            metrics = self._execute(self._args(enabled=enabled, root=root), calls=calls)
+            self.assertNotIn("test", metrics)
+            run_dir = self._run_dir(root)
             self.assertFalse(run_dir.name.startswith("."))
             runner.verify_checksums(run_dir)
-            self.assertEqual(len(runner.ENHANCED_CHECKSUM_FILES), 13)
-            manifest = json.loads(
-                (run_dir / "manifest.json").read_text(encoding="utf-8")
-            )
-            self.assertNotIn("test_mse", manifest)
-            self.assertNotIn("test_mae", manifest)
+            checked = subprocess.run(["sha256sum", "-c", "checksums.sha256"], cwd=run_dir,
+                                     capture_output=True, text=True)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            manifest = json.loads((run_dir/"manifest.json").read_text())
             self.assertEqual(manifest["test_access_policy"], "forbidden")
-            for log_name in ("stdout.log", "stderr.log", "train.log"):
-                log_text = (run_dir / log_name).read_text(
-                    encoding="utf-8"
-                ).casefold()
-                self.assertNotIn("final test", log_text)
-                self.assertNotIn("test_mse", log_text)
-                self.assertNotIn("test_mae", log_text)
-            rows = summary.load_completed_runs(
-                artifact_root,
-                implementation_variant=runner.SONNET_IMPLEMENTATION_VARIANT,
-            )
+            self.assertEqual(manifest["model_form"], "train")
+            self.assertEqual(summary._test_result_paths(metrics), [])
+            self.assertEqual(summary._test_result_paths(manifest, allow_access_policy=True), [])
+            rows = summary.load_completed_runs(root, runner.PMCR_P2_IMPLEMENTATION_VARIANT)
             self.assertEqual(len(rows), 1)
-            self.assertEqual(
-                rows[0]["evaluation_policy"],
-                runner.TRAIN_VALIDATION_ONLY,
-            )
             self.assertNotIn("test_mse", rows[0])
-            self.assertNotIn("test_mae", rows[0])
+            aggregates = summary.aggregate_runs(rows)
+            self.assertEqual(aggregates[0]["val_mse_sample_std"], "N/A")
+            config = json.loads((run_dir/"config.resolved.json").read_text())
+            checkpoint = torch.load(run_dir/"best.pt", map_location="cpu")
+            checkpoint["model_state"]["pmcr_p2.gate.forbidden"] = torch.zeros(1)
+            with mock.patch.object(torch, "load", return_value=checkpoint):
+                with self.assertRaisesRegex(ValueError, "module/train-form"):
+                    summary._validate_pmcr_checkpoints(
+                        config["scientific_config"], config, manifest, metrics, run_dir)
+            with self.assertRaisesRegex(ValueError, "multiple completed"):
+                summary.aggregate_runs(rows + deepcopy(rows))
+            run_csv, aggregate_csv, _, _ = summary.write_summaries(
+                root, self.root / ("summary-b" if enabled else "summary-a"),
+                runner.PMCR_P2_IMPLEMENTATION_VARIANT)
+            self.assertNotIn("test_", run_csv.read_text().splitlines()[0])
+            self.assertNotIn("test_", aggregate_csv.read_text().splitlines()[0])
+            forbidden = deepcopy(metrics)
+            forbidden["test"] = {"mse": 0, "mae": 0}
+            config = json.loads((run_dir/"config.resolved.json").read_text())
+            with self.assertRaisesRegex(ValueError, "test result"):
+                summary._validate_sonnet_evaluation_artifact(
+                    config["scientific_config"], config, manifest, forbidden, run_dir)
+        self.assertEqual(calls["test"], 0)
+        self.assertEqual(calls["train"], 2)
+        self.assertEqual(calls["validation"], 2)
+
+    def test_synthetic_ett_development_test_lifecycle_and_policy_separation(self):
+        root = self.root / "ett"
+        metrics = self._execute(self._args("ETTm1", enabled=True, root=root))
+        self.assertIn("test", metrics)
+        run_dir = self._run_dir(root)
+        manifest = json.loads((run_dir/"manifest.json").read_text())
+        self.assertEqual(manifest["test_access_policy"], "development_only")
+        rows = summary.load_completed_runs(root, runner.PMCR_P2_IMPLEMENTATION_VARIANT)
+        self.assertIn("test_mse", rows[0])
+        mixed = [deepcopy(rows[0]), deepcopy(rows[0])]
+        mixed[1]["seed"] = 2025
+        mixed[1]["evaluation_policy"] = runner.TRAIN_VALIDATION_ONLY
+        with self.assertRaisesRegex(ValueError, "mixed evaluation_policy"):
+            summary.aggregate_runs(mixed)
+        config = json.loads((run_dir/"config.resolved.json").read_text())
+        missing = deepcopy(metrics)
+        missing.pop("test")
+        with self.assertRaisesRegex(ValueError, "test-inclusive"):
+            summary._validate_sonnet_evaluation_artifact(
+                config["scientific_config"], config, manifest, missing, run_dir)
+
+    def test_resume_restores_model_optimizer_rng_generator_history_and_best(self):
+        full_root, resumed_root = self.root/"full", self.root/"resume"
+        self._execute(self._args(enabled=True, root=full_root))
+        with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+            self._execute(self._args(enabled=True, root=resumed_root), interrupt=True)
+        failed = self._run_dir(resumed_root, "failed")
+        interrupted = torch.load(failed/"last.pt", map_location="cpu")
+        self._execute(self._args(enabled=True, root=resumed_root, resume=failed))
+        full = torch.load(self._run_dir(full_root)/"last.pt", map_location="cpu")
+        resumed = torch.load(self._run_dir(resumed_root)/"last.pt", map_location="cpu")
+        for field in ("model_state", "optimizer_state", "best_model_state", "rng_state",
+                      "train_generator_state", "best_epoch", "best_mse", "best_val_metrics"):
+            _assert_nested_equal(self, full[field], resumed[field], field)
+        for left, right in zip(full["history"], resumed["history"]):
+            # Resource timing is observation metadata, not replay state.
+            for key in left:
+                if "seconds" not in key and key != "finished_at":
+                    _assert_nested_equal(self, left[key], right[key], "history."+key)
+        _assert_nested_equal(self, interrupted["history"], resumed["history"][:1], "restored_history_prefix")
+        self.assertEqual(len(resumed["history"]), 2)
+
+    def test_cross_identity_metadata_rejects_before_torch_load(self):
+        root = self.root/"resume"
+        with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+            self._execute(self._args(enabled=True, root=root), interrupt=True)
+        failed = self._run_dir(root, "failed")
+        manifest_path, config_path = failed/"manifest.json", failed/"config.resolved.json"
+        original_manifest, original_config = manifest_path.read_bytes(), config_path.read_bytes()
+        changes = [
+            ("manifest", ("implementation_variant",), runner.SONNET_IMPLEMENTATION_VARIANT),
+            ("manifest", ("artifact_schema_version",), 1),
+            ("manifest", ("artifact_purpose",), "formal"),
+            ("manifest", ("model_form",), "deploy"),
+            ("manifest", ("candidate_contract", "ablation_id"), runner.PMCR_P2_CONTROL_ABLATION_ID),
+            ("manifest", ("candidate_contract", "task_mode"), "parallel_multivariate"),
+            ("manifest", ("candidate_contract", "target_idx"), 1),
+            ("manifest", ("target_exogenous_schema", "schema_fingerprint"), "changed-schema"),
+            ("manifest", ("candidate_contract", "pmcr_ms_interface", "metric_scope"), "last_point"),
+            ("manifest", ("candidate_contract", "pmcr_ms_interface", "body_init_seed"), 1),
+            ("config", ("scientific_config", "dataset", "sha256"), "changed"),
+            ("config", ("scientific_config", "model", "pmcr_ms_interface", "loss_scope"), "all_variables"),
+            ("config", ("model_form",), "deploy"),
+        ]
+        for document, keys, value in changes:
+            manifest_path.write_bytes(original_manifest)
+            config_path.write_bytes(original_config)
+            path = manifest_path if document == "manifest" else config_path
+            data = json.loads(path.read_text())
+            target = data
+            for key in keys[:-1]:
+                target = target[key]
+            target[keys[-1]] = value
+            path.write_text(json.dumps(data), encoding="utf-8")
+            before = {p.name: p.read_bytes() for p in failed.iterdir() if p.is_file()}
+            with self.subTest(document=document, keys=keys), mock.patch.object(torch, "load") as load:
+                with self.assertRaises(RuntimeError):
+                    self._execute(self._args(enabled=True, root=root, resume=failed))
+                load.assert_not_called()
+            after = {p.name: p.read_bytes() for p in failed.iterdir() if p.is_file()}
+            self.assertEqual(before, after)
+        manifest_path.write_bytes(original_manifest)
+        config_path.write_bytes(original_config)
+
+    def test_checkpoint_tensor_key_shape_dtype_rejection_is_atomic(self):
+        root = self.root/"resume"
+        with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+            self._execute(self._args(enabled=True, root=root), interrupt=True)
+        failed = self._run_dir(root, "failed")
+        original_bytes = (failed/"last.pt").read_bytes()
+        original = torch.load(failed/"last.pt", map_location="cpu")
+        for state_name in ("model_state", "best_model_state"):
+            for kind in ("key", "shape", "dtype"):
+                bad = deepcopy(original)
+                state = bad[state_name]
+                key = next(k for k, v in state.items() if v.is_floating_point() and v.ndim > 0)
+                if kind == "key":
+                    state.pop(key)
+                elif kind == "shape":
+                    state[key] = state[key].reshape(-1)[:1]
+                else:
+                    state[key] = state[key].to(torch.float64)
+                torch.save(bad, failed/"last.pt")
+                args = runner.prepare_args(self._args(enabled=True, root=root, resume=failed))
+                model = runner._build_model(args, SimpleNamespace(n_feature=11, target_slice=None))
+                before = runner._cpu_state_dict(model.state_dict())
+                with self.subTest(state=state_name, corruption=kind), \
+                        mock.patch.object(runner, "_build_model", return_value=model):
+                    with self.assertRaises(RuntimeError):
+                        self._execute(self._args(enabled=True, root=root, resume=failed))
+                _assert_nested_equal(self, before, model.state_dict())
+        (failed/"last.pt").write_bytes(original_bytes)
+
+    def test_finite_strict_best_selection_keeps_earlier_ties(self):
+        for bad in (float("nan"), float("inf"), -float("inf"), 0.5, 0.6):
+            self.assertFalse(runner.should_update_best(bad, 0.5))
+        self.assertTrue(runner.should_update_best(0.49, 0.5))
+        root = self.root / "ties"
+        args = self._args(root=root)
+        with mock.patch.object(runner, "evaluate", return_value={
+            "mse": 0.5, "mae": 0.4, "num_elements": 3, "num_batches": 2,
+        }):
+            metrics = self._execute(args)
+        self.assertEqual(metrics["best_epoch"], 1)
 
 
 if __name__ == "__main__":

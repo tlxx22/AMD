@@ -141,6 +141,7 @@ class AMDEnhanced(AMD):
         pmcr_kernel_large=None,
         pmcr_dropout=0.1,
         pmcr_gamma_init=1e-3,
+        pmcr_body_init_seed=None,
         use_teb=False,
         teb_heads=4,
         teb_dropout=0.1,
@@ -578,6 +579,18 @@ class AMDEnhanced(AMD):
                 parameterization_policy=cce_parameterization_policy,
             )
 
+        if pmcr_body_init_seed is not None and (
+            isinstance(pmcr_body_init_seed, bool)
+            or not isinstance(pmcr_body_init_seed, int)
+            or pmcr_body_init_seed != 2024
+            or not self.use_pmcr
+            or use_sonnet_mvca or use_cce or use_teb
+            or self.task_mode != TARGET_EXOGENOUS
+        ):
+            raise ValueError(
+                "isolated PMCR body initialization requires the M4 B-only "
+                "target_exogenous constructor with seed=2024"
+            )
         self.pmcr = None
         if self.use_pmcr:
             required = {
@@ -600,13 +613,21 @@ class AMDEnhanced(AMD):
                     "AMDEnhanced requires pmcr_kernel_large <= seq_len, "
                     f"got {pmcr_kernel_large!r} for seq_len={self.seq_len}"
                 )
-            self.pmcr = PeakPreservingModernConvRefinement(
-                hidden_dim=pmcr_hidden_dim,
-                kernel_small=pmcr_kernel_small,
-                kernel_large=pmcr_kernel_large,
-                dropout=pmcr_dropout,
-                gamma_init=pmcr_gamma_init,
-            )
+            pmcr_kwargs = {
+                "hidden_dim": pmcr_hidden_dim,
+                "kernel_small": pmcr_kernel_small,
+                "kernel_large": pmcr_kernel_large,
+                "dropout": pmcr_dropout,
+                "gamma_init": pmcr_gamma_init,
+            }
+            if pmcr_body_init_seed is None:
+                # Preserve the construction stream of every historical caller.
+                self.pmcr = PeakPreservingModernConvRefinement(**pmcr_kwargs)
+            else:
+                # CPU constructor only: do not seed CUDA, including lazy seeds.
+                with torch.random.fork_rng(devices=[], enabled=True):
+                    torch.random.default_generator.manual_seed(pmcr_body_init_seed)
+                    self.pmcr = PeakPreservingModernConvRefinement(**pmcr_kwargs)
 
         self.teb = None
         if self.use_teb:
