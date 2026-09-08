@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十九轮，P2生产实现与工程验收（production implementation complete；engineering gate Passed；ChatGPT implementation review/closure Pending）
+当前轮次：第三十轮，P2工程closure与ETTm1 Stage 1训练授权（P2 review/closure Completed；ETTm1 12-run待用户启动；UrbanEV On hold）
 
 canonical 内部版本：v2.1-R1
 
@@ -4829,3 +4829,46 @@ UrbanEV观察值parser仅5次：volume首时间行1条，以及volume/e_price/s_
 guard、restrictions及run_restricted.py与§52.5所列SHA完全一致，沿用原已修正dir_fd/管道和fixture感知调度。本轮仅测试调用侧修复；23-file production fingerprint保持`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`，算法仍sha256_length_prefixed_relative_path_and_content_v1；源码/loader/原PMCR/importer/Sonnet/TEB/CCE无本轮增量。累计11文件范围保留，本轮实际只新增tests/test_runner.py上述修复及canonical/M4状态/证据更新；AGENTS、M0–M3、冻结AMD、数据和既有artifact保持不变，baseline仍指向fa9665627e6fcfb1d0c2bc22d943ca9666304fd6。
 
 当前登记为：**P2 production implementation complete；engineering gate Passed；ChatGPT implementation review/closure Pending**。这是原已授权有限工程范围内的结果，21项限制未升级为Passed；不是ChatGPT已通过implementation review或Git closure完成。performance/development gate仍Not evaluated；24-run、实验epoch、性能阈值、真实训练启动及Sonnet组合仍Not authorized。S2 Passed/leading、M4 In Progress及state_source/M7边界不变；未stage/commit/push，不进入训练准备或M5/M7，等待ChatGPT implementation review。
+
+## 53. 第三十轮：P2工程closure与ETTm1 Stage 1训练授权（2026-09-08）
+
+### 53.1 已审核状态、实际closure与本轮边界
+
+ChatGPT final implementation review=Passed。P2 production implementation complete、engineering gate=Passed；P2 Git closure=Completed，实际commit为`2f0bd489b7ebd408fba359811fe580984895fe10`，parent为`e62e3ddbe8be96f99fb1d77f010de94dd7546094`，仅含已审核11文件。§§1–52历史正文及原失败/续验记录保留，不倒改当时Pending或Proposed状态。23-file production fingerprint为`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`，算法sha256_length_prefixed_relative_path_and_content_v1。既有314项受限回归=293 passed+21 pre-registered skipped，限制项不升级为Passed。
+
+本轮用户明确确认§§47.6–47.8原三臂development合同，包括10 epochs、seed/初始化政策、门槛、总24个新run及最多240 run-epochs；**当前执行授权仅覆盖ETTm1 Stage 1的12 runs、最多120 run-epochs**。UrbanEV后半12 runs保持**On hold**，待ETTm1完整阶段安全gate审计后再由用户决定，本轮不得启动，通过也不自动启动。performance/development gate=Not evaluated；S2 Passed/leading结论保持，M4 In Progress，不进入M5/M7，不批准Sonnet+PMCR/P2组合或额外调参。
+
+本轮先精确同步canonical/本milestone并docs-only closure；随后从实际clean commit完成训练前准备、有限A800 smoke和守护方式实测，默认停在启动前，由用户执行启动命令。不得为写入本节自身commit/SHA再次修改文档；后续实际docs-only SHA及准备证据通过回执交付，不预填尚未发生的训练结果。
+
+### 53.2 ETTm1 Stage 1精确执行合同（User confirmed）
+
+| 字段 | 确认值 |
+|---|---|
+| A / B / C | M4_PMCR_P2_CONTROL=AMD-Concat；M4_PMCR_P2_V1=A+PMCR v1；M4_PMCR_P2=A+P2 |
+| 共同身份 | implementation_variant=el-amd-m4-pmcr-local-change-p2-v1；development_protocol_id=m4_pmcr_p2_local_change_three_arm_from_scratch_v1；artifact_purpose=m4_development_candidate；schema=2；training_protocol_id=standard_from_scratch |
+| 模块与初始化 | Sonnet/CCE/全部TEB off；matched from-scratch；run seed=2024、body_init_seed=2024、C gate_init_seed=2025（隔离子流，非第二实验seed）；不复用旧权重，不设epoch-0 best |
+| 数据与目标 | data/ETTm1.csv；target_exogenous / MS；ordered features=[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]；target=OT/index6；ordered aux=[0,1,2,3,4,5] |
+| 数据字节 | SHA-256=6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e；schema及输入顺序按§47.6与当前实现核验 |
+| 时间与split | seq_len=512、patch=16；H=model_pred_len=label_horizon=artifact_horizon∈[96,192,336,720]；fold=official；train=[0,34560)、validation=[34560,46080)、development-test=[46080,57600)；val/test保留边界前512点context；scaler仅train拟合 |
+| AMD / PMCR | §47.6公共AMD配置不变：alpha=0、n_block=1、mix_layer_num=3、mix_layer_scale=2、dropout=.1、norm/layernorm=true、selector_mode=horizon_shared_dense_emphasis、target_slice=None、full_denorm_then_task_select、teb_context_dim=32零占位；B/C d=8、kernels=5/31、dropout=.1、gamma_init=.001、FFN ratio=2、train-form |
+| 训练 | batch_size=32；固定10 epochs；fresh Adam lr=3e-5、weight_decay=1e-7、betas=(.9,.999)、eps=1e-8，其余设置沿§47.6；全部自身参数训练；目标MSE+既有selector auxiliary loss；无scheduler/AMP/gradient clipping/early stopping |
+| 采样与best | train shuffle/drop_last=true、独立generator seed2024；val/test shuffle/drop_last=false、尾batch全覆盖；num_workers=0；有限validation目标MSE严格下降才更新best，同值保留较早epoch，仅从epoch1…10选择 |
+| 指标与test角色 | metric_space=train-standardized；全部H目标元素SSE/SAE/Q；evaluation_policy=train_validation_test；test_access_policy=development_only；只评价validation-selected best的development-test；ETTm1不进入M6正式主表 |
+| 环境 | 固定amd Python；A800 CUDA设备；num_threads=4、progress=false，精度/依赖/确定性和TF32设置沿§47.6并在准备时实核，不自动升级环境或调batch/并发 |
+| 新artifact root | artifacts/m4-development/ettm1-pmcr-p2-three-arm-v1 |
+
+严格串行顺序为`H96 A→B→C；H192 A→B→C；H336 A→B→C；H720 A→B→C`，共12个新run。三臂使用本次docs-only closure后的同一源码/commit、同输入输出、公共AMD初值/构造后RNG/独立train generator/首batch匹配；B/C主体和gamma匹配，C gate初始为1；不要求A与非零残差的B/C初始预测相同，不承诺训练全过程随机轨迹相同。旧U1/U3、parallel、Sonnet control或历史指标不得填入新身份；不因中间A/B结果跳过C。
+
+### 53.3 阶段安全gate与停止线（User confirmed）
+
+完成全部12 runs并核验身份、完整性、checksum与finite后，分别对C vs B、C vs A独立计算§47.7的full-precision gate。四H等权：gate使用`relative_change_of_macro_means=100*(mean_h(C_h)/mean_h(R_h)-1)`；另报`mean_horizon_relative_change=mean_h(100*(C_h/R_h-1))`、逐H原值/差值/relative及leave-one-horizon-out，不把两种macro混用。正值表示退化；不平均batch均值，不跨H按样本数pooled取代gate。
+
+两组比较均须满足：validation MSE macro退化≤0.5%；development-test MSE macro退化≤0.5%；development-test MAE macro退化≤0.5%；任一H development-test MSE退化≤1%。任一最终安全比较失败，则ETTm1阶段停止，不启动UrbanEV。B vs A仅描述，不是C的前置adequacy gate；只通过ETTm1安全线不等于P2 positive development signal、最终冻结或M4关闭。
+
+非有限、空结果、非正分母、缺臂/重复/身份不匹配按技术或证据无效处理，不用epsilon掩盖，不预判性能。任一run非零退出或OOM/NaN/中断立即停止后续run，保留staging/checkpoint/history/log，不自动fresh rerun、删证据、补seed、扩epoch或调参；严格同身份resume须先审计。§47.7 UrbanEV两套主检查及§47.8总序列停止合同现已确认，但其12-run执行仍On hold。正式test、state_source/零context与M7边界不变。
+
+### 53.4 训练前核验与用户启动边界
+
+从本次docs-only clean commit复核三端0/0、23-file production指纹、ETTm1字节/列序/target/aux/split/train-only scaler、固定环境与A800身份、磁盘容量；新root不得存在同12个科学身份的completed/running/failed/hidden staging冲突，发现即停止审计，不覆盖或重跑。复用已Passed工程证据，不重跑314项全回归；只增加ETTm1 H96/H720、batch32、A/B/C的有限CUDA forward/backward及validation单批smoke，记录shape/finite/峰值allocated-reserved/大致耗时和构造、首batch公平性，**不执行optimizer.step、完整epoch或真实artifact发布**，不迭代评价真实test；失败不自动改batch。
+
+守护方式用无训练负载实测，按`tmux > systemd-run --user > nohup+setsid`选择首个实际可用方案。仓库外固定launcher硬核验docs-only HEAD、clean、source/data/env/GPU及无身份冲突，12 runs严格串行，非零退出即停，不含UrbanEV/追加seed/调参或自动判gate。交付唯一启动、会话/进程、总日志/当前run日志、完成判断和安全停止命令；语法检查及不训练dry validation后由用户启动。预计时间只作估算，§47.8 ETTm1旧control外推约2.01 GPU h不是P2实测或保证上界，不设强杀deadline。训练结束后的完整artifact审计和两组安全gate另行执行。
