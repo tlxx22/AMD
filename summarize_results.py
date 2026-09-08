@@ -13,6 +13,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import torch
+from models.modules import local_change_gated_pmcr as p2_spec
 
 from models.modules.cross_correlation_embedding import (
     CCE_INSERTION_POINT,
@@ -76,6 +77,7 @@ M4_DEVELOPMENT_CANDIDATE = "m4_development_candidate"
 PMCR_P2_DEVELOPMENT_PROTOCOL = "m4_pmcr_p2_local_change_three_arm_from_scratch_v1"
 PMCR_P2_CONTROL_ABLATION_ID = "M4_PMCR_P2_CONTROL"
 PMCR_P2_V1_ABLATION_ID = "M4_PMCR_P2_V1"
+PMCR_P2_ABLATION_ID = "M4_PMCR_P2"
 PMCR_P2_INITIALIZATION_POLICY = "matched_amd_pmcr_body_and_isolated_gate_v1"
 T2_ADAPTER_TRAINING_PROTOCOL = "m4_t2_u1_warmstart_frozen_adapter_v1"
 U1_CONTINUATION_TRAINING_PROTOCOL = "m4_u1_matched_budget_continuation_v1"
@@ -719,18 +721,18 @@ def _is_policy_development_variant(variant):
     return variant in {SONNET_IMPLEMENTATION_VARIANT, PMCR_P2_IMPLEMENTATION_VARIANT}
 
 
-def _expected_pmcr_ms_interface(enabled):
+def _expected_pmcr_ms_interface(enabled, p2=False):
     return {
         "contract_version": "m4_pmcr_ms_interface_v1",
-        "capability_stage": "ab_interfaces_only",
+        "capability_stage": "p2_production" if p2 else "ab_interfaces_only",
         "initialization_policy": PMCR_P2_INITIALIZATION_POLICY,
         "run_seed": 2024,
         "body_init_seed": 2024,
         "body_instantiated": enabled,
         "gate_init_seed": 2025,
-        "gate_instantiated": False,
-        "gate_contract_version": "pmcr_p2_absdiff_bounded_gate_v1",
-        "gate_configuration": None,  # A/B record the C policy without constructing C.
+        "gate_instantiated": p2,
+        "gate_contract_version": p2_spec.GATE_CONTRACT_VERSION,
+        "gate_configuration": p2_spec.gate_configuration() if p2 else None,
         "model_form": "train",
         "input_reorder": "none",
         "future_observed_covariates": False,
@@ -749,9 +751,10 @@ def _validate_pmcr_variant_contract(scientific, run_dir):
     model, dataset = scientific["model"], scientific["dataset"]
     experiment, execution = scientific["experiment"], scientific["execution"]
     ablation = experiment.get("ablation_id")
-    if ablation not in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID}:
+    if ablation not in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID, PMCR_P2_ABLATION_ID}:
         raise ValueError(f"PMCR A/B ablation identity mismatch: {run_dir}")
-    enabled = ablation == PMCR_P2_V1_ABLATION_ID
+    p2 = ablation == PMCR_P2_ABLATION_ID
+    enabled = ablation in {PMCR_P2_V1_ABLATION_ID, PMCR_P2_ABLATION_ID}
     horizon = dataset.get("label_horizon")
     if dataset.get("id") == "ETTm1":
         features = ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
@@ -801,7 +804,7 @@ def _validate_pmcr_variant_contract(scientific, run_dir):
         "dropout": 0.1, "gamma_init": 1e-3, "deploy": False,
         "norm": "feature_wise_layernorm", "ffn_ratio": 2,
     }
-    interface = _expected_pmcr_ms_interface(enabled)
+    interface = _expected_pmcr_ms_interface(enabled, p2)
     if (
         execution.get("seed") != 2024 or execution.get("metric_space") != METRIC_SPACE
         or model.get("seq_len") != length or model.get("pred_len") != pred_len
@@ -809,7 +812,9 @@ def _validate_pmcr_variant_contract(scientific, run_dir):
         or model.get("use_pmcr") is not enabled or model.get("use_teb") is not False
         or model.get("use_cce") is not False or model.get("use_sonnet_mvca") is not False
         or model.get("pmcr") != expected_body or model.get("pmcr_ms_interface") != interface
-        or model.get("module_connection") != "X->RevIN->MDM(U)->DDI->PMCR?; AMS_selector<-U"
+        or model.get("module_connection") != (
+            "X->RevIN->MDM(U)->DDI->P2; AMS_selector<-U" if p2
+            else "X->RevIN->MDM(U)->DDI->PMCR?; AMS_selector<-U")
         or model.get("target_selection_policy") != "full_denorm_then_task_select"
     ):
         raise ValueError(f"PMCR A/B model/init/metric contract mismatch: {run_dir}")
@@ -859,7 +864,14 @@ def _validate_pmcr_checkpoints(scientific, config, manifest, metrics, run_dir):
         for branch in ("small", "large"):
             shapes[f"temporal_conv.{branch}_branch.weight"] = (d, 1, body[f"kernel_{branch}"])
             shapes[f"temporal_conv.{branch}_branch.bias"] = (d,)
-    shapes = {"pmcr." + key: shape for key, shape in shapes.items()}
+    p2 = scientific["experiment"]["ablation_id"] == PMCR_P2_ABLATION_ID
+    prefix = "pmcr_p2.body." if p2 else "pmcr."
+    shapes = {prefix + key: shape for key, shape in shapes.items()}
+    if p2:
+        shapes.update({
+            "pmcr_p2.gate.conv1.weight": (4, 2, 3), "pmcr_p2.gate.conv1.bias": (4,),
+            "pmcr_p2.gate.conv2.weight": (1, 4, 1), "pmcr_p2.gate.conv2.bias": (1,),
+        })
     previous_spec = None
     for role in ("best", "last"):
         checkpoint = torch.load(Path(run_dir) / f"{role}.pt", map_location="cpu")
@@ -888,9 +900,9 @@ def _validate_pmcr_checkpoints(scientific, config, manifest, metrics, run_dir):
         for state in states:
             if not isinstance(state, dict) or not state:
                 raise ValueError(f"PMCR checkpoint state missing: {run_dir}")
-            module_keys = {k for k in state if k.startswith("pmcr.")}
+            module_keys = {k for k in state if k.startswith(("pmcr.", "pmcr_p2."))}
             if module_keys != set(shapes) or any(
-                k.startswith(("sonnet_mvca.", "cce.", "teb.", "xlinear.", "gate.", "pmcr_p2."))
+                k.startswith(("sonnet_mvca.", "cce.", "teb.", "xlinear.", "gate."))
                 for k in state
             ):
                 raise ValueError(f"PMCR checkpoint module/train-form key mismatch: {run_dir}")

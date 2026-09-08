@@ -1372,5 +1372,133 @@ class AMDEnhancedSonnetS2Tests(unittest.TestCase):
                     AMDEnhanced(**mixed)
 
 
+
+class AMDEnhancedP2Tests(unittest.TestCase):
+    """C routing and initialization; standalone synthetic inputs only."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.previous_threads = torch.get_num_threads()
+        torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.previous_threads)
+
+    @staticmethod
+    def _kwargs(length=12):
+        urban = length == 12
+        features, target = (11, 0) if urban else (7, 6)
+        common = dict(input_shape=(length, features), pred_len=1 if urban else 96,
+                      n_block=1, dropout=.1, patch=length, k=0, c=2, alpha=.5,
+                      norm=True, layernorm=True)
+        enhanced = dict(target_slice=None, target_idx=target, teb_context_dim=16,
+                        task_mode=TARGET_EXOGENOUS,
+                        aux_idx=tuple(i for i in range(features) if i != target))
+        body = dict(pmcr_hidden_dim=8, pmcr_kernel_small=3 if urban else 5,
+                    pmcr_kernel_large=7 if urban else 31, pmcr_body_init_seed=2024)
+        return common, enhanced, body
+
+    def test_abc_rng_body_generator_first_batch_frozen_equivalence_and_route(self):
+        from unittest import mock
+        import main as runner
+        from test_runner import _assert_nested_equal
+        devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
+        for device in devices:
+            for length in (12, 512):
+                common, enhanced, body = self._kwargs(length)
+                additions = [{}, dict(use_pmcr=True, **body),
+                             dict(use_pmcr_p2=True, pmcr_gate_init_seed=2025, **body)]
+                models, rngs, batches = [], [], []
+                for extra in additions:
+                    runner.set_seed(2024)
+                    generator = torch.Generator().manual_seed(2024)
+                    initial = generator.get_state().clone()
+                    # Constructor must not touch either eager or delayed CUDA seeds.
+                    with mock.patch.object(torch.cuda, "manual_seed", side_effect=AssertionError("CUDA seed touched")), \
+                            mock.patch.object(torch.cuda, "manual_seed_all", side_effect=AssertionError("CUDA seed touched")):
+                        model = AMDEnhanced(**common, **enhanced, **extra)
+                    self.assertTrue(torch.equal(initial, generator.get_state()))
+                    models.append(model)
+                    rngs.append(runner.capture_rng_state())
+                    data = torch.arange(4*length*common["input_shape"][1], dtype=torch.float32).reshape(
+                        4, length, common["input_shape"][1])
+                    loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(data),
+                        batch_size=2, shuffle=True, generator=generator, drop_last=True)
+                    batches.append(next(iter(loader)))
+                a, b, c = models
+                _assert_nested_equal(self, rngs[0], rngs[1])
+                _assert_nested_equal(self, rngs[0], rngs[2])
+                _assert_nested_equal(self, batches[0], batches[1])
+                _assert_nested_equal(self, batches[0], batches[2])
+                for model in (b, c):
+                    _assert_nested_equal(self, a.state_dict(), {k: v for k, v in model.state_dict().items()
+                        if not k.startswith(("pmcr.", "pmcr_p2."))})
+                _assert_nested_equal(self, b.pmcr.state_dict(), c.pmcr_p2.body.state_dict())
+                self.assertIsNone(a.pmcr); self.assertIsNone(c.pmcr)
+                self.assertIsNone(a.pmcr_p2); self.assertIsNone(b.pmcr_p2)
+                self.assertFalse(c.use_pmcr)
+                runner.set_seed(2024)
+                target = enhanced["target_idx"]
+                frozen = AMD(**common, target_slice=slice(target, target+1))
+                _assert_nested_equal(self, a.state_dict(), frozen.state_dict())
+                a, b, c, frozen = [m.to(device).eval() for m in (a, b, c, frozen)]
+                x = torch.randn(2, length, common["input_shape"][1],
+                                generator=torch.Generator().manual_seed(8)).to(device)
+                observed = {}
+                handles = [
+                    c.pastmixing.register_forward_hook(lambda m, ins, out: observed.update(u=out.detach().clone())),
+                    c.fc_blocks[-1].register_forward_hook(lambda m, ins, out: observed.update(ddi=out.detach().clone())),
+                    c.pmcr_p2.register_forward_pre_hook(lambda m, ins: observed.update(p2_input=ins[0].detach().clone())),
+                    c.pmcr_p2.register_forward_hook(lambda m, ins, out: observed.update(p2_output=out.detach().clone())),
+                    c.moe.register_forward_pre_hook(lambda m, ins: observed.update(
+                        experts=ins[0].detach().clone(), selector=ins[1].detach().clone())),
+                ]
+                try:
+                    with torch.no_grad():
+                        pa, ma = a(x); pf, mf = frozen(x)
+                        self.assertTrue(torch.equal(pa, pf)); self.assertTrue(torch.equal(ma, mf))
+                        state = _capture_torch_rng_state()
+                        pb, mb = b(x)
+                        _restore_torch_rng_state(state)
+                        pc, mc, source = c(x, return_state_source=True)
+                    self.assertTrue(torch.equal(pb, pc)); self.assertTrue(torch.equal(mb, mc))
+                    self.assertTrue(torch.equal(observed["ddi"], observed["p2_input"]))
+                    self.assertTrue(torch.equal(observed["experts"], observed["p2_output"]))
+                    self.assertTrue(torch.equal(observed["selector"], observed["u"]))
+                    self.assertGreater(float((observed["p2_output"]-observed["ddi"]).abs().max()), 0)
+                    expected = torch.cat((observed["p2_output"][:, target], observed["u"][:, target],
+                                          x.new_zeros((2, 16))), dim=-1)
+                    self.assertTrue(torch.equal(source, expected))
+                    self.assertEqual(source.shape, (2, 2*length+16))
+                finally:
+                    for handle in handles: handle.remove()
+                print("P2_AMD_FAIRNESS_ROUTE", device, length,
+                      "common/body/RNG/generator/first_batch=exact B_C_prediction_error=0", flush=True)
+
+    def test_c_strict_state_and_combination_boundaries(self):
+        from copy import deepcopy
+        common, enhanced, body = self._kwargs()
+        kwargs = dict(**common, **enhanced, **body, use_pmcr_p2=True, pmcr_gate_init_seed=2025)
+        for change in ({"use_pmcr": True}, {"use_cce": True}, {"use_teb": True},
+                       {"use_sonnet_mvca": True}, {"task_mode": PARALLEL_MULTIVARIATE},
+                       {"pmcr_gate_init_seed": 2024}, {"pmcr_body_init_seed": 2025}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                AMDEnhanced(**{**kwargs, **change})
+        model = AMDEnhanced(**kwargs)
+        source = deepcopy(model.state_dict())
+        for kind in ("key", "shape", "dtype"):
+            bad = deepcopy(source)
+            key = "pmcr_p2.gate.conv1.weight"
+            if kind == "key": bad.pop(key)
+            elif kind == "shape": bad[key] = bad[key].reshape(-1)
+            else: bad[key] = bad[key].double()
+            with self.assertRaises(RuntimeError): model.load_state_dict(bad)
+            for key, value in source.items(): self.assertTrue(torch.equal(value, model.state_dict()[key]))
+        with self.assertRaises(ValueError): model.load_state_dict(source, strict=False)
+        backbone = {k: v for k, v in source.items() if not k.startswith("pmcr_p2.")}
+        with self.assertRaises(RuntimeError): model.load_amd_backbone_state_dict(backbone)
+        for key, value in source.items(): self.assertTrue(torch.equal(value, model.state_dict()[key]))
+
 if __name__ == "__main__":
     unittest.main()

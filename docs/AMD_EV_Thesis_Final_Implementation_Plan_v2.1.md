@@ -68,9 +68,9 @@ M4 只处理第三章时间模块诊断与候选迭代。第十七轮已按预�
 
 M4 继续保持 In Progress。第二十二轮已由用户一次性确认 Sonnet/MVCA 的 S2 保留范围、RevIN 后/MDM 前插入点、target_exogenous-only 任务语义、matched standard from-scratch 协议、全部数值配置、development 数据边界与停止线；精确合同见第 1.1.1 节。Sonnet S2 production capability、永久测试和非训练单批探针已经完成，ChatGPT implementation review 已 Passed，Stage B implementation 已由 `bd1e0ab45f7329d3eb8c24eed106de19e21d9884` 完成 Git closure。第二十三轮又完整执行 ETTm1/UrbanEV 16-run paired development：UrbanEV 主门禁与 ETTm1 安全门禁均通过，登记 `positive development signal` 与 `Sonnet S2 development adequacy gate = Passed`。Sonnet S2 因而只是当前 M4 leading development candidate，仍不是最终外生模块、最终 EL-AMD 或 M5 冻结结构；既有单 seed、固定 S2 与 development-only ETTm1 证据不能替代 M5 按现行正式合同的筛选；随机初始化稳定性仍未验证，原三 seed 一致性要求依现行政策暂缓。XLinear 仍未选择。PMCR/P2 仅可按下述已确认的条件性工程顺序推进，不得越过审核/closure停止点；超出既有授权的结构、来源、超参数、预算、停止线、test 边界、新候选或 milestone 推进仍须用户决定，不重复请求确认已批准的同一工程合同。
 
-2026-09-07 用户已确认“改进 PMCR”方向，并在正式 MS 对齐后确认精确字段目标、历史输入、指标/汇总与正式身份合同；当前工作状态为 **MS精确任务合同 User confirmed，文档审核与Git closure已完成**，**P2工程 Conditional authorization granted**。第二十八轮已实现ETTm1/UrbanEV非Sonnet A/B最小MS接口，并取得永久测试及有限单批工程证据；A/B最小接口 ChatGPT implementation review=Passed；Git closure Pending，完整回归受访问边界限制的skip如实登记于M4 §51。P2候选C生产实现仍为Not started。未用于下一轮ETTm1/UrbanEV两项development任务的正式元数据缺口不再阻塞P2工程，但仍阻塞对应正式任务；这是对旧M4 §49.7依赖的有限调整，不改变Not verified事实，详见M4 §50。不以PMCR v1先独立通过target_exogenous/UrbanEV adequacy gate或旧U1/U3独立16-run为前置；v1小幅validation收益与P1扩容无一致收益的历史证据保留，不外推为当前任务有效，也不改写为v1失败。同期三臂方向保持A=AMD-Concat、B=A+PMCR v1、C=A+P2：C vs B检验改进，C vs A检验AMD实际收益，B不是先通过的门禁。三臂关闭Sonnet、CCE及全部TEB；S2 Passed/leading结论与组合guard不变，不进入M5/M7。
+2026-09-07 用户已确认“改进 PMCR”方向，并在正式 MS 对齐后确认精确字段目标、历史输入、指标/汇总与正式身份合同；当前工作状态为 **MS精确任务合同 User confirmed，文档审核与Git closure已完成**，**P2工程 Conditional authorization granted**。第二十八轮已实现ETTm1/UrbanEV非Sonnet A/B最小MS接口，并取得永久测试及有限单批工程证据；A/B最小接口 ChatGPT implementation review=Passed，Git closure已由`e62e3ddbe8be96f99fb1d77f010de94dd7546094`完成，完整回归受访问边界限制的skip仍按M4 §51登记。第二十九轮已完成P2候选C生产实现及本轮授权范围的工程验收；合成fixture路径修复后，CPU/CUDA定向、完整受限回归及有限真实单批探针通过，engineering gate=Passed，ChatGPT implementation review/closure Pending。原失败记录及续验分别保留于M4 §52.1–52.5、§52.6–52.9，受限项不升级为Passed。未用于下一轮ETTm1/UrbanEV两项development任务的正式元数据缺口不再阻塞P2工程，但仍阻塞对应正式任务；这是对旧M4 §49.7依赖的有限调整，不改变Not verified事实，详见M4 §50。不以PMCR v1先独立通过target_exogenous/UrbanEV adequacy gate或旧U1/U3独立16-run为前置；v1小幅validation收益与P1扩容无一致收益的历史证据保留，不外推为当前任务有效，也不改写为v1失败。同期三臂方向保持A=AMD-Concat、B=A+PMCR v1、C=A+P2：C vs B检验改进，C vs A检验AMD实际收益，B不是先通过的门禁。三臂关闭Sonnet、CCE及全部TEB；S2 Passed/leading结论与组合guard不变，不进入M5/M7。
 
-P2精确数学规格已通过ChatGPT specification review，有限CPU合成证据已接受；沿用M4 §§47.2–47.3，不改结构，也不把旧CPU证据记为production implementation review Passed。用户已确认§47.4工程身份与构造初始化合同：implementation_variant=el-amd-m4-pmcr-local-change-p2-v1，initialization_policy=matched_amd_pmcr_body_and_isolated_gate_v1，run seed=2024、body_init_seed=2024、gate_init_seed=2025；2025仅为隔离gate子流，不是第二个实验seed。批准顺序为**文档审核与closure → 最小接口实现/测试/ChatGPT review与closure → 沿已审核规格开展P2生产实现及工程验收**；各阶段依赖通过后由ChatGPT下发增量执行指令，本轮不得连续跨过停止点。P2候选C production review/CUDA/真实batch/checkpoint/deploy验收尚未完成，performance/development gate=Not evaluated；§§47.6–47.8的24-run预算、epoch、性能门槛、完整训练、调参及启动仍Proposed / Not authorized。工程身份和初始化合同确认不授权这些实验事项，也不解除组合guard。§9.6资源与效率预检规划仍不构成执行预算或阶段推进授权。
+P2精确数学规格已通过ChatGPT specification review，有限CPU合成证据已接受；沿用M4 §§47.2–47.3，不改结构，也不把旧CPU证据记为production implementation review Passed。用户已确认§47.4工程身份与构造初始化合同：implementation_variant=el-amd-m4-pmcr-local-change-p2-v1，initialization_policy=matched_amd_pmcr_body_and_isolated_gate_v1，run seed=2024、body_init_seed=2024、gate_init_seed=2025；2025仅为隔离gate子流，不是第二个实验seed。批准顺序为**文档审核与closure → 最小接口实现/测试/ChatGPT review与closure → 沿已审核规格开展P2生产实现及工程验收**；各阶段依赖通过后由ChatGPT下发增量执行指令，本轮不得连续跨过停止点。P2候选C production implementation complete、engineering gate=Passed：CPU float32/float64、A800 CUDA float32、完整AMD构造公平性、合成runner/checkpoint与train/deploy边界、完整受限回归及两任务有限真实单批接入均已按授权范围验收；受限skip与真实probe覆盖范围如实登记于M4 §52.6–52.9。ChatGPT implementation review/closure仍Pending，工程通过不构成性能结论或训练启动授权。performance/development gate=Not evaluated；§§47.6–47.8的24-run预算、epoch、性能门槛、完整训练、调参及启动仍Proposed / Not authorized。工程身份和初始化合同确认不授权这些实验事项，也不解除组合guard。§9.6资源与效率预检规划仍不构成执行预算或阶段推进授权。
 
 ETTm1 自 M4 第五轮起固定登记为 **development-only diagnostic benchmark**。M4 允许使用 ETTm1 的 train、validation 和 test 进行候选结构、容量与超参数探索；现有 production runner 可以继续按 `train -> validation -> validation 选择 best checkpoint -> test` 运行并生成完整 schema-v2 artifact，不要求为 ETTm1 实现 validation-only runner、独立 schema 或独立 summarizer。
 
@@ -1972,7 +1972,7 @@ PEMS 未来 12 点是一次多步输出任务，不乘成 12 次独立训练。2
 - Sonnet+PMCR/P2 组合尚未实现、尚未授权；P2 specification review 不解除组合 guard。
 - 正式 epoch、早停与搜索预算尚未冻结，不能直接继承 M4 固定 10 epoch。
 
-MS精确合同与P2有限依赖调整已获用户确认；不得为补齐资源表重选目标、改成S-to-S、添加parallel Sonnet、恢复失败TEB或减少数据集。P2工程已获条件性授权，MS文档closure已完成；A/B最小接口已有本轮实现、定向测试及单批证据（完整回归有受访问政策限制的skip，见M4 §51），A/B最小接口 ChatGPT implementation review=Passed；Git closure Pending，候选C production implementation未开始，实验预算与启动未授权。未参与下一轮两项P2 development任务的正式缺口继续blocked，不阻塞该有限工程范围；未实现模型/管线在效率预检中标blocked，不为profiling提前实施。S2结论、第四章路线与state_source/零context/M7边界不变。
+MS精确合同与P2有限依赖调整已获用户确认；不得为补齐资源表重选目标、改成S-to-S、添加parallel Sonnet、恢复失败TEB或减少数据集。P2工程已获条件性授权，MS文档closure已完成；A/B最小接口已有实现、定向测试及单批证据（完整回归有受访问政策限制的skip，见M4 §51），ChatGPT implementation review=Passed且Git closure已完成；候选C production implementation complete、engineering gate=Passed，ChatGPT implementation review/closure Pending（定向、受限回归及有限真实probe范围见M4 §52.6–52.9），实验预算与启动未授权。未参与下一轮两项P2 development任务的正式缺口继续blocked，不阻塞该有限工程范围；未实现模型/管线在效率预检中标blocked，不为profiling提前实施。S2结论、第四章路线与state_source/零context/M7边界不变。
 
 ### 9.6.3 完整 run 成本、现有证据与时间敏感性
 
@@ -2483,7 +2483,7 @@ tests/
 | M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
-| M4 | 时间模块诊断与候选迭代（In Progress） | S2 adequacy Passed/leading不变；MS精确合同及文档closure已完成；A/B最小接口已实现，测试/探针及skip见M4 §51，A/B最小接口 ChatGPT implementation review=Passed；Git closure Pending；P2 Conditional authorization granted，候选C生产实现Not started；预算/训练Not authorized |
+| M4 | 时间模块诊断与候选迭代（In Progress） | S2 adequacy Passed/leading不变；MS精确合同及文档closure已完成；A/B最小接口 ChatGPT implementation review=Passed且Git closure已完成，测试/探针及skip见M4 §51；P2 Conditional authorization granted，C production implementation complete、engineering gate=Passed，ChatGPT implementation review/closure Pending（有限工程证据及skip见§52.6–52.9）；预算/训练Not authorized |
 | M5 | 模型筛选与结构冻结（未开始） | 按固定seed=2024做公平多数据集与独立模块筛选；三seed一致性暂缓未验证；已确认MS语义，仍须闭环对应正式元数据/接口并冻结训练预算、practical-effect、最终时间结构与正式variant |
 | M6 | 第三章正式实验与定稿（未开始） | 冻结正式MS协议后运行正式test；固定seed=2024，std=N/A；完成主表、原范围消融、效率与定稿 |
 | M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
@@ -2603,7 +2603,7 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 （TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均作为失败历史证据保留；最终内部结构仍只由 M5 冻结）
 数据：UrbanEV + EPF-PJM + ETTh1 + Weather + ECL + Exchange
 任务：统一多变量历史输入→指定单目标MS精确合同已User confirmed；未决正式元数据/接口仍blocked
-当前：P2工程Conditional authorization granted；MS文档closure已完成，A/B最小接口已有有限工程证据，A/B最小接口 ChatGPT implementation review=Passed；Git closure Pending（回归skip见M4 §51）；候选C生产实现Not started，实验预算/epoch/阈值/训练启动Not authorized
+当前：P2工程Conditional authorization granted；MS文档及A/B接口Git closure已完成，A/B ChatGPT implementation review=Passed（回归skip见M4 §51）；C production implementation complete、engineering gate=Passed，ChatGPT implementation review/closure Pending（范围及skip见M4 §52.6–52.9）；实验预算/epoch/阈值/训练启动Not authorized
 
 第四章：EL-AMD + HSTGCN-core + ASTGRN-inspired SADR + G-STAN-inspired SC-SimGCA
 数据：UrbanEV + CHARGED 六城市 + PEMS04 + PEMS08

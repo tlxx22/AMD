@@ -1765,5 +1765,81 @@ class SonnetSummaryContractTests(unittest.TestCase):
             summary.aggregate_runs(rows)
 
 
+
+class P2SummaryContractTests(unittest.TestCase):
+    def _scientific(self, ablation):
+        enabled = ablation != summary.PMCR_P2_CONTROL_ABLATION_ID
+        p2 = ablation == summary.PMCR_P2_ABLATION_ID
+        features = list(summary.CANONICAL_FEATURE_NAMES)
+        dataset = dict(id="UrbanEV", task_mode="target_exogenous", feature_type="MS",
+            target="volume", target_feature_name="volume", target_idx=0, target_indices=[0],
+            feature_names=features, aux_idx=list(range(1, 11)), aux_feature_names=features[1:],
+            fold=6, feature_preset="F4", label_horizon=3, model_pred_len=1, artifact_horizon=3,
+            target_exogenous_schema_contract_version=summary.TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
+            schema_fingerprint="synthetic")
+        evaluation = dict(evaluation_policy=summary.TRAIN_VALIDATION_ONLY,
+            artifact_purpose=summary.M4_DEVELOPMENT_CANDIDATE, test_access_policy="forbidden")
+        return dict(dataset=dataset, execution={"seed": 2024, "metric_space": summary.METRIC_SPACE},
+            experiment=dict(development_protocol_id=summary.PMCR_P2_DEVELOPMENT_PROTOCOL,
+                ablation_id=ablation, task_mode="target_exogenous", target="volume",
+                label_horizon=3, model_pred_len=1, artifact_horizon=3, fold=6,
+                evaluation_policy=summary.TRAIN_VALIDATION_ONLY,
+                artifact_purpose=summary.M4_DEVELOPMENT_CANDIDATE),
+            evaluation=evaluation, optimization=dict(requested_train_epochs=2,
+                train_drop_last=True, validation_drop_last=False),
+            model=dict(seq_len=12, pred_len=1, model_pred_len=1, target_idx=0,
+                use_pmcr=enabled, use_teb=False, use_cce=False, use_sonnet_mvca=False,
+                pmcr=dict(hidden_dim=8 if enabled else None, kernel_small=3 if enabled else None,
+                    kernel_large=7 if enabled else None, dropout=.1, gamma_init=1e-3,
+                    deploy=False, norm="feature_wise_layernorm", ffn_ratio=2),
+                pmcr_ms_interface=summary._expected_pmcr_ms_interface(enabled, p2),
+                module_connection=("X->RevIN->MDM(U)->DDI->P2; AMS_selector<-U" if p2
+                    else "X->RevIN->MDM(U)->DDI->PMCR?; AMS_selector<-U"),
+                target_selection_policy="full_denorm_then_task_select"))
+
+    def test_c_gate_contract_is_explicit_and_ab_payload_remains_unchanged(self):
+        for ablation in (summary.PMCR_P2_CONTROL_ABLATION_ID,
+                         summary.PMCR_P2_V1_ABLATION_ID, summary.PMCR_P2_ABLATION_ID):
+            scientific = self._scientific(ablation)
+            sealed = summary._validate_pmcr_variant_contract(scientific, Path("/tmp/synthetic"))
+            interface = sealed["pmcr_ms_interface"]
+            self.assertEqual(interface["model_form"], "train")
+            self.assertFalse(interface["experiment_budget_authorized"])
+            if ablation == summary.PMCR_P2_ABLATION_ID:
+                self.assertTrue(interface["gate_instantiated"])
+                self.assertEqual(interface["gate_contract_version"], "pmcr_p2_absdiff_bounded_gate_v1")
+                gate = interface["gate_configuration"]
+                self.assertEqual(gate["parameter_count"], 33)
+                self.assertEqual(gate["convolution_MAC_per_BCT"], 28)
+                self.assertEqual(gate["epsilon"], 1e-6)
+                self.assertFalse(gate["statistics_detached"])
+                self.assertEqual(gate["gate_namespace"], "pmcr_p2.gate")
+                self.assertEqual(gate["body_namespace"], "pmcr_p2.body")
+            else:
+                self.assertEqual(interface["capability_stage"], "ab_interfaces_only")
+                self.assertFalse(interface["gate_instantiated"])
+                self.assertIsNone(interface["gate_configuration"])
+                self.assertEqual(interface, summary._expected_pmcr_ms_interface(
+                    ablation == summary.PMCR_P2_V1_ABLATION_ID))
+
+    def test_c_external_gate_route_form_and_identity_corruption_rejects(self):
+        from copy import deepcopy
+        original = self._scientific(summary.PMCR_P2_ABLATION_ID)
+        paths = [
+            (("model", "pmcr_ms_interface", "gate_configuration", "epsilon"), 1e-5),
+            (("model", "pmcr_ms_interface", "gate_contract_version"), "other"),
+            (("model", "pmcr_ms_interface", "model_form"), "deploy"),
+            (("model", "pmcr_ms_interface", "gate_init_seed"), 2024),
+            (("model", "module_connection"), "DDI->PMCR->P2"),
+            (("experiment", "ablation_id"), summary.PMCR_P2_V1_ABLATION_ID),
+        ]
+        for keys, value in paths:
+            bad = deepcopy(original)
+            slot = bad
+            for key in keys[:-1]: slot = slot[key]
+            slot[keys[-1]] = value
+            with self.subTest(keys=keys), self.assertRaises(ValueError):
+                summary._validate_pmcr_variant_contract(bad, Path("/tmp/synthetic"))
+
 if __name__ == "__main__":
     unittest.main()

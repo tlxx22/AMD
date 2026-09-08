@@ -24,6 +24,7 @@ from models.modules.global_mediated_patch_target_exogenous_bridge import (
     PATCH_ATTENTION_RESIDUAL_NONE,
     GlobalMediatedPatchTargetExogenousBridge,
 )
+from models.modules.local_change_gated_pmcr import LocalChangeGatedPMCR
 from models.modules.modern_conv_refinement import (
     PeakPreservingModernConvRefinement,
 )
@@ -142,6 +143,8 @@ class AMDEnhanced(AMD):
         pmcr_dropout=0.1,
         pmcr_gamma_init=1e-3,
         pmcr_body_init_seed=None,
+        use_pmcr_p2=False,
+        pmcr_gate_init_seed=None,
         use_teb=False,
         teb_heads=4,
         teb_dropout=0.1,
@@ -162,6 +165,16 @@ class AMDEnhanced(AMD):
         teb_patch_gate_init=None,
         teb_global_prediction_role=None,
     ):
+        if not isinstance(use_pmcr_p2, bool):
+            raise TypeError("use_pmcr_p2 must be bool")
+        if use_pmcr_p2 and (
+            use_pmcr or use_sonnet_mvca or use_cce or use_teb
+            or task_mode != TARGET_EXOGENOUS
+            or pmcr_body_init_seed != 2024 or pmcr_gate_init_seed != 2025
+        ):
+            raise ValueError("P2 requires an independent target_exogenous C constructor")
+        if not use_pmcr_p2 and pmcr_gate_init_seed is not None:
+            raise ValueError("gate initialization is only available to C/P2")
         super().__init__(
             input_shape=input_shape,
             pred_len=pred_len,
@@ -261,7 +274,7 @@ class AMDEnhanced(AMD):
                 raise ValueError(
                     "Sonnet S2 contract requires non-empty ordered aux_idx"
                 )
-            if use_cce or use_pmcr or use_teb:
+            if use_cce or use_pmcr or use_pmcr_p2 or use_teb:
                 raise ValueError(
                     "Sonnet S2 requires CCE, PMCR, and TEB to be disabled"
                 )
@@ -543,6 +556,7 @@ class AMDEnhanced(AMD):
         self.module_init_seed = module_init_seed
         self.use_cce = use_cce
         self.use_pmcr = use_pmcr
+        self.use_pmcr_p2 = use_pmcr_p2
         self.use_teb = use_teb
         self.cce_feature_schema = feature_schema
         self.cce_schema_fingerprint = cce_schema_fingerprint
@@ -583,16 +597,17 @@ class AMDEnhanced(AMD):
             isinstance(pmcr_body_init_seed, bool)
             or not isinstance(pmcr_body_init_seed, int)
             or pmcr_body_init_seed != 2024
-            or not self.use_pmcr
+            or not (self.use_pmcr or self.use_pmcr_p2)
             or use_sonnet_mvca or use_cce or use_teb
             or self.task_mode != TARGET_EXOGENOUS
         ):
             raise ValueError(
-                "isolated PMCR body initialization requires the M4 B-only "
+                "isolated PMCR body initialization requires the M4 B/C "
                 "target_exogenous constructor with seed=2024"
             )
         self.pmcr = None
-        if self.use_pmcr:
+        self.pmcr_p2 = None
+        if self.use_pmcr or self.use_pmcr_p2:
             required = {
                 "pmcr_hidden_dim": pmcr_hidden_dim,
                 "pmcr_kernel_small": pmcr_kernel_small,
@@ -620,7 +635,11 @@ class AMDEnhanced(AMD):
                 "dropout": pmcr_dropout,
                 "gamma_init": pmcr_gamma_init,
             }
-            if pmcr_body_init_seed is None:
+            if self.use_pmcr_p2:
+                self.pmcr_p2 = LocalChangeGatedPMCR(
+                    **pmcr_kwargs, body_init_seed=pmcr_body_init_seed,
+                    gate_init_seed=pmcr_gate_init_seed)
+            elif pmcr_body_init_seed is None:
                 # Preserve the construction stream of every historical caller.
                 self.pmcr = PeakPreservingModernConvRefinement(**pmcr_kwargs)
             else:
@@ -714,6 +733,7 @@ class AMDEnhanced(AMD):
         requires_strict = (
             getattr(self, "sonnet_contract_declared", False)
             or getattr(self, "use_cce", False)
+            or getattr(self, "use_pmcr_p2", False)
         ) or (
             getattr(self, "teb_architecture", GLOBAL_TEB_V1) in {
                 PATCH_CONDITIONED_V1,
@@ -747,6 +767,7 @@ class AMDEnhanced(AMD):
             elif (
                 getattr(self, "sonnet_contract_declared", False)
                 or getattr(self, "use_cce", False)
+                or getattr(self, "use_pmcr_p2", False)
             ) and incoming.dtype != expected.dtype:
                 metadata_errors.append(
                     f"{key}: dtype {incoming.dtype} != {expected.dtype}"
@@ -757,7 +778,8 @@ class AMDEnhanced(AMD):
                 f"missing={missing}, unexpected={unexpected}, "
                 f"tensor_errors={metadata_errors}"
             )
-        if not getattr(self, "sonnet_contract_declared", False):
+        if not (getattr(self, "sonnet_contract_declared", False)
+                or getattr(self, "use_pmcr_p2", False)):
             return super().load_state_dict(state_dict, strict=True)
         snapshot = {
             key: value.detach().clone() for key, value in current.items()
@@ -1056,7 +1078,9 @@ class AMDEnhanced(AMD):
         for fc_block in self.fc_blocks:
             v = fc_block(v)
 
-        if self.use_pmcr:
+        if self.use_pmcr_p2:
+            v = self.pmcr_p2(v)
+        elif self.use_pmcr:
             v = self.pmcr(v)
         v_local = v
 

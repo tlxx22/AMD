@@ -75,6 +75,7 @@ from models.modules.target_exogenous_bridge import (
 )
 from models.tsAMD import AMD
 from models.tsAMD_enhanced import AMDEnhanced
+from models.modules import local_change_gated_pmcr as p2_spec
 from utils.dataloader import CustomDataLoader
 from utils.dataloader_urbanev import (
     ALLOWED_HORIZONS,
@@ -627,15 +628,17 @@ def _is_policy_development_variant(variant):
 def _pmcr_ms_interface_contract(args):
     return {
         "contract_version": "m4_pmcr_ms_interface_v1",
-        "capability_stage": "ab_interfaces_only",
+        "capability_stage": ("p2_production" if args.ablation_id == PMCR_P2_ABLATION_ID
+                             else "ab_interfaces_only"),
         "initialization_policy": PMCR_P2_INITIALIZATION_POLICY,
         "run_seed": 2024,
         "body_init_seed": 2024,
         "body_instantiated": args.use_pmcr,
         "gate_init_seed": 2025,
-        "gate_instantiated": False,
-        "gate_contract_version": "pmcr_p2_absdiff_bounded_gate_v1",
-        "gate_configuration": None,  # A/B record the C policy without constructing C.
+        "gate_instantiated": args.ablation_id == PMCR_P2_ABLATION_ID,
+        "gate_contract_version": p2_spec.GATE_CONTRACT_VERSION,
+        "gate_configuration": (p2_spec.gate_configuration()
+                               if args.ablation_id == PMCR_P2_ABLATION_ID else None),
         "model_form": "train",
         "input_reorder": "none",
         "future_observed_covariates": False,
@@ -668,8 +671,8 @@ def _pmcr_candidate_contract(args):
 
 
 def _prepare_pmcr_ms_contract(args, patch_values, t2g_values, t3_values):
-    """Seal the A/B engineering interface; this is no experiment authorization."""
-    if args.ablation_id not in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID}:
+    """Seal the independent A/B/C engineering interface, not an experiment budget."""
+    if args.ablation_id not in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID, PMCR_P2_ABLATION_ID}:
         raise ValueError("PMCR P2 interface supports only the new A/B identities")
     if args.development_protocol_id != PMCR_P2_DEVELOPMENT_PROTOCOL:
         raise ValueError("PMCR development protocol identity mismatch")
@@ -679,7 +682,7 @@ def _prepare_pmcr_ms_contract(args, patch_values, t2g_values, t3_values):
         raise ValueError("PMCR MS interface requires target_exogenous/MS")
     if args.seed != 2024:
         raise ValueError("PMCR MS interface run seed is fixed at 2024")
-    if args.use_pmcr != (args.ablation_id == PMCR_P2_V1_ABLATION_ID):
+    if args.use_pmcr != (args.ablation_id in {PMCR_P2_V1_ABLATION_ID, PMCR_P2_ABLATION_ID}):
         raise ValueError("PMCR A/B ablation and module switch disagree")
     if args.use_sonnet_mvca or args.use_cce or args.use_teb:
         raise ValueError("PMCR A/B forbids Sonnet, CCE and all TEB modules")
@@ -728,7 +731,8 @@ def _prepare_pmcr_ms_contract(args, patch_values, t2g_values, t3_values):
     args.evaluation_policy = expected_policy
     args.artifact_purpose = M4_DEVELOPMENT_CANDIDATE
     args.teb_architecture = GLOBAL_TEB_V1  # compatibility metadata; no TEB is instantiated
-    args.display_name = "AMD-Concat + PMCR v1" if args.use_pmcr else "AMD-Concat"
+    args.display_name = ("AMD-Concat + P2" if args.ablation_id == PMCR_P2_ABLATION_ID
+                         else "AMD-Concat + PMCR v1" if args.use_pmcr else "AMD-Concat")
     if args.pmcr_dropout != 0.1 or args.pmcr_gamma_init != 1e-3:
         raise ValueError("PMCR v1 dropout/gamma contract mismatch")
     if args.use_pmcr and (
@@ -1282,10 +1286,8 @@ def _validate_urbanev_protocol(args):
         )
 
 def _prepare_enhanced_contract(args):
-    if args.ablation_id == PMCR_P2_ABLATION_ID:
-        raise ValueError("P2 C arm production implementation is Not started")
     if (
-        args.ablation_id in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID}
+        args.ablation_id in {PMCR_P2_CONTROL_ABLATION_ID, PMCR_P2_V1_ABLATION_ID, PMCR_P2_ABLATION_ID}
         or args.development_protocol_id == PMCR_P2_DEVELOPMENT_PROTOCOL
     ) and args.implementation_variant != PMCR_P2_IMPLEMENTATION_VARIANT:
         raise ValueError("PMCR A/B identities require their independent variant")
@@ -3688,7 +3690,10 @@ def _scientific_config(
             })
         if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
             model_config.update({
-                "module_connection": "X->RevIN->MDM(U)->DDI->PMCR?; AMS_selector<-U",
+                "module_connection": (
+                    "X->RevIN->MDM(U)->DDI->P2; AMS_selector<-U"
+                    if args.ablation_id == PMCR_P2_ABLATION_ID
+                    else "X->RevIN->MDM(U)->DDI->PMCR?; AMS_selector<-U"),
                 "use_sonnet_mvca": False,
                 "use_cce": False,
                 "pmcr_ms_interface": _pmcr_ms_interface_contract(args),
@@ -4839,7 +4844,9 @@ def _build_model(args, data_loader):
         cce_architecture=args.cce_architecture,
         cce_insertion_point=args.cce_insertion_point,
         cce_input_representation=args.cce_input_representation,
-        use_pmcr=args.use_pmcr,
+        use_pmcr=args.use_pmcr and args.ablation_id != PMCR_P2_ABLATION_ID,
+        use_pmcr_p2=args.ablation_id == PMCR_P2_ABLATION_ID,
+        pmcr_gate_init_seed=2025 if args.ablation_id == PMCR_P2_ABLATION_ID else None,
         pmcr_hidden_dim=args.pmcr_hidden_dim,
         pmcr_kernel_small=args.pmcr_kernel_small,
         pmcr_kernel_large=args.pmcr_kernel_large,

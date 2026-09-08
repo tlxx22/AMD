@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第二十八轮，P2前置MS最小接口实现与验收（A/B implementation review Passed；Git closure Pending；C生产实现Not started）
+当前轮次：第二十九轮，P2生产实现与工程验收（production implementation complete；engineering gate Passed；ChatGPT implementation review/closure Pending）
 
 canonical 内部版本：v2.1-R1
 
@@ -4676,3 +4676,156 @@ CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 GIT_OPTIONAL_LOCKS=0 TMPDIR='/
 - C/P2 production implementation仍为Not started。
 - 训练启动、24-run预算、epoch及性能阈值仍为Not authorized。
 - M4仍为In Progress。
+
+
+## 52. 第二十九轮：P2生产实现与工程验收
+
+### 52.1 实际closure起点与停止状态
+
+2026-09-08（UTC）。A/B minimum MS interface的ChatGPT final implementation review与restricted regression gate已Passed；实际Git closure为`e62e3ddbe8be96f99fb1d77f010de94dd7546094`，parent为`0a0d3c8edb3d5b98f37de2aaed475c5e17620543`，title为`feat(m4): add isolated A/B MS development interfaces`，提交范围精确为已审核11文件。本轮从实际Git读取该SHA，起点local/tracking/live remote一致、0/0，worktree/index clean、untracked none；显式读取适用根AGENTS，不将工作目录变化视为自动加载证明。
+
+起点canonical SHA-256为`62ca0fc27162220d854997fd4439b4add894c9417bfd06f9278e01b0cdeff358`，M4为`79bbc5b010d3ddb6405d27bc44e37a701f3d648f30296dba593e141385cfba0f`；22-file production fingerprint为`6b4989676408771f36f31bdb6d7e05cda5c2d132694d2d8f9253f6381c40f32b`。§§1–51原文保留，§51.11当时的closure Pending不倒改；本节登记实际closure及其后的C工程工作。
+
+用户按§50.6授权本轮C/P2生产实现、永久测试及有限工程探针。C生产代码和对应测试已写入；首轮定向CPU验收在新增合成夹具初始化处报错后停止，**工程gate未通过、验收未完成，ChatGPT implementation review/closure Pending**。没有随后修复或重跑，没有执行CUDA测试、完整回归或真实单批探针。既有A/B Passed与closure事实保持，不以A/B或§47旧CPU合成证据替代C验收。性能gate仍Not evaluated，24-run、实验epoch、性能阈值和真实训练启动仍Not authorized；M4 In Progress。
+
+### 52.2 实际代码增量与尚待验收的接口
+
+| 文件 | 实际增量 |
+|---|---|
+| `models/modules/local_change_gated_pmcr.py`（新增） | 独立LocalChangeGate/LocalChangeGatedPMCR；§47.2已确认差分、保留梯度的归一化、共享两层卷积和1+tanh；分析接口、隔离CPU构造子流、body-only deploy及严格模块state校验 |
+| `models/modules/__init__.py` | 导出两个新类 |
+| `models/tsAMD_enhanced.py` | C独立实例化pmcr_p2并接入DDI→P2→AMS；组合/初始化guard及严格state写参边界 |
+| `main.py` | 只解除C未实现拒绝；沿A/B接口绑定C gate合同、构造参数及科学配置，不新增数据任务、性能门槛或批量启动器 |
+| `summarize_results.py` | C身份、gate配置和train-form tensor命名空间验证；不实现三臂性能gate |
+| `tests/test_local_change_gated_pmcr.py`（新增） | 6项P2模块数学、梯度、隔离、部署与原子state检查 |
+| `tests/test_tsAMD_enhanced.py` | 新增2项完整AMD构造公平性、路由/state及组合边界检查 |
+| `tests/test_runner.py` | 新增8项C合成数据、各horizon、resume/身份/产物调用链检查，复用A/B helper |
+| `tests/test_summarize_results.py` | 新增2项C显式合同与外置元数据拒绝检查 |
+
+代码沿用共同variant、C ablation_id=M4_PMCR_P2、gate_contract_version=pmcr_p2_absdiff_bounded_gate_v1及§50.6协议/purpose/schema。C命名空间为pmcr_p2.body.* / pmcr_p2.gate.*；A无PMCR，B保持原v1，A/B不实例化gate。body/gate分别在隔离CPU RNG作用域完整构造，seed=2024/2025，run seed仍2024；不调用CUDA重播种。C只执行一次P2，selector仍取u_mdm，state_source保留最终target hidden、u_mdm_target及固定零context原宽度。
+
+原PMCR v1数学/默认行为、冻结AMD、Sonnet模块、旧importer与loader源码均未修改。C分析接口compute_components只采样一次主体dropout，返回base_delta、gate、effective_delta、residual、output，不自动detach或切换mode；仅显式转换融合body大小核，gate仍动态。A/B与旧协议的默认字段按原分支保留；**本轮完整兼容回归未执行，不能把代码意图写成旧接口重新验收Passed**。C的完整AMD构造公平性、runner各horizon、resume/manifest/summary及端到端test隔离检查均尚未执行，不能称公开C调用链已验收可用。
+
+### 52.3 已执行的有限CPU模块证据
+
+固定amd Python、-B、CPU-only，float32/float64；采用§47.5既有绝对容差1e-6/1e-12、rtol=0，未放宽。新增模块类6项全部通过，覆盖T=12/512，常数、斜坡、局部突变、近零/近常数及明确边界参考：
+
+- 独立差分/特征参考与保留均值梯度的导数检查通过；T<3、错误shape/dtype拒绝。
+- 每个dtype分别比较20个初始B/C组合（两种T、五类输入、train/eval）：matched主体参数和dropout RNG下，输出、输入梯度、公共主体梯度最大绝对误差均为0，初始gate精确1。gate对H的初始导数与首层初始参数梯度为0符合合同；不等于完整模型输入梯度断开。
+- 原任务MSE下末层weight/bias取得有限非零梯度。例如CPU float32 T12为2.28361052e-4 / 7.47626706e-4，T512为3.10830274e-7 / 1.24032187e-4。没有附加辅助loss、零gamma或主体零输出重初始化。
+- 确定性非零末层状态下，gate范围示例为T12约[0.917133,1.044834]、T512约[0.903537,1.048787]；输入VJP与首层任务梯度有限非零。CPU float32首层任务梯度范数分别为6.03769004e-5、2.17323205e-7。单样本/单变量扰动隔离、eval置换等变均在非平凡gate状态检查。
+- 模块train/deploy参数量分别为T12 451/419、T512 659/611，新增gate精确33；B=2、C=3时gate卷积MAC分别2016/86016，与28BCT一致。这只计两层gate卷积MAC，不代表完整FLOPs、时延或显存。
+- 非平凡gate的模块deploy输出最大误差：float32两种T均0，float64 T12为2.22044605e-16、T512为5.55111512e-17。CPU dtype/device、动态gate保留、深拷贝eval/原对象不变、显式幂等转换、train/deploy key集合及模块级state拒绝通过；不是runner checkpoint/deploy集成验收。
+
+本次实际合成optimizer.step=0；模块forward/backward和内存state_dict校验有界执行。C合成checkpoint文件生命周期尚未执行，没有读取历史实验checkpoint。另4项既有合成scaler方法通过，不能将其扩写为全部M1/旧runner本轮通过。
+
+### 52.4 定向失败、访问边界与未执行项
+
+本轮沿用§51.10已修正dir_fd/管道解析的guard与原restrictions.json，原296个ID完整保留，新增18个P2 ID，共314。guard在导入/discover前安装；原20项真实夹具/历史资产限制加CPU-only一项的精确ID不变，不新增skip。
+
+| 独立阶段 | 实际结果 |
+|---|---|
+| selfcheck-52 | 夹具感知调度/guard自检Passed；合成禁止目录负例6次正确拒绝，真实受禁访问0，pipe round-trip通过；故意夹具错误属于自检，不混入业务回归 |
+| plan-52 | 发现314，missing/extra/duplicate/import error均0；仅做discover，没有执行业务测试 |
+| seal-52 | 封存61份source/tests/执行脚本输入，定向执行前后字节一致 |
+| targeted-cpu-52 | 选37（原19项必需＋新18项）；实际执行11：10 passed、0 skipped、0 failures、1 error；其余26未执行，退出码1 |
+| CUDA、final完整314项回归、真实train/validation探针 | 均Not performed；停止后未启动，不预填passed/skip数量 |
+
+新18项中6 passed、1 error、11未执行；原19项中4 passed、15未执行。上表0 skipped是本次定向实测；原21项只作为将来完整CPU回归的既定限制保留，未升级Passed，也不是本次实际执行了21项skip。当前可见NVIDIA A800 80GB PCIe、torch 2.0.1且CUDA可用，但只读环境确认不等于CUDA测试通过；CUDA能力验收因停止而Pending。
+
+唯一错误为新增`P2MSInterfaceTests.test_c_actual_csv_prefix_runtime_never_constructs_test`：`tests/test_runner.py:5197`调用`write_synthetic_urbanev(self.fixture.root)`，传入已经由TemporaryDirectory创建的目录；原helper在`tests/urbanev_synthetic_fixture.py:47`执行`root.mkdir(parents=True, exist_ok=False)`，触发FileExistsError。该错误发生在CSV生成、loader和runtime构造之前；是新增测试夹具调用错误，尚无证据说明C生产接口因此失败。没有改helper的exist_ok、替换生产返回值、删除断言或将方法改skip。
+
+按本轮“发现失败即停止”要求保留该失败后停止，没有进行repair或续跑。待ChatGPT审核的最小修复位置是该新增测试的合成数据路径：使用尚不存在的子目录，并将本方法实际runtime数据根绑定到同一目录；不修改现有helper或生产split。该建议尚未实施，其他C调用链是否通过仍须后续实际验收，不作预判。
+
+定向业务guard仅记录一次安装，非预期受禁访问尝试=0、真实受禁内容读取=0；没有真实Dataset/DataLoader构造、真实forward/backward、optimizer.step、test迭代/评价、历史checkpoint读取或真实development artifact。**没有运行真实探针，不能将上述零访问写成C真实前缀接入已通过。** ETTm1/UrbanEV真实单批、完整AMD构造公平性、C合成resume/产物生命周期及其余回归均为当前具体缺口；未以本轮停止扩大实验权限。
+
+### 52.5 证据、指纹与保护
+
+执行证据仅在`/tmp/amd-m4-p2-52-hwbizj6v`：`commands.txt`保留实际执行的selfcheck、plan、seal和targeted四条完整命令；`targeted-cpu-52.log`、对应report/audit保留原失败、逐ID结果和访问计数。`run_cuda.py`只是尚未执行的工程测试脚本，未生成训练调度/启动脚本。关键SHA-256如下：
+
+| 证据文件（相对上述/tmp目录） | SHA-256 |
+|---|---|
+| `restricted_io_guard.py`（与§51.10相同） | `78491b95524798947a7598faff5ae0b5bb4b711956edea662414f013907e4949` |
+| `restrictions.json`（原21项限制） | `b72785e737b4d726982271031dc2d3a60312eba434ec510d0a42ef891cba2408` |
+| `run_restricted.py` | `238bd07e1d7a6bc5e9024f81825d158d09a09ba1b7bf08388e5eb0133898a5a0` |
+| `commands.txt` | `859a06e3befdff1c8a96af12eaa873bf6a38c07d6e33cf6e61742e5ebc3ac5b8` |
+| `targeted-cpu-52.log` | `708b031aa76d58400d16f7b0080185fac4f23f8d699f96fbb1b54ab4f636463d` |
+| `targeted-cpu-52.report.json` | `5bd02ba63a9209dd6af6d8ce9aac8da4d8aa6fee016d2f5407b96fa767c81275` |
+| `targeted-cpu-52.audit.jsonl` | `1e0389a2291f657f0c2ce8a8f2f207c32fc2d071906222b0df189bb08e660383` |
+| `evidence.sha256` | `e28a5072b9a8a916336763b5430a80bb04d272753dd36684db17e359d4bea0ec` |
+
+Python及系统`sha256sum -c evidence.sha256`均核验21/21证据文件通过。这是文件完整性检查，不是21项业务测试或artifact lifecycle通过。失败证据及前轮/tmp证据均保留，没有覆盖、删除或迁移。
+
+生产源码按`sha256_length_prefixed_relative_path_and_content_v1`计算，因新增模块由22增至**23 files**，新fingerprint为`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`；路径集合仍为main.py、models/**/*.py、utils/*.py。summarize_results.py单独SHA为`f36db60ab736e082266ce0ed17536a22bc7dc289b26b78a6c47de4fde9d3445f`，不混入该计数。
+
+累计范围仅为上表9份源码/测试及canonical/M4两份文档；canonical只同步A/B实际closure和C当前未完成验收状态。根AGENTS、M0–M3、冻结AMD、原PMCR数学、Sonnet/TEB/CCE模块、loader、既有合成helper与其他未授权文件保持原字节；数据/参考仓库/既有artifact未操作。baseline保持`amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。HEAD仍为本节起点，index无暂存；仅有本轮获准修改/新增，不称worktree clean。不stage/commit/push，不进入C训练准备、Sonnet组合或M5/M7，等待ChatGPT审核失败回执及后续最小修复。
+
+### 52.6 合成fixture最小修复与工程续验（2026-09-08）
+
+ChatGPT已审核§52失败回执，确认FileExistsError发生在CSV/loader/runtime构造前，不构成P2生产实现缺陷证据，并授权最小fixture修复及完成原工程验收。本轮继续使用HEAD `e62e3ddbe8be96f99fb1d77f010de94dd7546094`；local/tracking/live remote一致、0/0，index空，起点精确为9 modified＋2个获准untracked。11文件SHA及23-file production fingerprint均匹配上一回执；这是继承待审核修改状态，不是worktree clean。§§1–51及§52.1–52.5历史正文全部保留，首轮10 passed/1 error/26未执行的事实不倒改。
+
+生产数学、代码及科学合同本轮不变；唯一测试增量位于P2MSInterfaceTests.test_c_actual_csv_prefix_runtime_never_constructs_test：
+- 创建尚不存在的self.fixture.root / "p2_runtime_data"子路径，将其传给write_synthetic_urbanev。
+- 每个horizon调用prepare_args前，显式将args.data绑定同一子目录，随后实际执行原parser/preprocessor/FoldBundle/Dataset/runtime。
+- helper的exist_ok=False、全部schema/目标及test构造/访问为0的断言保留；不使用成功桩、不改skip。静态检查新增18项P2测试，未发现第二处同类调用错误，未扩大修复范围。
+
+tests/test_runner.py修改前SHA-256为`8d4f7274d558523afddf298b7bc5e582f7553342bd85b85b34a16a5409a73eb1`，修复后为`042c600eb4a33ba91d6ee74b3a48adb6c1d3150ba6770d3135529762d7f44116`。相对此轮起点只有该方法两处路径绑定hunk；其他已有测试/fixture字节不变。
+
+### 52.7 独立回归结果及合成工程验收
+
+固定amd Python、-B、CPU单线程；必要CUDA实际使用NVIDIA A800 80GB PCIe、float32，TF32关闭、cuDNN benchmark=False/deterministic=True。执行前完成guard自检、314-ID发现及61份源码/测试/执行器输入封存；沿用§51.10 guard/restrictions和§52执行器，不扩大限制。自检的6次合成禁止目录拒绝与故意fixture错误单列，真实受禁访问0，不计业务回归。
+
+| 独立执行 | 实际终态 | 限定 |
+|---|---|---|
+| targeted-cpu-repair-01 | 37/37 passed；skip/failure/error/blocked/未执行=0 | 原19项必需＋新增18项P2全部执行，CPU float32/float64 |
+| targeted-cuda-repair-01 | 12/12 passed；skip/failure/error/blocked/未执行=0 | 9个方法实际覆盖A800路径，另3个通用组件/state检查仍在CPU执行；不把整个集合都称为CUDA专用方法 |
+| full-restricted-repair-01 | 314 discovered = 293 passed + 21 pre-registered skipped；failure/error/blocked/未执行=0 | 全314个原ID各start一次且各有唯一终态；missing/extra/duplicate/import/fixture/cleanup/identity error均0 |
+
+三次业务执行非预期受禁访问尝试与真实受禁内容读取均为0，封存输入前后相同；完整回归含父进程及一个CLI子进程的守护。原21项仍为14项真实UrbanEV夹具、1项真实ETTm1 golden、5项历史checkpoint/preflight及1项CPU-only CUDA方法；完整回归显式隐藏CUDA，因此最后一项仍skip，不表示本轮A800不可用。未新增P2 skip，未将这21项改为Passed，未把真实历史资产兼容性说成本轮新通过。
+
+CUDA runner复用既有合成方法，仅在临时执行器中注入cuda设备及对应环境fixture字段，实际模型、训练/评价、恢复、发布和summary函数照常执行。forward前观察器只核验C模型与输入确在CUDA float32，不替换计算或返回值；四个方法的CUDA forward次数为cross-identity 4、ETTm1 lifecycle 10、strict resume 16、UrbanEV validation-only lifecycle 16。共同数学/构造用例另实际覆盖A800；通用CPU检查的范围如上表单列。
+
+关键工程证据：
+- CPU float32/float64及CUDA float32，各20个matched初始B/C模块组合的输出、输入梯度和公共主体梯度最大误差均0，gate精确1。初始首层gate参数梯度与gate对H导数为0仍为预期；原任务loss下末层梯度有限非零，确定性非零末层后首层任务梯度亦有限非零。CUDA T12/T512首层任务梯度范数分别为6.03769076e-5、2.17323120e-7；没有辅助loss或初始化repair。
+- A/B/C公共AMD参数/buffer、构造后Python/NumPy/CPU/CUDA RNG、train generator及首batch精确匹配，B/C全部v1主体与gamma匹配。A与冻结AMD同目标输出/MoE等价；B/C完整AMD初始预测误差0。DDI→单次P2→AMS、selector使用u_mdm、原state_source/零context均通过；不要求A与B/C初始输出相等。
+- 非平凡gate隔离/置换及部署通过。train/deploy参数量仍为T12 451/419、T512 659/611，gate 33、卷积MAC=28BCT；仅融合body，gate保持动态。CUDA部署输出最大误差T12为3.72529030e-9、T512为0；CPU float32为0、float64最大2.22044605e-16，沿用1e-6/1e-12、rtol=0，未放宽容差。计数不代表完整FLOPs或时延。
+- C两任务全部既定horizon的标签、单目标严格shape/loss、全区间或偏移单点指标、尾batch聚合、validation严格best及目标/node inverse检查通过。修复后的全合成CSV实际调用链在四个UrbanEV偏移各构造train/validation一次，合计4/4，test=0，解析前缀3909行。
+- 同身份合成resume恢复model/optimizer/RNG/generator/history/best，与不中断运行逐项精确相同。跨arm/variant/task/target/metric scope/purpose/schema、gate元数据及train/deploy身份在torch.load前拒绝；key/shape/dtype在写参前原子拒绝。schema-v2 staging/原子发布、Python/系统checksum、summary、duplicate与policy混合拒绝通过；UrbanEV无伪造test字段，ETTm1的test生命周期只使用合成夹具。train/best/last/resume均保持train-form，deploy恢复训练拒绝。
+
+上述P2 runner合成Adam.step分别为CPU定向26、CUDA定向22、完整回归26；每方法最多8步，低于执行器预设16步上限。包括原回归在内，父进程记录的Adam.step分别为76/22/142；这些不是所有可能optimizer/子进程的统一计数，也不混成一次实验或累计passed。没有真实数据优化步骤，没有冻结P2实验epoch或消耗24-run预算。
+
+### 52.8 有限真实接入结果
+
+在上述验收全部通过后，复用§51.5已审单批脚本，仅改为C runtime及B/C初始等价参照，并加强数据访问、单批迭代与直接CSV解析守护。只取ETTm1 H96、UrbanEV h3/F4/fold6各一个train和一个validation batch（batch=2）；四个实际batch复用于CPU/A800与B/C，不再取样。均为eval+no_grad，n_block=1、alpha=0、mix_layer_num=3、norm/layernorm=True及既有probe配置，不代表正式训练配置或批量性能验收。
+
+| 数据任务（train/validation相同shape） | 输入 | C原输出 / 严格适配后目标shape | state_source |
+|---|---|---|---|
+| ETTm1 OT/index6、T512、H96 | [2,512,7] | [2,96,1] / [2,96,1] | [2,1056] |
+| UrbanEV volume/index0、F4、fold6、T12、h3 | [2,12,11] | [2,1,1] / [2,1] | [2,56] |
+
+CPU/A800的全部prediction/MoE/state均finite，B/C各split初始预测最大误差均0；state尾段按此继承probe配置teb_context_dim=32保持全零，不更改默认宽度或提前定义M7适配器。C在本probe配置的总参数量为ETTm1 10,245,401、UrbanEV 230,663，均仅比B多33。
+
+目标/schema/scaler通过：ETTm1原OT及ordered aux保持，目标scaler反变换再标准化最大误差train/validation均2.22044605e-16；UrbanEV按实际采样node反归一化，与raw volume的最大误差分别6.35782875e-7、3.55271368e-15，回到标准化空间检查通过。这里只检查数据变换，不计算真实模型MSE/MAE或据此选择模型。
+
+UrbanEV观察值parser仅5次：volume首时间行1条，以及volume/e_price/s_price/weather各3909条；raw/features保持[3909,275,11]，train/validation Dataset各1，test Dataset/loader不存在，test观测读取/解析/迭代/评价均0。直接以UrbanEV观察CSV路径绕过前缀的pandas解析会被拒绝；inf.csv仅允许既有TAZID元数据路径。完整七文件仅作既定字节hash核验，与M1冻结值一致。ETTm1保留既有test-inclusive构造，真实test迭代/评价0；报告里的TemporalRegionDataset构造计数不用于宣称ETTm1未构造test。
+
+真实probe的backward=0、optimizer.step=0、完整evaluation=0、test evaluation=0、checkpoint load=0、真实development artifact=0；访问守护拒绝事件0。ETTm1数据SHA仍为`6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`，UrbanEV M1 fingerprint仍为`9ec565783011c83dfb56d1ac76e2b0027cd1821647d15c2f534173e5440c75d1`。其余horizon覆盖来自合成验收，不扩大真实probe范围，不进行profiling或吞吐比较。
+
+### 52.9 证据、当前状态与停止点
+
+本轮独立证据根为`/tmp/amd-m4-p2-52-resume-2moce083`。commands.txt保留7条实际执行命令（selfcheck、plan、seal、CPU定向、CUDA定向、完整受限回归、真实单批probe）；每阶段使用独立log/report/audit，原§52失败证据保持原字节。31份证据已由Python及系统sha256sum -c双重核验31/31；文件完整性通过不冒充业务测试次数。以下SHA均为证据文件，未将文档自身最终SHA写回文档：
+
+| 证据（相对本轮/tmp根） | SHA-256 |
+|---|---|
+| `run_cuda.py` | `0009a49b38cd21268800122d3e7f77494550ae4d93ab25fb12c54420cc45f8c6` |
+| `commands.txt` | `ffad1ea7d67c5a01009ae121e6540d0a6a824ce148ebe4ecf1b6e9e30942726f` |
+| `targeted-cpu-repair-01.report.json` | `a14e4e44e92f529dbeb46e24f8f6e411937648762304198c853d34ba30f0b8e3` |
+| `targeted-cuda-repair-01.report.json` | `f265c76be9a1ae991e8acdf2d89afb1dd5a197b8b430893a0d46f04c44bd3104` |
+| `full-restricted-repair-01.report.json` | `f1364ac55bcdf35be1c6aa83f4739240b8becf63c878999231be11733ab03e7d` |
+| `real-probe/probe_real_c.py` | `3203d8d00c42f48e92a45259d4e0af44dfa6c7a6afcdbaadfa5250d687df518a` |
+| `real-probe/probe.report.json` | `62e85a591df223d7afe33fcc23f5914eeff4f34f0ecaf98b4ce93ed5ad8ac002` |
+| `evidence.sha256` | `bcff501308cced2172262f02c65e64a54ff73aa12541067ee32d885c83dbd3cf` |
+
+guard、restrictions及run_restricted.py与§52.5所列SHA完全一致，沿用原已修正dir_fd/管道和fixture感知调度。本轮仅测试调用侧修复；23-file production fingerprint保持`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`，算法仍sha256_length_prefixed_relative_path_and_content_v1；源码/loader/原PMCR/importer/Sonnet/TEB/CCE无本轮增量。累计11文件范围保留，本轮实际只新增tests/test_runner.py上述修复及canonical/M4状态/证据更新；AGENTS、M0–M3、冻结AMD、数据和既有artifact保持不变，baseline仍指向fa9665627e6fcfb1d0c2bc22d943ca9666304fd6。
+
+当前登记为：**P2 production implementation complete；engineering gate Passed；ChatGPT implementation review/closure Pending**。这是原已授权有限工程范围内的结果，21项限制未升级为Passed；不是ChatGPT已通过implementation review或Git closure完成。performance/development gate仍Not evaluated；24-run、实验epoch、性能阈值、真实训练启动及Sonnet组合仍Not authorized。S2 Passed/leading、M4 In Progress及state_source/M7边界不变；未stage/commit/push，不进入训练准备或M5/M7，等待ChatGPT implementation review。

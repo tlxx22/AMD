@@ -5145,5 +5145,124 @@ class PMCRMSInterfaceTests(unittest.TestCase):
         self.assertEqual(metrics["best_epoch"], 1)
 
 
+
+class P2MSInterfaceTests(unittest.TestCase):
+    """Reuse accepted synthetic lifecycle helpers with the explicit C identity."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.previous_threads = torch.get_num_threads()
+        torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.previous_threads)
+
+    def setUp(self):
+        self.fixture = PMCRMSInterfaceTests()
+        self.fixture.setUp()
+        self.addCleanup(self.fixture.doCleanups)
+        original_args = self.fixture._args
+
+        def c_args(*args, **kwargs):
+            kwargs["enabled"] = True
+            result = original_args(*args, **kwargs)
+            result.ablation_id = runner.PMCR_P2_ABLATION_ID
+            return result
+
+        self.fixture._args = c_args
+
+    def test_c_all_horizons_target_labels_inverse_and_forward(self):
+        self.fixture.test_all_horizons_target_labels_context_and_inverse_scaler()
+        self.fixture.test_tail_element_aggregation_and_strict_target_shapes()
+        for dataset, horizons in (("ETTm1", (96, 192, 336, 720)), ("UrbanEV", (3, 6, 9, 12))):
+            for horizon in horizons:
+                args = runner.prepare_args(self.fixture._args(dataset, horizon=horizon))
+                runtime = self.fixture._runtime(args, torch.Generator().manual_seed(2024))
+                model = runner._build_model(args, runtime).eval()
+                self.assertIsNone(model.pmcr)
+                self.assertIsNotNone(model.pmcr_p2)
+                for loader in (runtime.train_data, runtime.val_data):
+                    x, y = next(iter(loader))
+                    with torch.no_grad():
+                        prediction, moe = model(x)
+                    selected = runner._prediction_for_loss(prediction, y, task_mode=args.task_mode)
+                    self.assertEqual(selected.shape, y.shape)
+                    self.assertTrue(torch.isfinite(selected).all())
+                    self.assertTrue(torch.isfinite(moe).all())
+                self.assertTrue(runner._pmcr_ms_interface_contract(args)["gate_instantiated"])
+
+    def test_c_actual_csv_prefix_runtime_never_constructs_test(self):
+        from urbanev_synthetic_fixture import write_synthetic_urbanev
+        p2_data_root = self.fixture.root / "p2_runtime_data"
+        write_synthetic_urbanev(p2_data_root)
+        original_dataset = runner.TemporalRegionDataset
+        counts = {"train": 0, "validation": 0, "test": 0}
+        def dataset(*positional, **kwargs):
+            split = kwargs["split"]
+            counts[split] += 1
+            if split == "test":
+                raise AssertionError("C attempted a forbidden test Dataset")
+            return original_dataset(*positional, **kwargs)
+        for horizon in (3, 6, 9, 12):
+            args = self.fixture._args(horizon=horizon)
+            args.data = str(p2_data_root)
+            args = runner.prepare_args(args)
+            with mock.patch.object(runner, "TemporalRegionDataset", side_effect=dataset):
+                runtime = runner._build_urbanev_runtime_data(args, torch.Generator().manual_seed(2024))
+            self.assertIsNone(runtime.test_data)
+            self.assertEqual(runtime.backend.raw.volume.shape[0], 3909)
+            self.assertEqual(runtime.backend.features.shape[0], 3909)
+            with self.assertRaises((ValueError, RuntimeError)):
+                original_dataset(runtime.backend, split="test", label_horizon=horizon)
+            x, y = next(iter(runtime.val_data))
+            with torch.no_grad():
+                pred, _ = runner._build_model(args, runtime).eval()(x)
+            self.assertEqual(runner._prediction_for_loss(pred, y, task_mode=args.task_mode).shape, y.shape)
+        self.assertEqual(counts, {"train": 4, "validation": 4, "test": 0})
+        print("P2_SYNTHETIC_CSV_PREFIX", counts, "parsed_rows=3909 test_rows=0", flush=True)
+
+    def test_c_validation_only_lifecycle_checksum_summary_and_duplicates(self):
+        self.fixture.test_validation_only_lifecycle_checksum_summary_and_duplicates()
+
+    def test_c_ett_development_test_and_policy_separation(self):
+        self.fixture.test_synthetic_ett_development_test_lifecycle_and_policy_separation()
+
+    def test_c_strict_resume_replays_model_optimizer_rng_generator_history_best(self):
+        self.fixture.test_resume_restores_model_optimizer_rng_generator_history_and_best()
+
+    def test_c_cross_identity_rejects_before_deserialization(self):
+        self.fixture.test_cross_identity_metadata_rejects_before_torch_load()
+
+    def test_c_tensor_state_rejection_is_atomic(self):
+        self.fixture.test_checkpoint_tensor_key_shape_dtype_rejection_is_atomic()
+
+    def test_c_gate_metadata_and_old_arm_reject_before_deserialization(self):
+        root = self.fixture.root / "gate-resume"
+        with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+            self.fixture._execute(self.fixture._args(root=root), interrupt=True)
+        failed = self.fixture._run_dir(root, "failed")
+        path = failed / "manifest.json"
+        original = path.read_bytes()
+        for field, value in (("gate_contract_version", "other"),
+                             ("gate_init_seed", 2024),
+                             ("gate_instantiated", False),
+                             ("gate_configuration", None)):
+            data = json.loads(original)
+            data["candidate_contract"]["pmcr_ms_interface"][field] = value
+            path.write_text(json.dumps(data), encoding="utf-8")
+            before = {p.name: p.read_bytes() for p in failed.iterdir() if p.is_file()}
+            with mock.patch.object(torch, "load") as load:
+                with self.assertRaises(RuntimeError):
+                    self.fixture._execute(self.fixture._args(root=root, resume=failed))
+                load.assert_not_called()
+            self.assertEqual(before, {p.name: p.read_bytes() for p in failed.iterdir() if p.is_file()})
+        path.write_bytes(original)
+        args = self.fixture._args(root=root, resume=failed)
+        args.ablation_id = runner.PMCR_P2_V1_ABLATION_ID
+        with mock.patch.object(torch, "load") as load:
+            with self.assertRaises(RuntimeError): self.fixture._execute(args)
+            load.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

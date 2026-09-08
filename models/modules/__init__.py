@@ -26,6 +26,7 @@ from models.modules.global_mediated_patch_target_exogenous_bridge import (
     PATCH_ATTENTION_RESIDUAL_NONE,
     GlobalMediatedPatchTargetExogenousBridge,
 )
+from models.modules.local_change_gated_pmcr import LocalChangeGate, LocalChangeGatedPMCR
 from models.modules.modern_conv_refinement import (
     PeakPreservingModernConvRefinement,
     ReparamLargeKernelDWConv,
@@ -71,6 +72,8 @@ __all__ = [
     "SIGMOID_LOGIT_PLUS_RHO",
     "ZERO_SAME",
     "CrossCorrelationEmbedding",
+    "LocalChangeGate",
+    "LocalChangeGatedPMCR",
     "PeakPreservingModernConvRefinement",
     "ReparamLargeKernelDWConv",
     "GLOBAL_GATE_IDENTITY_INIT",
