@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第三十一轮，ETTm1结果接受与UrbanEV Stage 2训练前准备（ETTm1两个安全gate Passed；UrbanEV12-run已授权、尚未启动；文档审核/closure Pending；P2整体adequacy待判）
+当前轮次：第三十二轮，UrbanEV结果接受与独立run并发预检准备（P2 development adequacy Not passed；工程Passed/Completed保持；496步预检Proposed、未执行；M4 In Progress）
 
 canonical 内部版本：v2.1-R1
 
@@ -4982,3 +4982,149 @@ launcher固定repo/Python/data/artifact/GPU、12组科学身份及顺序；独�
 启动包最终SHA、操作命令、dry检查和两文档最终SHA在回执/独立执行证据中给出，不把文档自身最终SHA或未来自身commit写回文档。原准备失败日志与量化补核一并保留。
 
 仅登记“UrbanEV完成后再处理M4/M5/M6精简安排”为后续事项，本轮不改阶段任务表、不冻结正式variant、不解除组合guard、不改模块来源叙事、state_source/零占位或第四章路线。用户之后回复“训练好了”时，先核验UrbanEV12-run进程/产物、manifest/history/best/last/metrics、Python/系统checksum、身份/duplicate、finite、test隔离及Git/source/data，再判两个UrbanEV主gate并结合已接受ETTm1结果裁决；不自动重排阶段或启动组合。
+
+## 55. 第三十二轮：UrbanEV结果接受与独立run并发预检准备（2026-09-12 UTC）
+
+### 55.1 起点、已接受结论与本轮权限
+
+实际起点为`1d60839bfe4d1c2dbc9811171949be9ec60e7885`，parent=`dcda29c60d2c6ac632804de0a53ad285073555d9`，branch=AMD-paper-repro-custom-modules-v1；local/tracking/live remote一致、0/0、worktree/index clean、untracked none，canonical/M4与提交树字节一致。AGENTS显式读取；23-file production fingerprint=`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`（sha256_length_prefixed_relative_path_and_content_v1）。baseline仍指向`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
+
+ChatGPT已接受UrbanEV审计：完整性Passed，两个主效果gate Not passed；结合已接受ETTm1两个安全gate Passed，**原24-run协议下P2 development adequacy=Not passed，positive development signal=false**。P2 production implementation complete、engineering/implementation review Passed、Git closure Completed保持。此结论只适用于本次固定配置、seed2024、UrbanEV fold6的原协议，不外推所有PMCR/P2结构无效。原序列停止，不自动调参、追加seed/epoch/run、改门槛或启动Sonnet组合；M4 In Progress，S2 Passed/leading身份不变。
+
+本轮仅复用证据、只读资源/执行路径核对、准备新仓库外脚本并修改canonical/M4；没有重新训练/回归/加载checkpoint/遍历数据/运行模型或并发负载。下述短测预算与执行均为Proposed待批准，不是原24-run追加许可。旧§§1–54正文原字节保留；§54“尚未启动”等描述保留历史时点，不作为当前状态。
+
+### 55.2 证据复用、逐H结果及耗时
+
+复用根`/tmp/amd-p2-urbanev-stage2-audit-63_wyfe4`。本轮对原`evidence.sha256`执行系统完整校验并核对审计/协议身份；不重做checkpoint或数据审计。关键证据SHA-256：
+
+| 文件（相对证据根） | SHA-256 |
+|---|---|
+| final/audit-result.json | f3e83218d2265c4da3e572681a1d69ad4d533da04a11283d6c677497b3b4afac |
+| final/urban-gates.full_precision.json | ba4d6b3482118f227f79a5890a1c4f080b50600a27f1e2bb07201dce16753a5b |
+| final/horizon-metrics.full_precision.csv | fef76bce7efbf4b330474668eb0a1f6e4c9f7bae663fa55a56ce77715f8c395c |
+| evidence.sha256 | 15316500a98c2d682a728661e3295c6fd92a46027f3b99ee595e8de473d7cf97 |
+
+审计原结果：12/12 completed、120 run-epochs、891060 optimizer steps；failed/running/staging/duplicate均0；24份best/last checkpoint及156个受控文件Python/系统checksum、严格best与finite通过。目标volume/index0，F4/fold6、train-standardized、validation-only，schema2，三臂身份、Git/source/data与§54封存合同一致；seed std=N/A。此次仅复用该审计，不把其24次checkpoint读取计成本轮新执行。
+
+逐H未舍入validation值如下（A=AMD-Concat、B=原PMCR v1、C=P2）：
+
+| h | A MSE | B MSE | C MSE | A MAE | B MAE | C MAE |
+|---|---:|---:|---:|---:|---:|---:|
+| 3 | 0.3320888165464615 | 0.32929194472864637 | 0.32920388817224744 | 0.35823024858008906 | 0.35559481785854413 | 0.35549673261400716 |
+| 6 | 0.5033341150287228 | 0.5015641628072278 | 0.5010764727886249 | 0.4782123063526025 | 0.47693812966604293 | 0.4766696146033734 |
+| 9 | 0.5888574372385947 | 0.586514915778174 | 0.585522326025909 | 0.5293017547775071 | 0.5277604611202147 | 0.5270766184809726 |
+| 12 | 0.5276191658527529 | 0.5271445734452975 | 0.526998556604962 | 0.49801264016617325 | 0.4975582565227513 | 0.4974487095838979 |
+
+主gate口径为`100*(mean_h(C_h)/mean_h(R_h)-1)`；补充口径为`mean_h(100*(C_h/R_h-1))`。负值表示改善，均对4个H等权；不换成pooled、舍入表或补充口径裁决。
+
+| 对照 | 主MSE macro变化(%) | 主MAE macro变化(%) | 补充MSE逐H relative均值(%) | 补充MAE逐H relative均值(%) | 结果 |
+|---|---:|---:|---:|---:|---|
+| C_vs_B | -0.088163508200 | -0.062437163690 | -0.080227449501 | -0.058868635076 | Not passed |
+| C_vs_A | -0.466124967664 | -0.379087766492 | -0.500313446259 | -0.404820958815 | Not passed |
+
+两组仅“validation MSE macro≤-0.5%”未通过：C vs B=-0.088164%，C vs A=-0.466125%。其余4类要求全部通过：MAE macro不退化、4/4 H MSE严格改善、逐H MSE无超过1%的退化、移除任一H后剩余三H MSE macro仍严格改善。C vs A补充口径约-0.500313%不能替代主口径约-0.466125%，不得因此重判Passed。所有判断来自完整精度JSON，表格仅展示。
+
+MSE leave-one-out（分别移除h3/h6/h9/h12；%）：
+
+- C_vs_B：-0.100685537211, -0.085010702380, -0.053148973005, -0.110651078756。
+- C_vs_A：-0.383585725855, -0.472236099382, -0.422817451712, -0.595225632019。
+
+Measured资源（来源`final/resource-totals.json`）：启动2026-09-11 13:08:47.626219 UTC，结束2026-09-12 01:52:03.276166 UTC；launcher墙钟45795.64994764328 s=12.7210138743 h，run时长和45741.647010564804 s。12个artifact总59461600 bytes。各H三臂完整run时长（秒，非单独GPU计时）：
+
+| h | A | B | C |
+|---|---:|---:|---:|
+| 3 | 3613.691469 | 3787.560512 | 3883.693086 |
+| 6 | 3754.520808 | 4057.280335 | 4085.368828 |
+| 9 | 3466.773514 | 3706.176582 | 3844.123888 |
+| 12 | 3813.378950 | 3704.132038 | 4024.947001 |
+
+上述串行工作量/墙钟不是物理GPU独占小时或未来并发耗时。ETTm1的已审2.194 h及两个安全gate直接沿用§54.2，不重训或重算；两个安全Passed不能替代UrbanEV主效果要求。
+
+隔离证据界限保持：原审计通过policy/source/artifact/summary检查，审计自身raw-observation访问为0；原训练未采集全过程独立逐次I/O trace。既有前缀路径/元数据/禁止test结果与有限工程guard证据不冒充120个run-epoch的独立I/O监测。本轮只读既有审计JSON/CSV及校验文件，没有读取test观测或重新加载权重。
+
+### 55.3 只读资源与快照边界
+
+当前检查进程的2026-09-12 UTC现场记录在`/tmp/amd-m455-concurrency-dguo910z/resources.json`：
+
+- CPU：Xeon Platinum 8358P @2.60GHz，主机展示2 socket×32核=64 CPU；实际`/proc/self/status`、sched_getaffinity、cpuset/effective cpuset均为`8-11,40-43`，仅8 CPU。sysfs明确CPU8–11属于package0/core8–11/node0，40–43属于package1/core8–11/node1；各thread_siblings_list只有自身，lscpu显示threads/core=1，不从编号把8与40猜作SMT同核。首轮保留共享8 CPU affinity，不新设NUMA绑核。
+- cgroup v1当前容器层`cpu.cfs_quota_us=-1`、period100000，仅表示可见本层无CFS限额；各controller挂载根已裁剪到docker scope，宿主`system.slice`及更上级quota不可见，明确Not verified，不能声明所有父级无限制。
+- RAM：容器可见memory.limit=549755813888 bytes=512 GiB；只读采样usage约1.61 GiB，主机MemAvailable约1.39 TiB不能替代容器/宿主父级限制。个人/父级保证未验证。
+- 存储：仓库共享parastor可见余量约289 TiB，/tmp overlay约297 GiB；仅本轮df快照，不代表个人quota、带宽或未来保证。未进行存储benchmark。
+- GPU：1张NVIDIA A800 80GB PCIe，UUID=`GPU-3d365efd-300b-f527-e8fe-703fb0cfb738`，Default compute mode，driver550.163.01，81920 MiB；本轮快照0% utilization、1 MiB已用，无可见CUDA计算进程。训练已经结束，不据空闲快照推算训练利用率或保证未来独占。
+- 工具：Python3.11.15、torch2.0.1、NumPy1.24.3、pandas2.0.3元数据匹配；tmux3.2a、screen4.09.00、bash5.1.16、sha256sum8.32；systemd-run当前PATH不可用，psutil未安装。首次资源采集因psutil元数据缺失停止，后改为标准库/proc/sys只读采集，未安装依赖；完整记录留在本轮证据，不是模型失败。本轮未初始化CUDA；CUDA11.8/cuDNN8700与确定性/TF32配置复用§54封存环境，未来短测执行时再次实际检查。
+
+用户提供CPU约111%、GPU约35%只登记为既有快照。本轮限定的canonical/M4、§54准备资源字段及已审资源总表未定位到该快照的原始采样命令、时间窗/分母及完整序列，故工具/采样窗口Not verified；不伪造全训练平均值。若CPU工具采用“一核=100%”，111%约为1.11核，但本快照分母未核实。训练进程已结束，当前资源检查进程环境不冒称过去训练进程的独立/proc记录。
+
+### 55.4 执行路径：静态候选瓶颈，不是分段计时证明
+
+| 路径 | 已查事实与可疑成本 | 下一次怎样区分 |
+|---|---|---|
+| main.py:_build_urbanev_runtime_data（4410–4558）；utils/dataloader_urbanev.py:_read_csv_frame（85–91）、UrbanEVFoldPreprocessor.fit_transform（780起） | 前缀CSV解析、train-only拟合和特征构造在每个独立进程prepare中执行；未共享预处理缓存；原文件完整hash为字节校验，不能删除 | prepare/import单列；同对任务端到端makespan包含它；不把它当每batch重复CSV读取 |
+| utils/temporal_region_dataset.py:TemporalRegionDataset.__getitem__（61–70）；main.py:4462–4474 | 每样本NumPy切片、from_numpy、目标tensor及默认collate；loader未传workers/pin_memory，原默认0/false，train shuffle/drop_last=true、validation均false | 在实际iterator边界量data+collate等待；首轮不改loader、workers或pin |
+| main.py:3504–3505、3361–3362 | 默认`.to(device)`，未启用non_blocking；候选H2D/同步等待 | 独占短trace记录aten::to/copy和CUDA memcpy；与端到端分开，不能把重叠事件简单相加 |
+| main.py:_prediction_for_loss（3312–3315）、train_one_epoch（3515、3520–3523）、_accumulate_errors（3324–3326） | prediction/target/loss finite检查的设备结果转Python条件，3次loss `.item()`及SSE/SAE `.item()`在每batch可能产生同步；误差统计转double | 保留所有安全/聚合检查，用短trace判断等待；本轮不减少检查或异步重写 |
+| main.py:_build_optimizer（3454–3474）、train_one_epoch（3517–3518） | fresh Adam，全部自身参数；step首次懒建立moment等状态；原forward/backward smoke没有optimizer.step | warm-up必须实际step并确认Adam非空，记录建立后allocated/reserved与观测窗口峰值 |
+| main.py:train_one_epoch/evaluate、_main_impl（5319起、5404–5406）、atomic_torch_save、_publish_enhanced_artifact | validation每epoch、同步状态复制、last/best保存、history/log、受控checksum/原子发布；原progress=false但仍有循环统计 | 限定validation与一次fresh-state保存/hash分段；正式发布成本仍Unknown，probe不冒充完整artifact lifecycle成本 |
+
+§54 smoke约47–51 ms/训练batch仅有限forward/backward；新资源总表约12.721 h为全run墙钟。两者均不能单独证明上述任何位置是主瓶颈，也不能据CPU/GPU快照断言并发必然加速或训练结果必然逐位不变。
+
+### 55.5 唯一短测提案（Proposed，待批准后执行）
+
+代表任务固定为**已可执行UrbanEV h3 A/AMD-Concat**，复用§54原生产A接口：target_exogenous/MS、volume/index0、F4/全部275节点、ordered aux1…10、T12/patch12、pred_len1。只解析header+[0,3909)获准前缀；train=[0,3475)、validation=[3475,3909)，split-local、M1 train-only scaler。每进程batch128，threads4，num_workers0，pin_memory=false；共享继承8 CPU affinity，无新NUMA策略。原Adam lr3e-5、weight_decay1e-7、betas(.9,.999)、eps1e-8，run/generator seed2024、float32及原TF32/cuDNN设置不变；PMCR/P2/Sonnet/CCE/全部TEB off。每任务fresh模型/Adam，两个逻辑task0/task1是独立重复工作量，不是新seed或新候选。
+
+| 项目 | 精确Proposed范围 |
+|---|---|
+| 同一对任务对照 | 每repeat串行task0→task1对比2路task0/task1；3 repeats；模式顺序依次serial→concurrent、concurrent→serial、serial→concurrent；不做DDP/梯度合并/预测集成 |
+| 每任务 | 从同一seed/generator头部顺序取8个train warm-up batch（含Adam.step），再连续32个train测量batch；之后4个validation batch，仅数值诊断、不选best/配置；保留真实train_one_epoch/evaluate helper |
+| 主对照预算 | 2模式×2任务×3 repeats×(8+32)=480 optimizer steps；每步128样本，共61440 train样本访问，validation 12×4×128=6144样本访问；不等同于独立样本数 |
+| 独占短trace | 主对照之后另1个fresh任务：8 warm-up+8 trace训练步、4 validation batch=16 optimizer steps；torch.profiler CPU+CUDA，不开with_stack、不并发；不计入S2对照makespan |
+| 合计 | 13个有限进程任务，**496 optimizer steps，63488 train样本访问、6656 validation样本访问**；不是13个完整run，不进入原24-run结果表；CLI继承train_epochs=10仅供原配置解析，实际无epoch循环，iterator强制步数上限 |
+| 时间/空间上限 | Scenario约3–10 min，非实测/保证；提议总墙钟cap1200 s、单worker cap180 s，超限安全中止并保留证据；每worker RSS≤8 GiB、CUDA reserved≤4 GiB，2 worker RAM合计≤16 GiB+管理/采样1 GiB；新目录输出≤2 GiB，启动前空闲≥5 GiB；采样有离散误差，不冒称操作系统硬配额 |
+| 数值及公平性 | 逐对应任务初始全部AMD参数/buffer、构造后Python/NumPy/CPU/CUDA RNG、generator、实际batch序列hash精确匹配；warm-up状态hash另报；全短轨迹loss、最终参数/buffer/Adam状态逐项finite/shape/dtype及allclose检查，拟atol=1e-6、rtol=1e-5，整型严格相等；bitwise另列，不以容差通过冒称bitwise或全训练保证 |
+| CPU/数据政策 | 首轮仅改变并发度，所有worker仍4计算线程/workers0，interop保持原默认并实际记录；不同时调threads/workers/pin/LR/batch/AMP，未来如需调整必须另列单因素项。NumPy等缓存目录隔离，不清cache；fresh进程不等于冷磁盘 |
+
+计时：每一对任务端到端makespan从首个Popen前至两个任务退出，含import/prepare、warm-up、测量、有限validation、一次fresh-state保存及SHA验证/数值记录；保持采样和instrumentation一致。测量段起止正确CUDA同步，不每步追加人为全局同步；原生产finite/item同步保持。单列prepare、warm-up、32步train、4批validation、save/hash及数据等待；记录Adam状态建立后的allocated/reserved、此前峰值和之后窗口峰值、进程nvidia-smi显存及RSS/HWM。不是完整epoch峰值或正式best/last/manifest全发布成本。
+
+每秒保留nvidia-smi与/proc的真实时间戳、进程CPU user/system ticks（按一核100%计算区间CPU%）、RSS/线程/affinity/I/O及GPU竞争进程；不以采样瞬时值代替积分。报告3对makespan及`S2=T_serial/T_concurrent`、median/range、端到端总吞吐（同一对10240 train样本访问/组makespan）、每任务wall slowdown、稳定train段时长、显存/RAM峰值。并发重叠的进程时间不相加成物理GPU小时；独占trace的operator时间与组调度效率分列，trace开销不混入性能对照。
+
+Proposed推荐判据：身份/数据边界/资源/短轨迹检查均通过且3对S2均>1，才将2路作为该有限任务形状的后续配置候选；否则首轮不建议默认2路。短测及3次重复不能证明所有正式模型或完整训练必然bitwise一致，不能根据validation改善选并发配置。4路仅在2路有实测收益后另议，不在本包实施。
+
+### 55.6 预检包、实际完成的无负载检查与执行边界
+
+新独立目录`/tmp/amd-m455-concurrency-dguo910z`：`plan.json`、`worker.py`、`probe.py`、`start.sh`、`bundle.sha256`及资源/校验证据。只用标准库+/proc/sys和现有torch profiler，不安装依赖，不启用MPS/MIG、不改compute mode。生产main/loader/math/测试与既有artifact/launcher字节不变。
+
+`--check`只用标准库读取Git/文档/源码及软件包元数据，内存AST/compile和shell -n检查；不导入torch/main，不构造Dataset/model/optimizer、不解析raw数据，不产生GPU负载。当前语法/静态配置检查Passed；实际并发吞吐、短trace、数值一致性与guard负载验收均**Not performed**。原生产A路径支持的证据继承§51/§54，不把新脚本静态通过写成执行通过。
+
+`--execute-approved`仅供后续明确批准预算、容差、cap并完成文档review/closure后使用；启动前要求clean Git、三端一致、精确文档SHA/23-file源码、环境/GPU与数据字节匹配。允许的文档closure为本轮起点的单parent后继、仅canonical/M4变化，实际SHA后验，不猜commit。待审dirty状态不允许真实执行。supervisor flock及每任务独立目录/worker锁防重复；现存execution即拒绝fresh rerun。各worker独立进程/RNG/日志/退出码，任何非零、非finite/身份/数值异常、访问禁区、资源上限或外部GPU竞争即停止后续任务；向本包子进程组SIGINT、保留failure/日志/fresh状态，不自动删除、恢复或重试，不发SIGKILL。
+
+本包只读生产前缀loader与真实训练helper，拒绝旧artifact目录、任何torch.load及test Dataset；只在新execution目录写本次临时fresh状态，不注册production protocol/variant，不发布schema-v2 development结果。短任务建议批准后前台受控运行（预留3–10 min、cap20 min），保持该SSH终端；如果后续改为长时工作，须先实测tmux等守护并独立交接，不沿用本包短测估算直接运行数小时。
+
+操作命令（本轮仅执行第一条；第二条待授权及closure）：
+
+```bash
+/bin/bash '/tmp/amd-m455-concurrency-dguo910z/start.sh' --check
+/bin/bash '/tmp/amd-m455-concurrency-dguo910z/start.sh' --execute-approved
+# 另一个终端只读观察
+cat '/tmp/amd-m455-concurrency-dguo910z/execution/supervisor.json'
+tail -f '/tmp/amd-m455-concurrency-dguo910z/total.log'
+tail -f '/tmp/amd-m455-concurrency-dguo910z/execution/r1-serial-task0/worker.log'
+# 完成须complete.json存在且status=complete、496 steps、13子任务，checksums检查通过；failure.json不能存在
+cat '/tmp/amd-m455-concurrency-dguo910z/execution/complete.json'
+(cd '/tmp/amd-m455-concurrency-dguo910z/execution' && sha256sum --check --strict checksums.sha256)
+# 安全停止：核对supervisor PID/start_ticks/cmdline后SIGINT，保留证据；前台Ctrl+C等效
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B '/tmp/amd-m455-concurrency-dguo910z/probe.py' --stop
+```
+
+执行脚本当前SHA-256（plan/bundle最终封存值见回执，避免文档与plan互引SHA）：
+
+| 文件 | SHA-256 |
+|---|---|
+| worker.py | b138b912526e8dacd8a115f50b054dbcc71798446b3095b4e6456eaa5fa0b9b3 |
+| probe.py | d4bcb30addbb7bc2763c8eeb009466c7a025d44e1f5e55ac69f6d08adbffdb9a |
+| start.sh | 818c27e4b9da2df2285463c3502af40cd9c4be9004fc5e7bf32630f428f06f61 |
+
+### 55.7 M4–M6衔接与审核停止
+
+效率规划按canonical §9.6.4：M4优先瓶颈核对及本有限1路/2路预检；M5针对实际选定模型确认执行配置；M6按批准任务清单调度，模型独占效率与任务组调度效率分开。不得把本轮规划当M5/M6开始或整体精简/重排获批；其余正式矩阵blocked能力不为短测提前实施，旧P2序列及组合guard不变，第四章/state_source/零context边界不变。
+
+待一次性审核的新增项仅为§55.5具体步数/重复数、496步预算、短轨迹容差、资源/时间cap及独立短测执行；MS方向、固定目标、seed2024、S2结论与已接受P2结果无需重确认。本轮停止在文档和脚本审核；不stage/commit/push、不运行任何模型/训练/并发负载，不改生产配置、科学效果门槛或预算。Git仍为起始HEAD；只canonical/M4两份待审核修改，index无暂存、untracked none，不能称worktree clean。
