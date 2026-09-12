@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第三十二轮，UrbanEV结果接受与独立run并发预检准备（P2 development adequacy Not passed；工程Passed/Completed保持；496步预检Proposed、未执行；M4 In Progress）
+当前轮次：第三十三轮，短测结果接受与1/2/4路稳定训练段预检准备（496步有效短测已完成；新24,960步及执行上限Proposed、未执行；P2 adequacy Not passed；M4 In Progress）
 
 canonical 内部版本：v2.1-R1
 
@@ -5128,3 +5128,102 @@ cat '/tmp/amd-m455-concurrency-dguo910z/execution/complete.json'
 效率规划按canonical §9.6.4：M4优先瓶颈核对及本有限1路/2路预检；M5针对实际选定模型确认执行配置；M6按批准任务清单调度，模型独占效率与任务组调度效率分开。不得把本轮规划当M5/M6开始或整体精简/重排获批；其余正式矩阵blocked能力不为短测提前实施，旧P2序列及组合guard不变，第四章/state_source/零context边界不变。
 
 待一次性审核的新增项仅为§55.5具体步数/重复数、496步预算、短轨迹容差、资源/时间cap及独立短测执行；MS方向、固定目标、seed2024、S2结论与已接受P2结果无需重确认。本轮停止在文档和脚本审核；不stage/commit/push、不运行任何模型/训练/并发负载，不改生产配置、科学效果门槛或预算。Git仍为起始HEAD；只canonical/M4两份待审核修改，index无暂存、untracked none，不能称worktree clean。
+
+## 56. 第三十三轮：短测结果接受与1/2/4路稳定训练段预检准备（2026-09-12 UTC）
+
+### 56.1 起点、已接受短测与累计成本
+
+起点HEAD/local/tracking/live remote均为`dd8cee42213ced34387c3f118e889f10112865fa`，branch=`AMD-paper-repro-custom-modules-v1`，0/0、worktree/index clean、untracked none。AGENTS及23-file production fingerprint=`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`、baseline `amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`保持。当前仅文档与仓库外准备；旧§§1–55正文按当时授权/状态原样保留。
+
+本轮只读核对成功根`/tmp/amd-m455-retry3-jzrikl7w`的bundle、sealed清单、完成审计及必要资源字段，不重做模型计算、旧checkpoint反序列化或全量产物审计。完成审计`/tmp/amd-m455-completion-audit-xy0ryj21/audit-result.json` SHA-256=`afa224ff7b3f9310289889b2b7514e1c5370114e886f32ef0ab19c6a07bb3f1b`，同目录`evidence.sha256`封存；成功根`bundle.sha256` SHA=`63b89069f20d3fcfe4c45b9f3bf4e738b0f720f742daf9b54944041a58ed6ed5`，execution/comparison.json SHA=`15d992b7088ab01c2f6e0eeccfeb8214f9ee1ec1f5c5f8211dc15aff01edcb53`。工具来源与实际SHA另存新包provenance.json；未拿最初dguo910z工具覆盖后续修复。
+
+- 最终有效轮：13/13子任务completed、496个Adam步骤（12×40对照+16独占trace）、96.63924797601067 s；S₂ median=`1.7420710448402421`，range=`[1.6967539824489621,1.84298501373104]`，三次均快于串行。这里S₂是两路加速比，不是Sonnet S2。
+- 六组保存短轨迹逐位一致，max_abs=0；初始参数/buffer、RNG、generator、batch序列及warm状态等检查按成功轮/完成审计原范围接受。当前只核对封存身份/结论，不重新计算这些数组或声称新增动态通过。
+- prepare占worker时间约41.7%–63.3%；import/前缀预处理、缓存及采样开销在短测中占比较大，不能将1.742×或逐位一致外推为完整训练保证。合计采样CPU RSS峰值2,037,178,368 bytes≈1.8972702 GiB，不是GPU显存；旧worker torch reserved峰值234,881,024 bytes=224 MiB，不能代替全部CUDA上下文/实际进程显存。
+- 另计此前两个失败尝试已完成80+40=120步，初次失败真实步骤未知且≤8；旧序列累计≤624步。恢复/额外尝试授权只继承现有修复回执与成功plan.repair中的来源记录，不补造追溯授权，不删除任何失败证据；496仅为最终有效轮成本。
+- 既有guard计数为0，完成审计没有新读test；这是进程内守护证据，不是独立的全训练I/O trace。旧采样I/O available=88、permission unavailable=4、已登记退出重查=6；权限缺测不能伪称测得0 I/O。
+
+### 56.2 唯一完整对照与工作量（Proposed，待用户批准）
+
+代表负载复用成功worker的实际production入口：UrbanEV h3、AMD-Concat，target_exogenous/MS、volume/index0、F4/fold6全部275节点、aux按1…10原顺序；T12/patch12/pred_len1，batch128、seed和train generator seed=2024、workers0、pin_memory=false。Sonnet/PMCR/P2/CCE及全部TEB关闭。原AMD n_block1/alpha0/mix3/scale2/norm与layernorm=true/dropout0.1不变。fresh Adam仍由main._build_optimizer生成，lr=3e-5、weight_decay=1e-7、betas=(0.9,0.999)、eps=1e-8、amsgrad=false、maximize/capturable/differentiable=false、foreach/fused=None（固定torch2.0.1；本轮静态核对，未来保存实际defaults）。float32、CUDA11.8/cuDNN8700、matmul TF32=false、cuDNN TF32=true/benchmark=false/deterministic=true、deterministic_algorithms=false及其余环境保持。
+
+只解析header+3909时间点前缀：train=[0,3475)、validation=[3475,3909)，split-local与M1 train-only scaler、节点/特征顺序不变。继承data SHA=`9ec565783011c83dfb56d1ac76e2b0027cd1821647d15c2f534173e5440c75d1`、schema=`8e43cc3835b913f43357d98573c57c902e3c42d38024df32b6ea93735c00a0f8`、prefix preprocessing=`35c23f4634e325c87beb29c7484b6010fd4a6f6d0a14b19f00266e242385f7e3`及成功plan内逐原文件SHA。全文件仅允许既定字节指纹；test解析/构造/迭代/评价、旧权重读取全部禁止，不以full-fold指纹代替prefix身份。
+
+| 配置 | 并发/每进程计算线程 | 同一组四任务的波次 |
+|---|---|---|
+| S1T4 | 1路/4线程 | task0→task1→task2→task3 |
+| S2T4 | 2路/4线程 | (task0,task1)→(task2,task3) |
+| S4T4 | 4路/4线程 | 四任务同时 |
+| S4T2 | 4路/2线程 | 四任务同时 |
+
+只通过旧worker的torch.set_num_threads及对应--num_threads入口改变4→2；interop仍为旧实测32，不调用set_num_interop_threads；OMP/MKL/OPENBLAS环境均保持4，affinity仍为8–11,40–43，不增加绑核/NUMA策略。它不是“所有库线程都改2”。每任务fresh模型/Adam、独立目录，相同任务跨模式/重复用同一初始化和batch序列；task编号不是新seed或模型候选。
+
+每worker连续8步warm-up（Adam.step，建立状态）+512步测量（Adam.step）+4个validation batch。两段共享同一iterator/模型/Adam/RNG，不在warm-up后重置，不预装GPU反复喂同batch；实际DataLoader/H2D/forward/backward/Adam、finite/.item安全与全元素误差检查保留。validation只核数值，不选best、不发布development产物。继承CLI中的train_epochs=10只是parser身份字段，本包没有epoch循环，520批远小于一个训练epoch。
+
+预定顺序：R1=S1T4→S2T4→S4T4→S4T2；R2=S2T4→S4T2→S1T4→S4T4；R3=S4T4→S1T4→S4T2→S2T4。共4配置×4任务×3重复=48个worker、48×520=24,960个Adam步骤、192个validation batch（训练样本访问3,194,880，validation样本访问24,576）；不新增trace。失败尝试也占本包工作量，不是“成功步骤额度+无限重试”；中断保存已started/returned/in-flight及phase计数，硬中断未知段须保守计费，禁止自动重跑。
+
+### 56.3 计时、数值与资源上限（均Proposed）
+
+T_e2e：同四任务从首个Popen前至最后worker退出，含import/prepare、warm-up、训练、有限validation、数值记录、fresh-state保存与checksum；父进程跨模式数值比较另放组计时之后。四模式相同边界，不预先初始化四个CUDA进程冒充串行独占。
+
+T_train：每波prepare、8步warm-up、warm状态采集及CUDA同步后ready；supervisor按同主机monotonic统一放行，连续512步后各worker同步并记录end，以最后end减释放时刻。S1/S2/S4分别4/2/1波求和；提前结束者仅发小型IPC状态并阻塞，等全部测量结束后才validation/保存，不给同波制造后处理负载。ready等待、结束等待另列，不每步加CUDA同步或全局屏障。它是受控波次测量，不冒充上线生产调度器/完整训练效果。
+
+两种时间均报告逐R比值、median/range：T1/T2、T1/T4、T2/T4，及S4T2对S4T4线程调整、S4T2对S1T4整套配置比较。S4T4 vs S2T4才用于增加并发的判断；S4T2 vs S1T4不称纯并发效应。固定工作量总吞吐、每worker相对同R/S1T4的减速及prepare占比另列；进程重叠时长不相加成物理GPU占用小时，不拿最快一次/GPU利用率替代makespan。
+
+各模式相同每秒监控频率、日志粒度与采集逻辑。记录torch allocated/reserved（Adam已建立）、可得的nvidia-smi进程实际显存、RSS/HWM、CPU ticks/线程/亲和性、竞争进程、可得I/O；warm-up及测量/validation相关峰值分项保留，时间窗可能重叠，不简单相加。原finite/item检查不减，额外轻量资源上限检查和全loss记录对四模式一致且计入相应窗口。
+
+对应任务初始参数/buffer、构造后RNG、train generator、全batch序列要求精确匹配；warm-up后状态另存；全部逐步prediction/auxiliary/objective loss、最终参数/buffer/Adam状态finite，shape/dtype相同、整数严格相等。浮点拟atol=1e-6、rtol=1e-5，bitwise及max_abs另列；S4T2独立检查，不假定线程变化无影响。warm和final完整数值数组在测量窗外采集；不只比平均loss，也不改production容差。数值差异超提案界限停止调度，不按validation改善选择并发。
+
+| 待批上限 | 精确口径 |
+|---|---|
+| 整包60分钟 | execution目录/身份记录后、monitor及首worker前的supervisor start至最终验证/完成；只读preflight不计，SIGINT收尾可能超过观测上限，不是OS强杀期限 |
+| 每worker10分钟 | Popen至退出，包含registration/ready/结束等待 |
+| RSS/显存 | 每worker RSS≤8 GiB、CUDA reserved≤4 GiB；worker RSS合计≤32 GiB，manager/monitor另≤1 GiB |
+| 磁盘 | 输出≤2 GiB，启动前空闲≥5 GiB；资源采样不是OS硬配额，reserved不包含全部CUDA上下文 |
+
+本轮只读现场：同一A800 UUID `GPU-3d365efd-300b-f527-e8fe-703fb0cfb738`、Default compute mode、driver550.163.01，无可见CUDA计算进程；可用CPU仍8–11,40–43，可见本层CFS quota=-1、RAM limit=512 GiB，/tmp空闲317,665,038,336 bytes≈295.85 GiB。宿主父级配额不可见，未来独占/个人quota仍无保证；启动时重新核验。
+
+时间仅Scenario：总24波，每波512步；若该波最慢worker平均0.05/0.10/0.20 s/step，则T_train约10.24/20.48/40.96 min，T_e2e另加prepare/warm-up/validation/保存等开销。旧32步实际约1.5–2.6 s仅作参照，4路和512步真实值Unknown；60 min不是保证完成上界，超限停止。旧单worker约1 GiB RSS、224 MiB reserved支持提出较宽余量，但不是新4路/512步实测。
+
+### 56.4 成功工具继承、访问保护与执行闸门
+
+新独立包`/tmp/amd-m456-wave-3jx9k6bb`。worker/probe由成功retry3版本增量形成；monitor_support.py逐字节复用（SHA=`ad05191c7793413be309a4bd25754f9b6f8d8bc1b003cdc747be980d056b21e8`），保留整数FD分类、可选/proc/io PermissionError=unavailable、已注册子进程退出后GPU列表有限重查；不以宽泛except吞掉真正受禁访问。活进程身份无法证明仍停止，权限不足本身不是“进程已退出”证据。wave_support.py只新增标准库IPC/波次核账/安全信号辅助；没有重写生产框架。
+
+supervisor/启动独占锁、每task目录/锁、PID/start_ticks/cmdline与GPU host PID登记隔离；任何非零、非finite、身份/数值异常、资源超限或外部GPU竞争均停止后续调度，只向核对身份的本包进程组SIGINT，不误停其他用户，不自动重试/清理/覆盖。失败保留日志、步骤状态及fresh checkpoint。已有成功/失败包、旧训练launcher及artifact不动。
+
+start.sh仅在明确用户批准后才可用--execute-approved：须有绑定本包bundle SHA、proposal_id、24,960步和批准出处的独立approval.json；本轮**不创建批准回执**。还须clean Git、无untracked，实际HEAD是本轮起点dd8cee…的单parent后继、提交恰为canonical/M4两份modified、文档最终SHA精确匹配、23-file production/data指纹和环境一致。当前dirty或缺批准必拒绝；不猜未来closure SHA。bundle覆盖worker/probe/monitor_support/wave_support/selfcheck/plan/start全部7文件，缺项/重复/改写均拒绝；现存launch.claim/execution拒绝fresh rerun。
+
+### 56.5 本轮实际无负载验收
+
+AST/内存compile及bash -n通过；仅标准库哑进程的最终独立自检17/17 passed，failure=error=skip=0，非预期受禁访问=0，Dataset/model/optimizer构造=0、Adam步骤=0、GPU负载=0。覆盖48 ID/24,960步算术、1/2/4波次、early-finish等待、错误phase/退出/限制信号停止、漏项/重复/非零不完成、独占锁、身份安全停止和缺批准拒绝；guard负例仅为新包内合成禁止路径。日志selfcheck-final.log及selfcheck-result.json，各次17项日志分别保留，计数不合并。资源cap测试是标准库限额异常传播自检，不是CUDA/RAM压力验收。
+
+tmux3.2a以新短命无模型命令实测：成功独立会话、生成no_model/GPU_load=false证明、观察存活后正常退出；daemon-check.json/tmux-proof.json留证，不需fallback。实际模型CUDA、512步数值一致性、训练吞吐及并发资源验收均**Not performed**，不能用上述语法/调度通过替代。
+
+本包代码/计划、审计来源、资源与自检证据分别由bundle.sha256/evidence.sha256封存；各最终SHA见交付回执及服务器清单，避免文档与plan相互引用自身SHA。准备包的语法/静态配置检查只检查文本、Git/元数据，不导入模型入口或解析raw数据。
+
+### 56.6 可复制操作命令（启动仅在批准及docs-only closure后）
+
+```bash
+# 无负载检查：当前可用，不授予执行权限
+/bin/bash '/tmp/amd-m456-wave-3jx9k6bb/start.sh' --check
+# 唯一启动：本轮不可执行；待用户批准并登记绑定回执、两文档精确closure后
+/bin/bash '/tmp/amd-m456-wave-3jx9k6bb/start.sh' --execute-approved
+# 会话及带PID身份核对的状态
+/usr/bin/tmux has-session -t amd-m456-wave-3jx9k6bb
+/bin/bash '/tmp/amd-m456-wave-3jx9k6bb/start.sh' --status
+# 总日志与首个task日志；其他task按预定48 ID在execution内独立保存
+/usr/bin/tail -f '/tmp/amd-m456-wave-3jx9k6bb/total.log'
+/usr/bin/tail -f '/tmp/amd-m456-wave-3jx9k6bb/execution/r1-S1T4-task0/worker.log'
+# 完成判定：必须48/48、24,960步、192 validation批、无failure且Python/系统checksum一致
+/bin/bash '/tmp/amd-m456-wave-3jx9k6bb/start.sh' --complete
+# 安全停止：校验supervisor身份，SIGINT本包进程，保留证据
+/bin/bash '/tmp/amd-m456-wave-3jx9k6bb/start.sh' --stop
+```
+
+SSH退出前应看到tmux会话存在、--status为identity_verified_live、total.log有preflight通过及worker阶段日志/状态更新。tail的Ctrl+C只退出日志查看；中止包使用--stop。缺任务、非零退出、数值/资源/身份失败或checksum不符不能以complete计成功；本包不自动训练其他模型/数据、不发布development结果。
+
+### 56.7 审核停止与保护
+
+仅canonical当前摘要及M4文件头/本§56修改；生产源码、永久tests、AGENTS、M0–M3、全部既有数据/产物及baseline不变，不stage/commit/push。当前M4 In Progress，P2 development adequacy仍Not passed且原性能序列停止；S2 Passed/leading、组合guard及来源叙事不变，不进入M5/M6、不修改阶段任务表、不冻结正式并发配置。
+
+剩余新增待批项目仅为本节完整四配置（含4路与4→2计算线程）、48任务/24,960步/192 validation批、预定顺序、两种计时、数值容差及时间/资源上限和一次有限执行。要求推进准备不等于批准这些步骤；成功包的旧496步授权不自动扩展。本轮交付后停止，待ChatGPT审核与用户精确执行批准，未启动测量。
