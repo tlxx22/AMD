@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第三十三轮，短测结果接受与1/2/4路稳定训练段预检准备（496步有效短测已完成；新24,960步及执行上限Proposed、未执行；P2 adequacy Not passed；M4 In Progress）
+当前轮次：第三十四轮，并发预检结果接受与P2机制诊断（12组合并有限证据已接受；24-run曲线/16份C权重CPU只读分析完成；validation前向诊断Proposed、未执行；P2 adequacy Not passed；M4 In Progress）
 
 canonical 内部版本：v2.1-R1
 
@@ -5227,3 +5227,154 @@ SSH退出前应看到tmux会话存在、--status为identity_verified_live、tota
 仅canonical当前摘要及M4文件头/本§56修改；生产源码、永久tests、AGENTS、M0–M3、全部既有数据/产物及baseline不变，不stage/commit/push。当前M4 In Progress，P2 development adequacy仍Not passed且原性能序列停止；S2 Passed/leading、组合guard及来源叙事不变，不进入M5/M6、不修改阶段任务表、不冻结正式并发配置。
 
 剩余新增待批项目仅为本节完整四配置（含4路与4→2计算线程）、48任务/24,960步/192 validation批、预定顺序、两种计时、数值容差及时间/资源上限和一次有限执行。要求推进准备不等于批准这些步骤；成功包的旧496步授权不自动扩展。本轮交付后停止，待ChatGPT审核与用户精确执行批准，未启动测量。
+
+
+## 57. 第三十四轮：并发预检结果接受与P2机制诊断（2026-09-13 UTC）
+
+### 57.1 现场、接受范围与原组/重跑来源
+
+本轮从真实Git及合并审计读取HEAD=`8c698ae4d62374e4ec9da245f3737d1e7095e009`，parent=`dd8cee42213ced34387c3f118e889f10112865fa`，branch=`AMD-paper-repro-custom-modules-v1`；起始local/tracking/live remote一致、0/0、worktree/index clean、untracked none。`dd8cee…`是§56准备起点，不能写成当前HEAD。原执行包、唯一重跑包的approval记录及合并审计均绑定实际closure `8c698ae…`；ETTm1/UrbanEV P2训练各自source Git仍为`dcda29c60d2c6ac632804de0a53ad285073555d9` / `1d60839bfe4d1c2dbc9811171949be9ec60e7885`，不改写训练来源。23-file production fingerprint均为`9fde2a5f673402296345c2f86e0b462ad4189ab790934d36e60a48663d1f423c`，算法仍为`sha256_length_prefixed_relative_path_and_content_v1`。
+
+ChatGPT接受合并并发预检为有限工程证据，S4T4是本负载的优先执行配置候选；未冻结所有模型/完整训练的并发配置。本轮不再测6/8路或启动新训练，转回P2机制诊断。§§1–56保留历史当时的Proposed/授权/失败状态，不倒改。
+
+精确来源：原包`/tmp/amd-m456-wave-3jx9k6bb`，重跑包`/tmp/amd-m456-lastgroup-90bhkjq5`，合并审计`/tmp/amd-m456-combined-audit-q48g8c_q/audit-result.json`（SHA=`5bece067478aee8f25dac60071b1113a323a660b5656f894a5956904a747f21c`）；该审计`evidence.sha256`为`e825ed9dbb49535ac6c57173d15acb5181ac39d0b281985c553f6c12356af6d5`。本轮核对该清单10项checksum及引用身份，复用数值验收，不重做模型计算。原approval记录本会话用户“批准”；重跑approval（SHA=`e920a25d9df38e3b01193bef7a83deb1e0807913e3c69cb833f052291158ae5f`）记录在说明2080步重跑、累计26,000步及较原预算多1040步后，用户明确“重跑最后一组”。这是既有批准出处，不是本轮追溯授权。
+
+原包46个完整worker共23,920步；最后R3/S2T4组的task0/1已完成1040步，task2在模型导入前进程身份注册失败、0步，task3未启动。只选原11个完整组44任务、22,880步，排除中断组两项已完成任务的比较记录但保留其成本。唯一获批重跑将整个R3/S2T4四任务fresh完成2080步。故有效结果为**12组48任务、24,960步、192批validation**；整个较长对照序列实际为**26,000步、200批validation**，不是一次不间断48任务尝试，也不含更早§56的短测成本。原失败、部分成功、重跑及approval均保留，不删除/拼接成“第一次全部成功”。
+
+重跑R3/S2T4的同主机单调计时区间为`[152180.72291159,152286.792433668]`，`T_e2e=106.0695220779744 s`、`T_train=80.47935590098496 s`；包complete另记含管理收尾总时长`107.59658284299076 s`，二者不混用。该组发生于较晚时段并使用启动ready握手修复；R1/R2的S2T4端到端分别85.70007542800158 / 86.60583023600338 s，较晚组更慢、扩大S2范围。现存组计时是主机单调时钟，不补造未记录的精确UTC起止。
+
+### 57.2 合并主统计与有限适用性
+
+沿§56固定四任务、8步warm-up＋512步测量＋4批validation；端到端包含准备/数值保存等，稳定段按波次统一放行至最后worker结束求和，不能把重叠进程时长相加当物理GPU占用。下表均先算每次重复的配对比值，再算median [min,max]；没有通过两个median相除制造配对值。未舍入原值保存在`concurrency-sensitivity.full_precision.json`。
+
+| 配置 / 串行参照 | T_e2e加速median [range] | T_train加速median [range] |
+|---|---|---|
+| S2T4/S1T4 | 1.3797898085425668 [1.1244622416921166, 1.4288739815273708] | 1.2626251681240717 [1.1847863156645522, 1.2776237222501703] |
+| S4T4/S1T4 | 1.6929321420582246 [1.6888937701026536, 1.7343261239107444] | 1.4752309538704576 [1.4525378412172105, 1.496514569468395] |
+| S4T2/S1T4 | 1.6824019535320853 [1.6449062668963401, 1.7539666969839922] | 1.4705046802809107 [1.4582721706368775, 1.48031758515548] |
+
+S4T4相对S2T4：端到端配对median=`1.2240224994027058`、range=`[1.2137712256870026,1.505548233892373]`；稳定段median=`1.15466778534157`、range=`[1.1504109674728715,1.2631092625584497]`。S4T2相对S4T4的端到端median=`0.9937799110404172`、range=`[0.9739548431138805,1.0113246135213372]`；稳定段median=`0.9967962483588438`、range=`[0.9891768615933564,1.0039478003649542]`，没有稳定额外收益。S4T2对S1T4是整套执行配置比较，不称纯并发效应。
+
+48个有效任务的初始参数/buffer、构造后RNG、train generator及保存的batch序列核验一致；**36个并发任务**与各自同重复S1T4逐项比较，warm-state及最终trajectory保存数组（每文件222项，含模型/Adam状态、相关RNG/batch/loss记录）finite、整数精确、bitwise相同，max_abs=0。证据范围是实际保存的初始摘要、warm/final状态及轨迹记录，不是所有中间激活/每步完整模型状态，更不保证完整epoch/完整训练必然逐位一致。
+
+复用845次已有监控样本：1路GPU采样忙碌时间median约34%，4路约99%（2路约97%），不是理论FLOPs利用率；4路CPU合计RSS峰值约3.72 GiB，设备总显存峰值2945 MiB（约2.88 GiB），不得混写RSS为GPU显存。GPU竞争与受禁访问按既有审计保存范围为0；部分`/proc` I/O元数据权限不可用的限制保留，不声称取得了训练全过程独立I/O trace。并发预检的checkpoint读取0与本轮获准CPU读取16份C权重属于不同工作范围。
+
+结论限定：UrbanEV h3、F4/fold6、AMD-Concat、batch128、当前8逻辑CPU及A800环境下，**S4T4优先，S4T2无稳定额外收益**。不注册默认配置、不修改runner/旧launcher，不外推P2、Sonnet、其他horizon/正式矩阵；效率探索到此停止，后续实际任务按其负载确认。
+
+### 57.3 排除跨时段R3的描述性敏感性
+
+只用现存计时，排除含重跑组的**整个R3**，同时排除R3其余三配置，保留完整配对R1/R2；没有只删除较慢的S2点并保留该次其他配置。下表是R1/R2各自相对S1T4的端到端 / 稳定段比值，非新测量、非替代主统计。
+
+| 配置 | R1：T_e2e / T_train | R2：T_e2e / T_train |
+|---|---|---|
+| S2T4/S1T4 | 1.4288739815273708 / 1.2626251681240717 | 1.3797898085425668 / 1.2776237222501703 |
+| S4T4/S1T4 | 1.7343261239107444 / 1.4525378412172105 | 1.6888937701026536 / 1.4752309538704576 |
+| S4T2/S1T4 | 1.7539666969839922 / 1.4582721706368775 | 1.6449062668963401 / 1.4705046802809107 |
+
+两次完整重复的S2/S4均快于串行，S4T4相对S2T4端到端比值分别`1.2137712256870026` / `1.2240224994027058`，稳定段`1.1504109674728715` / `1.15466778534157`，4路方向保持。排除R3后的S4T2/S4T4端到端分别`1.0113246135213372` / `0.9739548431138805`，稳定段`1.0039478003649542` / `0.9967962483588438`，线程调整仍方向混合；两次稳定段median虽为`1.000372024361899`，不解释为稳定额外收益。完整敏感性median/range与主统计分开存储，不改变前节结论。
+
+### 57.4 原P2 24-run history只读分析
+
+只从ETTm1完成审计`/tmp/amd-p2-ettm1-stage1-audit-dbp6k44s/final/production-summary.rows.json`与UrbanEV完成审计`/tmp/amd-p2-urbanev-stage2-audit-63_wyfe4/final/production-summary.rows.json`解析24条精确run路径，限定原两个`*-pmcr-p2-three-arm-v1`根。复核既有审计evidence清单ETTm1 40项/UrbanEV 34项及所需config/manifest/history/metrics/source/data-fingerprint校验和；复用生产identity/schema/variant/hash验证，不扫描其他artifact，不重新完整审计全部产物，不读取CSV观测。
+
+`curve-summary.full_precision.csv/json`逐dataset×H×arm保存epoch1/best/last validation MSE/MAE、best epoch、last相对best绝对/相对变化与best后逐epoch再次下降的位置；`history-extract.full_precision.csv/json`保存240个epoch的已记录目标元素MSE、auxiliary batch均值、total objective batch均值、元素数与步骤信息。**标准from-scratch未记录独立`prediction_mean_batches`，记Not recorded，不由total objective减aux反推它。** `train.mse`是已记录的全元素目标prediction error，不能混同batch均值。history没有独立optimizer_steps字段；表内每run步骤是依据`train.num_batches`和未改变的`main.py:3498–3528`每批一次optimizer.step路径**Derived**，不是伪造原始step计数。
+
+下表只列曲线形态；A/B/C顺序固定，百分数展示舍入，判断与外部表保留未舍入值。没有重选best，也没有用test选择新优化协议。
+
+| dataset / H | best epoch A/B/C | last相对best validation MSE变化% A/B/C | 每臂run步骤（Derived） |
+|---|---|---|---|
+| ETTm1 / 96 | 3/3/3 | 12.974554 / 14.345406 / 14.806518 | 10610 |
+| ETTm1 / 192 | 1/1/1 | 13.496532 / 15.463069 / 16.024733 | 10580 |
+| ETTm1 / 336 | 2/2/2 | 11.707341 / 14.091291 / 14.664646 | 10530 |
+| ETTm1 / 720 | 6/4/4 | 8.038874 / 29.574196 / 31.711336 | 10410 |
+| UrbanEV / 3 | 10/10/10 | 0.000000 / 0.000000 / 0.000000 | 74350 |
+| UrbanEV / 6 | 10/10/10 | 0.000000 / 0.000000 / 0.000000 | 74290 |
+| UrbanEV / 9 | 9/9/9 | 0.179354 / 0.135439 / 0.145014 | 74220 |
+| UrbanEV / 12 | 8/8/8 | 0.061766 / 0.010722 / 0.019647 | 74160 |
+
+ETTm1 H96/192/336的早期best是三臂共同现象，不是C独有；H720 A在6轮、B/C在4轮达到best。ETTm1后期C相对B差距扩大：第10轮C/B validation MSE退化分别0.4107668351117644%、0.4891657585614162%、0.5094277816876325%、1.6473481377804688%，但不据此自动改epoch/LR。各H第一次保存的epoch1就已有非零C−B差异；记录粒度只能定位到epoch，不能说从某一optimizer step才分化。部分best后epoch会比前一轮下降（如H96第5轮），均未再超过最终已封存best。
+
+UrbanEV三臂在四个horizon的best完全同轮，分别10/10/9/8；不是C特有的早期停滞。C相对B在40个已记录epoch×H点的validation MSE均略低，e1→e10的变化分别h3 -0.03806085304766116%→-0.026741181437495154%、h6 -0.04663723991803481%→-0.09723382465632868%、h9 -0.037305267550058474%→-0.15968916414881296%、h12 -0.0008895713582646181%→-0.0187782356127153%；幅度小且不单调。h12的B/C在第10轮相对第9轮回落但未达到第8轮best；h3/h6的best即last。均只是训练记录形态，不替代§55已接受的两个主gate Not passed与整体P2 adequacy Not passed。
+
+### 57.5 16份C checkpoint CPU参数统计
+
+精确allowlist为两个数据集各4个C run的best.pt/last.pt，共16个文件。每文件先验证completed、C arm、P2 variant/task/target/H/purpose/schema/train-form/source及config/外置checksum，再以固定amd Python、`map_location=cpu`逐份反序列化一次；无A/B或旧TEB/CCE/Sonnet/probe权重读取，不构造模型/Dataset/optimizer、不resume/warm-start、不写参或另存权重。
+
+原`summarize_results._validate_pmcr_checkpoints`每次循环best/last；为避免重复读取，本轮外置脚本仅以可逆AST把其角色循环限定为当前一个role，函数原身份/key/shape/dtype/finite断言均保留并核对AST还原一致。原跨role key/shape/dtype一致性与last携带的best_state匹配在外层补足；不是绕过身份。文件描述符内先核SHA再seek回头CPU load，fstat核对未变；每份完整payload及时释放，仅暂留小型P2数值向量用于best→last统计，不输出派生权重。外部`checkpoint-read-audit.json`与逐文件`checkpoint-reads.jsonl`记录16/16唯一读取及SHA。
+
+16份权重的全部gate参数finite且各元素非零；末层weight/bias均已离开已知零初始化，不能说gate完全未训练。每层weight/bias的L2、max_abs、nonzero_count、shape/dtype见`checkpoint-parameters.full_precision.json`；以下norm表仅紧凑展示，绝对与相对变化分开。相对best→last定义为`||last-best||₂ / ||best||₂`；body列排除gamma，避免将其标量变化混入主体解释，含gamma统计另存。首层随机初值未保存，不按seed重建后冒称实测初始变化；零初值分母的相对量一律N/A，不加epsilon。
+
+| dataset / H | gamma：best → last | gate末层weight L2：best → last | gate best→last：ΔL2 / 相对% | body不含gamma：ΔL2 / 相对% |
+|---|---|---|---|---|
+| ETTm1 / 96 | 0.02443733253 → 0.094005391 | 0.0605278612 → 0.222418326 | 0.409771865 / 23.805618% | 0.868744019 / 13.754302% |
+| ETTm1 / 192 | 0.01551359519 → 0.09826381505 | 0.0375683144 → 0.233562129 | 0.492258188 / 28.510973% | 1.21968653 / 19.432233% |
+| ETTm1 / 336 | 0.02322143316 → 0.1065546274 | 0.0560978163 → 0.24671644 | 0.479512426 / 27.718307% | 1.37067659 / 21.745875% |
+| ETTm1 / 720 | 0.04055014625 → 0.135511145 | 0.0941393416 → 0.306814781 | 0.51210423 / 28.772379% | 1.1716522 / 18.374143% |
+| UrbanEV / 3 | -0.05955090746 → -0.05955090746 | 0.276598333 → 0.276598333 | 0 / 0.000000% | 0 / 0.000000% |
+| UrbanEV / 6 | -0.0600543879 → -0.0600543879 | 0.35619494 → 0.35619494 | 0 / 0.000000% | 0 / 0.000000% |
+| UrbanEV / 9 | -0.06590287387 → -0.06754353642 | 0.438854267 → 0.465177469 | 0.0525765638 / 2.421479% | 0.101555247 / 1.525280% |
+| UrbanEV / 12 | -0.04730235785 → -0.05139629915 | 0.301022844 → 0.314928395 | 0.0414585963 / 2.029654% | 0.196452285 / 2.929965% |
+
+gamma已知名义初值1e-3（float32表示另记0.0010000000474974513）；每份相对名义初值的signed变化/百分比完整另存。ETTm1 best gamma约0.01551–0.04055，last约0.09401–0.13551；UrbanEV best约-0.06590至-0.04730，last约-0.06754至-0.05140，即其已训练标量符号与正初值不同，gamma没有被固定为正。本轮不将符号变化解释为物理量变号或性能因果。UrbanEV h3/h6的整个模型best/last状态相同，与best=10一致；h9/h12的gate与body仍有后续变化。
+
+**已观察事实**：曲线与参数确实变化，gate末层不是零初始化停留，ETTm1后期误差/参数增量并存，UrbanEV多数best较晚。**仍待激活验证的假设**：已学gate可能主要体现窗口级强度而非显著时间变化，或其调制量对目标hidden/预测贡献很小；这些只是需要比较gate分布/时间均值/旁路的假设。**现有证据不能回答**：gate是否近1/饱和、样本间/时间内变化、实际base_delta与residual幅度、gate对预测是否有贡献或导致了泛化变化。参数非零不证明有效，参数小不证明无效，gamma或gate变化与曲线共现不构成因果。H是AMD hidden，不是原始充电量变化的直接物理解释。
+
+### 57.6 唯一Proposed：有限validation激活与旁路诊断（本轮不执行）
+
+本提案依据上节证据，优先检查UrbanEV全部h3/6/9/12，不按效果挑H/样本；只解释已训练checkpoint依赖，不替代独立A/B/C比较、不重裁adequacy。所有新增前向数、样本选择、数值/时间/资源上限仍**Proposed，待批准**；optimizer=0不是无限推理授权。仅交付外部`validation-proposal.json`及标准库静态检查器，不注册新生产协议/variant，不提供默认可执行模型负载。
+
+- 数据：F4/fold6、volume/index0、11个原ordered输入、275节点、T12/patch12、pred_len1，原train-only节点/scaler；只允许header＋3909前缀，train=[0,3475)、validation=[3475,3909)，split-local；test解析/构造/遍历/评价为0，全文件仅参与既定字节指纹。
+- 固定样本：validation有434时间点，各h的合法历史窗口数420/417/414/411。统一选择与标签/误差无关的`w_i=floor(i*410/7), i=0..7`，即`[0,58,117,175,234,292,351,410]`，每个历史窗口包含原顺序全部275节点。使用生产`TemporalRegionDataset._identity/__getitem__`的`index=w*275+node_position`及标签`w+12+h-1`；四H共8800个不同标签样本，每H2200。batch128、18批（17×128＋24）、shuffle=false/drop_last=false、workers0/pin_memory=false；h12最后标签local433，所有选择均合法。是固定子集，不声称全validation覆盖。
+- 权重/视图：四个C run各best/last，未来另行授权读取最多8份、每文件一次、一次驻留一份。best做normal、gate=1、每样本/变量gate时间均值广播、整个P2旁路共4视图；last只做normal激活统计。另对每份checkpoint、同18批执行一次未改动生产normal作为逐批parity参照。总计**360诊断batch前向＋144生产parity前向=504次完整模型batch前向，61,600 sample-forward evaluations**；诊断20个H/role/view组合、每组合Q=2200目标元素，共44,000；其余17,600为parity重复。无额外smoke/warm-up前向、train前向、backward、Adam.step、完整epoch/完整validation或产物发布；h3/h6 best=last仍按固定预算核账，不暗中增加其他视图。
+- 实现边界：只在未来临时加载的C实例内包裹`pmcr_p2.forward`，保留DDI→P2→AMS与selector/state接口；一次`compute_components(H)`取得base_delta/gate/effective_delta/residual/output，不重复采样主体dropout、不自动detach或改mode。诊断全程eval+no_grad，原函数在finally恢复；各统计取all hidden和target channel0两套。gate=1是C训练后的body，不冒充独立B；时间均值仅去掉每个窗口内的时间变化，保留样本/变量差异，不称全局常数。
+
+可复现伪代码（仅方案，未执行）：
+
+```python
+parts = p2.compute_components(H)  # H=v_ddi [B,11,12]; exactly one body call
+if view == "normal":        out = parts["output"]
+if view == "gate_one":      out = H + p2.body.gamma_pmcr * parts["base_delta"]
+if view == "gate_time_mean":out = H + p2.body.gamma_pmcr * parts["gate"].mean(-1, keepdim=True) * parts["base_delta"]
+if view == "P2_bypass":     out = H
+# The surrounding AMD forward and input/target identities remain unchanged.
+```
+
+采集gate的mean/std/min/max及1/5/50/95/99%分位，gate≤0.05/≥1.95比例仅作描述、不作为新gate；每样本/变量的时间std、时间均值的样本间std，以及每节点跨8窗口的时间均值std分别报告。幅度检查`base_delta`、`gamma*gate*base_delta`、`gamma*(gate-1)*base_delta`的RMS/mean_abs/p95_abs/max_abs；相对`H`或`gamma*base_delta`的L2比例遇零分母记N/A。输出仅聚合表，临时CPU数组可用于精确分位，不保存全部激活/派生权重。每视图在同一固定子集累加target SSE/SAE/Q、train-standardized MSE/MAE；不与封存完整validation分数当作同范围直接替换，不选best。
+
+normal wrapper与同checkpoint原生产forward须同批、同mode/RNG比较，拟float32 `atol=1e-6, rtol=1e-5`，另外报bitwise/max_abs；全部shape/dtype/finite/样本及node顺序检查。每视图前后核参数/buffer摘要、mode与Python/NumPy/CPU/CUDA RNG，专用DataLoader generator按视图复制/还原，防止iterator创建改变全局RNG；不写权重、不改变数据scaler或production容差。身份/checksum在load前核验，key/shape/dtype/finite在赋参前用原边界核验。
+
+拟单A800 float32、1进程、4计算线程；先核实际环境，不继承S4T4并发结论。**整包≤900 s**（首次metadata前置/数据准备前至最终表与checksum结束），**每checkpoint≤120 s**（该文件metadata/checksum/load前至其视图/统计/释放结束），RSS≤8 GiB、CUDA reserved≤4 GiB、输出≤256 MiB、启动前free≥1 GiB。均为待批上限，不是实测时延保证；采样停止线非OS硬配额，reserved不含全部CUDA上下文。身份/数据边界/normal parity/状态或RNG保护/finite/资源任一失败立即停并保留证据，不自动重试、加样本、改容差或预算。
+
+### 57.7 执行证据、保护与审核停止
+
+本轮新外置目录：`/tmp/amd-m457-mechanism-ps6qbud_`。`analyze_records.py`只读原metadata/history并计算现存计时敏感性；首次脚本语法错误发生于执行前，`records-01.log`与原版本保留，修复后`records-02.log`成功，不合并尝试成本。`analyze_checkpoints.py`只运行一次且成功，checkpoint CPU load=16、每文件一次；model/Dataset/optimizer构造=0、forward/backward=0、原始CSV观测读取=0、GPU初始化/负载=0。权限/禁止访问没有用宽泛异常隐藏。未运行动态模型测试、训练、性能诊断或新前向。
+
+命令与日志（下列是本轮已执行记录；checkpoint脚本不得为阅读回执再次运行）：
+
+```bash
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B /tmp/amd-m457-mechanism-ps6qbud_/analyze_records.py
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /public/home/yueweiting/miniconda/envs/amd/bin/python -B /tmp/amd-m457-mechanism-ps6qbud_/analyze_checkpoints.py
+# 可重复的无负载提案检查，不导入torch/模型，不读取checkpoint或CSV：
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B /tmp/amd-m457-mechanism-ps6qbud_/check_validation_proposal.py
+```
+
+`records-02.log`、`checkpoints-01.log`及`proposal-static-check.log`分别保留metadata/参数读取/静态预算结果；最后一项仅static_config_and_budget_checks Passed，runtime acceptance=Not performed、execution_authorized=false。核心25文件`evidence.sha256`经系统sha256sum逐项通过。源清单/allowlist、未舍入曲线/参数、方法脚本与提案SHA如下；这些是证据定位，不是新权威状态文档。
+
+| 外置文件（上述目录内） | SHA-256 |
+|---|---|
+| `analyze_records.py` | `487059cdd937441f0cf3e16a3903710297d3eef2d4d88b9160952314d1301c48` |
+| `analyze_checkpoints.py` | `59a7f60f32c806365cbb67f2caf06206de00ed97ea9efa375c4311c7a3b5e14b` |
+| `run-allowlist.json` | `083166ea8918f1f6d2ece2fbb38c9fad7f95cd3c3a22d7d4ffc2c3d839e4b6f3` |
+| `history-extract.full_precision.csv` | `ca1f8ea643d91f12b9b2a088129a559853ed4c6520c5829fad07044aa35e3a8d` |
+| `curve-summary.full_precision.csv` | `b413298b35b0b3886599f04c499c186849380173e99910ce06efa98cbb8adaa9` |
+| `concurrency-sensitivity.full_precision.json` | `42a335078c16ef1037adac83ff859b37657c105875e74f51c9a029999a2d3805` |
+| `checkpoint-parameters.full_precision.json` | `b9a42aa5fc1f7d1ee0c8840ba0fe578ac3354837190529660ebef7b6cb5cfa92` |
+| `checkpoint-deltas.full_precision.json` | `fec35f1367740e916c91611c2d0f75cb5a7298e5cb104fca99341c3c7fb7ea2b` |
+| `checkpoint-read-audit.json` | `8ec672a3e92cdca09c7cdbedab6c617c7b8b87ae0d06214d2fcffa23bb0cbe82` |
+| `validation-proposal.json` | `a40e28a482e6c48fa065b789ad6bce6eefc35337e087c12b30ae43737b2e7481` |
+| `check_validation_proposal.py` | `03778ad2005b7e491fdfb7ffe885d05df02fe295161222cd78843cfa13155885` |
+| `evidence.sha256` | `4b1b2c38ccf7acc00497a0f5d7d98204d4cc4dd729c746917dfc7e79c37c735d` |
+
+仓库只修改canonical当前§0.1/§9.6.4/§24摘要及本M4文件头/新增§57，内部版本v2.1-R1不变，旧§§1–56正文原样保留。AGENTS、M0–M3、生产源码/永久tests、数据与既有artifact/launcher不修改；baseline仍`amd_reproduced_baseline_v1 → fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。文档差异/引用/范围及diff --check核验，未stage/commit/push；交付后等待ChatGPT审核，不自行closure。
+
+P2 engineering implementation/review/closure既有Passed/Completed保持，development adequacy仍Not passed、原性能序列停止；S2 Passed/leading、模型来源叙事与组合guard不变。只余本节有限validation前向提案的样本/8份权重/504次前向及数值/时间/资源上限需审定，不能由本轮参数读取或并发接受自动批准；不新增P3/ICB/CycleNet、不改batch/LR/epoch/seed，不进入M5/M6、不修改阶段任务表。
