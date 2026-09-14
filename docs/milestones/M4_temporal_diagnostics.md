@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第三十七轮，目标历史局部形状残差支路：实现与工程验收（§60.20定版完整验收通过：333 ID=312 passed＋21原策略skip，真实36/4/0通过；THLS implementation complete、engineering Passed，ChatGPT implementation review/统一closure Pending；效果Not evaluated）
+当前轮次：第三十八轮，THLS独立160步N并发兼容检查与8-run无负载准备（§61：168/160/160完成，正确性/资源Passed；THLS implementation review Passed、f13dd26统一closure Completed；串行8-run启动包准备完成且未启动，结果/训练前审核Pending；效果Not evaluated）
 
 canonical 内部版本：v2.1-R1
 
@@ -6597,3 +6597,80 @@ GELU安全路径梯度逐位一致，max_abs=0；独立解析max_abs=`3.77910843
 本轮工具最终acceptance_driver.py SHA=`87c8e3a9daa93cc1672931c9443d95eb8d4c7fb7c247f5b46f2391480547430e`，bundle.sha256 SHA=`adc59a771047b95bd48c302a79d6d0077bbf67226a4a5065e589c750c36c13e0`；其余工具、policy、生产/tests字节与§60.19一致。最终累计29文件及完整SHA保存final-file-sha256.json，作为后续统一审核/提交的精确清单；工具、策略、测试只在服务器/Git维护，Project不需源码副本。
 
 **THLS implementation complete；engineering gate=Passed，严格限定于本节完整受限工程合同。ChatGPT implementation review及代码/测试/工具/累计文档统一版本closure仍Pending；效果Not evaluated。** 原21skip不升级为Passed，真实单批结果不等于性能训练/完整训练峰值。P2原24-run adequacy Not passed、S2 Passed/leading、M4 In Progress及组合guard保持。8-run合同和独立160步后续范围本轮未启动，仍依赖实现审核/版本提交及后续准备；不进入M5/M7，不stage/commit/push、不单独docs closure。旧§§1–60.19正文保持，仅文件头更新并追加本节，全部保护及diff/新增EOF检查通过。
+
+## 61. THLS独立160步N并发兼容检查与8-run无负载准备
+
+### 61.1 批准、实际closure及保护现场
+
+本轮用户明确要求“直接执行已批准的§59.6独立160步N并发兼容检查，通过后同轮完成8-run无负载准备；不启动长训练”。该消息是本轮执行依据；不重复请求结构/160步/8-run预算批准。继承最新ChatGPT implementation review=Passed与统一closure=Completed：`f13dd26dfa72e140c8e4c05b146ea39d6643f889`，单parent=`e39d6dd44b65546f175fa961c88a9b9431f847cb`；local/tracking/live一致、0/0。业务执行期间worktree/index clean、untracked none。旧§§1–60.20中的Pending保留历史时点。
+
+执行前canonical SHA=`3c69de26719021320adb82b874a322615d301169bc597fdce2e9aac6a8b10b8e`；M4 SHA=`3ed988882429dbc9bf7d172a0904d8f13d8a92da39834fd94afeed380d525acd`。生产24文件fingerprint仍为`16343e9298a9c4a1eb477c061f7b58552ab04b0706f751b8b83e42749b703a7f`，原length-prefixed算法/集合不变。baseline仍指向`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。未修改生产、永久tests、已提交工具/guard、环境、数据或旧artifact；未重跑333项或36/4/0。
+
+### 61.2 唯一有限执行与隔离
+
+持久包：`/public/home/yueweiting/大论文/amd-execution-evidence/m4/m461-n160-xi0bthfg`。在仓库外复用成功m455 retry3的monitor_support（SHA=`ad05191c7793413be309a4bd25754f9b6f8d8bc1b003cdc747be980d056b21e8`，旧bundle核验通过）及已提交minimal-v3文件guard/真实前缀policy。仅将外置有限评价包装改为接受明确1批validation的迭代器；原生产`train_one_epoch`、`evaluate`、factory、runtime、目标loss和Adam实际调用，不伪造epoch完成，不发布development产物。没有扩建通用命令白名单、熔断或OS沙箱。
+
+N身份为`amd-m4-target-history-local-shape-v1 / M4_THLS / m4_target_history_local_shape_two_arm_from_scratch_v1`；UrbanEV h3/F4/fold6、全275节点数据集、11输入、volume/index0、T12/patch12、pred_len1。batch128、每进程4线程、workers0/pin_memory=false、run/generator/local-shape seed2024，float32/fresh Adam及其余§59.7值不变。PMCR/P2/Sonnet/CCE/TEB关闭。A800 UUID=`GPU-3d365efd-300b-f527-e8fe-703fb0cfb738`，affinity=`8–11,40–43`；可见cpuset与旧值一致，CPU quota=-1/period100000、memory limit512GiB，未将整机逻辑核数当作配额，也未调整NUMA/interop/BLAS策略。软件监控不是OS硬配额。
+
+先serial task0…3，再concurrent task0…3；每次fresh N与Adam，相同种子并非新增实验seed。每worker连续4 warm-up＋16测量训练batch＋1 validation batch；中途不重置iterator/model/Adam/RNG。唯一业务尝试全部完成：**168 outer forward、160 backward、160 Adam.step（160返回）、8 validation batch**；完整epoch=0、真实development产物=0、旧checkpoint反序列化=0。独立预算不借用/重置§60.20的800/193/49。无额外smoke、trace、重复轮或其他horizon/A任务。
+
+### 61.3 四组对应任务的状态与数值
+
+每组保存initial、warm、final参数/buffer及Adam状态、构造后与各阶段Python/NumPy/CPU/CUDA RNG、专用generator；全部batch内容摘要和shape逐一比较。initial每组79个数组精确；warm/final每组各283个数组，其中210浮点数组采用预定1e-6/1e-5界并另报bitwise，73个RNG/generator/整数及step状态精确。实际四组全部逐位相同，max_abs=0；20步prediction/auxiliary/真实backward标量loss均逐位相同。没有套用跨入口RevIN的专属例外。
+
+| 对应任务 | serial 16步(s) | concurrent 16步(s) | 单任务比值 | initial/warm/final、loss、batch |
+|---|---:|---:|---:|---|
+| task0 | 2.544740573997842 | 2.6365513329801615 | 1.036078632109081 | 全部bitwise，max_abs=0 |
+| task1 | 2.381562381022377 | 2.9869495519960765 | 1.2541974864054637 | 全部bitwise，max_abs=0 |
+| task2 | 2.7957236119837034 | 2.88893132598605 | 1.0333393879147486 | 全部bitwise，max_abs=0 |
+| task3 | 2.4810338059905916 | 2.717393487022491 | 1.0952666104190907 | 全部bitwise，max_abs=0 |
+
+1批validation的全元素Q=128、MSE=`0.09796135670688862`、MAE=`0.16961056855507195`，八次相同，仅用于有限数值核对，不选模型/并发配置、不替代完整validation、不给THLS效果判gate。
+
+### 61.4 耗时、资源与访问边界
+
+任务组T_e2e从首个Popen前至四个进程退出并完成基本文件核验：serial=`47.72882644197671 s`，concurrent=`12.15443529598997 s`，S4=`3.9268649904058934`。整包从执行前核验开始至最终表/checksum完成=`65.32985349898809 s`，低于600秒；单worker约9.88–11.22秒，低于120秒。所有CUDA阶段边界显式同步；prepare、warm-up、逐worker稳定段、validation/保存分别记录。没有统一释放的稳定段窗口，较早worker的准备/保存可能与其他worker重叠，**不把并发worker时间相加当任务组GPU时间，不宣称已排除prepare干扰**。本次速度支持四路候选，但仅一次固定顺序、可能含缓存/监控/保存开销，不保证10epoch逐位一致或3.93倍加速。
+
+峰值：单worker RSS=`1101144064 B`（约1.026GiB）；同时采样RSS合计=`4347539456 B`（约4.049GiB）；管理进程RSS=`54632448 B`；单workerCUDA allocated=`230020096 B`（219.364MiB）、reserved=`505413632 B`（482MiB）；设备显存采样峰值4089MiB，GPU利用率采样峰值95%（不是全程平均或理论算力利用率）。包约49MiB，均在8GiB/4GiB/32GiB+1GiB/1GiB上限内，启动前持久盘free超过5GiB。reserved不包含全部CUDA上下文。
+
+真实观测只由生产前缀reader解析header＋3909行，train[0,3475)、validation[3475,3909)，split-local/train-only scaler、原schema/node顺序。worker中56次完整文件操作均为既定字节hash，40次1/3909行prefix reader，8个train及8个validation Dataset、8次有限validation；test读取越界/解析/构造/迭代/评价哨兵均0，非预期denied=0。后续无负载启动检查另作七文件字节SHA核验，不构造Dataset或解析观测。guard计数不是独立内核I/O trace；异常被catch仍核拒绝记录，未宣称全局瞬时停止。父子PID映射复用sched/stat/status/start_ticks校验；已退出进程权限不可用时沿旧有限重查，不误当外部GPU竞争。
+
+### 61.5 8-run无负载准备与启动门禁
+
+新守护目录：`/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_`；新artifact root=`artifacts/m4-development/urbanev-target-history-local-shape-v1`，当前不存在同身份/hidden staging冲突。默认有效顺序仍**h3 A→N、h6 A→N、h9 A→N、h12 A→N，串行8个新run、10epochs/80 run-epochs**，594040 Adam steps为完整预算算术；不复用旧A或短测状态。四horizon命令由当前production parse/prepare和scientific config纯构造核验，前缀metadata从已封存旧launcher的四horizon预处理文本继承并与本次h3实际前缀身份交叉核对；不读取旧权重/复用旧结果。原§60.20四horizon A/N真实probe证据按SHA继承，无模型重跑。目标loss、全validation尾批、严格best、schema-v2、独立身份及§59.7主gate全部保持。
+
+8条绝对路径命令、8个独立日志/锁与科学config hash见`plan.json`及`commands.sh --print`。守护代码在旧UrbanEV launcher的新副本上作限定适配，逐run成功退出后核actual completed artifact、精确身份、10epoch history、Python/系统checksum再登记完成；技术失败停止后续，保留staging/checkpoint/history/log，不自动fresh rerun。没有明确完整四路训练条件批准记录，**160步批准不替代8-run四路调度许可**；当前仅准备串行有效方案，四路是结果支持的后续建议。
+
+tmux用独立短命sleep/touch任务实测分离运行，完成标记存在、pane_dead=1。初次无模型自检期待的pane_dead_status字段在当前tmux为空，已保留该检查失败并如实记Unavailable；无需重跑模型，按实际完成标记确认守护可用，清理的仅是本次哑会话。shell -n、8条实际参数/科学hash检查Passed；缺approval.json和无效closure事实拒绝检查Passed。启动前必须有**本次结果/训练前审核、绑定plan/bundle/两文档SHA的明确approval.json，以及必要提交后的clean、三端0/0、source/data不变**。现在未创建approval.json、未代用户启动。launcher接受后续以本轮起点为单parent、仅两文档精确审核字节的实际commit，不猜其SHA；本轮不单独发起docs closure。
+
+操作命令（启动当前会因审核/提交前置不满足而拒绝）：
+
+```bash
+/bin/bash '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/start.sh' --check
+/bin/bash '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/start.sh'
+/usr/bin/tmux -L amd-thls-19dsdno list-panes -t thls -F '#{pane_pid} #{pane_dead} #{pane_current_command}'
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/launcher.py' status
+tail -F '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/logs/total.log'
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/launcher.py' tail
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/launcher.py' complete
+/public/home/yueweiting/miniconda/envs/amd/bin/python -B '/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-eight-run-19dsdno_/launcher.py' stop
+```
+
+SSH退出前须看到tmux pane存活、status为running且当前PID/start-time相符，总日志出现RUN_START与当前训练日志更新；tail中的Ctrl+C只结束查看。完成标准是8/8唯一completed产物身份/文件checksum核验，不以进程退出或“10/10”单行日志替代。停止使用上面的stop，由监督进程向本次runner发送SIGINT并停止后续；不pkill其他用户，不自动删staging。串行时长沿§59.7历史场景约8.14小时、1.5倍约12.21小时，仅估算；不将本次短测S4直接折算长训练、不设置强杀deadline。磁盘启动free≥5GiB，实际已远高于此；保持中断证据预算。
+
+### 61.6 证据与当前状态
+
+| 文件 | SHA-256 |
+|---|---|
+| 本轮probe `bundle.sha256` | `2572959e5dc1c864b0f947626fc0a5765a96e6bf0085fc3dd92a79f0ec6ffc96` |
+| `execution/result.json` | `a761c9b08c22e2c4f4cd01a2fc0d90156608421f9ce84183bf4c7faa2ea7bfdc` |
+| `execution/complete.json` | `aa760128c2afbd4afd60b18fecb3d399aeb812291a0a0e566fcd69e1abdb6054` |
+| `execution/final-checksums.sha256` | `41ab0b657f1741c2de86282f62e344b858f4a36d01d251fdc321da50afe01a74` |
+| `probe-audit.json` | `e0a15f8c1b23c090a66d8eb91dee4f4515e0dfb93a225b850505e6bf44591126` |
+| launcher `plan.json` | `274095d13ac6bb4b878c92c178b7662df9e68aa296ba1434714023acc1d08a60` |
+| launcher `launcher.py` | `082c42ebb5ff1074f1c92b81893a26108da4bc0c9e11aad10cc0aba30e362946` |
+| launcher `start.sh` | `7a2debddfdbb0589d9c02043754cb2dcb150220080d62fa6a584e8a25b667347` |
+| launcher `run.sh` | `3584d1de078c0206b2a684eb753d877eaf6358f1c4560b154ed947da52b0e2c4` |
+| launcher `commands.sh` | `c3f3458736a678d4884e82fd0d533099343cec8ff53c99e884d2864df032c3b4` |
+
+最终两文档SHA由收尾清单记录，再绑定review-binding/bundle，避免在文档中递归写入自身SHA；工具/脚本/数值证据留服务器，Project只需本canonical与唯一M4按最终SHA替换供审核。业务完成后才更新这两文档，HEAD仍为f13dd26…、index空、仅两文档modified；不stage/commit/push。THLS工程与implementation review既有Passed、统一代码closure Completed保持；本轮有限兼容性/资源Passed，结果及训练前审核Pending、8-run未启动、THLS performance Not evaluated，P2原Not passed、S2 Passed/leading、M4 In Progress及组合限制不变；不进入M5/M7。
