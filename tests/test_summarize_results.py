@@ -1841,5 +1841,61 @@ class P2SummaryContractTests(unittest.TestCase):
             with self.subTest(keys=keys), self.assertRaises(ValueError):
                 summary._validate_pmcr_variant_contract(bad, Path("/tmp/synthetic"))
 
+class THLSSummaryContractTests(unittest.TestCase):
+    def _scientific(self, enabled):
+        value = P2SummaryContractTests._scientific(self, summary.PMCR_P2_CONTROL_ABLATION_ID)
+        value['experiment']['ablation_id'] = summary.THLS_ABLATION_ID if enabled else summary.THLS_CONTROL_ABLATION_ID
+        value['experiment']['development_protocol_id'] = summary.THLS_DEVELOPMENT_PROTOCOL
+        model=value['model']; model.pop('pmcr_ms_interface')
+        model.update(patch=12,norm=True,layernorm_flag=True,teb={'context_dim':32},
+            use_target_history_local_shape=enabled,
+            local_shape_ms_interface=summary.thls_spec.interface_contract(enabled),
+            module_connection=(summary.thls_spec.MODULE_CONNECTION if enabled
+                else 'X->RevIN->MDM(U)->DDI; AMS_selector<-U'))
+        return value
+
+    def test_an_contract_serialization_is_distinct_without_mutating_old_payload(self):
+        from copy import deepcopy
+        old=P2SummaryContractTests._scientific(self,summary.PMCR_P2_CONTROL_ABLATION_ID)
+        frozen=deepcopy(old)
+        for enabled in (False,True):
+            scientific=self._scientific(enabled); before=deepcopy(scientific)
+            value=summary._validate_thls_variant_contract(scientific,Path('/tmp/synthetic-thls'))
+            interface=value['local_shape_ms_interface']
+            self.assertEqual(interface['local_shape_init_seed'],2024)
+            self.assertEqual(interface['branch_instantiated'],enabled)
+            self.assertEqual(interface['model_form'],'train')
+            self.assertEqual(interface['configuration']['feature_order'],['y','signed_d1','signed_d2'])
+            self.assertEqual(interface['configuration']['eta_init'],1e-3)
+            self.assertNotIn('gate_init_seed',interface)
+            self.assertNotIn('pmcr_ms_interface',scientific['model'])
+            self.assertEqual(scientific,before)
+        self.assertEqual(old,frozen)
+        summary._validate_pmcr_variant_contract(old,Path('/tmp/synthetic-p2'))
+
+    def test_target_route_form_initialization_and_access_tampering_rejects(self):
+        from copy import deepcopy
+        original=self._scientific(True)
+        changes=[(('dataset','id'),'ETTm1'),(('dataset','target_idx'),1),
+            (('dataset','aux_idx'),list(range(10))), (('evaluation','test_access_policy'),'allowed'),
+            (('evaluation','artifact_purpose'),'formal'), (('model','norm'),False),
+            (('model','local_shape_ms_interface','local_shape_init_seed'),2025),
+            (('model','local_shape_ms_interface','model_form'),'deploy'),
+            (('model','local_shape_ms_interface','configuration','feature_order'),['y','abs_d1','abs_d2']),
+            (('model','module_connection'),'DDI->P2'),(('model','use_pmcr'),True),
+            (('model','use_target_history_local_shape'),False),
+            (('experiment','development_protocol_id'),summary.PMCR_P2_DEVELOPMENT_PROTOCOL)]
+        for keys,value in changes:
+            bad=deepcopy(original); slot=bad
+            for key in keys[:-1]: slot=slot[key]
+            slot[keys[-1]]=value
+            with self.subTest(keys=keys),self.assertRaises(ValueError):
+                summary._validate_thls_variant_contract(bad,Path('/tmp/synthetic-thls'))
+        with self.assertRaises(ValueError):
+            summary._validate_thls_variant_contract(
+                P2SummaryContractTests._scientific(self,summary.PMCR_P2_CONTROL_ABLATION_ID),
+                Path('/tmp/synthetic-p2'))
+
+
 if __name__ == "__main__":
     unittest.main()

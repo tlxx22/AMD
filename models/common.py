@@ -5,6 +5,29 @@ import torch.nn.functional as F
 import math
 
 
+DDI_CPU_GELU_COMPATIBILITY_ID = "ddi_cpu_gelu_cotangent_contiguous_v1"
+
+
+def _ddi_contiguous_cpu_cotangent(grad):
+    """Preserve gradient values; normalize storage before native GELU backward."""
+    return grad.contiguous()
+
+
+def _ddi_gelu_backward_boundary(module, inputs, output):
+    # The output owns its hook; no forward tensors/handles are retained by DDI.
+    if output.device.type == "cpu" and output.requires_grad:
+        output.register_hook(_ddi_contiguous_cpu_cotangent)
+    return None  # Keep the exact native GELU output object and forward layout.
+
+
+def register_ddi_cpu_gelu_compatibility(activation):
+    """Install once on a DDI-owned native GELU, without parameters or RNG use."""
+    if not isinstance(activation, nn.GELU) or activation.approximate != "none":
+        raise TypeError("DDI compatibility requires native GELU(approximate='none')")
+    if not any(hook is _ddi_gelu_backward_boundary for hook in activation._forward_hooks.values()):
+        activation.register_forward_hook(_ddi_gelu_backward_boundary)
+
+
 def _validate_input_shape(input_shape, module_name):
     if not isinstance(input_shape, (tuple, list, torch.Size)) or len(input_shape) != 2:
         raise ValueError(
@@ -205,6 +228,9 @@ class DDI(nn.Module):
                 nn.GELU(),
                 nn.Dropout(dropout),
             )
+            for activation in self.fc_block:
+                if isinstance(activation, nn.GELU):
+                    register_ddi_cpu_gelu_compatibility(activation)
 
         self.n_history = 1
         self.alpha = alpha

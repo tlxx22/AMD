@@ -5264,5 +5264,317 @@ class P2MSInterfaceTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): self.fixture._execute(args)
             load.assert_not_called()
 
+class THLSRunnerContractTests(unittest.TestCase):
+    """Actual synthetic CSV pipeline. Eight lifecycle + eight resume Adam steps."""
+    @classmethod
+    def setUpClass(cls):
+        cls.previous_threads = torch.get_num_threads(); torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.previous_threads)
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix='thls-interface-')
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.ett_path = self.root/'unused-ETTm1.csv'
+        self.data_root = self.root/'synthetic-data'  # helper requires a NONEXISTENT child
+        self.access = dict(test_construct=0, test_evaluate=0, forbidden_read=0, forbidden_parse=0,
+                           train_construct=0, validation_construct=0, parser_prefixes=0)
+
+    def _csv(self):
+        if not self.data_root.exists():
+            from urbanev_synthetic_fixture import write_synthetic_urbanev
+            write_synthetic_urbanev(self.data_root)
+
+    def _args(self, *, enabled=False, horizon=3, root=None, resume=None, device='cpu', epochs=1):
+        self._csv()
+        args = PMCRMSInterfaceTests._args(self, enabled=False, horizon=horizon,
+                                       root=root, resume=resume)
+        args.implementation_variant = runner.THLS_IMPLEMENTATION_VARIANT
+        args.development_protocol_id = runner.THLS_DEVELOPMENT_PROTOCOL
+        args.ablation_id = runner.THLS_ABLATION_ID if enabled else runner.THLS_CONTROL_ABLATION_ID
+        args.use_target_history_local_shape = enabled
+        args.local_shape_init_seed = 2024 if enabled else None
+        args.data = str(self.data_root); args.train_epochs = epochs; args.device = device
+        args.teb_context_dim = 32
+        return args
+
+    def _guard(self):
+        from contextlib import ExitStack, contextmanager
+        from io import StringIO
+        @contextmanager
+        def guarded():
+            observations = {'volume.csv','e_price.csv','s_price.csv','weather_central.csv'}
+            original_open, original_parse = Path.open, pd.read_csv
+            original_dataset, original_evaluate = runner.TemporalRegionDataset, runner.evaluate
+            access = self.access; data_root = self.data_root
+            class PrefixFile:
+                def __init__(self, handle): self.handle, self.rows = handle, 0
+                def __enter__(self): return self
+                def __exit__(self, *args): self.handle.close()
+                def __iter__(self): return self
+                def __next__(self):
+                    if self.rows >= 3910:
+                        access['forbidden_read'] += 1
+                        raise AssertionError('THLS parsed past approved prefix')
+                    line = next(self.handle); self.rows += 1; return line
+                def readline(self, *args): return next(self)
+                def read(self, *args):
+                    access['forbidden_read'] += 1
+                    raise AssertionError('THLS unbounded observation text read')
+            def safe_open(path, mode='r', *args, **kwargs):
+                handle = original_open(path, mode, *args, **kwargs)
+                if path.parent == data_root and path.name in observations and 'b' not in mode:
+                    return PrefixFile(handle)
+                return handle
+            def safe_parse(source, *args, **kwargs):
+                if isinstance(source, (str,Path)) and Path(source).name in observations:
+                    access['forbidden_parse'] += 1
+                    raise AssertionError('THLS parser received unrestricted observation path')
+                if isinstance(source, StringIO):
+                    access['parser_prefixes'] += 1
+                    self.assertLessEqual(len(source.getvalue().splitlines()), 3910)
+                return original_parse(source, *args, **kwargs)
+            def dataset(*args, **kwargs):
+                split = kwargs['split']
+                access[split+'_construct'] += 1
+                if split == 'test': raise AssertionError('THLS test Dataset forbidden')
+                return original_dataset(*args, **kwargs)
+            def evaluate(*args, **kwargs):
+                if kwargs.get('description') == 'Final Test':
+                    access['test_evaluate'] += 1
+                    raise AssertionError('THLS test evaluation forbidden')
+                return original_evaluate(*args, **kwargs)
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(Path, 'open', safe_open))
+                stack.enter_context(mock.patch.object(pd, 'read_csv', side_effect=safe_parse))
+                stack.enter_context(mock.patch.object(runner, 'TemporalRegionDataset', side_effect=dataset))
+                stack.enter_context(mock.patch.object(runner, 'evaluate', side_effect=evaluate))
+                yield
+        return guarded()
+
+    def _runtime(self, args, generator, bounded=False):
+        from dataclasses import replace
+        from torch.utils.data import DataLoader, Subset
+        runtime = runner._build_urbanev_runtime_data(args, generator)
+        self.assertIsNone(runtime.test_data)
+        self.assertEqual(runtime.backend.features.shape[0], 3909)
+        self.assertEqual(len(runtime.backend.raw.timestamps), 3909)
+        if not bounded: return runtime
+        # Keep actual production Dataset/parser/scaler and only bound iteration.
+        return replace(runtime,
+            train_data=DataLoader(Subset(runtime.train_data.dataset, range(2)),
+                batch_size=2, shuffle=True, drop_last=True, generator=generator),
+            val_data=DataLoader(Subset(runtime.val_data.dataset, range(3)),
+                batch_size=2, shuffle=False, drop_last=False), test_data=None)
+
+    def _execute(self, args, interrupt=False):
+        original_train = runner.train_one_epoch
+        def train(*positional, **kwargs):
+            epoch = positional[5] if len(positional)>5 else kwargs['epoch']
+            if interrupt and epoch == 2: raise RuntimeError('THLS synthetic interruption')
+            return original_train(*positional, **kwargs)
+        with self._guard(), mock.patch.object(runner, '_build_runtime_data',
+                side_effect=lambda a,g:self._runtime(a,g,True)), \
+                mock.patch.object(runner, 'train_one_epoch', side_effect=train):
+            return runner.main(args)
+
+    def test_four_horizon_an_actual_lifecycles_checksums_summary_duplicates(self):
+        import hashlib
+        for horizon in (3,6,9,12):
+            for enabled in (False,True):
+                root = self.root/f'h{horizon}-{"n" if enabled else "a"}'
+                metrics = self._execute(self._args(enabled=enabled,horizon=horizon,root=root))
+                run = PMCRMSInterfaceTests._run_dir(root)
+                runner.verify_checksums(run)
+                checked = subprocess.run(['sha256sum','-c','checksums.sha256'], cwd=run,
+                    text=True, capture_output=True)
+                self.assertEqual(checked.returncode,0,checked.stderr)
+                manifest=json.loads((run/'manifest.json').read_text())
+                config=json.loads((run/'config.resolved.json').read_text())
+                self.assertEqual(metrics['best_epoch'],1)
+                self.assertEqual(manifest['model_form'],'train')
+                self.assertEqual(manifest['test_access_policy'],'forbidden')
+                self.assertEqual(summary._test_result_paths(metrics),[])
+                self.assertEqual(summary._test_result_paths(manifest,allow_access_policy=True),[])
+                self.assertEqual(config['scientific_config']['model']['local_shape_ms_interface'],
+                    runner.thls_spec.interface_contract(enabled))
+                rows=summary.load_completed_runs(root,runner.THLS_IMPLEMENTATION_VARIANT)
+                self.assertEqual(len(rows),1); self.assertNotIn('test_mse',rows[0])
+                self.assertEqual(summary.aggregate_runs(rows)[0]['val_mse_sample_std'],'N/A')
+                with self.assertRaisesRegex(ValueError,'multiple completed'):
+                    summary.aggregate_runs(rows+deepcopy(rows))
+                csv_path,_,_,_=summary.write_summaries(root,self.root/f'summary-{horizon}-{enabled}',
+                    implementation_variant=runner.THLS_IMPLEMENTATION_VARIANT)
+                self.assertNotIn('test_mse',csv_path.read_text().splitlines()[0])
+                # A completed directory fails the staging-path contract before load.
+                def artifact_snapshot():
+                    return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                            if p.is_file() else 'directory' for p in root.rglob('*')}
+                before_completed = artifact_snapshot()
+                with mock.patch.object(torch, 'load', side_effect=AssertionError(
+                        'completed resume must reject before checkpoint load')) as load:
+                    with self.assertRaisesRegex(ValueError, 'enhanced resume path must be the hidden staging directory'):
+                        self._execute(self._args(enabled=enabled,horizon=horizon,root=root,resume=run))
+                    load.assert_not_called()
+                self.assertEqual(before_completed, artifact_snapshot())
+        for key in ('test_construct','test_evaluate','forbidden_read','forbidden_parse'):
+            self.assertEqual(self.access[key],0,key)
+        self.assertGreater(self.access['parser_prefixes'],0)
+
+    def test_all_horizons_real_synthetic_labels_node_inverse_and_prefix(self):
+        for horizon in (3,6,9,12):
+            args=runner.prepare_args(self._args(enabled=True,horizon=horizon))
+            with self._guard(): runtime=self._runtime(args,torch.Generator().manual_seed(2024))
+            runner._validate_loader_contract(args,runtime,runtime.preprocessing)
+            schema=runner._build_target_exogenous_schema_contract(args,runtime.preprocessing)
+            self.assertEqual(schema['target_indices'],[0]); self.assertEqual(schema['aux_idx'],list(range(1,11)))
+            for loader in (runtime.train_data,runtime.val_data):
+                view=loader.dataset
+                for i in (0,274,275,len(view)-1):
+                    x,y=view[i]; meta=view.metadata(i); node=meta['node_position']
+                    self.assertEqual(tuple(x.shape),(12,11)); self.assertEqual(tuple(y.shape),(1,))
+                    self.assertEqual(meta['label_idx']-(meta['window_start_idx']+11),horizon)
+                    restored=runtime.backend.inverse_transform_target(y,node_position=node)
+                    self.assertAlmostEqual(float(restored.item()),float(runtime.backend.raw.volume[meta['label_idx'],node]),places=5)
+            with self.assertRaises(ValueError): runtime.backend.inverse_transform_target(torch.ones(3,1))
+            with self.assertRaises(IndexError): runtime.backend.inverse_transform_target(torch.ones(1,1),node_position=275)
+            with self.assertRaisesRegex(ValueError,'forbidden'):
+                runner.TemporalRegionDataset(runtime.backend,split='test',history_len=12,label_horizon=horizon)
+
+    def test_target_shapes_tail_element_metrics_and_finite_strict_best(self):
+        args=runner.prepare_args(self._args(enabled=True)); model=runner._build_model(args,SimpleNamespace(n_feature=11,target_slice=None)).eval()
+        x=torch.randn(5,12,11); y=torch.tensor([1.,2.,3.,4.,5.]).reshape(5,1)
+        loader=torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x,y),batch_size=2,drop_last=False)
+        metrics=runner.evaluate(model,loader,torch.device('cpu'),show_progress=False,task_mode=runner.TARGET_EXOGENOUS)
+        sse=sae=0.
+        with torch.no_grad():
+            for bx,by in loader:
+                prediction,_=model(bx)
+                adapted=runner._prediction_for_loss(prediction,by,task_mode=runner.TARGET_EXOGENOUS)
+                delta=adapted.double()-by.double(); sse+=float(delta.square().sum()); sae+=float(delta.abs().sum())
+                for target in (by,by.unsqueeze(-1)):
+                    self.assertEqual(runner._prediction_for_loss(prediction,target,task_mode=runner.TARGET_EXOGENOUS).shape,target.shape)
+            for bad in (torch.zeros(1,1),torch.zeros(2,1,11),torch.zeros(2,2,1)):
+                with self.assertRaises(RuntimeError):
+                    runner._prediction_for_loss(torch.zeros(2,1,1),bad,task_mode=runner.TARGET_EXOGENOUS)
+        self.assertEqual(metrics['num_elements'],5); self.assertEqual(metrics['num_batches'],3)
+        self.assertAlmostEqual(metrics['mse'],sse/5,places=6); self.assertAlmostEqual(metrics['mae'],sae/5,places=6)
+        for value in (float('nan'),float('inf'),-float('inf'),.5,.6):
+            self.assertFalse(runner.should_update_best(value,.5))
+        self.assertTrue(runner.should_update_best(.49,.5))
+
+    def test_cpu_cuda_same_identity_resume_and_preload_atomic_rejections(self):
+        for device in ('cpu','cuda'):
+            full_root=self.root/(device+'-full'); resume_root=self.root/(device+'-resume')
+            self._execute(self._args(enabled=True,root=full_root,device=device,epochs=2))
+            with self.assertRaisesRegex(RuntimeError,'THLS synthetic interruption'):
+                self._execute(self._args(enabled=True,root=resume_root,device=device,epochs=2),interrupt=True)
+            failed=PMCRMSInterfaceTests._run_dir(resume_root,'failed')
+            manifest_path,config_path=failed/'manifest.json',failed/'config.resolved.json'
+            manifest_bytes,config_bytes=manifest_path.read_bytes(),config_path.read_bytes()
+            last_bytes=(failed/'last.pt').read_bytes()
+            original=torch.load(failed/'last.pt',map_location='cpu')
+            sealed_manifest=json.loads(manifest_bytes)
+            sealed_config=json.loads(config_bytes)
+            def preload():
+                # Call the actual strict external/tensor validator directly.
+                # No repeated CSV construction or extra optimizer steps for corruptions.
+                return runner._load_resume_checkpoint(
+                    failed,sealed_manifest['config_hash'],sealed_manifest['data_sha256'],2,
+                    implementation_variant=runner.THLS_IMPLEMENTATION_VARIANT,
+                    run_id=sealed_manifest['run_id'],artifact_dir=Path(sealed_manifest['artifact_dir']),
+                    target_exogenous_schema=sealed_manifest['target_exogenous_schema'],
+                    training_protocol=sealed_config['training_protocol'],
+                    candidate_contract=sealed_manifest['candidate_contract'],
+                    evaluation_policy=runner.TRAIN_VALIDATION_ONLY,
+                    artifact_purpose=runner.M4_DEVELOPMENT_CANDIDATE,
+                    test_access_policy='forbidden',expected_model_state=original['model_state'])
+            state_before=deepcopy(original)
+            rng_before=runner.capture_rng_state()
+            changes=[
+                ('manifest',('implementation_variant',),runner.PMCR_P2_IMPLEMENTATION_VARIANT),
+                ('manifest',('artifact_schema_version',),1),('manifest',('artifact_purpose',),'formal'),
+                ('manifest',('model_form',),'deploy'),
+                ('manifest',('candidate_contract','ablation_id'),runner.THLS_CONTROL_ABLATION_ID),
+                ('manifest',('candidate_contract','task_mode'),'parallel_multivariate'),
+                ('manifest',('candidate_contract','target_idx'),1),
+                ('manifest',('target_exogenous_schema','schema_fingerprint'),'bad'),
+                ('manifest',('candidate_contract','local_shape_ms_interface','metric_scope'),'last_point'),
+                ('manifest',('candidate_contract','local_shape_ms_interface','local_shape_init_seed'),2025),
+                ('config',('scientific_config','dataset','sha256'),'bad-source'),
+                ('config',('scientific_config','model','local_shape_ms_interface','loss_scope'),'all_variables'),
+                ('config',('model_form',),'deploy'),
+                ('config',('scientific_config','source'),'changed-source')]
+            for document,keys,value in changes:
+                manifest_path.write_bytes(manifest_bytes); config_path.write_bytes(config_bytes)
+                path=manifest_path if document=='manifest' else config_path
+                data=json.loads(path.read_text()); slot=data
+                for key in keys[:-1]: slot=slot[key]
+                slot[keys[-1]]=value; path.write_text(json.dumps(data))
+                before={p.name:p.read_bytes() for p in failed.iterdir() if p.is_file()}
+                with self.subTest(device=device,keys=keys), mock.patch.object(torch,'load') as load:
+                    with self.assertRaises(RuntimeError):
+                        preload()
+                    load.assert_not_called()
+                self.assertEqual(before,{p.name:p.read_bytes() for p in failed.iterdir() if p.is_file()})
+            manifest_path.write_bytes(manifest_bytes); config_path.write_bytes(config_bytes)
+            for state_name in ('model_state','best_model_state'):
+                for kind in ('key','shape','dtype','finite'):
+                    bad=deepcopy(original); key='target_history_local_shape.input_projection.weight'
+                    state=bad[state_name]
+                    if kind=='key': state.pop(key)
+                    elif kind=='shape': state[key]=state[key][:1]
+                    elif kind=='dtype': state[key]=state[key].double()
+                    else: state[key][0,0,0]=float('nan')
+                    torch.save(bad,failed/'last.pt')
+                    with self.subTest(kind=kind), self.assertRaises(RuntimeError):
+                        preload()
+            _assert_nested_equal(self,state_before,original)
+            _assert_nested_equal(self,rng_before,runner.capture_rng_state())
+            (failed/'last.pt').write_bytes(last_bytes)
+            self._execute(self._args(enabled=True,root=resume_root,resume=failed,device=device,epochs=2))
+            full=torch.load(PMCRMSInterfaceTests._run_dir(full_root)/'last.pt',map_location='cpu')
+            resumed=torch.load(PMCRMSInterfaceTests._run_dir(resume_root)/'last.pt',map_location='cpu')
+            for field in ('model_state','optimizer_state','best_model_state','rng_state',
+                          'train_generator_state','best_epoch','best_mse','best_val_metrics'):
+                _assert_nested_equal(self,full[field],resumed[field],field)
+            _assert_nested_equal(self,original['history'],resumed['history'][:1])
+            for a,b in zip(full['history'],resumed['history']):
+                for key in a:
+                    if 'seconds' not in key and key!='finished_at': _assert_nested_equal(self,a[key],b[key])
+            self.assertEqual(len(resumed['history']),2)
+
+    def test_public_scope_and_foreign_fields_reject_before_construction(self):
+        original=self._args(enabled=True)
+        for change in ({'use_pmcr':True},{'use_sonnet_mvca':True},{'use_cce':True},{'use_teb':True},
+                       {'dataset_id':'ETTm1'},{'fold':'5'},{'feature_preset':'F3'},
+                       {'norm':False},{'layernorm':False},{'patch':16},{'target':'OT'},
+                       {'local_shape_init_seed':2025},{'evaluation_policy':runner.TRAIN_VALIDATION_TEST},
+                       {'ablation_id':runner.THLS_CONTROL_ABLATION_ID},
+                       {'implementation_variant':runner.PMCR_P2_IMPLEMENTATION_VARIANT}):
+            args=deepcopy(original)
+            for key,value in change.items(): setattr(args,key,value)
+            with self.subTest(change=change), mock.patch.object(runner,'_build_runtime_data') as runtime, \
+                    mock.patch.object(runner,'_build_model') as model:
+                with self.assertRaises((ValueError,RuntimeError)): runner.main(args)
+                runtime.assert_not_called(); model.assert_not_called()
+
+    def test_prefix_runtime_keeps_all_nodes_and_first_batch_pairing(self):
+        values=[]; states=[]
+        for enabled in (False,True):
+            args=runner.prepare_args(self._args(enabled=enabled)); generator=torch.Generator().manual_seed(2024)
+            with self._guard(): runtime=self._runtime(args,generator)
+            self.assertIsNone(runtime.test_data)
+            self.assertEqual(runtime.n_feature,11); self.assertEqual(runtime.backend.raw.num_nodes,275)
+            values.append(next(iter(runtime.train_data))); states.append(generator.get_state())
+            self.assertEqual(runtime.backend.raw.restricted_fold.fold,6)
+        _assert_nested_equal(self,values[0],values[1]); self.assertTrue(torch.equal(states[0],states[1]))
+        for key in ('test_construct','test_evaluate','forbidden_read','forbidden_parse'):
+            self.assertEqual(self.access[key],0,key)
+
+
 if __name__ == "__main__":
     unittest.main()

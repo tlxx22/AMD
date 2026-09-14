@@ -1,0 +1,940 @@
+{
+  "version": "restricted-regression-reconstructed-v2.1",
+  "recovery_status": "incomplete",
+  "historical_file_sha256": "b72785e737b4d726982271031dc2d3a60312eba434ec510d0a42ef891cba2408",
+  "recovery_note": "B=从可信历史记录恢复限制语义，非原文件逐字节恢复；理由为历史原因的显式整理。C不进入生效清单；业务入口全局阻塞。",
+  "expected_real_asset_restrictions": 20,
+  "expected_cpu_only_restrictions": 1,
+  "restrictions": [
+    {
+      "id": "test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch",
+      "reason": "真实UrbanEV node/scaler夹具；仅合成访问模式禁止读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_fold_scaler_no_leakage.py",
+          "locator": "FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.EnhancedRunnerM3Tests.test_real_p0_t0_h96_scientific_and_comparison_hash_fixtures_are_stable",
+      "reason": "真实ETTm1 P0/T0 golden字节/身份；不得合成替代真实兼容性证明。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "EnhancedRunnerM3Tests.test_real_p0_t0_h96_scientific_and_comparison_hash_fixtures_are_stable",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.EnhancedRunnerM3Tests.test_urbanev_f1_production_bundle_single_batch_and_horizon_identity",
+      "reason": "真实UrbanEV F1数据夹具；不扩展当前合成回归访问范围。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "EnhancedRunnerM3Tests.test_urbanev_f1_production_bundle_single_batch_and_horizon_identity",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.PMCRMSInterfaceTests.test_cuda_amd_equivalence_body_rng_generator_first_batch",
+      "reason": "原PMCR MS CUDA专项在CPU-only执行中受限；不适用于新增THLS CUDA。",
+      "mode": "cpu_only",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "PMCRMSInterfaceTests.test_cuda_amd_equivalence_body_rng_generator_first_batch",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.WarmStartAdapterRunnerTests.test_continuation_strict_mapping_fresh_optimizer_and_epoch_zero_policy",
+      "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "WarmStartAdapterRunnerTests.test_continuation_strict_mapping_fresh_optimizer_and_epoch_zero_policy",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.WarmStartAdapterRunnerTests.test_four_locked_sources_preflight_and_atomic_mapping",
+      "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "WarmStartAdapterRunnerTests.test_four_locked_sources_preflight_and_atomic_mapping",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.WarmStartAdapterRunnerTests.test_gamma_scope_optimizer_mixed_mode_and_two_steps",
+      "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "WarmStartAdapterRunnerTests.test_gamma_scope_optimizer_mixed_mode_and_two_steps",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.WarmStartAdapterRunnerTests.test_live_historical_source_gate_rejects_post_cce_file_change",
+      "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "WarmStartAdapterRunnerTests.test_live_historical_source_gate_rejects_post_cce_file_change",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_runner.WarmStartAdapterRunnerTests.test_mapping_rejects_key_shape_dtype_and_cross_horizon_without_pollution",
+      "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+          "locator": "WarmStartAdapterRunnerTests.test_mapping_rejects_key_shape_dtype_and_cross_horizon_without_pollution",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_state_restore_node_order.StateRestoreNodeOrderTests.test_actual_node_ids_remain_strings_and_canonical",
+      "reason": "真实UrbanEV graph/node夹具；仅合成访问模式禁止读取。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.9 actual skip table",
+          "kind": "explicit historical restriction"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_state_restore_node_order.py",
+          "locator": "StateRestoreNodeOrderTests.test_actual_node_ids_remain_strings_and_canonical",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_target_offset.TargetOffsetTests.test_all_72_report_counts_match_both_dataset_views",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a",
+            "historical_method_count": 3,
+            "current_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_target_offset.py",
+          "locator": "TargetOffsetTests.test_all_72_report_counts_match_both_dataset_views",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_target_offset.TargetOffsetTests.test_invalid_horizon_is_rejected",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a",
+            "historical_method_count": 3,
+            "current_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_target_offset.py",
+          "locator": "TargetOffsetTests.test_invalid_horizon_is_rejected",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_target_offset.TargetOffsetTests.test_label_formula_first_last_and_inclusive_final_label",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a",
+            "historical_method_count": 3,
+            "current_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_target_offset.py",
+          "locator": "TargetOffsetTests.test_label_formula_first_last_and_inclusive_final_label",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_amd_enhanced_y_time_and_state_source_match_both_views",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+            "historical_method_count": 4,
+            "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+          "locator": "TemporalGraphLoaderConsistencyTests.test_amd_enhanced_y_time_and_state_source_match_both_views",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_feature_presets_preserve_canonical_order_and_target",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+            "historical_method_count": 4,
+            "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+          "locator": "TemporalGraphLoaderConsistencyTests.test_feature_presets_preserve_canonical_order_and_target",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_graph_window_equals_canonical_temporal_stack_and_batch_shapes",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+            "historical_method_count": 4,
+            "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+          "locator": "TemporalGraphLoaderConsistencyTests.test_graph_window_equals_canonical_temporal_stack_and_batch_shapes",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    },
+    {
+      "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_train_shuffle_changes_only_order_and_eval_order_is_deterministic",
+      "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+      "mode": "all",
+      "recovery_class": "B",
+      "evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 一次性夹具检查及调度修复",
+          "kind": "explicit restriction of entire historical class",
+          "expansion": {
+            "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+            "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+            "historical_method_count": 4,
+            "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+          }
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+          "locator": "TemporalGraphLoaderConsistencyTests.test_train_shuffle_changes_only_order_and_eval_order_is_deterministic",
+          "kind": "module/class binding; method AST unchanged at current source"
+        }
+      ]
+    }
+  ],
+  "unresolved_candidates": [
+    {
+      "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_source_dimensions_time_axis_and_fingerprints",
+      "recovery_class": "C",
+      "active": false,
+      "reason": "当前源码为真实UrbanEV数据/schema夹具；未找到逐ID历史限制条目或明确整类受限声明。",
+      "surviving_evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 合法skip分类",
+          "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+          "locator": "test_actual_source_dimensions_time_axis_and_fingerprints",
+          "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+        }
+      ],
+      "missing": "原restrictions.json对应条目、最终report.skipped或可信逐ID原回执；不能以类别计数或当前依赖代替。"
+    },
+    {
+      "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_source_hashes_and_first_version_file_scope",
+      "recovery_class": "C",
+      "active": false,
+      "reason": "当前源码为真实UrbanEV数据/schema夹具；未找到逐ID历史限制条目或明确整类受限声明。",
+      "surviving_evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 合法skip分类",
+          "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+          "locator": "test_actual_source_hashes_and_first_version_file_scope",
+          "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+        }
+      ],
+      "missing": "原restrictions.json对应条目、最终report.skipped或可信逐ID原回执；不能以类别计数或当前依赖代替。"
+    },
+    {
+      "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_weather_central_mapping_calendar_and_exclusions",
+      "recovery_class": "C",
+      "active": false,
+      "reason": "当前源码为真实UrbanEV数据/schema夹具；未找到逐ID历史限制条目或明确整类受限声明。",
+      "surviving_evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 合法skip分类",
+          "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+          "locator": "test_weather_central_mapping_calendar_and_exclusions",
+          "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+        }
+      ],
+      "missing": "原restrictions.json对应条目、最终report.skipped或可信逐ID原回执；不能以类别计数或当前依赖代替。"
+    },
+    {
+      "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_canonical_schema_is_eleven_channels_and_ordered",
+      "recovery_class": "C",
+      "active": false,
+      "reason": "当前源码为真实UrbanEV数据/schema夹具；未找到逐ID历史限制条目或明确整类受限声明。",
+      "surviving_evidence": [
+        {
+          "source": "docs/milestones/M4_temporal_diagnostics.md",
+          "locator": "§51.10 合法skip分类",
+          "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+        },
+        {
+          "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+          "locator": "test_actual_canonical_schema_is_eleven_channels_and_ordered",
+          "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+        }
+      ],
+      "missing": "原restrictions.json对应条目、最终report.skipped或可信逐ID原回执；不能以类别计数或当前依赖代替。"
+    }
+  ],
+  "current_policy": {
+    "id": "thls-engineering-exact-restrictions-current-v1",
+    "approval": {
+      "authority": "current explicit user instruction",
+      "scope": "THLS engineering acceptance only; no 8-run or 160-step execution",
+      "statement": "用户已明确同意下列4个旧真实资产方法在本次THLS受限验收中暂不执行，作为当前明确批准的限制，而非历史skip恢复证据。",
+      "ids": [
+        "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_source_dimensions_time_axis_and_fingerprints",
+        "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_source_hashes_and_first_version_file_scope",
+        "test_urbanev_data_contract.UrbanEVDataContractTests.test_weather_central_mapping_calendar_and_exclusions",
+        "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_canonical_schema_is_eleven_channels_and_ordered"
+      ],
+      "sha256": "0ea8fb954f43caa2d9e9e5bd1e4e0609a0568bbae54ff6840a8ca19d4791a121"
+    },
+    "entries": [
+      {
+        "id": "test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch",
+        "reason": "真实UrbanEV node/scaler夹具；仅合成访问模式禁止读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_fold_scaler_no_leakage.py",
+            "locator": "FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.EnhancedRunnerM3Tests.test_real_p0_t0_h96_scientific_and_comparison_hash_fixtures_are_stable",
+        "reason": "真实ETTm1 P0/T0 golden字节/身份；不得合成替代真实兼容性证明。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "EnhancedRunnerM3Tests.test_real_p0_t0_h96_scientific_and_comparison_hash_fixtures_are_stable",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.EnhancedRunnerM3Tests.test_urbanev_f1_production_bundle_single_batch_and_horizon_identity",
+        "reason": "真实UrbanEV F1数据夹具；不扩展当前合成回归访问范围。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "EnhancedRunnerM3Tests.test_urbanev_f1_production_bundle_single_batch_and_horizon_identity",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.PMCRMSInterfaceTests.test_cuda_amd_equivalence_body_rng_generator_first_batch",
+        "reason": "原PMCR MS CUDA专项在CPU-only执行中受限；不适用于新增THLS CUDA。",
+        "mode": "cpu_only",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "PMCRMSInterfaceTests.test_cuda_amd_equivalence_body_rng_generator_first_batch",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.WarmStartAdapterRunnerTests.test_continuation_strict_mapping_fresh_optimizer_and_epoch_zero_policy",
+        "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "WarmStartAdapterRunnerTests.test_continuation_strict_mapping_fresh_optimizer_and_epoch_zero_policy",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.WarmStartAdapterRunnerTests.test_four_locked_sources_preflight_and_atomic_mapping",
+        "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "WarmStartAdapterRunnerTests.test_four_locked_sources_preflight_and_atomic_mapping",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.WarmStartAdapterRunnerTests.test_gamma_scope_optimizer_mixed_mode_and_two_steps",
+        "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "WarmStartAdapterRunnerTests.test_gamma_scope_optimizer_mixed_mode_and_two_steps",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.WarmStartAdapterRunnerTests.test_live_historical_source_gate_rejects_post_cce_file_change",
+        "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "WarmStartAdapterRunnerTests.test_live_historical_source_gate_rejects_post_cce_file_change",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_runner.WarmStartAdapterRunnerTests.test_mapping_rejects_key_shape_dtype_and_cross_horizon_without_pollution",
+        "reason": "真实历史WarmStart source/checkpoint compatibility；禁止旧artifact预检与旧checkpoint读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_runner.py",
+            "locator": "WarmStartAdapterRunnerTests.test_mapping_rejects_key_shape_dtype_and_cross_horizon_without_pollution",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_state_restore_node_order.StateRestoreNodeOrderTests.test_actual_node_ids_remain_strings_and_canonical",
+        "reason": "真实UrbanEV graph/node夹具；仅合成访问模式禁止读取。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.9 actual skip table",
+            "kind": "explicit historical restriction"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_state_restore_node_order.py",
+            "locator": "StateRestoreNodeOrderTests.test_actual_node_ids_remain_strings_and_canonical",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_target_offset.TargetOffsetTests.test_all_72_report_counts_match_both_dataset_views",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a",
+              "historical_method_count": 3,
+              "current_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_target_offset.py",
+            "locator": "TargetOffsetTests.test_all_72_report_counts_match_both_dataset_views",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_target_offset.TargetOffsetTests.test_invalid_horizon_is_rejected",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a",
+              "historical_method_count": 3,
+              "current_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_target_offset.py",
+            "locator": "TargetOffsetTests.test_invalid_horizon_is_rejected",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_target_offset.TargetOffsetTests.test_label_formula_first_last_and_inclusive_final_label",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a",
+              "historical_method_count": 3,
+              "current_file_sha256": "61001226277f9c62464e3d28f3723fa1922f710948449e56f36ef94332bae52a"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_target_offset.py",
+            "locator": "TargetOffsetTests.test_label_formula_first_last_and_inclusive_final_label",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_amd_enhanced_y_time_and_state_source_match_both_views",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+              "historical_method_count": 4,
+              "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+            "locator": "TemporalGraphLoaderConsistencyTests.test_amd_enhanced_y_time_and_state_source_match_both_views",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_feature_presets_preserve_canonical_order_and_target",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+              "historical_method_count": 4,
+              "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+            "locator": "TemporalGraphLoaderConsistencyTests.test_feature_presets_preserve_canonical_order_and_target",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_graph_window_equals_canonical_temporal_stack_and_batch_shapes",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+              "historical_method_count": 4,
+              "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+            "locator": "TemporalGraphLoaderConsistencyTests.test_graph_window_equals_canonical_temporal_stack_and_batch_shapes",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_temporal_graph_loader_consistency.TemporalGraphLoaderConsistencyTests.test_train_shuffle_changes_only_order_and_eval_order_is_deterministic",
+        "reason": "真实UrbanEV完整数据共享夹具；在setUpClass/setUpModule前按完整ID分离。",
+        "mode": "all",
+        "recovery_class": "B",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 一次性夹具检查及调度修复",
+            "kind": "explicit restriction of entire historical class",
+            "expansion": {
+              "historical_commit": "e62e3ddbe8be96f99fb1d77f010de94dd7546094",
+              "historical_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce",
+              "historical_method_count": 4,
+              "current_file_sha256": "db4bef030d373ef4e254a4e51a7e557192a7d0e750de30609c7e2d71803b02ce"
+            }
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_temporal_graph_loader_consistency.py",
+            "locator": "TemporalGraphLoaderConsistencyTests.test_train_shuffle_changes_only_order_and_eval_order_is_deterministic",
+            "kind": "module/class binding; method AST unchanged at current source"
+          }
+        ],
+        "basis": "historical_semantic_record",
+        "historical_evidence": "B",
+        "current_approval": null
+      },
+      {
+        "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_canonical_schema_is_eleven_channels_and_ordered",
+        "reason": "本次用户批准：THLS受限工程验收暂不执行该真实UrbanEV方法；历史skip证据仍Missing/Not verified。",
+        "mode": "all",
+        "basis": "current_user_authorization",
+        "historical_evidence": "Missing/Not verified",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 合法skip分类",
+            "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+            "locator": "test_actual_canonical_schema_is_eleven_channels_and_ordered",
+            "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+          }
+        ],
+        "current_approval": "0ea8fb954f43caa2d9e9e5bd1e4e0609a0568bbae54ff6840a8ca19d4791a121"
+      },
+      {
+        "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_source_dimensions_time_axis_and_fingerprints",
+        "reason": "本次用户批准：THLS受限工程验收暂不执行该真实UrbanEV方法；历史skip证据仍Missing/Not verified。",
+        "mode": "all",
+        "basis": "current_user_authorization",
+        "historical_evidence": "Missing/Not verified",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 合法skip分类",
+            "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+            "locator": "test_actual_source_dimensions_time_axis_and_fingerprints",
+            "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+          }
+        ],
+        "current_approval": "0ea8fb954f43caa2d9e9e5bd1e4e0609a0568bbae54ff6840a8ca19d4791a121"
+      },
+      {
+        "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_actual_source_hashes_and_first_version_file_scope",
+        "reason": "本次用户批准：THLS受限工程验收暂不执行该真实UrbanEV方法；历史skip证据仍Missing/Not verified。",
+        "mode": "all",
+        "basis": "current_user_authorization",
+        "historical_evidence": "Missing/Not verified",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 合法skip分类",
+            "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+            "locator": "test_actual_source_hashes_and_first_version_file_scope",
+            "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+          }
+        ],
+        "current_approval": "0ea8fb954f43caa2d9e9e5bd1e4e0609a0568bbae54ff6840a8ca19d4791a121"
+      },
+      {
+        "id": "test_urbanev_data_contract.UrbanEVDataContractTests.test_weather_central_mapping_calendar_and_exclusions",
+        "reason": "本次用户批准：THLS受限工程验收暂不执行该真实UrbanEV方法；历史skip证据仍Missing/Not verified。",
+        "mode": "all",
+        "basis": "current_user_authorization",
+        "historical_evidence": "Missing/Not verified",
+        "evidence": [
+          {
+            "source": "docs/milestones/M4_temporal_diagnostics.md",
+            "locator": "§51.10 合法skip分类",
+            "statement": "数据schema/节点/scaler合计6项，只明确其中2项完整方法。"
+          },
+          {
+            "source": "e62e3ddbe8be96f99fb1d77f010de94dd7546094:tests/test_urbanev_data_contract.py",
+            "locator": "test_weather_central_mapping_calendar_and_exclusions",
+            "statement": "源码未变仅证明方法身份/依赖，不证明原skip授权。"
+          }
+        ],
+        "current_approval": "0ea8fb954f43caa2d9e9e5bd1e4e0609a0568bbae54ff6840a8ca19d4791a121"
+      }
+    ],
+    "historical_recovery_status": "incomplete",
+    "permitted_stages": [
+      "new_cuda",
+      "inherited_cpu",
+      "real_prefix"
+    ],
+    "real_asset_entries": 20,
+    "legacy_cpu_only_entries": 1
+  }
+}

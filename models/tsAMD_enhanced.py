@@ -24,6 +24,7 @@ from models.modules.global_mediated_patch_target_exogenous_bridge import (
     PATCH_ATTENTION_RESIDUAL_NONE,
     GlobalMediatedPatchTargetExogenousBridge,
 )
+from models.modules.target_history_local_shape_residual import TargetHistoryLocalShapeResidual
 from models.modules.local_change_gated_pmcr import LocalChangeGatedPMCR
 from models.modules.modern_conv_refinement import (
     PeakPreservingModernConvRefinement,
@@ -136,6 +137,11 @@ class AMDEnhanced(AMD):
         cce_architecture=None,
         cce_insertion_point=None,
         cce_input_representation=None,
+        local_shape_contract_declared=False,
+        use_target_history_local_shape=False,
+        local_shape_kernel_small=None,
+        local_shape_kernel_large=None,
+        local_shape_init_seed=None,
         use_pmcr=False,
         pmcr_hidden_dim=None,
         pmcr_kernel_small=None,
@@ -165,6 +171,21 @@ class AMDEnhanced(AMD):
         teb_patch_gate_init=None,
         teb_global_prediction_role=None,
     ):
+        if type(use_target_history_local_shape) is not bool or type(local_shape_contract_declared) is not bool:
+            raise TypeError("THLS switches must be bool")
+        thls_declared = local_shape_contract_declared or use_target_history_local_shape
+        if thls_declared and (
+            not norm or not layernorm or task_mode != TARGET_EXOGENOUS
+            or target_slice is not None or use_pmcr or use_pmcr_p2
+            or use_sonnet_mvca or use_cce or use_teb
+        ):
+            raise ValueError("THLS requires normalized independent target_exogenous A/N")
+        if use_target_history_local_shape and local_shape_init_seed != 2024:
+            raise ValueError("THLS isolated construction seed must be 2024")
+        if not use_target_history_local_shape and any(value is not None for value in (
+            local_shape_kernel_small, local_shape_kernel_large, local_shape_init_seed
+        )):
+            raise ValueError("disabled THLS does not accept branch construction fields")
         if not isinstance(use_pmcr_p2, bool):
             raise TypeError("use_pmcr_p2 must be bool")
         if use_pmcr_p2 and (
@@ -579,6 +600,15 @@ class AMDEnhanced(AMD):
         self.teb_patch_gate_init = teb_patch_gate_init
         self.teb_global_prediction_role = teb_global_prediction_role
 
+        self.local_shape_contract_declared = thls_declared
+        self.use_target_history_local_shape = use_target_history_local_shape
+        self.target_history_local_shape = None
+        if use_target_history_local_shape:
+            with torch.random.fork_rng(devices=[]):
+                torch.random.default_generator.manual_seed(local_shape_init_seed)
+                self.target_history_local_shape = TargetHistoryLocalShapeResidual(
+                    self.seq_len, local_shape_kernel_small, local_shape_kernel_large)
+
         self.cce = None
         if self.use_cce:
             self.cce = CrossCorrelationEmbedding(
@@ -734,6 +764,7 @@ class AMDEnhanced(AMD):
             getattr(self, "sonnet_contract_declared", False)
             or getattr(self, "use_cce", False)
             or getattr(self, "use_pmcr_p2", False)
+            or getattr(self, "local_shape_contract_declared", False)
         ) or (
             getattr(self, "teb_architecture", GLOBAL_TEB_V1) in {
                 PATCH_CONDITIONED_V1,
@@ -768,10 +799,14 @@ class AMDEnhanced(AMD):
                 getattr(self, "sonnet_contract_declared", False)
                 or getattr(self, "use_cce", False)
                 or getattr(self, "use_pmcr_p2", False)
+            or getattr(self, "local_shape_contract_declared", False)
             ) and incoming.dtype != expected.dtype:
                 metadata_errors.append(
                     f"{key}: dtype {incoming.dtype} != {expected.dtype}"
                 )
+            if (getattr(self, "local_shape_contract_declared", False)
+                    and torch.is_tensor(incoming) and not bool(torch.isfinite(incoming).all())):
+                metadata_errors.append(f"{key}: non-finite")
         if missing or unexpected or metadata_errors:
             raise RuntimeError(
                 "strict checkpoint contract failed before loading: "
@@ -779,7 +814,8 @@ class AMDEnhanced(AMD):
                 f"tensor_errors={metadata_errors}"
             )
         if not (getattr(self, "sonnet_contract_declared", False)
-                or getattr(self, "use_pmcr_p2", False)):
+                or getattr(self, "use_pmcr_p2", False)
+            or getattr(self, "local_shape_contract_declared", False)):
             return super().load_state_dict(state_dict, strict=True)
         snapshot = {
             key: value.detach().clone() for key, value in current.items()
@@ -1063,6 +1099,10 @@ class AMDEnhanced(AMD):
             )
 
         normalized_input = self.rev_norm(x, "norm") if self.norm else x
+        target_history = (
+            normalized_input[:, :, self.target_idx].clone()
+            if self.use_target_history_local_shape else None
+        )
         if self.use_sonnet_mvca:
             normalized_input = self.sonnet_mvca(normalized_input)
         x_ch = torch.transpose(normalized_input, 1, 2)
@@ -1082,6 +1122,11 @@ class AMDEnhanced(AMD):
             v = self.pmcr_p2(v)
         elif self.use_pmcr:
             v = self.pmcr(v)
+        if self.use_target_history_local_shape:
+            correction = self.target_history_local_shape(target_history)
+            index = self.target_idx
+            v = torch.cat((v[:, :index, :], v[:, index:index+1, :] + correction,
+                           v[:, index+1:, :]), dim=1)
         v_local = v
 
         exo_context = v_local.new_zeros(

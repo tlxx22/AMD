@@ -75,6 +75,7 @@ from models.modules.target_exogenous_bridge import (
 )
 from models.tsAMD import AMD
 from models.tsAMD_enhanced import AMDEnhanced
+from models.modules import target_history_local_shape_residual as thls_spec
 from models.modules import local_change_gated_pmcr as p2_spec
 from utils.dataloader import CustomDataLoader
 from utils.dataloader_urbanev import (
@@ -83,7 +84,7 @@ from utils.dataloader_urbanev import (
     UrbanEVFoldPreprocessor,
     UrbanEVRawData,
 )
-from utils.feature_schema import TARGET_NAME, get_feature_schema
+from utils.feature_schema import CANONICAL_FEATURE_NAMES, TARGET_NAME, get_feature_schema
 from utils.temporal_region_dataset import TemporalRegionDataset
 from utils.general import capture_rng_state, restore_rng_state, set_seed
 
@@ -96,6 +97,10 @@ T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
+THLS_IMPLEMENTATION_VARIANT = thls_spec.IMPLEMENTATION_VARIANT
+THLS_DEVELOPMENT_PROTOCOL = thls_spec.DEVELOPMENT_PROTOCOL
+THLS_CONTROL_ABLATION_ID = thls_spec.CONTROL_ABLATION_ID
+THLS_ABLATION_ID = thls_spec.ABLATION_ID
 PMCR_P2_IMPLEMENTATION_VARIANT = "el-amd-m4-pmcr-local-change-p2-v1"
 IMPLEMENTATION_VARIANT = BASELINE_IMPLEMENTATION_VARIANT
 ENHANCED_IMPLEMENTATION_VARIANTS = (
@@ -107,6 +112,7 @@ ENHANCED_IMPLEMENTATION_VARIANTS = (
     LATE_CCE_IMPLEMENTATION_VARIANT,
     SONNET_IMPLEMENTATION_VARIANT,
     PMCR_P2_IMPLEMENTATION_VARIANT,
+    THLS_IMPLEMENTATION_VARIANT,
 )
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
@@ -622,7 +628,8 @@ def _sonnet_candidate_contract(args):
 
 def _is_policy_development_variant(variant):
     """Evaluation surfaces shared by independently named development protocols."""
-    return variant in {SONNET_IMPLEMENTATION_VARIANT, PMCR_P2_IMPLEMENTATION_VARIANT}
+    return variant in {SONNET_IMPLEMENTATION_VARIANT, PMCR_P2_IMPLEMENTATION_VARIANT,
+                       THLS_IMPLEMENTATION_VARIANT}
 
 
 def _pmcr_ms_interface_contract(args):
@@ -668,6 +675,74 @@ def _pmcr_candidate_contract(args):
         "artifact_purpose": args.artifact_purpose,
         "pmcr_ms_interface": _pmcr_ms_interface_contract(args),
     }
+
+
+def _thls_ms_interface_contract(args):
+    return thls_spec.interface_contract(args.use_target_history_local_shape)
+
+
+def _thls_candidate_contract(args):
+    return {
+        "development_protocol_id": args.development_protocol_id,
+        "ablation_id": args.ablation_id, "task_mode": args.task_mode,
+        "feature_names": list(args.feature_names), "target_idx": args.target_idx,
+        "aux_idx": list(args.aux_idx), "schema_fingerprint": args.schema_fingerprint,
+        "seq_len": args.seq_len, "label_horizon": args.label_horizon,
+        "model_pred_len": args.model_pred_len,
+        "evaluation_policy": args.evaluation_policy,
+        "artifact_purpose": args.artifact_purpose,
+        "local_shape_ms_interface": _thls_ms_interface_contract(args),
+    }
+
+
+def _prepare_thls_contract(args, patch_values, t2g_values, t3_values):
+    """Only the independent UrbanEV A/N interface; no warm-start or other tasks."""
+    if (args.ablation_id not in {THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID}
+            or args.development_protocol_id != THLS_DEVELOPMENT_PROTOCOL
+            or args.training_protocol_id != STANDARD_TRAINING_PROTOCOL):
+        raise ValueError("THLS development/arm/from-scratch identity mismatch")
+    enabled = args.ablation_id == THLS_ABLATION_ID
+    if args.use_target_history_local_shape is not enabled:
+        raise ValueError("THLS A/N ablation and module switch disagree")
+    if (args.task_mode != TARGET_EXOGENOUS or args.feature_type != "MS"
+            or not args.norm or not args.layernorm or args.seed != 2024):
+        raise ValueError("THLS requires normalized target_exogenous/MS and seed=2024")
+    if (not _is_urbanev_production(args) or args.dataset_id != "UrbanEV"
+            or args.feature_preset != "F4" or args.fold != 6 or args.seq_len != 12
+            or args.patch != 12 or args.model_pred_len != 1
+            or args.label_horizon not in (3, 6, 9, 12)
+            or args.target != "volume" or args.target_idx != 0
+            or args.feature_names != tuple(CANONICAL_FEATURE_NAMES)
+            or args.aux_idx != tuple(range(1, 11))):
+        raise ValueError("THLS only supports UrbanEV F4/fold6/volume/T12/four offsets")
+    if args.use_pmcr or args.use_sonnet_mvca or args.use_cce or args.use_teb:
+        raise ValueError("THLS forbids PMCR/P2/Sonnet/CCE and all TEB combinations")
+    foreign_fields = (
+        "sonnet_d_model", "sonnet_n_atoms", "sonnet_alpha", "sonnet_epsilon",
+        "sonnet_attention_dropout", "sonnet_gamma_init", "module_init_seed",
+        "cce_architecture", "cce_insertion_point", "cce_input_representation",
+        "cce_input_order_policy", "pmcr_hidden_dim", "pmcr_kernel_small", "pmcr_kernel_large",
+    )
+    if (any(getattr(args, field) is not None for field in foreign_fields)
+            or any(value is not None for value in (*patch_values, *t2g_values, *t3_values))
+            or args.cce_kernel_size != 3 or args.cce_lambda_init != 0.1
+            or args.cce_padding_policy != ZERO_SAME
+            or args.cce_parameterization_policy != IDENTITY_RESIDUAL_DELTA_V1
+            or args.pmcr_dropout != 0.1 or args.pmcr_gamma_init != 1e-3
+            or args.pmcr_deploy or args.teb_context_dim != 32):
+        raise ValueError("THLS forbids foreign module configuration or deploy training")
+    if args.local_shape_init_seed not in ((None, 2024) if enabled else (None,)):
+        raise ValueError("THLS N isolated init seed is 2024; A constructs no branch")
+    args.local_shape_init_seed = 2024 if enabled else None
+    if args.evaluation_policy not in (None, TRAIN_VALIDATION_ONLY):
+        raise ValueError("THLS requires train_validation_only")
+    if args.artifact_purpose not in (None, M4_DEVELOPMENT_CANDIDATE):
+        raise ValueError("THLS only supports m4_development_candidate purpose")
+    args.evaluation_policy = TRAIN_VALIDATION_ONLY
+    args.artifact_purpose = M4_DEVELOPMENT_CANDIDATE
+    args.teb_architecture = GLOBAL_TEB_V1  # compatibility metadata, no module
+    args.display_name = "AMD-Concat + target-history local-shape residual" if enabled else "AMD-Concat"
+    return args
 
 
 def _prepare_pmcr_ms_contract(args, patch_values, t2g_values, t3_values):
@@ -878,6 +953,7 @@ def parse_args(argv=None):
             PMCR_P2_CONTROL_ABLATION_ID,
             PMCR_P2_V1_ABLATION_ID,
             PMCR_P2_ABLATION_ID,
+            THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID,
         ],
     )
 
@@ -917,6 +993,8 @@ def parse_args(argv=None):
         choices=[M4_DEVELOPMENT_CANDIDATE],
     )
 
+    parser.add_argument("--use_target_history_local_shape", type=str2bool, default=False)
+    parser.add_argument("--local_shape_init_seed", type=int, default=None)
     parser.add_argument("--use_cce", type=str2bool, default=False)
     parser.add_argument("--cce_kernel_size", type=int, default=3)
     parser.add_argument("--cce_lambda_init", type=float, default=0.1)
@@ -1080,6 +1158,7 @@ def parse_args(argv=None):
             LATE_CCE_DEVELOPMENT_PROTOCOL,
             SONNET_DEVELOPMENT_PROTOCOL,
             PMCR_P2_DEVELOPMENT_PROTOCOL,
+            THLS_DEVELOPMENT_PROTOCOL,
         ],
     )
     parser.add_argument(
@@ -1435,6 +1514,8 @@ def _prepare_enhanced_contract(args):
         args.teb_global_prediction_role,
     )
 
+    if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+        return _prepare_thls_contract(args, patch_values, t2g_values, t3_values)
     if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
         return _prepare_pmcr_ms_contract(args, patch_values, t2g_values, t3_values)
 
@@ -1920,6 +2001,13 @@ def _prepare_enhanced_contract(args):
 def prepare_args(args):
     """Normalize paths and validate baseline or enhanced scientific contracts."""
 
+    thls_fields = (
+        args.ablation_id in {THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID}
+        or args.development_protocol_id == THLS_DEVELOPMENT_PROTOCOL
+        or args.use_target_history_local_shape or args.local_shape_init_seed is not None
+    )
+    if thls_fields and args.implementation_variant != THLS_IMPLEMENTATION_VARIANT:
+        raise ValueError("THLS identities/configuration require the independent THLS variant")
     if args.implementation_variant not in SUPPORTED_IMPLEMENTATION_VARIANTS:
         raise ValueError(
             f"unsupported implementation variant: {args.implementation_variant}"
@@ -2363,6 +2451,8 @@ def _training_protocol_block(args):
                 "initialization_policy": (
                     PMCR_P2_INITIALIZATION_POLICY
                     if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+                    else thls_spec.INITIALIZATION_POLICY
+                    if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT
                     else "matched_standard_from_scratch"
                 ),
                 "source_checkpoint": None,
@@ -3698,6 +3788,15 @@ def _scientific_config(
                 "use_cce": False,
                 "pmcr_ms_interface": _pmcr_ms_interface_contract(args),
             })
+        if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+            model_config.update({
+                "module_connection": (thls_spec.MODULE_CONNECTION
+                    if args.use_target_history_local_shape
+                    else "X->RevIN->MDM(U)->DDI; AMS_selector<-U"),
+                "use_sonnet_mvca": False, "use_cce": False,
+                "use_target_history_local_shape": args.use_target_history_local_shape,
+                "local_shape_ms_interface": _thls_ms_interface_contract(args),
+            })
         if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
             model_config["teb"].update({
                 "architecture": PATCH_CONDITIONED_V1,
@@ -3785,7 +3884,7 @@ def _scientific_config(
             )
         },
     }
-    if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
+    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
         # A resume cannot silently extend even an engineering run's requested budget.
         result["optimization"]["requested_train_epochs"] = args.train_epochs
     if experiment is not None:
@@ -3863,7 +3962,7 @@ def _resolved_config(
             "source_lineage": deepcopy(source_lineage),
             "source_compatibility_proof": deepcopy(source_compatibility_proof),
         })
-    if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
+    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
         result["model_form"] = "train"
     return result
 
@@ -3893,7 +3992,7 @@ def _checkpoint_common(resolved_config, config_hash, data_sha256, preprocessing)
                 resolved_config["source_compatibility_proof"]
             ),
             })
-    if resolved_config["implementation_variant"] == PMCR_P2_IMPLEMENTATION_VARIANT:
+    if resolved_config["implementation_variant"] in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
         result["model_form"] = "train"
     return result
 
@@ -4043,7 +4142,7 @@ def _load_resume_checkpoint(
         if observed_protocol is None and (
             expected_protocol.get("training_protocol_id")
             == STANDARD_TRAINING_PROTOCOL
-            and implementation_variant != PMCR_P2_IMPLEMENTATION_VARIANT
+            and implementation_variant not in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}
         ):
             observed_protocol = expected_protocol
         if observed_protocol != expected_protocol:
@@ -4125,6 +4224,16 @@ def _load_resume_checkpoint(
         ):
             raise RuntimeError("PMCR resume interface/model form/budget mismatch")
 
+    if implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+        if candidate_contract is None or expected_model_state is None:
+            raise RuntimeError("THLS resume requires full identity and expected model state")
+        if (previous_scientific.get("model", {}).get("local_shape_ms_interface")
+                != candidate_contract.get("local_shape_ms_interface")
+                or manifest.get("model_form") != "train"
+                or previous_config.get("model_form") != "train"
+                or previous_config["run"].get("train_epochs") != train_epochs):
+            raise RuntimeError("THLS resume interface/model form/budget mismatch")
+
     # Always deserialize checkpoint tensors onto CPU.  Mapping the whole object
     # to CUDA also maps CPU RNG/DataLoader generator ByteTensors, which makes
     # torch.set_rng_state and Generator.set_state fail on resume.
@@ -4132,10 +4241,22 @@ def _load_resume_checkpoint(
     if not isinstance(checkpoint, dict):
         raise RuntimeError("resume checkpoint must contain a dictionary")
     if (
-        implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+        implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}
         and checkpoint.get("model_form") != "train"
     ):
         raise RuntimeError("PMCR resume checkpoint model form mismatch")
+    if implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+        def finite_state(value):
+            if torch.is_tensor(value):
+                return bool(torch.isfinite(value).all())
+            if isinstance(value, Mapping):
+                return all(finite_state(item) for item in value.values())
+            if isinstance(value, (list, tuple)):
+                return all(finite_state(item) for item in value)
+            return True
+        if not all(finite_state(checkpoint.get(key)) for key in (
+                "model_state", "best_model_state", "optimizer_state")):
+            raise RuntimeError("THLS resume contains non-finite state before loading")
     if checkpoint.get("schema_version") != SCHEMA_VERSION:
         raise RuntimeError("checkpoint schema version mismatch")
     if (
@@ -4150,6 +4271,7 @@ def _load_resume_checkpoint(
     if observed_checkpoint_protocol is None and (
         expected_protocol.get("training_protocol_id")
         == STANDARD_TRAINING_PROTOCOL
+        and implementation_variant != THLS_IMPLEMENTATION_VARIANT
     ):
         observed_checkpoint_protocol = expected_protocol
     if observed_checkpoint_protocol != expected_protocol:
@@ -4183,6 +4305,9 @@ def _load_resume_checkpoint(
     checkpoint_config = checkpoint.get("resolved_config")
     if not isinstance(checkpoint_config, dict):
         raise RuntimeError("resume checkpoint has no resolved configuration")
+    if (implementation_variant == THLS_IMPLEMENTATION_VARIANT
+            and checkpoint_config.get("model_form") != "train"):
+        raise RuntimeError("THLS resume resolved checkpoint model form mismatch")
     checkpoint_scientific = checkpoint_config.get("scientific_config")
     if (
         not isinstance(checkpoint_scientific, dict)
@@ -4408,7 +4533,7 @@ def _urbanev_split_identity(bundle, dataset, split):
 
 
 def _build_urbanev_runtime_data(args, train_generator):
-    if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
+    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
         raw = UrbanEVRawData.load(args.data, train_validation_fold=6)
         if raw.restricted_fold is None:
             raise RuntimeError("PMCR UrbanEV requires restricted raw train/validation data")
@@ -4813,6 +4938,11 @@ def _build_model(args, data_loader):
         teb_context_dim=args.teb_context_dim,
         task_mode=args.task_mode,
         aux_idx=args.aux_idx,
+        local_shape_contract_declared=args.implementation_variant == THLS_IMPLEMENTATION_VARIANT,
+        use_target_history_local_shape=args.use_target_history_local_shape,
+        local_shape_kernel_small=3 if args.use_target_history_local_shape else None,
+        local_shape_kernel_large=7 if args.use_target_history_local_shape else None,
+        local_shape_init_seed=args.local_shape_init_seed,
         use_sonnet_mvca=args.use_sonnet_mvca,
         sonnet_feature_schema=(
             args.feature_names
@@ -5063,6 +5193,9 @@ def _main_impl(args, transcript=None):
     if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _pmcr_candidate_contract(args)
         manifest["model_form"] = "train"
+    if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+        manifest["candidate_contract"] = _thls_candidate_contract(args)
+        manifest["model_form"] = "train"
     previous_config = None
     manifest_is_mutable = False
     artifact_sealed = False
@@ -5094,6 +5227,8 @@ def _main_impl(args, transcript=None):
                     else (
                         _pmcr_candidate_contract(args)
                         if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+                        else _thls_candidate_contract(args)
+                        if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT
                         else None
                     )
                 ),

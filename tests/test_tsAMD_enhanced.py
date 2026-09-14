@@ -1500,5 +1500,325 @@ class AMDEnhancedP2Tests(unittest.TestCase):
         with self.assertRaises(RuntimeError): model.load_amd_backbone_state_dict(backbone)
         for key, value in source.items(): self.assertTrue(torch.equal(value, model.state_dict()[key]))
 
+def _unrepaired_frozen_amd_class():
+    """Exact immutable Git sources; import them without altering active modules."""
+    import builtins
+    import hashlib
+    import json
+    import os
+    from pathlib import Path
+    import subprocess
+    import types
+    expected = {
+        "models/common.py": "570f47c3a7db3b5156e4e95df65b81aa13c5a0a741a61f1bb0798ab1ec1a3afb",
+        "models/tsAMD.py": "fa72cdbe34348364344c0d9c0755668a82d22f6a37ee061c7ece93ecfaf90ba1",
+        "models/tsmoe.py": "d6c7888410dc64c3514c76cf4f2720b99c11773b0011780afaac76ca98aee0f1",
+    }
+    config_path = os.environ.get("AMD_RR_CONFIG")
+    paths = json.loads(Path(config_path).read_text())["frozen_forward_reference"] if config_path else None
+    sources = {name: Path(paths[name]).read_bytes() if paths else subprocess.check_output(
+        ["git", "show", "amd_reproduced_baseline_v1:"+name], cwd=Path(__file__).resolve().parents[1])
+        for name in expected}
+    assert all(hashlib.sha256(sources[n]).hexdigest()==h for n,h in expected.items())
+    modules = {}
+    original_import = builtins.__import__
+    def reference_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if level==0 and name in modules:
+            return modules[name]
+        return original_import(name,globals,locals,fromlist,level)
+    for name in ("models.common", "models.tsmoe", "models.tsAMD"):
+        module = types.ModuleType("_unrepaired_frozen_"+name.replace(".","_"))
+        module.__dict__["__builtins__"] = dict(vars(builtins), __import__=reference_import)
+        source_name=name.replace(".","/")+".py"
+        exec(compile(sources[source_name], "git:amd_reproduced_baseline_v1:"+source_name, "exec"),module.__dict__)
+        modules[name]=module
+    return modules["models.tsAMD"].AMD
+
+
+def _closed_gradient_numerics(left, right):
+    if left is None or right is None:
+        same = left is None and right is None
+        return dict(none_equal=same, both_none=same, bitwise_equal=same, finite=same)
+    a, b = left.detach(), right.detach()
+    metadata = dict(none_equal=True, shape_equal=a.shape == b.shape,
+                    dtype_equal=a.dtype == b.dtype, device_equal=a.device == b.device)
+    if not all(metadata.values()):
+        return dict(metadata, bitwise_equal=False, finite=False)
+    finite = bool(torch.isfinite(a).all() and torch.isfinite(b).all())
+    result = dict(metadata, bitwise_equal=torch.equal(a, b), finite=finite,
+        different_elements=int((a != b).sum()), elements=a.numel(),
+        left_nan=int(torch.isnan(a).sum()), right_nan=int(torch.isnan(b).sum()),
+        left_inf=int(torch.isinf(a).sum()), right_inf=int(torch.isinf(b).sum()),
+        max_abs=None, max_rel=None, max_ulp=None)
+    if finite:
+        ac, bc = a.to(device='cpu', dtype=torch.float64), b.to(device='cpu', dtype=torch.float64)
+        difference = (ac-bc).abs(); scale = torch.maximum(ac.abs(), bc.abs())
+        nonzero = scale != 0
+        result['max_abs'] = float(difference.max()) if a.numel() else 0.
+        result['max_rel'] = float((difference[nonzero]/scale[nonzero]).max()) if bool(nonzero.any()) else 0.
+        if a.dtype == torch.float32:
+            def ordered_bits(t):
+                bits = t.to('cpu').contiguous().view(torch.int32).to(torch.int64)
+                return torch.where(bits < 0, -(bits & 0x7fffffff), bits)
+            ulp = (ordered_bits(a)-ordered_bits(b)).abs()
+            result['max_ulp'] = int(ulp.max()) if a.numel() else 0
+            result['approved_symmetric_bound_satisfied'] = bool((difference <= 1e-7+1e-6*scale).all())
+    return result
+
+
+def _assert_closed_parameter_gradient(testcase, name, left, right):
+    """Role/dtype-scoped cross-entry exception; every other gradient remains bitwise."""
+    if left is None or right is None:
+        testcase.assertIs(left, right, name+' None pattern')
+        return
+    testcase.assertEqual(left.shape, right.shape, name+' shape')
+    testcase.assertEqual(left.dtype, right.dtype, name+' dtype')
+    testcase.assertEqual(left.device, right.device, name+' device')
+    testcase.assertTrue(bool(torch.isfinite(left).all() and torch.isfinite(right).all()), name+' finite')
+    if name in {'rev_norm.affine_weight', 'rev_norm.affine_bias'} and left.dtype == torch.float32:
+        a = left.detach().to(device='cpu', dtype=torch.float64)
+        b = right.detach().to(device='cpu', dtype=torch.float64)
+        testcase.assertTrue(bool(((a-b).abs() <= 1e-7+1e-6*torch.maximum(a.abs(), b.abs())).all()),
+                            name+' approved symmetric numerical bound')
+    else:
+        testcase.assertTrue(torch.equal(left, right), name+' bitwise gradient')
+
+
+def _closed_report_json_safe(value):
+    """Keep every observed nonfinite value reportable without accepting it."""
+    import math
+    if isinstance(value, dict):
+        return {key:_closed_report_json_safe(item) for key,item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_closed_report_json_safe(item) for item in value]
+    if hasattr(value, 'item'):
+        return _closed_report_json_safe(value.item())
+    if isinstance(value, float) and not math.isfinite(value):
+        return {'nonfinite':'NaN' if math.isnan(value) else ('+Infinity' if value > 0 else '-Infinity')}
+    return value
+
+
+class AMDEnhancedTHLSTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.previous_threads = torch.get_num_threads(); torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.previous_threads)
+
+    @staticmethod
+    def _kwargs(length=12, enabled=False):
+        features, target = (11, 0) if length == 12 else (7, 6)
+        common = dict(input_shape=(length, features), pred_len=1 if length == 12 else 96,
+            n_block=1, dropout=.1, patch=12 if length == 12 else 16, k=0, c=2,
+            alpha=.5, norm=True, layernorm=True)
+        options = dict(target_slice=None, target_idx=target, teb_context_dim=32,
+            task_mode=TARGET_EXOGENOUS, aux_idx=tuple(i for i in range(features) if i != target),
+            local_shape_contract_declared=True, use_target_history_local_shape=enabled)
+        if enabled:
+            options.update(local_shape_kernel_small=3 if length == 12 else 5,
+                           local_shape_kernel_large=7 if length == 12 else 31,
+                           local_shape_init_seed=2024)
+        return common, options
+
+    def test_original_single_revin_target_route_selector_and_state(self):
+        for device in ('cpu', 'cuda'):
+            for length in (12, 512):
+                common, options = self._kwargs(length, True)
+                model = AMDEnhanced(**common, **options).to(device).eval()
+                target = options['target_idx']; observed = {}; norm_calls = []
+                x = torch.randn(2, length, common['input_shape'][1], device=device)
+                original_x = x.clone()
+                def norm_hook(module, inputs, output):
+                    if inputs[1] == 'norm':
+                        norm_calls.append(1); observed['z'] = output.detach().clone()
+                handles = [model.rev_norm.register_forward_hook(norm_hook),
+                    model.pastmixing.register_forward_pre_hook(lambda m, ins: observed.update(mdm_input=ins[0].detach().clone())),
+                    model.pastmixing.register_forward_hook(lambda m, ins, out: observed.update(u=out.detach().clone())),
+                    model.fc_blocks[-1].register_forward_hook(lambda m, ins, out: observed.update(ddi=out.detach().clone())),
+                    model.target_history_local_shape.register_forward_pre_hook(lambda m, ins: observed.update(y=ins[0].detach().clone())),
+                    model.target_history_local_shape.register_forward_hook(lambda m, ins, out: observed.update(residual=out.detach().clone())),
+                    model.moe.register_forward_pre_hook(lambda m, ins: observed.update(v=ins[0].detach().clone(), selector=ins[1].detach().clone()))]
+                try:
+                    with torch.no_grad(): prediction, auxiliary, state = model(x, return_state_source=True)
+                finally:
+                    for handle in handles: handle.remove()
+                self.assertEqual(len(norm_calls), 1)
+                self.assertTrue(torch.equal(x, original_x))
+                self.assertTrue(torch.equal(observed['y'], observed['z'][:, :, target]))
+                self.assertTrue(torch.equal(observed['mdm_input'], observed['z'].transpose(1, 2)))
+                aux = list(options['aux_idx'])
+                self.assertTrue(torch.equal(observed['v'][:, aux], observed['ddi'][:, aux]))
+                self.assertTrue(torch.equal(observed['v'][:, target:target+1],
+                    observed['ddi'][:, target:target+1]+observed['residual']))
+                self.assertTrue(torch.equal(observed['selector'], observed['u']))
+                expected = torch.cat((observed['v'][:, target], observed['u'][:, target],
+                                      x.new_zeros(2, 32)), -1)
+                self.assertTrue(torch.equal(state, expected))
+                self.assertEqual(state.shape, (2, 2*length+32))
+                self.assertTrue(torch.isfinite(prediction).all()); self.assertTrue(torch.isfinite(auxiliary))
+
+    def test_disabled_frozen_equivalence_and_isolated_construction_rng(self):
+        import main as runner
+        from unittest import mock
+        from test_runner import _assert_nested_equal
+        for device in ('cpu', 'cuda'):
+            for length in (12, 512):
+                common, options = self._kwargs(length)
+                target = options['target_idx']; models = []; rngs = []; batches = []
+                for enabled in (False, True):
+                    runner.set_seed(2024)
+                    generator = torch.Generator().manual_seed(2024)
+                    before_generator = generator.get_state().clone()
+                    _, extra = self._kwargs(length, enabled)
+                    with mock.patch.object(torch.cuda, 'manual_seed', side_effect=AssertionError('CUDA seed touched')), \
+                            mock.patch.object(torch.cuda, 'manual_seed_all', side_effect=AssertionError('CUDA seed touched')):
+                        models.append(AMDEnhanced(**common, **extra))
+                    self.assertTrue(torch.equal(before_generator, generator.get_state()))
+                    rngs.append(runner.capture_rng_state())
+                    sample = torch.arange(4*length*common['input_shape'][1]).reshape(4, length, -1).float()
+                    loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(sample),
+                        batch_size=2, shuffle=True, drop_last=True, generator=generator)
+                    batches.append(next(iter(loader)))
+                a, n = models
+                _assert_nested_equal(self, rngs[0], rngs[1]); _assert_nested_equal(self, batches[0], batches[1])
+                _assert_nested_equal(self, a.state_dict(), {k:v for k,v in n.state_dict().items()
+                    if not k.startswith('target_history_local_shape.')})
+                self.assertIsNone(a.target_history_local_shape)
+                self.assertIsNone(n.pmcr); self.assertIsNone(n.pmcr_p2)
+                runner.set_seed(2024)
+                frozen = AMD(**common, target_slice=slice(target, target+1))
+                _assert_nested_equal(self, a.state_dict(), frozen.state_dict())
+                a.to(device).eval(); frozen.to(device).eval()
+                x = torch.randn(2, length, common['input_shape'][1], device=device, requires_grad=True)
+                xf = x.detach().clone().requires_grad_()
+                pa, aa = a(x); pf, af = frozen(xf)
+                self.assertTrue(torch.equal(pa, pf)); self.assertTrue(torch.equal(aa, af))
+                # Forward only: exact prepatch frozen sources, not repaired common imports.
+                saved_rng = runner.capture_rng_state()
+                try:
+                    runner.set_seed(2024)
+                    original = _unrepaired_frozen_amd_class()(**common, target_slice=slice(target,target+1)).to(device).eval()
+                    _assert_nested_equal(self, frozen.state_dict(), original.state_dict())
+                    runner.restore_rng_state(saved_rng)
+                    po, ao = original(x.detach().clone().requires_grad_())
+                    _assert_nested_equal(self, saved_rng, runner.capture_rng_state())
+                    self.assertTrue(torch.equal(pa,po)); self.assertTrue(torch.equal(aa,ao))
+                    _assert_nested_equal(self, frozen.state_dict(), original.state_dict())
+                    self.assertTrue(all(not m.training for m in original.modules()))
+                    forward_reference = dict(prediction_bitwise=torch.equal(pa,po),moe_bitwise=torch.equal(aa,ao),
+                        state_equal=True,eval_mode=True,rng_unchanged=True,backward_executed=False)
+                finally:
+                    runner.restore_rng_state(saved_rng)
+                del original,po,ao
+                (pa.square().mean()+aa).backward(); (pf.square().mean()+af).backward()
+                import json
+                input_report = _closed_gradient_numerics(x.grad,xf.grad)
+                parameters = {key:_closed_gradient_numerics(p.grad,dict(frozen.named_parameters())[key].grad)
+                              for key,p in a.named_parameters()}
+                # Persist all already-computed values before the grouped assertions.
+                import hashlib
+                import os
+                import tempfile
+                from pathlib import Path
+                import numpy as np
+                guard_config = os.environ.get('AMD_RR_CONFIG')
+                if guard_config:
+                    raw_root = Path(json.loads(Path(guard_config).read_text())['session_root'])/'closed-gradients'
+                    raw_root.mkdir(exist_ok=True)
+                else:
+                    scratch = tempfile.TemporaryDirectory(prefix='thls-closed-gradients-')
+                    self.addCleanup(scratch.cleanup)
+                    raw_root = Path(scratch.name)
+                raw_path = raw_root/(device+'-T'+str(length)+'.npz')
+                arrays = {}
+                for side, model, leaf in [('A', a, x), ('AMD', frozen, xf)]:
+                    for name, parameter in [('input', leaf), *model.named_parameters()]:
+                        if parameter.grad is not None:
+                            arrays[side+'/'+name] = parameter.grad.detach().clone().cpu().numpy()
+                with raw_path.open('xb') as handle:
+                    np.savez(handle, **arrays)
+                raw_record = dict(path=str(raw_path), sha256=hashlib.sha256(raw_path.read_bytes()).hexdigest(),
+                                  arrays=list(arrays), none_patterns='parameter_gradients and input_gradient records')
+                del arrays
+                affine_values = {name:dict(
+                    left=None if dict(a.named_parameters())[name].grad is None else dict(a.named_parameters())[name].grad.detach().cpu().tolist(),
+                    right=None if dict(frozen.named_parameters())[name].grad is None else dict(frozen.named_parameters())[name].grad.detach().cpu().tolist(),
+                    different_indices=None if dict(a.named_parameters())[name].grad is None or dict(frozen.named_parameters())[name].grad is None else
+                        (dict(a.named_parameters())[name].grad != dict(frozen.named_parameters())[name].grad).nonzero().cpu().tolist())
+                    for name in ('rev_norm.affine_weight', 'rev_norm.affine_bias')}
+                report = dict(device=device,length=length,prediction_bitwise=torch.equal(pa,pf),moe_bitwise=torch.equal(aa,af),
+                    unrepaired_frozen_forward=forward_reference,backward_reference="AMD with repaired shared common.py",
+                    input_gradient=input_report,parameter_gradients=parameters,
+                    cross_entry_exception="float32 RevIN affine_weight/affine_bias only; symmetric atol=1e-7 rtol=1e-6",
+                    affine_original_values=affine_values,raw_gradient_snapshot=raw_record,
+                    all_parameter_gradients_bitwise=all(v['bitwise_equal'] for v in parameters.values()))
+                payload = json.dumps(_closed_report_json_safe(report),allow_nan=False)
+                with raw_path.with_suffix('.json').open('x') as handle:
+                    handle.write(payload+'\n')
+                print("THLS_CLOSED_EQUIVALENCE_RESULT "+payload,flush=True)
+                self.assertTrue(input_report['finite']); self.assertTrue(all(v['finite'] for v in parameters.values()))
+                self.assertTrue(torch.equal(x.grad, xf.grad))
+                left_gradients = {k:p.grad for k,p in a.named_parameters()}
+                right_gradients = {k:p.grad for k,p in frozen.named_parameters()}
+                self.assertEqual(set(left_gradients), set(right_gradients))
+                for name in left_gradients:
+                    _assert_closed_parameter_gradient(self, name, left_gradients[name], right_gradients[name])
+
+    def test_target_loss_reaches_saved_history_affine_and_branch(self):
+        for device in ('cpu', 'cuda'):
+            common, options = self._kwargs(enabled=True)
+            model = AMDEnhanced(**common, **options).to(device).eval()
+            x = torch.randn(2, 12, 11, device=device, requires_grad=True); captured = {}
+            def remember(module, inputs):
+                inputs[0].retain_grad(); captured['y'] = inputs[0]
+            handle = model.target_history_local_shape.register_forward_pre_hook(remember)
+            try:
+                prediction, _ = model(x)
+                target = torch.tensor([.7, -.3], device=device).reshape_as(prediction)
+                (prediction-target).square().mean().backward()
+            finally: handle.remove()
+            self.assertIsNotNone(captured['y'].grad)
+            self.assertGreater(float(captured['y'].grad.abs().sum()), 0)
+            self.assertTrue(torch.isfinite(x.grad).all())
+            for name, parameter in model.rev_norm.named_parameters():
+                self.assertIsNotNone(parameter.grad, name)
+                self.assertTrue(torch.isfinite(parameter.grad).all(), name)
+            groups = {}
+            for name, parameter in model.target_history_local_shape.named_parameters():
+                self.assertIsNotNone(parameter.grad, name)
+                self.assertTrue(torch.isfinite(parameter.grad).all(), name)
+                groups.setdefault(name.split('.')[0], 0.)
+                groups[name.split('.')[0]] += float(parameter.grad.abs().sum())
+            self.assertTrue(all(v > 0 for v in groups.values()), groups)
+            print('THLS_AMD_TARGET_GRADIENT', device, groups, flush=True)
+
+    def test_combination_norm_shape_and_atomic_restore_contracts(self):
+        from copy import deepcopy
+        common, options = self._kwargs(enabled=True); kwargs = dict(**common, **options)
+        for change in ({'use_pmcr': True}, {'use_pmcr_p2': True}, {'use_sonnet_mvca': True},
+                       {'use_cce': True}, {'use_teb': True}, {'norm': False}, {'layernorm': False},
+                       {'task_mode': PARALLEL_MULTIVARIATE}, {'target_idx': 11},
+                       {'local_shape_init_seed': 2025}, {'target_slice': slice(0, 1)}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                AMDEnhanced(**{**kwargs, **change})
+        model = AMDEnhanced(**kwargs); original = deepcopy(model.state_dict())
+        key = 'target_history_local_shape.input_projection.weight'
+        for kind in ('key','shape','dtype','finite','deploy'):
+            bad = deepcopy(original)
+            if kind == 'key': bad.pop(key)
+            elif kind == 'shape': bad[key] = bad[key][:1]
+            elif kind == 'dtype': bad[key] = bad[key].double()
+            elif kind == 'finite': bad[key][0,0,0] = float('nan')
+            else:
+                bad = {k:v for k,v in bad.items() if not k.startswith('target_history_local_shape.')}
+                bad.update({'target_history_local_shape.'+k:v
+                    for k,v in model.target_history_local_shape.to_deploy().state_dict().items()})
+            with self.assertRaises(RuntimeError): model.load_state_dict(bad)
+            for name in original: self.assertTrue(torch.equal(original[name], model.state_dict()[name]))
+        with self.assertRaises(ValueError): model.load_state_dict(original, strict=False)
+
+
 if __name__ == "__main__":
     unittest.main()

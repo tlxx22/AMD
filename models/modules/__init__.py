@@ -26,6 +26,7 @@ from models.modules.global_mediated_patch_target_exogenous_bridge import (
     PATCH_ATTENTION_RESIDUAL_NONE,
     GlobalMediatedPatchTargetExogenousBridge,
 )
+from models.modules.target_history_local_shape_residual import TargetHistoryLocalShapeResidual
 from models.modules.local_change_gated_pmcr import LocalChangeGate, LocalChangeGatedPMCR
 from models.modules.modern_conv_refinement import (
     PeakPreservingModernConvRefinement,
@@ -57,6 +58,7 @@ from models.modules.target_exogenous_bridge import (
 )
 
 __all__ = [
+    "TargetHistoryLocalShapeResidual",
     "CCE_INSERTION_POINT",
     "CCE_SOURCE_IMPORT_CONTRACT_VERSION",
     "EARLY_CCE_ARCHITECTURE",
