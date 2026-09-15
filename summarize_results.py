@@ -14,6 +14,7 @@ from pathlib import Path
 
 import torch
 from models.modules import target_history_local_shape_residual as thls_spec
+from models.modules import sonnet_thls_contract as sj_spec
 from models.modules import local_change_gated_pmcr as p2_spec
 
 from models.modules.cross_correlation_embedding import (
@@ -40,6 +41,8 @@ T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
+SONNET_THLS_IMPLEMENTATION_VARIANT = sj_spec.IMPLEMENTATION_VARIANT
+NSJ_IMPLEMENTATION_VARIANT = sj_spec.COMPARISON_VARIANT
 THLS_IMPLEMENTATION_VARIANT = thls_spec.IMPLEMENTATION_VARIANT
 THLS_DEVELOPMENT_PROTOCOL = thls_spec.DEVELOPMENT_PROTOCOL
 THLS_ETTM1_DEVELOPMENT_PROTOCOL = thls_spec.ETTM1_DEVELOPMENT_PROTOCOL
@@ -57,6 +60,8 @@ SUPPORTED_IMPLEMENTATION_VARIANTS = (
     SONNET_IMPLEMENTATION_VARIANT,
     PMCR_P2_IMPLEMENTATION_VARIANT,
     THLS_IMPLEMENTATION_VARIANT,
+    SONNET_THLS_IMPLEMENTATION_VARIANT,
+    NSJ_IMPLEMENTATION_VARIANT,
 )
 ENHANCED_ARTIFACT_SCHEMA_VERSION = 2
 TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION = "target_exogenous_schema_v1"
@@ -726,7 +731,7 @@ def _validate_sonnet_variant_contract(scientific, run_dir):
 
 def _is_policy_development_variant(variant):
     return variant in {SONNET_IMPLEMENTATION_VARIANT, PMCR_P2_IMPLEMENTATION_VARIANT,
-                       THLS_IMPLEMENTATION_VARIANT}
+                       THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
 
 
 def _expected_pmcr_ms_interface(enabled, p2=False):
@@ -1071,6 +1076,143 @@ def _validate_thls_checkpoints(scientific, config, manifest, metrics, run_dir):
                 raise ValueError(f"THLS checkpoint state specifications disagree: {run_dir}")
             previous_spec = spec
 
+def _validate_sonnet_thls_variant_contract(scientific, run_dir):
+    model, dataset = scientific["model"], scientific["dataset"]
+    experiment = scientific["experiment"]
+    arm = experiment.get("ablation_id")
+    new = arm in sj_spec.COMPARISON_ARMS
+    if new:
+        joint = sj_spec.comparison_configuration(dataset.get("id"), dataset.get("label_horizon"), arm)
+        enabled = joint["thls_enabled"]
+        sonnet_enabled = joint["sonnet_enabled"]
+        protocol = joint["development_protocol_id"]
+        connection = sj_spec.comparison_connection(dataset["id"], dataset["label_horizon"], arm)
+    else:
+        if arm not in {sj_spec.CONTROL_ABLATION_ID, sj_spec.ABLATION_ID} or dataset.get("id") != "UrbanEV":
+            raise ValueError(f"S/J legacy identity mismatch: {run_dir}")
+        enabled, sonnet_enabled = arm == sj_spec.ABLATION_ID, True
+        joint, protocol = sj_spec.configuration(enabled), sj_spec.DEVELOPMENT_PROTOCOL
+        connection = sj_spec.module_connection(enabled)
+    if (experiment.get("development_protocol_id") != protocol
+            or model.get("use_sonnet_mvca") is not sonnet_enabled
+            or model.get("sonnet_thls") != joint or model.get("module_connection") != connection):
+        raise ValueError(f"S/J composition/history-source identity mismatch: {run_dir}")
+    expected_sonnet = _expected_sonnet_model_contract(dataset, scientific["execution"], sonnet_enabled)
+    if new and not sonnet_enabled:
+        expected_sonnet["module_init_seed"]["seed"] = None
+    if model.get("sonnet_mvca") != expected_sonnet:
+        raise ValueError(f"S/J S2 model contract mismatch: {run_dir}")
+    projected = deepcopy(scientific)
+    projected["experiment"].update(development_protocol_id=(THLS_ETTM1_DEVELOPMENT_PROTOCOL
+        if dataset["id"] == "ETTm1" else THLS_DEVELOPMENT_PROTOCOL),
+        ablation_id=THLS_ABLATION_ID if enabled else THLS_CONTROL_ABLATION_ID)
+    projected["model"].update(use_sonnet_mvca=False,
+        module_connection=thls_spec.MODULE_CONNECTION if enabled else "X->RevIN->MDM(U)->DDI; AMS_selector<-U")
+    result = _validate_thls_variant_contract(projected, run_dir)
+    optimization = scientific["optimization"]
+    if (model.get("alpha") != 0 or model.get("n_block") != 1 or model.get("dropout") != .1
+            or optimization.get("batch_size") != (32 if dataset["id"] == "ETTm1" else 128)
+            or optimization.get("learning_rate") != 3e-5):
+        raise ValueError(f"S/J common configuration mismatch: {run_dir}")
+    result.update(development_protocol_id=protocol, ablation_id=arm,
+                  sonnet_mvca=expected_sonnet, sonnet_thls=joint)
+    return result
+
+
+def _validate_sonnet_thls_checkpoints(scientific, config, manifest, metrics, run_dir):
+    """External identity has already passed before these synthetic/owned loads."""
+    if config.get("model_form") != "train" or manifest.get("model_form") != "train":
+        raise ValueError(f"THLS external checkpoint model form mismatch: {run_dir}")
+    if (
+        scientific["optimization"]["requested_train_epochs"] != metrics.get("train_epochs")
+        or metrics.get("epoch_zero_in_best_selection", False) is not False
+    ):
+        raise ValueError(f"THLS budget/epoch-zero mismatch: {run_dir}")
+    for field in ("development_protocol_id", "ablation_id"):
+        if metrics.get(field) != scientific["experiment"].get(field):
+            raise ValueError(f"THLS metrics {field} mismatch: {run_dir}")
+    kernels = (5, 31) if scientific["dataset"]["id"] == "ETTm1" else (3, 7)
+    shapes = {}
+    if scientific["model"]["use_target_history_local_shape"]:
+        shapes = {
+            "eta": (), "input_projection.weight": (8, 3, 1), "input_projection.bias": (8,),
+            "feature_norm.weight": (8,), "feature_norm.bias": (8,),
+            "ffn_expand.weight": (16, 8, 1), "ffn_expand.bias": (16,),
+            "ffn_reduce.weight": (8, 16, 1), "ffn_reduce.bias": (8,),
+            "output_projection.weight": (1, 8, 1), "output_projection.bias": (1,),
+            "temporal_conv.small_branch.weight": (8, 1, kernels[0]), "temporal_conv.small_branch.bias": (8,),
+            "temporal_conv.large_branch.weight": (8, 1, kernels[1]), "temporal_conv.large_branch.bias": (8,),
+        }
+    shapes = {"target_history_local_shape." + key: shape for key, shape in shapes.items()}
+    sonnet_shapes = (
+        {
+            "sonnet_mvca.gamma_sonnet": (),
+            "sonnet_mvca.freq_params": (64, 8, 3),
+            "sonnet_mvca.aux_embedding.weight": (32, len(scientific["dataset"]["aux_idx"])),
+            "sonnet_mvca.aux_embedding.bias": (32,),
+            "sonnet_mvca.target_embedding.weight": (32, 1),
+            "sonnet_mvca.target_embedding.bias": (32,),
+            "sonnet_mvca.mvca.qkv_projection.weight": (192, 64),
+            "sonnet_mvca.mvca.qkv_projection.bias": (192,),
+            "sonnet_mvca.mvca.residual_mlp.0.weight": (64, 64),
+            "sonnet_mvca.mvca.residual_mlp.0.bias": (64,),
+            "sonnet_mvca.mvca.residual_mlp.2.weight": (64, 64),
+            "sonnet_mvca.mvca.residual_mlp.2.bias": (64,),
+            "sonnet_mvca.mvca.output_projection.weight": (64, 64),
+            "sonnet_mvca.mvca.output_projection.bias": (64,),
+            "sonnet_mvca.readout.weight": (1, 64),
+            "sonnet_mvca.readout.bias": (1,),
+        }
+        if scientific["model"]["use_sonnet_mvca"]
+        else {}
+    )
+    shapes.update(sonnet_shapes)
+    previous_spec = None
+    for role in ("best", "last"):
+        checkpoint = torch.load(Path(run_dir) / f"{role}.pt", map_location="cpu")
+        if not isinstance(checkpoint, dict):
+            raise ValueError(f"THLS {role} checkpoint is not a dictionary: {run_dir}")
+        resolved = checkpoint.get("resolved_config", {})
+        if (
+            checkpoint.get("schema_version") != SCHEMA_VERSION
+            or checkpoint.get("artifact_schema_version") != ENHANCED_ARTIFACT_SCHEMA_VERSION
+            or checkpoint.get("implementation_variant") != config["implementation_variant"]
+            or checkpoint.get("config_hash") != metrics["config_hash"]
+            or checkpoint.get("data_sha256") != metrics["data_sha256"]
+            or checkpoint.get("model_form") != "train"
+            or checkpoint.get("training_protocol") != scientific["training_protocol"]
+            or resolved.get("scientific_config") != scientific
+            or resolved.get("config_hash") != config["config_hash"]
+            or resolved.get("model_form") != "train"
+            or any(checkpoint.get(k) != scientific["evaluation"][k]
+                   or resolved.get(k) != scientific["evaluation"][k]
+                   for k in ("evaluation_policy", "artifact_purpose"))
+        ):
+            raise ValueError(f"THLS {role} checkpoint identity mismatch: {run_dir}")
+        states = [checkpoint.get("model_state")]
+        if role == "last":
+            states.append(checkpoint.get("best_model_state"))
+        for state in states:
+            if not isinstance(state, dict) or not state:
+                raise ValueError(f"THLS checkpoint state missing: {run_dir}")
+            module_keys = {k for k in state if k.startswith(("target_history_local_shape.", "sonnet_mvca."))}
+            if module_keys != set(shapes) or any(
+                k.startswith(("cce.", "teb.", "xlinear.", "gate.", "pmcr.", "pmcr_p2."))
+                for k in state
+            ):
+                raise ValueError(f"THLS checkpoint module/train-form key mismatch: {run_dir}")
+            for key, tensor in state.items():
+                if not torch.is_tensor(tensor) or not bool(torch.isfinite(tensor).all()):
+                    raise ValueError(f"THLS checkpoint non-finite tensor {key}: {run_dir}")
+                if key in shapes and (
+                    tuple(tensor.shape) != shapes[key] or tensor.dtype != torch.float32
+                ):
+                    raise ValueError(f"THLS checkpoint tensor mismatch {key}: {run_dir}")
+            spec = {k: (tuple(v.shape), v.dtype) for k, v in state.items()}
+            if previous_spec is not None and spec != previous_spec:
+                raise ValueError(f"THLS checkpoint state specifications disagree: {run_dir}")
+            previous_spec = spec
+
 def _validate_enhanced_variant_contract(scientific, implementation_variant, run_dir):
     """Keep legacy TEB, warm-start, and CCE artifact identities distinct."""
 
@@ -1078,6 +1220,10 @@ def _validate_enhanced_variant_contract(scientific, implementation_variant, run_
     experiment = scientific.get("experiment")
     if not isinstance(model, dict) or not isinstance(experiment, dict):
         raise ValueError(f"enhanced variant contract is incomplete: {run_dir}")
+    if implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
+        if (experiment.get("ablation_id") in sj_spec.COMPARISON_ARMS) != (implementation_variant == NSJ_IMPLEMENTATION_VARIANT):
+            raise ValueError(f"composition variant/arm mismatch: {run_dir}")
+        return _validate_sonnet_thls_variant_contract(scientific, run_dir)
     if implementation_variant == THLS_IMPLEMENTATION_VARIANT:
         return _validate_thls_variant_contract(scientific, run_dir)
     if implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
@@ -1423,6 +1569,10 @@ def _validate_warm_start_artifact(
                 "initialization_policy": (
                     PMCR_P2_INITIALIZATION_POLICY
                     if implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+                    else sj_spec.COMPARISON_INITIALIZATION
+                    if implementation_variant == NSJ_IMPLEMENTATION_VARIANT
+                    else sj_spec.INITIALIZATION_POLICY
+                    if implementation_variant == SONNET_THLS_IMPLEMENTATION_VARIANT
                     else thls_spec.INITIALIZATION_POLICY
                     if implementation_variant == THLS_IMPLEMENTATION_VARIANT
                     else "matched_standard_from_scratch"
@@ -2582,6 +2732,8 @@ def _load_enhanced_completed_runs(artifact_root, implementation_variant):
             _validate_pmcr_checkpoints(
                 scientific, config, manifest, metrics, run_dir
             )
+        if implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
+            _validate_sonnet_thls_checkpoints(scientific, config, manifest, metrics, run_dir)
         if implementation_variant == THLS_IMPLEMENTATION_VARIANT:
             _validate_thls_checkpoints(scientific, config, manifest, metrics, run_dir)
         expected_weight_decay = (
@@ -2824,7 +2976,7 @@ def aggregate_runs(rows):
             values = [row[field] for row in group]
             return statistics.mean(values), (
                 statistics.stdev(values) if len(values) > 1 else (
-                    "N/A" if key[0] in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT} else ""
+                    "N/A" if key[0] in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT} else ""
                 )
             )
 

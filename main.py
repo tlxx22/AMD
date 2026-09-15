@@ -76,6 +76,7 @@ from models.modules.target_exogenous_bridge import (
 from models.tsAMD import AMD
 from models.tsAMD_enhanced import AMDEnhanced
 from models.modules import target_history_local_shape_residual as thls_spec
+from models.modules import sonnet_thls_contract as sj_spec
 from models.modules import local_change_gated_pmcr as p2_spec
 from utils.dataloader import CustomDataLoader
 from utils.dataloader_urbanev import (
@@ -97,6 +98,8 @@ T3_IMPLEMENTATION_VARIANT = "el-amd-m4-t3-selective-patch-teb-v1"
 CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-cce-v1"
 LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
+SONNET_THLS_IMPLEMENTATION_VARIANT = sj_spec.IMPLEMENTATION_VARIANT
+NSJ_IMPLEMENTATION_VARIANT = sj_spec.COMPARISON_VARIANT
 THLS_IMPLEMENTATION_VARIANT = thls_spec.IMPLEMENTATION_VARIANT
 THLS_DEVELOPMENT_PROTOCOL = thls_spec.DEVELOPMENT_PROTOCOL
 THLS_ETTM1_DEVELOPMENT_PROTOCOL = thls_spec.ETTM1_DEVELOPMENT_PROTOCOL
@@ -114,6 +117,8 @@ ENHANCED_IMPLEMENTATION_VARIANTS = (
     SONNET_IMPLEMENTATION_VARIANT,
     PMCR_P2_IMPLEMENTATION_VARIANT,
     THLS_IMPLEMENTATION_VARIANT,
+    SONNET_THLS_IMPLEMENTATION_VARIANT,
+    NSJ_IMPLEMENTATION_VARIANT,
 )
 SUPPORTED_IMPLEMENTATION_VARIANTS = (
     BASELINE_IMPLEMENTATION_VARIANT,
@@ -630,7 +635,7 @@ def _sonnet_candidate_contract(args):
 def _is_policy_development_variant(variant):
     """Evaluation surfaces shared by independently named development protocols."""
     return variant in {SONNET_IMPLEMENTATION_VARIANT, PMCR_P2_IMPLEMENTATION_VARIANT,
-                       THLS_IMPLEMENTATION_VARIANT}
+                       THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
 
 
 def _pmcr_ms_interface_contract(args):
@@ -697,6 +702,90 @@ def _thls_candidate_contract(args):
         "artifact_purpose": args.artifact_purpose,
         "local_shape_ms_interface": _thls_ms_interface_contract(args),
     }
+
+
+def _joint_sonnet_contract(args):
+    if args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT and not args.use_sonnet_mvca:
+        declared = deepcopy(args)
+        for name, value in dict(sonnet_d_model=sonnet_spec.SONNET_D_MODEL,
+                sonnet_n_atoms=sonnet_spec.SONNET_N_ATOMS, sonnet_alpha=sonnet_spec.SONNET_ALPHA,
+                sonnet_epsilon=sonnet_spec.SONNET_EPSILON,
+                sonnet_attention_dropout=sonnet_spec.SONNET_ATTENTION_DROPOUT,
+                sonnet_gamma_init=sonnet_spec.SONNET_GAMMA_INIT).items():
+            setattr(declared, name, value)
+        return _sonnet_model_contract(declared)
+    return _sonnet_model_contract(args)
+
+
+def _sonnet_thls_candidate_contract(args):
+    result = _thls_candidate_contract(args)
+    result.update(sonnet_mvca=_joint_sonnet_contract(args),
+                  sonnet_thls=_joint_configuration(args))
+    return result
+
+
+def _joint_configuration(args):
+    if args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT:
+        return sj_spec.comparison_configuration(args.dataset_id, args.label_horizon, args.ablation_id)
+    return sj_spec.configuration(args.use_target_history_local_shape)
+
+
+def _joint_connection(args):
+    if args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT:
+        return sj_spec.comparison_connection(args.dataset_id, args.label_horizon, args.ablation_id)
+    return sj_spec.module_connection(args.use_target_history_local_shape)
+
+
+def _prepare_sonnet_thls_contract(args, patch_values, t2g_values, t3_values):
+    new_comparison = args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT
+    if new_comparison:
+        conf = sj_spec.comparison_configuration(args.dataset_id, args.label_horizon, args.ablation_id)
+        if (args.development_protocol_id != conf["development_protocol_id"]
+                or (args.use_sonnet_mvca, args.use_target_history_local_shape) != sj_spec.COMPARISON_ARMS[args.ablation_id]
+                or args.training_protocol_id != STANDARD_TRAINING_PROTOCOL):
+            raise ValueError("NSJ task/protocol/switch mismatch")
+    elif (args.dataset_id != "UrbanEV"
+            or args.development_protocol_id != sj_spec.DEVELOPMENT_PROTOCOL
+            or args.ablation_id not in {sj_spec.CONTROL_ABLATION_ID, sj_spec.ABLATION_ID}
+            or args.training_protocol_id != STANDARD_TRAINING_PROTOCOL
+            or args.use_sonnet_mvca is not True):
+        raise ValueError("S/J independent UrbanEV identity mismatch")
+    enabled = args.use_target_history_local_shape
+    if args.use_target_history_local_shape is not enabled:
+        raise ValueError("S/J arm and THLS switch disagree")
+    fixed = dict(sonnet_d_model=sonnet_spec.SONNET_D_MODEL,
+        sonnet_n_atoms=sonnet_spec.SONNET_N_ATOMS, sonnet_alpha=sonnet_spec.SONNET_ALPHA,
+        sonnet_epsilon=sonnet_spec.SONNET_EPSILON,
+        sonnet_attention_dropout=sonnet_spec.SONNET_ATTENTION_DROPOUT,
+        sonnet_gamma_init=sonnet_spec.SONNET_GAMMA_INIT, module_init_seed=2024)
+    for name, value in fixed.items():
+        if not args.use_sonnet_mvca:
+            if getattr(args, name) is not None:
+                raise ValueError("NSJ N constructs no S2 and forbids construction fields")
+            continue
+        actual = getattr(args, name)
+        if actual is not None and (isinstance(actual, bool) or actual != value):
+            raise ValueError("S/J fixed S2 configuration mismatch: " + name)
+        setattr(args, name, value)
+    # Reuse the exact UrbanEV THLS data/task validation on a private projection;
+    # the user's args and all emitted scientific identities remain S/J.
+    task = deepcopy(args)
+    task.development_protocol_id = (THLS_ETTM1_DEVELOPMENT_PROTOCOL
+        if args.dataset_id == "ETTm1" else THLS_DEVELOPMENT_PROTOCOL)
+    task.ablation_id = THLS_ABLATION_ID if enabled else THLS_CONTROL_ABLATION_ID
+    task.use_sonnet_mvca = False
+    for name in fixed:
+        setattr(task, name, None)
+    _prepare_thls_contract(task, patch_values, t2g_values, t3_values)
+    for name in ("local_shape_init_seed", "evaluation_policy", "artifact_purpose", "teb_architecture"):
+        setattr(args, name, getattr(task, name))
+    if (args.batch_size != (32 if args.dataset_id == "ETTm1" else 128) or args.learning_rate != 3e-5 or args.weight_decay != 1e-7
+            or args.alpha != 0 or args.n_block != 1 or args.mix_layer_num != 3
+            or args.mix_layer_scale != 2 or args.dropout != .1 or args.teb_context_dim != 32):
+        raise ValueError("S/J common AMD/optimizer/batch contract mismatch")
+    args.display_name = ("AMD + Sonnet S2 + THLS" if enabled and args.use_sonnet_mvca
+                         else "AMD + Sonnet S2" if args.use_sonnet_mvca else "AMD + THLS")
+    return args
 
 
 def _prepare_thls_contract(args, patch_values, t2g_values, t3_values):
@@ -975,6 +1064,8 @@ def parse_args(argv=None):
             PMCR_P2_V1_ABLATION_ID,
             PMCR_P2_ABLATION_ID,
             THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID,
+            sj_spec.CONTROL_ABLATION_ID, sj_spec.ABLATION_ID,
+            *sj_spec.COMPARISON_ARMS,
         ],
     )
 
@@ -1181,6 +1272,8 @@ def parse_args(argv=None):
             PMCR_P2_DEVELOPMENT_PROTOCOL,
             THLS_DEVELOPMENT_PROTOCOL,
             THLS_ETTM1_DEVELOPMENT_PROTOCOL,
+            sj_spec.DEVELOPMENT_PROTOCOL,
+            *sj_spec.COMPARISON_PROTOCOLS.values(),
         ],
     )
     parser.add_argument(
@@ -1536,6 +1629,8 @@ def _prepare_enhanced_contract(args):
         args.teb_global_prediction_role,
     )
 
+    if args.implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
+        return _prepare_sonnet_thls_contract(args, patch_values, t2g_values, t3_values)
     if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT:
         return _prepare_thls_contract(args, patch_values, t2g_values, t3_values)
     if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT:
@@ -2028,7 +2123,15 @@ def prepare_args(args):
         or args.development_protocol_id in {THLS_DEVELOPMENT_PROTOCOL, THLS_ETTM1_DEVELOPMENT_PROTOCOL}
         or args.use_target_history_local_shape or args.local_shape_init_seed is not None
     )
-    if thls_fields and args.implementation_variant != THLS_IMPLEMENTATION_VARIANT:
+    nsj_fields = (args.ablation_id in sj_spec.COMPARISON_ARMS
+                  or args.development_protocol_id in sj_spec.COMPARISON_PROTOCOLS.values())
+    if nsj_fields and args.implementation_variant != NSJ_IMPLEMENTATION_VARIANT:
+        raise ValueError("NSJ fields require independent three-arm variant")
+    sj_fields = (args.ablation_id in {sj_spec.CONTROL_ABLATION_ID, sj_spec.ABLATION_ID}
+                 or args.development_protocol_id == sj_spec.DEVELOPMENT_PROTOCOL)
+    if sj_fields and args.implementation_variant != SONNET_THLS_IMPLEMENTATION_VARIANT:
+        raise ValueError("S/J fields require the independent composition variant")
+    if thls_fields and args.implementation_variant not in {THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         raise ValueError("THLS identities/configuration require the independent THLS variant")
     if args.implementation_variant not in SUPPORTED_IMPLEMENTATION_VARIANTS:
         raise ValueError(
@@ -2473,6 +2576,10 @@ def _training_protocol_block(args):
                 "initialization_policy": (
                     PMCR_P2_INITIALIZATION_POLICY
                     if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+                    else sj_spec.COMPARISON_INITIALIZATION
+                    if args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT
+                    else sj_spec.INITIALIZATION_POLICY
+                    if args.implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
                     else thls_spec.INITIALIZATION_POLICY
                     if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT
                     else "matched_standard_from_scratch"
@@ -3819,6 +3926,15 @@ def _scientific_config(
                 "use_target_history_local_shape": args.use_target_history_local_shape,
                 "local_shape_ms_interface": _thls_ms_interface_contract(args),
             })
+        if args.implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
+            model_config.update({
+                "module_connection": _joint_connection(args),
+                "use_sonnet_mvca": args.use_sonnet_mvca, "use_cce": False,
+                "sonnet_mvca": _joint_sonnet_contract(args),
+                "use_target_history_local_shape": args.use_target_history_local_shape,
+                "local_shape_ms_interface": _thls_ms_interface_contract(args),
+                "sonnet_thls": _joint_configuration(args),
+            })
         if args.implementation_variant == T2_IMPLEMENTATION_VARIANT:
             model_config["teb"].update({
                 "architecture": PATCH_CONDITIONED_V1,
@@ -3906,7 +4022,7 @@ def _scientific_config(
             )
         },
     }
-    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
+    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         # A resume cannot silently extend even an engineering run's requested budget.
         result["optimization"]["requested_train_epochs"] = args.train_epochs
     if experiment is not None:
@@ -3984,7 +4100,7 @@ def _resolved_config(
             "source_lineage": deepcopy(source_lineage),
             "source_compatibility_proof": deepcopy(source_compatibility_proof),
         })
-    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
+    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         result["model_form"] = "train"
     return result
 
@@ -4014,7 +4130,7 @@ def _checkpoint_common(resolved_config, config_hash, data_sha256, preprocessing)
                 resolved_config["source_compatibility_proof"]
             ),
             })
-    if resolved_config["implementation_variant"] in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
+    if resolved_config["implementation_variant"] in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         result["model_form"] = "train"
     return result
 
@@ -4164,7 +4280,7 @@ def _load_resume_checkpoint(
         if observed_protocol is None and (
             expected_protocol.get("training_protocol_id")
             == STANDARD_TRAINING_PROTOCOL
-            and implementation_variant not in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}
+            and implementation_variant not in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
         ):
             observed_protocol = expected_protocol
         if observed_protocol != expected_protocol:
@@ -4246,7 +4362,7 @@ def _load_resume_checkpoint(
         ):
             raise RuntimeError("PMCR resume interface/model form/budget mismatch")
 
-    if implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+    if implementation_variant in {THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         if candidate_contract is None or expected_model_state is None:
             raise RuntimeError("THLS resume requires full identity and expected model state")
         if (previous_scientific.get("model", {}).get("local_shape_ms_interface")
@@ -4256,6 +4372,21 @@ def _load_resume_checkpoint(
                 or previous_config["run"].get("train_epochs") != train_epochs):
             raise RuntimeError("THLS resume interface/model form/budget mismatch")
 
+    if implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
+        enabled = previous_scientific.get("experiment", {}).get("ablation_id") == sj_spec.ABLATION_ID
+        expected_joint = (sj_spec.comparison_configuration(
+            previous_scientific["dataset"]["id"], previous_scientific["dataset"]["label_horizon"],
+            previous_scientific["experiment"]["ablation_id"])
+            if implementation_variant == NSJ_IMPLEMENTATION_VARIANT else sj_spec.configuration(enabled))
+        if (not isinstance(candidate_contract, dict)
+                or candidate_contract.get("sonnet_thls") != expected_joint
+                or previous_scientific.get("model", {}).get("sonnet_thls") != expected_joint
+                or not isinstance(candidate_contract.get("sonnet_mvca"), dict)
+                or not isinstance(candidate_contract.get("local_shape_ms_interface"), dict)
+                or candidate_contract.get("development_protocol_id") != (expected_joint["development_protocol_id"]
+                    if implementation_variant == NSJ_IMPLEMENTATION_VARIANT else sj_spec.DEVELOPMENT_PROTOCOL)):
+            raise RuntimeError("S/J complete composition/history-source identity required before loading")
+
     # Always deserialize checkpoint tensors onto CPU.  Mapping the whole object
     # to CUDA also maps CPU RNG/DataLoader generator ByteTensors, which makes
     # torch.set_rng_state and Generator.set_state fail on resume.
@@ -4263,11 +4394,11 @@ def _load_resume_checkpoint(
     if not isinstance(checkpoint, dict):
         raise RuntimeError("resume checkpoint must contain a dictionary")
     if (
-        implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}
+        implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
         and checkpoint.get("model_form") != "train"
     ):
         raise RuntimeError("PMCR resume checkpoint model form mismatch")
-    if implementation_variant == THLS_IMPLEMENTATION_VARIANT:
+    if implementation_variant in {THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         def finite_state(value):
             if torch.is_tensor(value):
                 return bool(torch.isfinite(value).all())
@@ -4293,7 +4424,7 @@ def _load_resume_checkpoint(
     if observed_checkpoint_protocol is None and (
         expected_protocol.get("training_protocol_id")
         == STANDARD_TRAINING_PROTOCOL
-        and implementation_variant != THLS_IMPLEMENTATION_VARIANT
+        and implementation_variant not in {THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
     ):
         observed_checkpoint_protocol = expected_protocol
     if observed_checkpoint_protocol != expected_protocol:
@@ -4327,7 +4458,7 @@ def _load_resume_checkpoint(
     checkpoint_config = checkpoint.get("resolved_config")
     if not isinstance(checkpoint_config, dict):
         raise RuntimeError("resume checkpoint has no resolved configuration")
-    if (implementation_variant == THLS_IMPLEMENTATION_VARIANT
+    if (implementation_variant in {THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
             and checkpoint_config.get("model_form") != "train"):
         raise RuntimeError("THLS resume resolved checkpoint model form mismatch")
     checkpoint_scientific = checkpoint_config.get("scientific_config")
@@ -4555,7 +4686,7 @@ def _urbanev_split_identity(bundle, dataset, split):
 
 
 def _build_urbanev_runtime_data(args, train_generator):
-    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT}:
+    if args.implementation_variant in {PMCR_P2_IMPLEMENTATION_VARIANT, THLS_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
         raw = UrbanEVRawData.load(args.data, train_validation_fold=6)
         if raw.restricted_fold is None:
             raise RuntimeError("PMCR UrbanEV requires restricted raw train/validation data")
@@ -4960,6 +5091,9 @@ def _build_model(args, data_loader):
         teb_context_dim=args.teb_context_dim,
         task_mode=args.task_mode,
         aux_idx=args.aux_idx,
+        comparison_contract_id=(sj_spec.COMPARISON_PLAN_ID
+            if args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT else None),
+        sonnet_thls_contract_declared=args.implementation_variant == SONNET_THLS_IMPLEMENTATION_VARIANT,
         local_shape_contract_declared=args.implementation_variant == THLS_IMPLEMENTATION_VARIANT,
         use_target_history_local_shape=args.use_target_history_local_shape,
         local_shape_kernel_small=(5 if args.dataset_id == "ETTm1" else 3)
@@ -4970,12 +5104,14 @@ def _build_model(args, data_loader):
         use_sonnet_mvca=args.use_sonnet_mvca,
         sonnet_feature_schema=(
             args.feature_names
-            if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            if (args.implementation_variant in {SONNET_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT}
+                or args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT and args.use_sonnet_mvca)
             else None
         ),
         sonnet_schema_fingerprint=(
             args.schema_fingerprint
-            if args.implementation_variant == SONNET_IMPLEMENTATION_VARIANT
+            if (args.implementation_variant in {SONNET_IMPLEMENTATION_VARIANT, SONNET_THLS_IMPLEMENTATION_VARIANT}
+                or args.implementation_variant == NSJ_IMPLEMENTATION_VARIANT and args.use_sonnet_mvca)
             else None
         ),
         module_init_seed=args.module_init_seed,
@@ -5220,6 +5356,9 @@ def _main_impl(args, transcript=None):
     if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT:
         manifest["candidate_contract"] = _thls_candidate_contract(args)
         manifest["model_form"] = "train"
+    if args.implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}:
+        manifest["candidate_contract"] = _sonnet_thls_candidate_contract(args)
+        manifest["model_form"] = "train"
     previous_config = None
     manifest_is_mutable = False
     artifact_sealed = False
@@ -5251,6 +5390,8 @@ def _main_impl(args, transcript=None):
                     else (
                         _pmcr_candidate_contract(args)
                         if args.implementation_variant == PMCR_P2_IMPLEMENTATION_VARIANT
+                        else _sonnet_thls_candidate_contract(args)
+                        if args.implementation_variant in {SONNET_THLS_IMPLEMENTATION_VARIANT, NSJ_IMPLEMENTATION_VARIANT}
                         else _thls_candidate_contract(args)
                         if args.implementation_variant == THLS_IMPLEMENTATION_VARIANT
                         else None

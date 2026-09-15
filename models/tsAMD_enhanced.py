@@ -137,6 +137,8 @@ class AMDEnhanced(AMD):
         cce_architecture=None,
         cce_insertion_point=None,
         cce_input_representation=None,
+        comparison_contract_id=None,
+        sonnet_thls_contract_declared=False,
         local_shape_contract_declared=False,
         use_target_history_local_shape=False,
         local_shape_kernel_small=None,
@@ -173,11 +175,35 @@ class AMDEnhanced(AMD):
     ):
         if type(use_target_history_local_shape) is not bool or type(local_shape_contract_declared) is not bool:
             raise TypeError("THLS switches must be bool")
+        if type(sonnet_thls_contract_declared) is not bool:
+            raise TypeError("S2/THLS contract declaration must be bool")
+        if sonnet_thls_contract_declared and (
+            not norm or not layernorm or task_mode != TARGET_EXOGENOUS
+            or target_slice is not None or input_shape != (12, 11) or pred_len != 1
+            or patch != 12 or target_idx != 0 or tuple(aux_idx or ()) != tuple(range(1, 11))
+            or use_pmcr or use_pmcr_p2 or use_cce or use_teb
+        ):
+            raise ValueError("S2/THLS requires the independent UrbanEV target-only contract")
+        if comparison_contract_id is not None:
+            from models.modules.sonnet_thls_contract import COMPARISON_PLAN_ID
+            urban = (input_shape == (12, 11) and pred_len == 1 and patch == 12
+                     and target_idx == 0 and tuple(aux_idx or ()) == tuple(range(1, 11)))
+            ett = (input_shape == (512, 7) and pred_len in (96, 192, 336, 720)
+                   and patch == 16 and target_idx == 6 and tuple(aux_idx or ()) == tuple(range(6)))
+            if (comparison_contract_id != COMPARISON_PLAN_ID or sonnet_thls_contract_declared
+                    or not (urban or ett) or not norm or not layernorm
+                    or task_mode != TARGET_EXOGENOUS or target_slice is not None
+                    or use_pmcr or use_pmcr_p2 or use_cce or use_teb):
+                raise ValueError("NSJ independent comparison constructor mismatch")
+            if use_target_history_local_shape and (local_shape_kernel_small, local_shape_kernel_large) != ((3, 7) if urban else (5, 31)):
+                raise ValueError("NSJ THLS kernel mismatch")
+        self.comparison_contract_id = comparison_contract_id
+        self.sonnet_thls_contract_declared = sonnet_thls_contract_declared
         thls_declared = local_shape_contract_declared or use_target_history_local_shape
         if thls_declared and (
             not norm or not layernorm or task_mode != TARGET_EXOGENOUS
             or target_slice is not None or use_pmcr or use_pmcr_p2
-            or use_sonnet_mvca or use_cce or use_teb
+            or (use_sonnet_mvca and not (sonnet_thls_contract_declared or comparison_contract_id)) or use_cce or use_teb
         ):
             raise ValueError("THLS requires normalized independent target_exogenous A/N")
         if use_target_history_local_shape and local_shape_init_seed != 2024:
@@ -764,7 +790,9 @@ class AMDEnhanced(AMD):
             getattr(self, "sonnet_contract_declared", False)
             or getattr(self, "use_cce", False)
             or getattr(self, "use_pmcr_p2", False)
-            or getattr(self, "local_shape_contract_declared", False)
+            or (getattr(self, "local_shape_contract_declared", False)
+                or getattr(self, "sonnet_thls_contract_declared", False)
+                or getattr(self, "comparison_contract_id", None))
         ) or (
             getattr(self, "teb_architecture", GLOBAL_TEB_V1) in {
                 PATCH_CONDITIONED_V1,
@@ -799,12 +827,16 @@ class AMDEnhanced(AMD):
                 getattr(self, "sonnet_contract_declared", False)
                 or getattr(self, "use_cce", False)
                 or getattr(self, "use_pmcr_p2", False)
-            or getattr(self, "local_shape_contract_declared", False)
+            or (getattr(self, "local_shape_contract_declared", False)
+                or getattr(self, "sonnet_thls_contract_declared", False)
+                or getattr(self, "comparison_contract_id", None))
             ) and incoming.dtype != expected.dtype:
                 metadata_errors.append(
                     f"{key}: dtype {incoming.dtype} != {expected.dtype}"
                 )
-            if (getattr(self, "local_shape_contract_declared", False)
+            if ((getattr(self, "local_shape_contract_declared", False)
+                or getattr(self, "sonnet_thls_contract_declared", False)
+                or getattr(self, "comparison_contract_id", None))
                     and torch.is_tensor(incoming) and not bool(torch.isfinite(incoming).all())):
                 metadata_errors.append(f"{key}: non-finite")
         if missing or unexpected or metadata_errors:
@@ -815,7 +847,9 @@ class AMDEnhanced(AMD):
             )
         if not (getattr(self, "sonnet_contract_declared", False)
                 or getattr(self, "use_pmcr_p2", False)
-            or getattr(self, "local_shape_contract_declared", False)):
+            or (getattr(self, "local_shape_contract_declared", False)
+                or getattr(self, "sonnet_thls_contract_declared", False)
+                or getattr(self, "comparison_contract_id", None))):
             return super().load_state_dict(state_dict, strict=True)
         snapshot = {
             key: value.detach().clone() for key, value in current.items()
@@ -847,7 +881,9 @@ class AMDEnhanced(AMD):
         load_state_dict(strict=True) instead.
         """
 
-        if getattr(self, "sonnet_contract_declared", False):
+        if (getattr(self, "sonnet_contract_declared", False)
+                or getattr(self, "sonnet_thls_contract_declared", False)
+                or getattr(self, "comparison_contract_id", None)):
             raise RuntimeError(
                 "Sonnet S2 forbids source import; use from-scratch or "
                 "same-structure strict restore"

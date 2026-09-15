@@ -1880,3 +1880,169 @@ class AMDEnhancedTHLSETTm1Tests(unittest.TestCase):
                 _assert_nested_equal(self,batches[0],batches[1],'first_batch')
                 _assert_nested_equal(self,generators[0],generators[1],'train_generator')
         print('ETTM1_ACCEPTANCE '+json.dumps(dict(kind='CPU_CUDA_factory',cases=records)))
+
+
+class SonnetTHLSIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        import main as runner
+        from test_runner import SonnetTHLSFixture
+        self.runner=runner;self.fixture=SonnetTHLSFixture(self)
+        self.old_threads=torch.get_num_threads();torch.set_num_threads(4)
+        self.addCleanup(torch.set_num_threads,self.old_threads)
+
+    def _model(self, args, device, dtype):
+        from types import SimpleNamespace
+        self.runner.set_seed(2024)
+        model=self.runner._build_model(args,SimpleNamespace(n_feature=len(args.feature_names),target_slice=slice(args.target_idx,args.target_idx+1)))
+        return model.to(device=device,dtype=dtype).eval()
+
+    def test_pre_sonnet_history_routing_fairness_and_disabled_paths(self):
+        import json
+        from copy import deepcopy
+        from test_runner import _assert_nested_equal
+        r=self.runner;f=self.fixture;reports=[]
+        self.assertTrue(torch.cuda.is_available(),'required CUDA unavailable')
+        for dataset in ('UrbanEV','ETTm1'):
+            f.dataset=dataset
+            for device,dtype in (('cpu',torch.float32),('cpu',torch.float64),('cuda',torch.float32)):
+                args=r.prepare_args(f.args());t=args.seq_len;ci=args.target_idx;c=len(args.feature_names);aux_idx=list(args.aux_idx)
+                # Already initialized CUDA is included in the constructor RNG comparison.
+                torch.cuda.get_rng_state_all()
+                joint=self._model(args,device,dtype);joint_initial=deepcopy(joint.state_dict())
+                construction=r.capture_rng_state();events={};handles=[]
+                def snapshot(name,value):events.setdefault(name,[]).append(value.detach().clone())
+                def revin(module,inputs,output):
+                    if inputs[1]=='norm':
+                        snapshot('z',output);events['z_storage']=output.untyped_storage().data_ptr()
+                def sonnet(module,inputs,output):
+                    snapshot('s2_in',inputs[0]);snapshot('s2_out',output)
+                def history(module,inputs):
+                    y=inputs[0];snapshot('history',y)
+                    events['history_grad_fn']=y.grad_fn is not None
+                    events['history_storage']=y.untyped_storage().data_ptr()
+                def mdm(module,inputs,output):snapshot('mdm_in',inputs[0]);snapshot('u',output)
+                def ddi(module,inputs,output):snapshot('v',output)
+                def ams(module,inputs):snapshot('expert',inputs[0]);snapshot('selector',inputs[1])
+                handles.extend([joint.rev_norm.register_forward_hook(revin),joint.sonnet_mvca.register_forward_hook(sonnet),
+                    joint.target_history_local_shape.register_forward_pre_hook(history),
+                    joint.pastmixing.register_forward_hook(mdm),joint.fc_blocks[-1].register_forward_hook(ddi),
+                    joint.moe.register_forward_pre_hook(ams)])
+                generator=torch.Generator().manual_seed(2024)
+                x=torch.randn((2,t,c),generator=generator,dtype=dtype).to(device).requires_grad_()
+                x_initial=x.detach().clone();rng=r.capture_rng_state()
+                prediction,aux,state=joint(x,return_state_source=True)
+                (prediction.square().mean()+aux).backward()
+                for handle in handles:handle.remove()
+                self.assertEqual(tuple(state.shape),(2,2*t+32));self.assertTrue(torch.equal(x,x_initial))
+                for name in ('z','s2_in','s2_out','history','u','v','selector','expert'):
+                    self.assertEqual(len(events[name]),1,name)
+                self.assertTrue(torch.equal(events['z'][0],events['s2_in'][0]))
+                self.assertTrue(torch.equal(events['history'][0],events['z'][0][:,:,ci]))
+                self.assertTrue(events['history_grad_fn'])
+                self.assertNotEqual(events['history_storage'],events['z_storage'])
+                self.assertTrue(torch.equal(events['s2_out'][0][:,:,aux_idx],events['z'][0][:,:,aux_idx]))
+                self.assertTrue(torch.equal(events['mdm_in'][0],events['s2_out'][0].transpose(1,2)))
+                self.assertTrue(torch.equal(events['expert'][0][:,aux_idx,:],events['v'][0][:,aux_idx,:]))
+                self.assertTrue(torch.equal(events['selector'][0],events['u'][0]))
+                self.assertTrue(torch.equal(state[:,:t],events['expert'][0][:,ci,:]))
+                self.assertTrue(torch.equal(state[:,t:2*t],events['u'][0][:,ci,:]))
+                self.assertEqual(torch.count_nonzero(state[:,2*t:]).item(),0)
+                groups={}
+                for name,p in joint.named_parameters():
+                    if name.startswith(('sonnet_mvca.','target_history_local_shape.')):
+                        self.assertIsNotNone(p.grad,name);self.assertTrue(bool(torch.isfinite(p.grad).all()),name)
+                        group='.'.join(name.split('.')[:2]);groups.setdefault(group,0.)
+                        groups[group]+=float(p.grad.double().abs().sum())
+                self.assertTrue(all(value>0 for value in groups.values()),groups)
+                _assert_nested_equal(self,joint_initial,joint.state_dict())
+                reports.append(dict(device=device,dtype=str(dtype),joint_gradient_groups=groups))
+                # Each comparison uses a separately constructed existing production factory entrance.
+                for use_s2,use_thls in ((True,False),(False,True),(False,False)):
+                    newargs=deepcopy(args);newargs.use_sonnet_mvca=use_s2
+                    newargs.use_target_history_local_shape=use_thls
+                    newargs.local_shape_init_seed=2024 if use_thls else None
+                    if not use_s2:
+                        for name in ("module_init_seed","sonnet_d_model","sonnet_n_atoms","sonnet_alpha",
+                                     "sonnet_epsilon","sonnet_attention_dropout","sonnet_gamma_init"):
+                            setattr(newargs,name,None)
+                    oldargs=deepcopy(newargs)
+                    if use_s2:
+                        oldargs.implementation_variant=r.SONNET_IMPLEMENTATION_VARIANT
+                        oldargs.development_protocol_id=r.SONNET_DEVELOPMENT_PROTOCOL
+                        oldargs.ablation_id=r.SONNET_CANDIDATE_ABLATION_ID;oldargs.train_epochs=10
+                    else:
+                        oldargs.implementation_variant=r.THLS_IMPLEMENTATION_VARIANT
+                        oldargs.development_protocol_id=(r.THLS_ETTM1_DEVELOPMENT_PROTOCOL if f.dataset=="ETTm1" else r.THLS_DEVELOPMENT_PROTOCOL)
+                        oldargs.ablation_id=r.THLS_ABLATION_ID if use_thls else r.THLS_CONTROL_ABLATION_ID
+                        for name in ('module_init_seed','sonnet_d_model','sonnet_n_atoms','sonnet_alpha',
+                                     'sonnet_epsilon','sonnet_attention_dropout','sonnet_gamma_init'):
+                            setattr(oldargs,name,None)
+                    oldargs=r.prepare_args(oldargs)
+                    a=self._model(newargs,device,dtype);rng_a=r.capture_rng_state()
+                    b=self._model(oldargs,device,dtype);rng_b=r.capture_rng_state()
+                    _assert_nested_equal(self,rng_a,rng_b)
+                    _assert_nested_equal(self,a.state_dict(),b.state_dict())
+                    if use_s2 or use_thls:
+                        _assert_nested_equal(self,construction,rng_a)
+                        for name,value in a.state_dict().items():self.assertTrue(torch.equal(value,joint_initial[name]),name)
+                        if not use_thls:self.assertIsNone(a.target_history_local_shape)
+                        if not use_s2:self.assertIsNone(a.sonnet_mvca)
+                    ga=torch.Generator().manual_seed(2024);gb=torch.Generator().manual_seed(2024)
+                    _assert_nested_equal(self,ga.get_state(),gb.get_state())
+                    # Actual Dataset order/target values and dedicated generator, no extra forward.
+                    from contextlib import nullcontext
+                    with (f.base._guard() if f.dataset=="UrbanEV" else nullcontext()):runtime=f.runtime(args,ga)
+                    dataset=runtime.train_data.dataset
+                    first_a=[dataset[i] for i in (0,1)];first_b=[dataset[i] for i in (0,1)]
+                    _assert_nested_equal(self,first_a,first_b)
+                    xa=x_initial.clone().requires_grad_();xb=x_initial.clone().requires_grad_()
+                    state_a=deepcopy(a.state_dict());state_b=deepcopy(b.state_dict())
+                    r.restore_rng_state(rng);pa,ma=a(xa);(pa.square().mean()+ma).backward()
+                    r.restore_rng_state(rng);pb,mb=b(xb);(pb.square().mean()+mb).backward()
+                    comparisons={}
+                    for name,left,right in [('prediction',pa,pb),('moe',ma,mb),('input_gradient',xa.grad,xb.grad),
+                        *((name,p.grad,dict(b.named_parameters())[name].grad) for name,p in a.named_parameters())]:
+                        if left is None or right is None:
+                            comparisons[name]=dict(none=(left is None,right is None),equal=left is right)
+                        else:
+                            comparisons[name]=dict(equal=torch.equal(left,right),finite=bool(torch.isfinite(left).all() and torch.isfinite(right).all()),
+                                max_abs=float((left.double()-right.double()).abs().max()),
+                                unequal=int(torch.count_nonzero(left!=right)),shape=list(left.shape),
+                                dtype=str(left.dtype),left=left.detach().cpu().reshape(-1).tolist() if not torch.equal(left,right) else None,
+                                right=right.detach().cpu().reshape(-1).tolist() if not torch.equal(left,right) else None)
+                    row=dict(dataset=f.dataset,device=device,dtype=str(dtype),s2=use_s2,thls=use_thls,comparisons=comparisons)
+                    reports.append(row);f.record('routing',reports)
+                    for name,result in comparisons.items():
+                        self.assertTrue(result['equal'],name+': '+json.dumps(result))
+                        self.assertTrue(result.get('finite',True),name)
+                    _assert_nested_equal(self,state_a,a.state_dict());_assert_nested_equal(self,state_b,b.state_dict())
+                    del a,b,xa,xb
+                del joint
+
+    def test_joint_train_deploy_boundary_and_equivalence(self):
+        from copy import deepcopy
+        from test_runner import _assert_nested_equal
+        f=self.fixture;r=self.runner;rows=[]
+        self.assertTrue(torch.cuda.is_available(),'required CUDA unavailable')
+        for dataset in ('UrbanEV','ETTm1'):
+            f.dataset=dataset
+            for device,dtype in (('cpu',torch.float32),('cpu',torch.float64),('cuda',torch.float32)):
+                args=r.prepare_args(f.args());t=args.seq_len;c=len(args.feature_names)
+                a=self._model(args,device,dtype);b=deepcopy(a)
+                b.target_history_local_shape.switch_to_deploy()
+                _assert_nested_equal(self,a.sonnet_mvca.state_dict(),b.sonnet_mvca.state_dict())
+                if f.dataset=='UrbanEV':
+                    self.assertEqual(sum(p.numel() for p in a.parameters()),257624)
+                    self.assertEqual(sum(p.numel() for p in b.parameters()),257592)
+                self.assertEqual(sum(p.numel() for p in a.target_history_local_shape.parameters()),434 if t==12 else 642)
+                self.assertEqual(sum(p.numel() for p in b.target_history_local_shape.parameters()),402 if t==12 else 594)
+                x=torch.randn((2,t,c),generator=torch.Generator().manual_seed(2024),dtype=dtype).to(device)
+                with torch.no_grad():pa,ma=a(x);pb,mb=b(x)
+                self.assertTrue(bool(torch.isfinite(pa).all() and torch.isfinite(pb).all()))
+                torch.testing.assert_close(pa,pb,rtol=0,atol=1e-12 if dtype==torch.float64 else 1e-6)
+                self.assertTrue(torch.equal(ma,mb))
+                snapshot=deepcopy(a.state_dict())
+                with self.assertRaises(RuntimeError):a.load_state_dict(b.state_dict(),strict=True)
+                _assert_nested_equal(self,snapshot,a.state_dict())
+                rows.append(dict(device=device,dtype=str(dtype),max_abs=float((pa-pb).abs().max())))
+        f.record('deploy',rows)

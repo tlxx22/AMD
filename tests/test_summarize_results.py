@@ -1931,3 +1931,64 @@ class THLSETTm1SummaryTests(unittest.TestCase):
             with self.assertRaises(ValueError):summary._validate_thls_variant_contract(bad,old.root)
             self.assertEqual(summary._test_result_paths({'test_access_policy':'forbidden'},allow_access_policy=True),[])
         self.assertEqual(old.access['test_construct'],0)
+
+
+class SonnetTHLSSummaryTests(unittest.TestCase):
+    def test_sj_schema_policy_checksums_and_duplicates(self):
+        from test_runner import SonnetTHLSFixture
+        f=SonnetTHLSFixture(self);records=json.loads((f.root/'lifecycles.json').read_text());rows=[]
+        self.assertEqual(len(records),24)
+        for item in records:
+            root,run=Path(item['root']),Path(item['run'])
+            loaded=summary.load_completed_runs(root,runner.NSJ_IMPLEMENTATION_VARIANT)
+            self.assertEqual(len(loaded),1);self.assertEqual('test_mse' in loaded[0],item['dataset']=='ETTm1');rows.extend(loaded)
+            config=json.loads((run/'config.resolved.json').read_text());scientific=config['scientific_config']
+            manifest=json.loads((run/'manifest.json').read_text());metrics=json.loads((run/'metrics.json').read_text())
+            expected=summary._validate_sonnet_thls_variant_contract(scientific,run)
+            self.assertEqual(expected,manifest['candidate_contract'])
+            self.assertEqual(bool(summary._test_result_paths(metrics)),item['dataset']=='ETTm1')
+            for keys,value in [(('model','sonnet_thls','history_source'),'wrong'),
+                    (('model','sonnet_thls','initialization_policy'),None),
+                    (('model','sonnet_mvca','enabled'),not scientific['model']['use_sonnet_mvca']),
+                    (('evaluation','evaluation_policy'),runner.TRAIN_VALIDATION_ONLY if item['dataset']=='ETTm1' else runner.TRAIN_VALIDATION_TEST),
+                    (('experiment','ablation_id'),runner.THLS_ABLATION_ID)]:
+                bad=deepcopy(scientific);slot=bad
+                for key in keys[:-1]:slot=slot[key]
+                slot[keys[-1]]=value
+                with self.subTest(keys=keys),self.assertRaises(ValueError):
+                    summary._validate_sonnet_thls_variant_contract(bad,run)
+            for kind in ('source','form'):
+                bad=deepcopy(config)
+                if kind=='source':bad['scientific_config']['source_sha256']='wrong'
+                else:bad['model_form']='deploy'
+                with self.subTest(kind=kind),self.assertRaises(ValueError):
+                    summary._validate_sonnet_thls_checkpoints(bad['scientific_config'],bad,manifest,metrics,run)
+            self.assertTrue(summary._test_result_paths(dict(metrics,test_mse=.5)))
+            payload=run/'metrics.json';original=payload.read_bytes()
+            try:
+                payload.write_bytes(original+b' ')
+                with self.assertRaises(ValueError):summary.load_completed_runs(root,runner.NSJ_IMPLEMENTATION_VARIANT)
+            finally:payload.write_bytes(original)
+        self.assertEqual(len(summary.aggregate_runs(rows)),24)
+        with self.assertRaisesRegex(ValueError,'multiple completed'):summary.aggregate_runs(rows+deepcopy(rows[:1]))
+        f.record('summary',dict(runs=24,duplicate_rejected=True,dual_identity_and_policy=True))
+        # Last consumer of these execution-owned fixtures: preserve identity,
+        # logs and checksums, then release synthetic weights before resume cases.
+        import os, shutil
+        archive=Path(os.environ.get('AMD_NSJ_EVIDENCE_ROOT',str(f.root)))/'released-lifecycles'
+        archive.mkdir(parents=True,exist_ok=False)
+        released=[]
+        for item in records:
+            root=Path(item['root'])
+            self.assertEqual(root.parent.resolve(),f.root.resolve())
+            self.assertTrue(root.name.startswith('lifecycle-'));self.assertFalse(root.is_symlink())
+            files={}
+            for source in root.rglob('*'):
+                if source.is_file():
+                    files[str(source.relative_to(root))]=runner.sha256_file(source)
+                    if source.suffix != '.pt':
+                        dest=archive/root.name/source.relative_to(root)
+                        dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,dest)
+            released.append(dict(root=str(root),checksums=files))
+            shutil.rmtree(root)
+        (archive/'released-fixture-checksums.json').write_text(json.dumps(released,indent=2)+'\n')

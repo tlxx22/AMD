@@ -5863,3 +5863,344 @@ class THLSETTm1RunnerTests(unittest.TestCase):
         self.assertEqual(len(resumed['history']),2)
         print('ETTM1_ACCEPTANCE '+json.dumps(dict(kind='resume',full_steps=2,resume_steps=2,
             final_state_bitwise=True,preload_rejections=len(changes),tensor_rejections=8)))
+
+
+class SonnetTHLSFixture:
+    """Execution-scoped synthetic files; only batch iteration is bounded."""
+    def __init__(self, case):
+        import os
+        self.case = case
+        configured = os.environ.get('AMD_SJ_FIXTURE_ROOT')
+        if configured is None:
+            configured = tempfile.mkdtemp(prefix='amd-sj-fixture-')
+            os.environ['AMD_SJ_FIXTURE_ROOT'] = configured
+        self.root = Path(configured)
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.base = THLSRunnerContractTests('runTest')
+        self.base.root = self.root
+        self.base.ett_path = self.root/'unused-ETTm1.csv'
+        self.base.data_root = self.root/'synthetic-data'
+        self.base.access = dict(test_construct=0, test_evaluate=0, forbidden_read=0,
+            forbidden_parse=0, train_construct=0, validation_construct=0, parser_prefixes=0)
+        self.base._csv()
+        self.evaluations = []
+        self.dataset = "UrbanEV"
+        self.arm = "J"
+        self.ett = THLSETTm1Fixture(case)
+
+    def args(self, horizon=None, enabled=None, root=None, epochs=1, resume=None, device='cpu'):
+        horizon = horizon or (96 if self.dataset == 'ETTm1' else 3)
+        arm = self.arm
+        use_s2, use_thls = runner.sj_spec.COMPARISON_ARMS['M4_NSJ_'+arm]
+        if self.dataset == 'ETTm1':
+            a = self.ett.args(horizon, use_thls, root or self.root/'artifacts', epochs, resume, device)
+            a.batch_size = 32
+        else:
+            a = self.base._args(enabled=use_thls, horizon=horizon, root=root or self.root/'artifacts',
+                                epochs=epochs, resume=resume, device=device)
+            a.batch_size = 128
+        a.implementation_variant = runner.NSJ_IMPLEMENTATION_VARIANT
+        a.development_protocol_id = runner.sj_spec.COMPARISON_PROTOCOLS[self.dataset]
+        a.ablation_id = 'M4_NSJ_'+arm
+        a.use_sonnet_mvca = use_s2
+        a.alpha = 0.; a.mix_layer_num = 3; a.mix_layer_scale = 2
+        a.num_threads = 4
+        return a
+
+    def horizons(self):
+        return (96,192,336,720) if self.dataset == 'ETTm1' else (3,6,9,12)
+
+    def runtime(self, args, generator, bounded=False):
+        runtime = (runner._build_generic_runtime_data(args, generator) if args.dataset_id == "ETTm1"
+                   else self.base._runtime(args, generator, False))
+        if not bounded:
+            return runtime
+        from torch.utils.data import DataLoader, Subset
+        if args.dataset_id == "ETTm1":
+            def bounded(loader, training=False):
+                return DataLoader(Subset(loader.dataset, range(32 if training else 33)), batch_size=32,
+                    shuffle=training, drop_last=training, generator=generator if training else None)
+            return replace(runtime, train_data=bounded(runtime.train_data,True),
+                val_data=bounded(runtime.val_data), test_data=bounded(runtime.test_data))
+        return replace(runtime,
+            train_data=DataLoader(Subset(runtime.train_data.dataset, range(128)), batch_size=128,
+                shuffle=True, drop_last=True, generator=generator),
+            val_data=DataLoader(Subset(runtime.val_data.dataset, range(129)), batch_size=128,
+                shuffle=False, drop_last=False), test_data=None)
+
+    def execute(self, args, interrupt=False):
+        real_train, real_eval, real_step = runner.train_one_epoch, runner.evaluate, torch.optim.Adam.step
+        c = self.case
+        def train(*a, **kw):
+            epoch = a[5] if len(a) > 5 else kw['epoch']
+            if interrupt and epoch == 2:
+                raise RuntimeError('S/J controlled interruption before epoch2')
+            return real_train(*a, **kw)
+        def evaluate(*a, **kw):
+            result = real_eval(*a, **kw)
+            c.assertEqual(result['num_elements'], 33*args.pred_len if args.dataset_id=='ETTm1' else 129)
+            c.assertEqual(result['num_batches'], 2)
+            self.evaluations.append(deepcopy(result))
+            return result
+        def step(opt, *a, **kw):
+            names = opt._amd_parameter_names
+            parameters = [p for group in opt.param_groups for p in group['params']]
+            by_name = dict(zip(names, parameters))
+            for name, p in by_name.items():
+                if p.grad is not None:
+                    c.assertTrue(bool(torch.isfinite(p.grad).all()), name)
+                if name.startswith(('sonnet_mvca.', 'target_history_local_shape.')):
+                    c.assertIsNotNone(p.grad, name)
+            if args.dataset_id == "ETTm1":
+                for name in ("fc_blocks.0.norm1.weight","fc_blocks.0.norm1.bias",
+                             "fc_blocks.0.agg.weight","fc_blocks.0.agg.bias"):
+                    c.assertIsNotNone(by_name[name].grad,name)
+            result = real_step(opt, *a, **kw)
+            for name, p in by_name.items():
+                if p.grad is not None:
+                    c.assertIn(p, opt.state, name)
+                    for value in opt.state[p].values():
+                        if torch.is_tensor(value): c.assertTrue(bool(torch.isfinite(value).all()), name)
+            return result
+        from contextlib import nullcontext
+        with (self.base._guard() if args.dataset_id == "UrbanEV" else nullcontext()), mock.patch.object(runner, '_build_runtime_data',
+                side_effect=lambda a,g:self.runtime(a,g,True)), \
+                mock.patch.object(runner, 'train_one_epoch', side_effect=train), \
+                mock.patch.object(runner, 'evaluate', side_effect=evaluate), \
+                mock.patch.object(torch.optim.Adam, 'step', new=step):
+            return runner.main(args)
+
+    def record(self, name, value):
+        (self.root/(name+'.json')).write_text(json.dumps(value, indent=2, allow_nan=False)+'\n')
+        print('SJ_ACCEPTANCE '+json.dumps(dict(kind=name, result=value), allow_nan=False), flush=True)
+
+
+class SonnetTHLSRunnerContractTests(unittest.TestCase):
+    def setUp(self):
+        self.fixture = SonnetTHLSFixture(self)
+
+    def test_exact_sj_identity_and_legacy_exclusion(self):
+        f = self.fixture
+        for dataset in ('UrbanEV','ETTm1'):
+            f.dataset=dataset
+            for h in f.horizons():
+                for arm in ('N','S','J'):
+                    f.arm=arm;enabled=arm!='S'
+                    a = runner.prepare_args(f.args(h,enabled))
+                    contract = runner._sonnet_thls_candidate_contract(a)
+                    self.assertEqual(contract['sonnet_thls'],runner.sj_spec.comparison_configuration(f.dataset,h,'M4_NSJ_'+arm))
+                    self.assertEqual(a.evaluation_policy,runner.TRAIN_VALIDATION_TEST if f.dataset=="ETTm1" else runner.TRAIN_VALIDATION_ONLY)
+                    self.assertEqual(a.model_pred_len,h if f.dataset=="ETTm1" else 1)
+                    self.assertEqual(a.module_init_seed,2024 if arm!="N" else None)
+        f.dataset="UrbanEV";f.arm="J"
+        changes = [dict(dataset_id='ETTm1'),dict(label_horizon=4),dict(patch=6),dict(norm=False),
+            dict(task_mode='parallel_multivariate'),dict(feature_type='M'),dict(target='e_price'),
+            dict(evaluation_policy=runner.TRAIN_VALIDATION_TEST),dict(artifact_purpose='formal'),
+            dict(use_sonnet_mvca=False),dict(use_pmcr=True),dict(use_teb=True),dict(use_cce=True),
+            dict(sonnet_d_model=32),dict(local_shape_init_seed=2025),dict(batch_size=2),
+            dict(ablation_id=runner.sj_spec.CONTROL_ABLATION_ID),dict(seed=2025),
+            dict(target_idx=1),dict(aux_idx=[2]),dict(feature_names=['bad']),dict(schema_fingerprint='bad')]
+        for change in changes:
+            a=f.args()
+            for k,v in change.items():setattr(a,k,v)
+            with self.subTest(change=change), mock.patch.object(runner,'_build_runtime_data') as runtime, \
+                    mock.patch.object(runner,'_build_model') as model, mock.patch.object(torch,'load') as load:
+                with self.assertRaises(ValueError):runner.main(a)
+                runtime.assert_not_called();model.assert_not_called();load.assert_not_called()
+        for enabled in (False, True):
+            old=f.base._args(enabled=enabled);old.batch_size=128;old.alpha=0.;old.mix_layer_num=3;old.mix_layer_scale=2
+            old.implementation_variant=runner.sj_spec.IMPLEMENTATION_VARIANT
+            old.development_protocol_id=runner.sj_spec.DEVELOPMENT_PROTOCOL
+            old.ablation_id=runner.sj_spec.ABLATION_ID if enabled else runner.sj_spec.CONTROL_ABLATION_ID
+            old.use_sonnet_mvca=True
+            self.assertEqual(runner._joint_configuration(runner.prepare_args(old)),runner.sj_spec.configuration(enabled))
+            old.ablation_id='M4_NSJ_N'
+            with self.assertRaises(ValueError):runner.prepare_args(old)
+        old=runner.prepare_args(f.base._args(enabled=True))
+        self.assertFalse(old.use_sonnet_mvca)
+        self.assertEqual(runner._thls_ms_interface_contract(old),runner.thls_spec.interface_contract(True))
+        old=f.base._args(enabled=True);old.use_sonnet_mvca=True
+        with self.assertRaises(ValueError):runner.prepare_args(old)
+        self.assertFalse((f.root/'artifacts').exists())
+        f.record('identity',dict(early_rejections=len(changes),legacy_thls_unchanged=True))
+
+    def test_prefix_schema_scaler_labels_and_test_isolation(self):
+        f=self.fixture; rows=[]
+        for dataset in ('UrbanEV','ETTm1'):
+            f.dataset=dataset
+            for h in f.horizons():
+                for arm in ('N','S','J'):
+                    f.arm=arm;enabled=arm!='S'
+                    a=runner.prepare_args(f.args(h,enabled))
+                    if f.dataset == 'ETTm1':
+                        r=f.runtime(a,torch.Generator().manual_seed(2024));meta=r.preprocessing
+                        runner._validate_loader_contract(a,r,meta)
+                        self.assertEqual(meta['split_endpoints'],dict(train_end=34560,val_end=46080,test_end=57600))
+                        self.assertEqual(meta['split_context_starts'],dict(train=0,val=34048,test=45568))
+                        self.assertEqual(meta['columns'],list(f.ett.FEATURES));self.assertEqual(meta['target_indices'],[6])
+                        np.testing.assert_allclose(meta['scaler']['mean'],f.ett.values[:34560].mean(0),rtol=1e-12,atol=1e-12)
+                        np.testing.assert_allclose(meta['scaler']['scale'],f.ett.values[:34560].std(0),rtol=1e-12,atol=1e-12)
+                        self.assertNotIn('/public/home/',json.dumps(meta))
+                        for loader,offset,length in ((r.train_data,0,34560-512-h+1),
+                                (r.val_data,34048,11520-h+1),(r.test_data,45568,11520-h+1)):
+                            ds=loader.dataset;self.assertEqual(len(ds),length)
+                            for index in (0,1,len(ds)-1):
+                                x,y=ds[index];self.assertEqual(tuple(x.shape),(512,7));self.assertEqual(tuple(y.shape),(h,1))
+                                np.testing.assert_allclose(r.backend.inverse_transform(y.numpy()),
+                                    f.ett.values[offset+index+512:offset+index+512+h,6:7],rtol=1e-6,atol=1e-5)
+                                np.testing.assert_allclose(r.backend.inverse_transform(x.numpy()),
+                                    f.ett.values[offset+index:offset+index+512],rtol=1e-6,atol=1e-5)
+                        self.assertTrue(r.train_data.drop_last);self.assertFalse(r.val_data.drop_last)
+                        self.assertFalse(r.test_data.drop_last);self.assertEqual(r.test_access_policy,'development_only')
+                        rows.append(dict(dataset=f.dataset,h=h,arm=arm,schema=a.schema_fingerprint))
+                        continue
+                    with f.base._guard():r=f.runtime(a,torch.Generator().manual_seed(2024))
+                    self.assertIsNone(r.test_data);self.assertEqual(r.backend.features.shape,(3909,275,11))
+                    self.assertEqual(len(r.backend.raw.timestamps),3909)
+                    schema=runner._build_target_exogenous_schema_contract(a,r.preprocessing)
+                    self.assertEqual(schema['feature_names'],list(runner.CANONICAL_FEATURE_NAMES))
+                    runner._validate_loader_contract(a,r,r.preprocessing)
+                    self.assertNotIn('/public/home/',json.dumps(r.preprocessing))
+                    state=r.backend.preprocessing_state;raw=r.backend.raw
+                    self.assertEqual((state.train_start_idx,state.train_end_idx),(0,3475))
+                    self.assertEqual(tuple(state.node_ids),tuple(raw.node_ids))
+                    np.testing.assert_allclose(state.volume_mean,raw.volume[:3475].mean(axis=0),rtol=1e-12,atol=1e-12)
+                    np.testing.assert_allclose(state.volume_scale,raw.volume[:3475].std(axis=0),rtol=1e-12,atol=1e-12)
+                    np.testing.assert_array_equal(state.e_price_min,raw.e_price[:3475].min(axis=0))
+                    np.testing.assert_array_equal(state.s_price_min,raw.s_price[:3475].min(axis=0))
+                    np.testing.assert_allclose(state.weather_mean,raw.weather_central[:3475].mean(axis=0),rtol=1e-12,atol=1e-12)
+                    # Reuse the production scalar inverse, verifying target/node/label mapping.
+                    for loader in (r.train_data,r.val_data):
+                        ds=loader.dataset
+                        for index in (0,274,275,len(ds)-1):
+                            x,y=ds[index];meta=ds.metadata(index)
+                            self.assertEqual(tuple(x.shape),(12,11));self.assertEqual(tuple(y.shape),(1,))
+                            self.assertEqual(meta['label_idx']-meta['window_start_idx'],12+h-1)
+                            node=index%275
+                            restored=r.backend.inverse_transform_target(y,node_position=node)
+                            self.assertAlmostEqual(float(restored.item()),float(r.backend.raw.volume[meta['label_idx'],node]),places=5)
+                    self.assertTrue(r.train_data.drop_last);self.assertFalse(r.val_data.drop_last)
+                    with self.assertRaisesRegex(ValueError,'forbidden'):
+                        runner.TemporalRegionDataset(r.backend,split='test',history_len=12,label_horizon=h)
+                    rows.append(dict(h=h,enabled=enabled,schema=schema['schema_fingerprint']))
+        for key in ('test_construct','test_evaluate','forbidden_read','forbidden_parse'):
+            self.assertEqual(f.base.access[key],0,key)
+        f.record('prefix',dict(rows=rows,access=f.base.access))
+
+    def test_four_horizon_sj_lifecycles_tail_best_and_publish(self):
+        f=self.fixture;records=[]
+        for dataset in ('UrbanEV','ETTm1'):
+            f.dataset=dataset
+            for h in f.horizons():
+                for arm in ('N','S','J'):
+                    f.arm=arm;enabled=arm!='S'
+                    root=f.root/f'lifecycle-{f.dataset}-h{h}-{arm}'
+                    metrics=f.execute(f.args(h,enabled,root))
+                    run=PMCRMSInterfaceTests._run_dir(root);runner.verify_checksums(run)
+                    self.assertEqual(len((run/'checksums.sha256').read_text().splitlines()),13)
+                    result=subprocess.run(['sha256sum','-c','checksums.sha256'],cwd=run,capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    config=json.loads((run/'config.resolved.json').read_text())
+                    manifest=json.loads((run/'manifest.json').read_text())
+                    self.assertEqual(manifest['status'],'completed');self.assertEqual(metrics['best_epoch'],1)
+                    self.assertEqual(bool(summary._test_result_paths(metrics)),f.dataset=='ETTm1')
+                    self.assertEqual(config['scientific_config']['model']['sonnet_thls'],runner.sj_spec.comparison_configuration(f.dataset,h,'M4_NSJ_'+arm))
+                    self.assertEqual(manifest['candidate_contract']['sonnet_thls'],runner.sj_spec.comparison_configuration(f.dataset,h,'M4_NSJ_'+arm))
+                    self.assertNotIn('/public/home/',json.dumps(config['scientific_config']['dataset']['preprocessing']))
+                    self.assertFalse(any(p.name.startswith('.') and p.is_dir() for p in run.parent.iterdir()))
+                    before={p.name:runner.sha256_file(p) for p in run.iterdir() if p.is_file()}
+                    with mock.patch.object(torch,'load') as load:
+                        with self.assertRaisesRegex(ValueError,'hidden staging directory'):
+                            f.execute(f.args(h,enabled,root,resume=run))
+                        load.assert_not_called()
+                    self.assertEqual(before,{p.name:runner.sha256_file(p) for p in run.iterdir() if p.is_file()})
+                    records.append(dict(dataset=f.dataset,arm=arm,h=h,enabled=enabled,root=str(root),run=str(run),best_epoch=1))
+        self.assertEqual(len(f.evaluations),36)
+        for value in (.5,.6,float('nan'),float('inf')):self.assertFalse(runner.should_update_best(value,.5))
+        self.assertTrue(runner.should_update_best(.49,.5))
+        f.record('lifecycles',records)
+
+    def test_fixed_two_epoch_staging_resume_cpu_cuda(self):
+        import shutil
+        f=self.fixture;records=[]
+        self.assertTrue(torch.cuda.is_available(),'required CUDA unavailable')
+        for dataset in ('UrbanEV','ETTm1'):
+            f.dataset=dataset
+            for device in ('cpu','cuda'):
+                for arm in ('N','S','J'):
+                    f.arm=arm;enabled=arm!='S'
+                    label=f'{f.dataset}-{device}-{arm}';fullroot=f.root/f'full-{label}';resroot=f.root/f'resume-{label}'
+                    f.execute(f.args(enabled=enabled,root=fullroot,epochs=2,device=device))
+                    with self.assertRaisesRegex(RuntimeError,'S/J controlled interruption'):
+                        f.execute(f.args(enabled=enabled,root=resroot,epochs=2,device=device),interrupt=True)
+                    failed=PMCRMSInterfaceTests._run_dir(resroot,'failed')
+                    if device=='cpu':
+                        snapshot=f.root/f'atomic-staging-{f.dataset}-{arm}';shutil.copytree(failed,snapshot)
+                        f.record(f'staging-{f.dataset}-{arm}',dict(path=str(snapshot)))
+                    f.execute(f.args(enabled=enabled,root=resroot,epochs=2,device=device,resume=failed))
+                    full=torch.load(PMCRMSInterfaceTests._run_dir(fullroot)/'last.pt',map_location='cpu')
+                    resumed=torch.load(PMCRMSInterfaceTests._run_dir(resroot)/'last.pt',map_location='cpu')
+                    for key in ('model_state','best_model_state','optimizer_state','rng_state','train_generator_state',
+                                'best_epoch','best_mse','best_val_metrics'):
+                        _assert_nested_equal(self,full[key],resumed[key],key)
+                    self.assertEqual(len(resumed['history']),2)
+                    for a,b in zip(full['history'],resumed['history']):
+                        for key in a:
+                            if 'seconds' not in key and key!='finished_at':_assert_nested_equal(self,a[key],b[key],key)
+                    records.append(dict(dataset=f.dataset,arm=arm,device=device,enabled=enabled,state_rng_history_bitwise=True))
+        f.record('resume',records)
+
+    def test_preload_identity_and_tensor_atomic_rejections(self):
+        for dataset in ('UrbanEV','ETTm1'):
+            for arm in ('N','S','J'):
+                self._check_atomic(dataset,arm)
+
+    def _check_atomic(self,dataset,arm):
+        f=self.fixture;p=Path(json.loads((f.root/f'staging-{dataset}-{arm}.json').read_text())['path'])
+        mp,cp,lp=p/'manifest.json',p/'config.resolved.json',p/'last.pt'
+        mb,cb,lb=mp.read_bytes(),cp.read_bytes(),lp.read_bytes()
+        manifest,config=json.loads(mb),json.loads(cb)
+        original=torch.load(lp,map_location='cpu');before=deepcopy(original);rng=runner.capture_rng_state()
+        def load():
+            return runner._load_resume_checkpoint(p,manifest['config_hash'],manifest['data_sha256'],2,
+                implementation_variant=runner.NSJ_IMPLEMENTATION_VARIANT,run_id=manifest['run_id'],
+                artifact_dir=Path(manifest['artifact_dir']),target_exogenous_schema=manifest['target_exogenous_schema'],
+                training_protocol=config['training_protocol'],candidate_contract=manifest['candidate_contract'],
+                evaluation_policy=config["evaluation_policy"],artifact_purpose=runner.M4_DEVELOPMENT_CANDIDATE,
+                test_access_policy=manifest['test_access_policy'],expected_model_state=original['model_state'])
+        changes=[('m',('candidate_contract','sonnet_thls','history_source'),'wrong'),
+            ('m',('candidate_contract','ablation_id'),'M4_NSJ_S' if arm!='S' else 'M4_NSJ_J'),
+            ('m',('candidate_contract','development_protocol_id'),runner.THLS_DEVELOPMENT_PROTOCOL),
+            ('m',('candidate_contract','label_horizon'),6 if dataset=='UrbanEV' else 192),('m',('model_form',),'deploy'),
+            ('m',('candidate_contract','schema_fingerprint'),'bad'),
+            ('c',('scientific_config','source_sha256'),'bad'),
+            ('c',('scientific_config','optimization','requested_train_epochs'),3)]
+        try:
+            for doc,keys,value in changes:
+                mp.write_bytes(mb);cp.write_bytes(cb);path=mp if doc=='m' else cp
+                obj=json.loads(path.read_text());slot=obj
+                for key in keys[:-1]:slot=slot[key]
+                slot[keys[-1]]=value;path.write_text(json.dumps(obj))
+                snapshot={x.name:x.read_bytes() for x in p.iterdir() if x.is_file()}
+                with self.subTest(keys=keys),mock.patch.object(torch,'load') as reading:
+                    with self.assertRaises(RuntimeError):load()
+                    reading.assert_not_called()
+                self.assertEqual(snapshot,{x.name:x.read_bytes() for x in p.iterdir() if x.is_file()})
+            mp.write_bytes(mb);cp.write_bytes(cb)
+            for namespace in ('sonnet_mvca.','target_history_local_shape.'):
+                if not any(k.startswith(namespace) for k in original['model_state']):continue
+                key=next(k for k in original['model_state'] if k.startswith(namespace) and original['model_state'][k].ndim>0)
+                for state_name in ('model_state','best_model_state'):
+                    for kind in ('key','shape','dtype','finite'):
+                        bad=deepcopy(original);state=bad[state_name]
+                        if kind=='key':state.pop(key)
+                        elif kind=='shape':state[key]=state[key].reshape(-1)[:1]
+                        elif kind=='dtype':state[key]=state[key].double()
+                        else:state[key].reshape(-1)[0]=float('nan')
+                        torch.save(bad,lp)
+                        with self.subTest(namespace=namespace,state=state_name,kind=kind):
+                            with self.assertRaises(RuntimeError):load()
+            _assert_nested_equal(self,before,original);_assert_nested_equal(self,rng,runner.capture_rng_state())
+        finally:
+            mp.write_bytes(mb);cp.write_bytes(cb);lp.write_bytes(lb)
+        f.record(f'atomic-{dataset}-{arm}',dict(preload=len(changes),tensor=16 if arm=='J' else 8,no_state_or_rng_pollution=True))
