@@ -99,6 +99,7 @@ LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
 THLS_IMPLEMENTATION_VARIANT = thls_spec.IMPLEMENTATION_VARIANT
 THLS_DEVELOPMENT_PROTOCOL = thls_spec.DEVELOPMENT_PROTOCOL
+THLS_ETTM1_DEVELOPMENT_PROTOCOL = thls_spec.ETTM1_DEVELOPMENT_PROTOCOL
 THLS_CONTROL_ABLATION_ID = thls_spec.CONTROL_ABLATION_ID
 THLS_ABLATION_ID = thls_spec.ABLATION_ID
 PMCR_P2_IMPLEMENTATION_VARIANT = "el-amd-m4-pmcr-local-change-p2-v1"
@@ -678,7 +679,10 @@ def _pmcr_candidate_contract(args):
 
 
 def _thls_ms_interface_contract(args):
-    return thls_spec.interface_contract(args.use_target_history_local_shape)
+    kernels = (5, 31) if args.dataset_id == "ETTm1" else (3, 7)
+    return thls_spec.interface_contract(
+        args.use_target_history_local_shape, seq_len=args.seq_len,
+        kernel_small=kernels[0], kernel_large=kernels[1])
 
 
 def _thls_candidate_contract(args):
@@ -696,9 +700,9 @@ def _thls_candidate_contract(args):
 
 
 def _prepare_thls_contract(args, patch_values, t2g_values, t3_values):
-    """Only the independent UrbanEV A/N interface; no warm-start or other tasks."""
+    """Two exact A/N tasks; each dataset has its own evaluation identity."""
     if (args.ablation_id not in {THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID}
-            or args.development_protocol_id != THLS_DEVELOPMENT_PROTOCOL
+            or args.development_protocol_id not in {THLS_DEVELOPMENT_PROTOCOL, THLS_ETTM1_DEVELOPMENT_PROTOCOL}
             or args.training_protocol_id != STANDARD_TRAINING_PROTOCOL):
         raise ValueError("THLS development/arm/from-scratch identity mismatch")
     enabled = args.ablation_id == THLS_ABLATION_ID
@@ -707,14 +711,31 @@ def _prepare_thls_contract(args, patch_values, t2g_values, t3_values):
     if (args.task_mode != TARGET_EXOGENOUS or args.feature_type != "MS"
             or not args.norm or not args.layernorm or args.seed != 2024):
         raise ValueError("THLS requires normalized target_exogenous/MS and seed=2024")
-    if (not _is_urbanev_production(args) or args.dataset_id != "UrbanEV"
-            or args.feature_preset != "F4" or args.fold != 6 or args.seq_len != 12
-            or args.patch != 12 or args.model_pred_len != 1
-            or args.label_horizon not in (3, 6, 9, 12)
-            or args.target != "volume" or args.target_idx != 0
-            or args.feature_names != tuple(CANONICAL_FEATURE_NAMES)
-            or args.aux_idx != tuple(range(1, 11))):
-        raise ValueError("THLS only supports UrbanEV F4/fold6/volume/T12/four offsets")
+    if args.dataset_id == "UrbanEV":
+        if (args.development_protocol_id != THLS_DEVELOPMENT_PROTOCOL
+                or not _is_urbanev_production(args)
+                or args.feature_preset != "F4" or args.fold != 6 or args.seq_len != 12
+                or args.patch != 12 or args.model_pred_len != 1
+                or args.label_horizon not in (3, 6, 9, 12)
+                or args.target != "volume" or args.target_idx != 0
+                or args.feature_names != tuple(CANONICAL_FEATURE_NAMES)
+                or args.aux_idx != tuple(range(1, 11))):
+            raise ValueError("THLS only supports UrbanEV F4/fold6/volume/T12/four offsets")
+        expected_policy = TRAIN_VALIDATION_ONLY
+    elif args.dataset_id == "ETTm1":
+        features = ("HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT")
+        if (args.development_protocol_id != THLS_ETTM1_DEVELOPMENT_PROTOCOL
+                or args.seq_len != 512 or args.patch != 16
+                or args.model_pred_len not in (96, 192, 336, 720)
+                or args.label_horizon != args.model_pred_len or args.fold != "official"
+                or args.feature_preset is not None or args.target != "OT"
+                or args.feature_names != features or args.target_idx != 6
+                or args.schema_fingerprint != stable_hash(features)
+                or args.aux_idx != tuple(range(6))):
+            raise ValueError("THLS ETTm1 protocol/task/target/full-horizon contract mismatch")
+        expected_policy = TRAIN_VALIDATION_TEST
+    else:
+        raise ValueError("THLS permits only the UrbanEV and ETTm1 A/N tasks")
     if args.use_pmcr or args.use_sonnet_mvca or args.use_cce or args.use_teb:
         raise ValueError("THLS forbids PMCR/P2/Sonnet/CCE and all TEB combinations")
     foreign_fields = (
@@ -734,11 +755,11 @@ def _prepare_thls_contract(args, patch_values, t2g_values, t3_values):
     if args.local_shape_init_seed not in ((None, 2024) if enabled else (None,)):
         raise ValueError("THLS N isolated init seed is 2024; A constructs no branch")
     args.local_shape_init_seed = 2024 if enabled else None
-    if args.evaluation_policy not in (None, TRAIN_VALIDATION_ONLY):
-        raise ValueError("THLS requires train_validation_only")
+    if args.evaluation_policy not in (None, expected_policy):
+        raise ValueError("THLS evaluation policy does not match its dataset/protocol")
     if args.artifact_purpose not in (None, M4_DEVELOPMENT_CANDIDATE):
         raise ValueError("THLS only supports m4_development_candidate purpose")
-    args.evaluation_policy = TRAIN_VALIDATION_ONLY
+    args.evaluation_policy = expected_policy
     args.artifact_purpose = M4_DEVELOPMENT_CANDIDATE
     args.teb_architecture = GLOBAL_TEB_V1  # compatibility metadata, no module
     args.display_name = "AMD-Concat + target-history local-shape residual" if enabled else "AMD-Concat"
@@ -1159,6 +1180,7 @@ def parse_args(argv=None):
             SONNET_DEVELOPMENT_PROTOCOL,
             PMCR_P2_DEVELOPMENT_PROTOCOL,
             THLS_DEVELOPMENT_PROTOCOL,
+            THLS_ETTM1_DEVELOPMENT_PROTOCOL,
         ],
     )
     parser.add_argument(
@@ -2003,7 +2025,7 @@ def prepare_args(args):
 
     thls_fields = (
         args.ablation_id in {THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID}
-        or args.development_protocol_id == THLS_DEVELOPMENT_PROTOCOL
+        or args.development_protocol_id in {THLS_DEVELOPMENT_PROTOCOL, THLS_ETTM1_DEVELOPMENT_PROTOCOL}
         or args.use_target_history_local_shape or args.local_shape_init_seed is not None
     )
     if thls_fields and args.implementation_variant != THLS_IMPLEMENTATION_VARIANT:
@@ -4940,8 +4962,10 @@ def _build_model(args, data_loader):
         aux_idx=args.aux_idx,
         local_shape_contract_declared=args.implementation_variant == THLS_IMPLEMENTATION_VARIANT,
         use_target_history_local_shape=args.use_target_history_local_shape,
-        local_shape_kernel_small=3 if args.use_target_history_local_shape else None,
-        local_shape_kernel_large=7 if args.use_target_history_local_shape else None,
+        local_shape_kernel_small=(5 if args.dataset_id == "ETTm1" else 3)
+            if args.use_target_history_local_shape else None,
+        local_shape_kernel_large=(31 if args.dataset_id == "ETTm1" else 7)
+            if args.use_target_history_local_shape else None,
         local_shape_init_seed=args.local_shape_init_seed,
         use_sonnet_mvca=args.use_sonnet_mvca,
         sonnet_feature_schema=(

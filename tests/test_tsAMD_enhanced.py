@@ -1822,3 +1822,61 @@ class AMDEnhancedTHLSTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AMDEnhancedTHLSETTm1Tests(unittest.TestCase):
+    def test_four_horizon_cpu_cuda_factory_fairness_full_horizon_and_gradients(self):
+        import gc
+        import json
+        from copy import deepcopy
+        import main as runner
+        from test_runner import THLSETTm1Fixture, _assert_nested_equal
+        old_threads=torch.get_num_threads();torch.set_num_threads(1)
+        self.addCleanup(torch.set_num_threads,old_threads)
+        f=THLSETTm1Fixture(self);records=[]
+        self.assertTrue(torch.cuda.is_available(),'required CUDA is unavailable')
+        for device in ('cpu','cuda'):
+            for h in (96,192,336,720):
+                states=[];rngs=[];batches=[];generators=[]
+                for enabled in (False,True):
+                    args=runner.prepare_args(f.args(h,enabled));generator=torch.Generator().manual_seed(2024)
+                    runtime=f.runtime(args,generator);batch=next(iter(runtime.train_data))
+                    batches.append(tuple(t.clone() for t in batch));generators.append(generator.get_state().clone())
+                    runner.set_seed(2024);model=runner._build_model(args,runtime).to(device).eval()
+                    states.append({k:v.detach().cpu().clone() for k,v in model.state_dict().items()
+                                   if not k.startswith('target_history_local_shape.')})
+                    rngs.append(runner.capture_rng_state());x,y=(t.to(device) for t in batch)
+                    prediction,aux=model(x)
+                    self.assertEqual(tuple(prediction.shape),(2,h,1));self.assertTrue(bool(torch.isfinite(prediction).all()))
+                    self.assertTrue(bool(torch.isfinite(aux).all()))
+                    adapted=runner._prediction_for_loss(prediction,y,task_mode=runner.TARGET_EXOGENOUS)
+                    self.assertEqual(adapted.shape,y.shape);loss=(adapted-y).square().mean()+aux
+                    gradients={}
+                    if enabled:
+                        loss.backward()
+                        for name,p in model.named_parameters():
+                            if p.grad is not None:
+                                self.assertTrue(bool(torch.isfinite(p.grad).all()),name)
+                                gradients[name]=float(p.grad.detach().double().norm())
+                        for name,p in model.target_history_local_shape.named_parameters():
+                            self.assertIsNotNone(p.grad,name);self.assertTrue(bool(torch.isfinite(p.grad).all()),name)
+                        for prefix in ('input_projection','temporal_conv','feature_norm','ffn_expand','ffn_reduce','output_projection','eta'):
+                            self.assertTrue(any(name.startswith('target_history_local_shape.'+prefix) for name in gradients),prefix)
+                        self.assertEqual(model.target_history_local_shape.temporal_conv.small_branch.kernel_size,(5,))
+                        self.assertEqual(model.target_history_local_shape.temporal_conv.large_branch.kernel_size,(31,))
+                    else:
+                        self.assertIsNone(model.target_history_local_shape)
+                        ref_args=deepcopy(args);ref_args.implementation_variant=runner.BASELINE_IMPLEMENTATION_VARIANT
+                        reference=runner._build_model(ref_args,runtime).to(device).eval()
+                        reference.load_state_dict(model.state_dict(),strict=True)
+                        ref_prediction,ref_aux=reference(x)
+                        self.assertTrue(torch.equal(prediction,ref_prediction))
+                        self.assertTrue(torch.equal(aux,ref_aux));del reference
+                    records.append(dict(device=device,horizon=h,enabled=enabled,shape=list(prediction.shape),
+                        loss=float(loss.detach()),finite=True,gradient_norms=gradients))
+                    del model,prediction,aux,adapted,loss,x,y;gc.collect()
+                _assert_nested_equal(self,states[0],states[1],'common_initialization')
+                _assert_nested_equal(self,rngs[0],rngs[1],'construction_RNG')
+                _assert_nested_equal(self,batches[0],batches[1],'first_batch')
+                _assert_nested_equal(self,generators[0],generators[1],'train_generator')
+        print('ETTM1_ACCEPTANCE '+json.dumps(dict(kind='CPU_CUDA_factory',cases=records)))

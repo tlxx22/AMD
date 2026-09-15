@@ -5578,3 +5578,288 @@ class THLSRunnerContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class THLSETTm1Fixture:
+    """Real production readers with generated data and bounded iteration only."""
+    FEATURES = ('HUFL', 'HULL', 'MUFL', 'MULL', 'LUFL', 'LULL', 'OT')
+
+    def __init__(self, case):
+        self.case = case
+        self.temporary = tempfile.TemporaryDirectory(prefix='thls-ettm1-')
+        case.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.csv = self.root / 'ETTm1.csv'
+        t = np.arange(57600, dtype=np.float64)
+        self.values = np.stack([(i+1)*np.sin(t/(17+i)) + t/1000 + i
+                                for i in range(7)], axis=1)
+        frame = pd.DataFrame(self.values, columns=self.FEATURES)
+        frame.insert(0, 'date', pd.date_range('2020-01-01', periods=57600, freq='15min'))
+        frame.to_csv(self.csv, index=False, float_format='%.17g')
+        self.evaluations = []
+        self.gradient_reports = []
+
+    def args(self, horizon=96, enabled=False, root=None, epochs=1, resume=None, device='cpu'):
+        values = ['--implementation_variant', runner.THLS_IMPLEMENTATION_VARIANT,
+            '--development_protocol_id', runner.THLS_ETTM1_DEVELOPMENT_PROTOCOL,
+            '--ablation_id', runner.THLS_ABLATION_ID if enabled else runner.THLS_CONTROL_ABLATION_ID,
+            '--training_protocol_id', runner.STANDARD_TRAINING_PROTOCOL,
+            '--use_target_history_local_shape', str(enabled).lower(),
+            '--data', str(self.csv), '--artifact_root', str(root or self.root/'artifacts'),
+            '--dataset_id', 'ETTm1', '--task_mode', 'target_exogenous', '--feature_type', 'MS',
+            '--target', 'OT', '--target_idx', '6', '--aux_idx', '0', '1', '2', '3', '4', '5',
+            '--feature_names', *self.FEATURES, '--target_feature_name', 'OT',
+            '--aux_feature_names', *self.FEATURES[:-1], '--schema_fingerprint', runner.stable_hash(self.FEATURES),
+            '--seq_len', '512', '--pred_len', str(horizon), '--label_horizon', str(horizon),
+            '--patch', '16', '--fold', 'official', '--batch_size', '2', '--seed', '2024',
+            '--num_threads', '1', '--device', device, '--progress', 'false',
+            '--train_epochs', str(epochs), '--learning_rate', '3e-5', '--weight_decay', '1e-7',
+            '--n_block', '1', '--alpha', '0', '--mix_layer_num', '3', '--mix_layer_scale', '2',
+            '--dropout', '.1', '--norm', 'true', '--layernorm', 'true', '--teb_context_dim', '32',
+            '--use_pmcr', 'false', '--use_teb', 'false']
+        if enabled:
+            values += ['--local_shape_init_seed', '2024']
+        if resume is not None:
+            values += ['--resume', str(resume)]
+        return runner.parse_args(values)
+
+    def runtime(self, args, generator, train_batches=None):
+        runtime = runner._build_generic_runtime_data(args, generator)
+        if train_batches is None:
+            return runtime
+        from torch.utils.data import DataLoader, Subset
+        def bounded(loader, training=False):
+            count = 2*train_batches if training else 3
+            return DataLoader(Subset(loader.dataset, range(count)), batch_size=2,
+                shuffle=training, drop_last=training, generator=generator if training else None)
+        return replace(runtime, train_data=bounded(runtime.train_data, True),
+            val_data=bounded(runtime.val_data), test_data=bounded(runtime.test_data))
+
+    def execute(self, args, train_batches=2, interrupt=False):
+        real_train, real_evaluate, real_adam = runner.train_one_epoch, runner.evaluate, torch.optim.Adam.step
+        observations = []; c = self.case
+        def train(*positional, **kwargs):
+            epoch = positional[5] if len(positional) > 5 else kwargs['epoch']
+            if interrupt and epoch == 2:
+                raise RuntimeError('THLS ETTm1 controlled interruption before epoch2')
+            return real_train(*positional, **kwargs)
+        def evaluate(*positional, **kwargs):
+            result = real_evaluate(*positional, **kwargs)
+            c.assertEqual(result['num_elements'], 3*args.pred_len)
+            c.assertEqual(result['num_batches'], 2)
+            observations.append((kwargs.get('description'), deepcopy(result)))
+            return result
+        def adam(optimizer, *positional, **kwargs):
+            participating = [p for group in optimizer.param_groups for p in group['params'] if p.grad is not None]
+            c.assertTrue(participating)
+            for parameter in participating:
+                c.assertTrue(bool(torch.isfinite(parameter.grad).all()))
+            result = real_adam(optimizer, *positional, **kwargs)
+            for parameter in participating:
+                c.assertIn(parameter, optimizer.state)
+                for value in optimizer.state[parameter].values():
+                    if torch.is_tensor(value): c.assertTrue(bool(torch.isfinite(value).all()))
+            names = getattr(optimizer, '_amd_parameter_names')
+            parameters = [p for group in optimizer.param_groups for p in group['params']]
+            by_name = dict(zip(names, parameters))
+            # T512/patch16 actually traverses these parameters; no T12 exemption.
+            for name in ('fc_blocks.0.norm1.weight','fc_blocks.0.norm1.bias',
+                         'fc_blocks.0.agg.weight','fc_blocks.0.agg.bias'):
+                c.assertIsNotNone(by_name[name].grad, name)
+                c.assertIn(by_name[name], optimizer.state, name)
+            self.gradient_reports.append(len(participating))
+            return result
+        with mock.patch.object(runner, '_build_runtime_data',
+                side_effect=lambda a,g:self.runtime(a,g,train_batches)), \
+                mock.patch.object(runner, 'train_one_epoch', side_effect=train), \
+                mock.patch.object(runner, 'evaluate', side_effect=evaluate), \
+                mock.patch.object(torch.optim.Adam, 'step', new=adam):
+            result = runner.main(args)
+        self.evaluations.extend(observations)
+        return result
+
+    def scientific(self, args, runtime):
+        return runner._scientific_config(args, runtime.data_fingerprint, runner.source_fingerprint(),
+            runtime.preprocessing, torch.device('cpu'), runner.environment_metadata(torch.device('cpu')),
+            target_exogenous_schema=runner._build_target_exogenous_schema_contract(args, runtime.preprocessing),
+            training_protocol=runner._training_protocol_block(args))
+
+
+class THLSETTm1RunnerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.old_threads = torch.get_num_threads(); torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.old_threads)
+
+    def setUp(self):
+        self.fixture = THLSETTm1Fixture(self)
+
+    def test_exact_task_protocol_schema_horizon_and_preconstruction_rejections(self):
+        f = self.fixture
+        for h in (96,192,336,720):
+            for enabled in (False,True):
+                args = runner.prepare_args(f.args(h,enabled))
+                self.assertEqual(args.evaluation_policy, runner.TRAIN_VALIDATION_TEST)
+                self.assertEqual(args.artifact_purpose, runner.M4_DEVELOPMENT_CANDIDATE)
+                self.assertEqual(args.model_pred_len, h)
+                self.assertEqual(runner._thls_ms_interface_contract(args), runner.thls_spec.interface_contract(
+                    enabled, seq_len=512, kernel_small=5, kernel_large=31))
+        changes = ({'development_protocol_id':runner.THLS_DEVELOPMENT_PROTOCOL},
+            {'dataset_id':'ETTh1'}, {'patch':512}, {'seq_len':12}, {'pred_len':24,'label_horizon':24},
+            {'label_horizon':192}, {'fold':'6'}, {'feature_preset':'F4'},
+            {'target':'HUFL'}, {'target_idx':0}, {'feature_names':list(reversed(f.FEATURES))},
+            {'aux_idx':[0,1]}, {'schema_fingerprint':'bad'}, {'task_mode':'parallel_multivariate'},
+            {'feature_type':'M'}, {'norm':False}, {'layernorm':False}, {'seed':2025},
+            {'evaluation_policy':runner.TRAIN_VALIDATION_ONLY}, {'artifact_purpose':'formal'},
+            {'use_pmcr':True}, {'use_sonnet_mvca':True}, {'use_cce':True}, {'use_teb':True},
+            {'local_shape_init_seed':2025}, {'ablation_id':runner.THLS_CONTROL_ABLATION_ID},
+            {'implementation_variant':runner.PMCR_P2_IMPLEMENTATION_VARIANT})
+        for change in changes:
+            args=f.args(enabled=True)
+            for key,value in change.items(): setattr(args,key,value)
+            with self.subTest(change=change), mock.patch.object(runner,'_build_runtime_data') as runtime, \
+                    mock.patch.object(runner,'_build_model') as model, mock.patch.object(torch,'load') as load:
+                with self.assertRaises((ValueError,RuntimeError)): runner.main(args)
+                runtime.assert_not_called();model.assert_not_called();load.assert_not_called()
+        self.assertFalse((f.root/'artifacts').exists())
+        self.assertEqual(runner.thls_spec.interface_contract(False),
+                         runner.thls_spec.interface_contract(False,seq_len=12,kernel_small=3,kernel_large=7))
+
+    def test_synthetic_official_split_context_scaler_full_horizon_and_schema(self):
+        f=self.fixture
+        for h in (96,192,336,720):
+            args=runner.prepare_args(f.args(h,True)); runtime=f.runtime(args,torch.Generator().manual_seed(2024))
+            meta=runtime.preprocessing; runner._validate_loader_contract(args,runtime,meta)
+            self.assertEqual(meta['split_endpoints'],dict(train_end=34560,val_end=46080,test_end=57600))
+            self.assertEqual(meta['split_context_starts'],dict(train=0,val=34048,test=45568))
+            self.assertEqual(meta['columns'],list(f.FEATURES)); self.assertEqual(meta['target_indices'],[6])
+            np.testing.assert_allclose(meta['scaler']['mean'],f.values[:34560].mean(0),rtol=1e-12,atol=1e-12)
+            np.testing.assert_allclose(meta['scaler']['scale'],f.values[:34560].std(0),rtol=1e-12,atol=1e-12)
+            for loader,offset,length in ((runtime.train_data,0,34560-512-h+1),
+                    (runtime.val_data,34048,11520-h+1),(runtime.test_data,45568,11520-h+1)):
+                ds=loader.dataset;self.assertEqual(len(ds),length)
+                for i in (0,1,len(ds)-1):
+                    x,y=ds[i];self.assertEqual(tuple(x.shape),(512,7));self.assertEqual(tuple(y.shape),(h,1))
+                    np.testing.assert_allclose(runtime.backend.inverse_transform(y.numpy()),
+                        f.values[offset+i+512:offset+i+512+h,6:7],rtol=1e-6,atol=1e-5)
+                    np.testing.assert_allclose(runtime.backend.inverse_transform(x.numpy()),
+                        f.values[offset+i:offset+i+512],rtol=1e-6,atol=1e-5)
+            self.assertTrue(runtime.train_data.drop_last);self.assertFalse(runtime.val_data.drop_last)
+            self.assertFalse(runtime.test_data.drop_last);self.assertEqual(runtime.test_access_policy,'development_only')
+        swapped=f.root/'swapped.csv'
+        swapped_frame=pd.DataFrame(f.values[:,::-1],columns=list(reversed(f.FEATURES)))
+        swapped_frame.insert(0,'date',pd.date_range('2020-01-01',periods=57600,freq='15min'))
+        swapped_frame.to_csv(swapped,index=False)
+        args=runner.prepare_args(f.args());args.data=str(swapped)
+        runtime=runner._build_generic_runtime_data(args,torch.Generator().manual_seed(2024))
+        with self.assertRaises((ValueError,RuntimeError)):
+            runner._build_target_exogenous_schema_contract(args,runtime.preprocessing)
+
+    def test_four_horizon_an_lifecycles_and_urbanev_compatibility(self):
+        import shutil
+        f=self.fixture; records=[]
+        for h in (96,192,336,720):
+            for enabled in (False,True):
+                root=f.root/f'h{h}-{"N" if enabled else "A"}'
+                metrics=f.execute(f.args(h,enabled,root));run=PMCRMSInterfaceTests._run_dir(root)
+                runner.verify_checksums(run)
+                checked=subprocess.run(['sha256sum','-c','checksums.sha256'],cwd=run,text=True,capture_output=True)
+                self.assertEqual(checked.returncode,0,checked.stderr)
+                config=json.loads((run/'config.resolved.json').read_text());manifest=json.loads((run/'manifest.json').read_text())
+                self.assertEqual(metrics['best_epoch'],1);self.assertEqual(manifest['test_access_policy'],'development_only')
+                self.assertEqual(config['scientific_config']['model']['local_shape_ms_interface'],
+                    runner.thls_spec.interface_contract(enabled,seq_len=512,kernel_small=5,kernel_large=31))
+                self.assertNotIn('/public/home/',json.dumps(config['scientific_config']['dataset']['preprocessing']))
+                rows=summary.load_completed_runs(root,runner.THLS_IMPLEMENTATION_VARIANT)
+                self.assertEqual(len(rows),1);self.assertIn('test_mse',rows[0])
+                with self.assertRaisesRegex(ValueError,'multiple completed'): summary.aggregate_runs(rows+deepcopy(rows))
+                csv_path,_,_,_=summary.write_summaries(root,f.root/f'summary-{h}-{enabled}',
+                    implementation_variant=runner.THLS_IMPLEMENTATION_VARIANT)
+                self.assertIn('test_mse',csv_path.read_text().splitlines()[0])
+                before={p.name:runner.sha256_file(p) for p in run.iterdir() if p.is_file()}
+                with mock.patch.object(torch,'load') as load:
+                    with self.assertRaisesRegex(ValueError,'hidden staging directory'):
+                        f.execute(f.args(h,enabled,root,resume=run))
+                    load.assert_not_called()
+                self.assertEqual(before,{p.name:runner.sha256_file(p) for p in run.iterdir() if p.is_file()})
+                records.append(dict(horizon=h,enabled=enabled,best_epoch=metrics['best_epoch'],
+                    validation=metrics['best_validation'],test=metrics['test'],checksum=True,
+                    active_Adam_parameters=f.gradient_reports[-1]))
+                shutil.rmtree(root)  # only this test's verified synthetic artifacts
+        old=THLSRunnerContractTests('test_four_horizon_an_actual_lifecycles_checksums_summary_duplicates')
+        old.setUp();self.addCleanup(old.doCleanups)
+        for enabled in (False,True):
+            root=old.root/('N' if enabled else 'A');metrics=old._execute(old._args(enabled=enabled,root=root))
+            run=PMCRMSInterfaceTests._run_dir(root);runner.verify_checksums(run)
+            config=json.loads((run/'config.resolved.json').read_text())
+            self.assertEqual(config['scientific_config']['model']['local_shape_ms_interface'],runner.thls_spec.interface_contract(enabled))
+            rows=summary.load_completed_runs(root,runner.THLS_IMPLEMENTATION_VARIANT)
+            self.assertEqual(len(rows),1);self.assertNotIn('test_mse',rows[0])
+            self.assertEqual(summary._test_result_paths(metrics),[])
+        self.assertEqual(old.access['test_construct'],0);self.assertEqual(old.access['test_evaluate'],0)
+        self.assertEqual(old.access['forbidden_read'],0);self.assertEqual(old.access['forbidden_parse'],0)
+        for v in (float('nan'),float('inf'),-float('inf'),.5,.6):self.assertFalse(runner.should_update_best(v,.5))
+        self.assertTrue(runner.should_update_best(.49,.5))
+        print('ETTM1_ACCEPTANCE '+json.dumps(dict(kind='lifecycles',runs=records,UrbanEV_access=old.access)))
+
+    def test_fixed_two_epoch_staging_resume_preload_and_atomic_rejection(self):
+        f=self.fixture;full_root=f.root/'full';resume_root=f.root/'resumed'
+        f.execute(f.args(enabled=True,root=full_root,epochs=2),train_batches=1)
+        with self.assertRaisesRegex(RuntimeError,'controlled interruption'):
+            f.execute(f.args(enabled=True,root=resume_root,epochs=2),train_batches=1,interrupt=True)
+        failed=PMCRMSInterfaceTests._run_dir(resume_root,'failed')
+        mp,cp=failed/'manifest.json',failed/'config.resolved.json'
+        mb,cb,lb=mp.read_bytes(),cp.read_bytes(),(failed/'last.pt').read_bytes()
+        original=torch.load(failed/'last.pt',map_location='cpu');before=deepcopy(original)
+        manifest=json.loads(mb);config=json.loads(cb)
+        self.assertEqual(config['run']['train_epochs'],2);self.assertEqual(original['completed_epoch'],1)
+        def preload():
+            return runner._load_resume_checkpoint(failed,manifest['config_hash'],manifest['data_sha256'],2,
+                implementation_variant=runner.THLS_IMPLEMENTATION_VARIANT,run_id=manifest['run_id'],
+                artifact_dir=Path(manifest['artifact_dir']),target_exogenous_schema=manifest['target_exogenous_schema'],
+                training_protocol=config['training_protocol'],candidate_contract=manifest['candidate_contract'],
+                evaluation_policy=runner.TRAIN_VALIDATION_TEST,artifact_purpose=runner.M4_DEVELOPMENT_CANDIDATE,
+                test_access_policy='development_only',expected_model_state=original['model_state'])
+        changes=[('manifest',('candidate_contract','development_protocol_id'),runner.THLS_DEVELOPMENT_PROTOCOL),
+            ('manifest',('candidate_contract','label_horizon'),192),('manifest',('candidate_contract','target_idx'),0),
+            ('manifest',('model_form',),'deploy'),('manifest',('evaluation_policy',),runner.TRAIN_VALIDATION_ONLY),
+            ('config',('scientific_config','dataset','id'),'UrbanEV'),
+            ('config',('scientific_config','source_sha256'),'wrong-source'),
+            ('config',('scientific_config','model','local_shape_ms_interface','configuration','kernel_large'),7)]
+        rng=runner.capture_rng_state()
+        for document,keys,value in changes:
+            mp.write_bytes(mb);cp.write_bytes(cb);path=mp if document=='manifest' else cp
+            obj=json.loads(path.read_text());slot=obj
+            for key in keys[:-1]:slot=slot[key]
+            slot[keys[-1]]=value;path.write_text(json.dumps(obj))
+            snapshot={p.name:p.read_bytes() for p in failed.iterdir() if p.is_file()}
+            with self.subTest(keys=keys),mock.patch.object(torch,'load') as load:
+                with self.assertRaises(RuntimeError):preload()
+                load.assert_not_called()
+            self.assertEqual(snapshot,{p.name:p.read_bytes() for p in failed.iterdir() if p.is_file()})
+        mp.write_bytes(mb);cp.write_bytes(cb)
+        for state_name in ('model_state','best_model_state'):
+            for kind in ('key','shape','dtype','finite'):
+                bad=deepcopy(original);key='target_history_local_shape.input_projection.weight';state=bad[state_name]
+                if kind=='key':state.pop(key)
+                elif kind=='shape':state[key]=state[key][:1]
+                elif kind=='dtype':state[key]=state[key].double()
+                else:state[key][0,0,0]=float('nan')
+                torch.save(bad,failed/'last.pt')
+                with self.subTest(state=state_name,kind=kind),self.assertRaises(RuntimeError):preload()
+        _assert_nested_equal(self,before,original);_assert_nested_equal(self,rng,runner.capture_rng_state())
+        (failed/'last.pt').write_bytes(lb)
+        f.execute(f.args(enabled=True,root=resume_root,epochs=2,resume=failed),train_batches=1)
+        full=torch.load(PMCRMSInterfaceTests._run_dir(full_root)/'last.pt',map_location='cpu')
+        resumed=torch.load(PMCRMSInterfaceTests._run_dir(resume_root)/'last.pt',map_location='cpu')
+        for key in ('model_state','best_model_state','optimizer_state','rng_state','train_generator_state',
+                    'best_epoch','best_mse','best_val_metrics'):_assert_nested_equal(self,full[key],resumed[key],key)
+        for a,b in zip(full['history'],resumed['history']):
+            for key in a:
+                if 'seconds' not in key and key!='finished_at':_assert_nested_equal(self,a[key],b[key],key)
+        self.assertEqual(len(resumed['history']),2)
+        print('ETTM1_ACCEPTANCE '+json.dumps(dict(kind='resume',full_steps=2,resume_steps=2,
+            final_state_bitwise=True,preload_rejections=len(changes),tensor_rejections=8)))

@@ -1899,3 +1899,35 @@ class THLSSummaryContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class THLSETTm1SummaryTests(unittest.TestCase):
+    def test_exact_ettm1_and_urbanev_summary_contracts_and_policy_rejections(self):
+        from test_runner import THLSETTm1Fixture, THLSRunnerContractTests
+        f=THLSETTm1Fixture(self)
+        for h in (96,192,336,720):
+            for enabled in (False,True):
+                args=runner.prepare_args(f.args(h,enabled));runtime=f.runtime(args,torch.Generator().manual_seed(2024))
+                scientific=f.scientific(args,runtime)
+                candidate=summary._validate_thls_variant_contract(scientific,f.root)
+                self.assertEqual(candidate,runner._thls_candidate_contract(args))
+                for group,key,value in [('experiment','development_protocol_id',runner.THLS_DEVELOPMENT_PROTOCOL),
+                        ('dataset','model_pred_len',1),('dataset','target_idx',0),('dataset','fold',6),
+                        ('evaluation','test_access_policy','forbidden'),('model','patch',12)]:
+                    bad=deepcopy(scientific);bad[group][key]=value
+                    with self.subTest(h=h,key=key),self.assertRaises(ValueError):
+                        summary._validate_thls_variant_contract(bad,f.root)
+                bad=deepcopy(scientific)
+                bad['model']['local_shape_ms_interface']['configuration']['kernel_large']=7
+                with self.assertRaises(ValueError):summary._validate_thls_variant_contract(bad,f.root)
+        old=THLSRunnerContractTests('test_four_horizon_an_actual_lifecycles_checksums_summary_duplicates')
+        old.setUp();self.addCleanup(old.doCleanups)
+        for enabled in (False,True):
+            args=runner.prepare_args(old._args(enabled=enabled))
+            with old._guard():runtime=old._runtime(args,torch.Generator().manual_seed(2024))
+            scientific=f.scientific(args,runtime)
+            self.assertEqual(summary._validate_thls_variant_contract(scientific,old.root),runner._thls_candidate_contract(args))
+            bad=deepcopy(scientific);bad['experiment']['development_protocol_id']=runner.THLS_ETTM1_DEVELOPMENT_PROTOCOL
+            with self.assertRaises(ValueError):summary._validate_thls_variant_contract(bad,old.root)
+            self.assertEqual(summary._test_result_paths({'test_access_policy':'forbidden'},allow_access_policy=True),[])
+        self.assertEqual(old.access['test_construct'],0)

@@ -42,6 +42,7 @@ LATE_CCE_IMPLEMENTATION_VARIANT = "el-amd-m4-crosslinear-late-cce-v1"
 SONNET_IMPLEMENTATION_VARIANT = sonnet_spec.SONNET_IMPLEMENTATION_VARIANT
 THLS_IMPLEMENTATION_VARIANT = thls_spec.IMPLEMENTATION_VARIANT
 THLS_DEVELOPMENT_PROTOCOL = thls_spec.DEVELOPMENT_PROTOCOL
+THLS_ETTM1_DEVELOPMENT_PROTOCOL = thls_spec.ETTM1_DEVELOPMENT_PROTOCOL
 THLS_CONTROL_ABLATION_ID = thls_spec.CONTROL_ABLATION_ID
 THLS_ABLATION_ID = thls_spec.ABLATION_ID
 PMCR_P2_IMPLEMENTATION_VARIANT = "el-amd-m4-pmcr-local-change-p2-v1"
@@ -933,31 +934,45 @@ def _validate_thls_variant_contract(scientific, run_dir):
     if ablation not in {THLS_CONTROL_ABLATION_ID, THLS_ABLATION_ID}:
         raise ValueError(f"THLS A/N identity mismatch: {run_dir}")
     enabled = ablation == THLS_ABLATION_ID
-    features = list(CANONICAL_FEATURE_NAMES)
     horizon = dataset.get("label_horizon")
+    if dataset.get("id") == "UrbanEV":
+        features = list(CANONICAL_FEATURE_NAMES)
+        target, target_idx, aux = "volume", 0, list(range(1, 11))
+        fold, preset, seq_len, patch, pred_len = 6, "F4", 12, 12, 1
+        horizons, kernels = {3, 6, 9, 12}, (3, 7)
+        protocol, policy, test_policy = THLS_DEVELOPMENT_PROTOCOL, TRAIN_VALIDATION_ONLY, "forbidden"
+    elif dataset.get("id") == "ETTm1":
+        features = ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+        target, target_idx, aux = "OT", 6, list(range(6))
+        fold, preset, seq_len, patch, pred_len = "official", None, 512, 16, horizon
+        horizons, kernels = {96, 192, 336, 720}, (5, 31)
+        protocol, policy, test_policy = THLS_ETTM1_DEVELOPMENT_PROTOCOL, TRAIN_VALIDATION_TEST, "development_only"
+    else:
+        raise ValueError(f"THLS dataset mismatch: {run_dir}")
     expected_dataset = {
-        "id": "UrbanEV", "task_mode": "target_exogenous", "feature_type": "MS",
-        "target": "volume", "target_feature_name": "volume", "target_idx": 0,
-        "target_indices": [0], "feature_names": features, "aux_idx": list(range(1, 11)),
-        "aux_feature_names": features[1:], "fold": 6, "feature_preset": "F4",
-        "model_pred_len": 1, "artifact_horizon": horizon,
+        "id": dataset["id"], "task_mode": "target_exogenous", "feature_type": "MS",
+        "target": target, "target_feature_name": target, "target_idx": target_idx,
+        "target_indices": [target_idx], "feature_names": features, "aux_idx": aux,
+        "aux_feature_names": [features[i] for i in aux], "fold": fold, "feature_preset": preset,
+        "model_pred_len": pred_len, "artifact_horizon": horizon,
         "target_exogenous_schema_contract_version": TARGET_EXOGENOUS_SCHEMA_CONTRACT_VERSION,
     }
-    if horizon not in {3, 6, 9, 12} or any(
+    if horizon not in horizons or any(
             dataset.get(key) != value for key, value in expected_dataset.items()):
         raise ValueError(f"THLS task/target/input/horizon mismatch: {run_dir}")
-    evaluation = {"evaluation_policy": TRAIN_VALIDATION_ONLY,
-                  "artifact_purpose": M4_DEVELOPMENT_CANDIDATE, "test_access_policy": "forbidden"}
-    expected_experiment = dict(development_protocol_id=THLS_DEVELOPMENT_PROTOCOL,
-        ablation_id=ablation, task_mode="target_exogenous", target="volume",
-        label_horizon=horizon, model_pred_len=1, artifact_horizon=horizon, fold=6,
-        evaluation_policy=TRAIN_VALIDATION_ONLY, artifact_purpose=M4_DEVELOPMENT_CANDIDATE)
+    evaluation = {"evaluation_policy": policy,
+                  "artifact_purpose": M4_DEVELOPMENT_CANDIDATE, "test_access_policy": test_policy}
+    expected_experiment = dict(development_protocol_id=protocol,
+        ablation_id=ablation, task_mode="target_exogenous", target=target,
+        label_horizon=horizon, model_pred_len=pred_len, artifact_horizon=horizon, fold=fold,
+        evaluation_policy=policy, artifact_purpose=M4_DEVELOPMENT_CANDIDATE)
     if scientific.get("evaluation") != evaluation or any(
             experiment.get(key) != value for key, value in expected_experiment.items()):
         raise ValueError(f"THLS purpose/evaluation identity mismatch: {run_dir}")
-    interface = thls_spec.interface_contract(enabled)
-    expected_model = dict(seq_len=12, patch=12, pred_len=1, model_pred_len=1,
-        target_idx=0, target_selection_policy="full_denorm_then_task_select",
+    interface = thls_spec.interface_contract(
+        enabled, seq_len=seq_len, kernel_small=kernels[0], kernel_large=kernels[1])
+    expected_model = dict(seq_len=seq_len, patch=patch, pred_len=pred_len, model_pred_len=pred_len,
+        target_idx=target_idx, target_selection_policy="full_denorm_then_task_select",
         use_pmcr=False, use_teb=False, use_cce=False, use_sonnet_mvca=False,
         use_target_history_local_shape=enabled, local_shape_ms_interface=interface,
         module_connection=(thls_spec.MODULE_CONNECTION if enabled
@@ -977,11 +992,11 @@ def _validate_thls_variant_contract(scientific, run_dir):
             or optimization.get("train_drop_last") is not True
             or optimization.get("validation_drop_last") is not False):
         raise ValueError(f"THLS run budget/aggregation mismatch: {run_dir}")
-    return dict(development_protocol_id=THLS_DEVELOPMENT_PROTOCOL,
+    return dict(development_protocol_id=protocol,
         ablation_id=ablation, task_mode="target_exogenous", feature_names=features,
-        target_idx=0, aux_idx=list(range(1, 11)), schema_fingerprint=dataset["schema_fingerprint"],
-        seq_len=12, label_horizon=horizon, model_pred_len=1,
-        evaluation_policy=TRAIN_VALIDATION_ONLY, artifact_purpose=M4_DEVELOPMENT_CANDIDATE,
+        target_idx=target_idx, aux_idx=aux, schema_fingerprint=dataset["schema_fingerprint"],
+        seq_len=seq_len, label_horizon=horizon, model_pred_len=pred_len,
+        evaluation_policy=policy, artifact_purpose=M4_DEVELOPMENT_CANDIDATE,
         local_shape_ms_interface=interface)
 
 
@@ -997,6 +1012,7 @@ def _validate_thls_checkpoints(scientific, config, manifest, metrics, run_dir):
     for field in ("development_protocol_id", "ablation_id"):
         if metrics.get(field) != scientific["experiment"].get(field):
             raise ValueError(f"THLS metrics {field} mismatch: {run_dir}")
+    kernels = (5, 31) if scientific["dataset"]["id"] == "ETTm1" else (3, 7)
     shapes = {}
     if scientific["model"]["use_target_history_local_shape"]:
         shapes = {
@@ -1005,8 +1021,8 @@ def _validate_thls_checkpoints(scientific, config, manifest, metrics, run_dir):
             "ffn_expand.weight": (16, 8, 1), "ffn_expand.bias": (16,),
             "ffn_reduce.weight": (8, 16, 1), "ffn_reduce.bias": (8,),
             "output_projection.weight": (1, 8, 1), "output_projection.bias": (1,),
-            "temporal_conv.small_branch.weight": (8, 1, 3), "temporal_conv.small_branch.bias": (8,),
-            "temporal_conv.large_branch.weight": (8, 1, 7), "temporal_conv.large_branch.bias": (8,),
+            "temporal_conv.small_branch.weight": (8, 1, kernels[0]), "temporal_conv.small_branch.bias": (8,),
+            "temporal_conv.large_branch.weight": (8, 1, kernels[1]), "temporal_conv.large_branch.bias": (8,),
         }
     shapes = {"target_history_local_shape." + key: shape for key, shape in shapes.items()}
     previous_spec = None

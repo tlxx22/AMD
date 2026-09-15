@@ -86,6 +86,11 @@ def check_access(path, writing=False, dir_fd=None):
     state = _STATE
     if state is None:
         raise RuntimeError('guard not installed')
+    # Task-bound full CSV access; this does not grant UrbanEV or synthetic access.
+    if (not writing and state.get('access_policy') == 'ettm1_thls_development_smoke_v1'
+            and real == state.get('approved_real_file')):
+        record('approved_ettm1_read', path=real, scope='full_csv_development_smoke')
+        return real
     allowed_real = getattr(_LOCAL, 'permitted_real_file', None)
     if not writing and allowed_real and real == allowed_real[0] and state.get('access_policy') == 'real_prefix_probe':
         return real
@@ -246,6 +251,11 @@ def install(config_path, expected_sha256):
                 or not base.is_dir() or not fixture.is_dir()
                 or os.environ.get('TMPDIR') != str(fixture)):
             raise RuntimeError('temporary fixture root/stage/environment binding mismatch')
+    if c.get('access_policy') == 'ettm1_thls_development_smoke_v1':
+        from current_policy import require_scope
+        require_scope(c, 'real_prefix')
+        if c['approved_real_file'] != os.path.realpath(c['approved_real_file']):
+            raise RuntimeError('ETTm1 smoke file must be its exact real path')
     fd = _RAW_OPEN(log, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     _STATE = dict(c, session_root=session, log_fd=fd, config_path=config_path,
                   config_sha256=expected_sha256,

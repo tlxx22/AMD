@@ -9,6 +9,7 @@ from models.modules.modern_conv_refinement import ReparamLargeKernelDWConv
 
 IMPLEMENTATION_VARIANT = "amd-m4-target-history-local-shape-v1"
 DEVELOPMENT_PROTOCOL = "m4_target_history_local_shape_two_arm_from_scratch_v1"
+ETTM1_DEVELOPMENT_PROTOCOL = "m4_thls_ettm1_full_horizon_safety_two_arm_from_scratch_v1"
 CONTROL_ABLATION_ID = "M4_THLS_CONTROL"
 ABLATION_ID = "M4_THLS"
 STRUCTURE_CONTRACT_VERSION = "target_history_signed_diff_residual_v1"
@@ -36,13 +37,13 @@ def configuration(seq_len=12, kernel_small=3, kernel_large=7):
     }
 
 
-def interface_contract(enabled):
+def interface_contract(enabled, *, seq_len=12, kernel_small=3, kernel_large=7):
     return {
         "contract_version": STRUCTURE_CONTRACT_VERSION,
         "initialization_policy": INITIALIZATION_POLICY,
         "run_seed": 2024, "train_generator_seed": 2024,
         "local_shape_init_seed": 2024, "branch_instantiated": enabled,
-        "configuration": configuration(), "model_form": "train",
+        "configuration": configuration(seq_len, kernel_small, kernel_large), "model_form": "train",
         "input_reorder": "none", "future_observed_covariates": False,
         "loss_scope": "specified_target_full_model_pred_len",
         "metric_scope": "all_valid_target_elements",

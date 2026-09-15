@@ -59,6 +59,13 @@ def restrictions_for(document, inventory, stage):
 
 def require_scope(config, stage):
     wanted = 'real_prefix_probe' if stage == 'real_prefix' else 'synthetic_regression'
+    if config.get('access_policy') == 'ettm1_thls_development_smoke_v1':
+        if (stage != 'real_prefix' or config.get('task_scope') != 'M4_63_ETTm1_16_4_0'
+                or config.get('approved_real_file') != str(Path(config['repo'])/'data/ETTm1.csv')
+                or config.get('approved_data_sha256') !=
+                '6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e'):
+            raise ValueError('ETTm1 smoke task/file identity mismatch')
+        wanted = 'ettm1_thls_development_smoke_v1'
     if (config.get('stage') != stage or config.get('access_policy') != wanted
             or config.get('restriction_policy_id') != POLICY_ID):
         raise ValueError('stage/access policy mismatch; real access cannot be borrowed')

@@ -4,7 +4,7 @@
 
 开始日期：2026-08-28（UTC）
 
-当前轮次：第三十八轮，THLS独立160步N并发兼容检查与8-run无负载准备（§61：168/160/160完成，正确性/资源Passed；THLS implementation review Passed、f13dd26统一closure Completed；串行8-run启动包准备完成且未启动，结果/训练前审核Pending；效果Not evaluated）
+当前轮次：第四十轮，ETTm1 THLS最小接入与增量工程验收（§63：六项增量与真实16/4/0 Passed；新接入review/closure待审，ETTm1 safety未评价；已批320步/8-run未启动，M4 In Progress）
 
 canonical 内部版本：v2.1-R1
 
@@ -6674,3 +6674,228 @@ SSH退出前须看到tmux pane存活、status为running且当前PID/start-time�
 | launcher `commands.sh` | `c3f3458736a678d4884e82fd0d533099343cec8ff53c99e884d2864df032c3b4` |
 
 最终两文档SHA由收尾清单记录，再绑定review-binding/bundle，避免在文档中递归写入自身SHA；工具/脚本/数值证据留服务器，Project只需本canonical与唯一M4按最终SHA替换供审核。业务完成后才更新这两文档，HEAD仍为f13dd26…、index空、仅两文档modified；不stage/commit/push。THLS工程与implementation review既有Passed、统一代码closure Completed保持；本轮有限兼容性/资源Passed，结果及训练前审核Pending、8-run未启动、THLS performance Not evaluated，P2原Not passed、S2 Passed/leading、M4 In Progress及组合限制不变；不进入M5/M7。
+
+
+## 62. 第三十九轮：UrbanEV THLS结果接受与ETTm1安全验证接入提案（2026-09-15 UTC）
+
+### 62.1 本轮确认、实际起点与证据
+
+用户本条消息明确传达ChatGPT结果审核：UrbanEV THLS 8-run完整性Passed、N vs A五项效果gate全部Passed，接受**严格限本UrbanEV合同的positive development signal**。原final JSON中的ChatGPT_result_review=Pending是审核前快照，本轮只登记新的审核事实，不修改封存JSON。THLS implementation/engineering/review既有Passed、统一代码closure=`f13dd26dfa72e140c8e4c05b146ea39d6643f889`保持；§61结果与串行训练前方案随后获审，docs closure形成当前实际HEAD=`e93f008f9f82546e13bf4c7f2522b1728d81cbdf`（parent=f13dd26dfa72e140c8e4c05b146ea39d6643f889）。本轮从最终审计和现场Git交叉取得该HEAD，local/tracking/live一致、0/0、index空、worktree clean、untracked none，适用AGENTS已显式读取。
+
+起始canonical SHA=`32d0de7786c7f8e83c505f155b10c2e1f57109585351ec86b1f061530bb7eb8b`；M4 SHA=`12d72a1988a4f530d2c0f944616a7810f2fc5767e87911854c3ebd2f3e700207`，与用户提供的Project核验基线相同。24-file production fingerprint=`16343e9298a9c4a1eb477c061f7b58552ab04b0706f751b8b83e42749b703a7f`，算法sha256_length_prefixed_relative_path_and_content_v1、文件集合不变；baseline=`amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
+
+最终审计根为`/public/home/yueweiting/大论文/amd-execution-evidence/m4/m462-thls-final-audit-6_djik6t`。本轮只以Python SHA-256与系统sha256sum核验56项封存清单及所需JSON/表格；没有重新加载checkpoint、解析CSV、重算预测或重跑333项。
+
+| 既有封存文件（相对审计根） | SHA-256 |
+|---|---|
+| evidence.sha256 | 4bbaff2f9e3826c5f695ac34b9c075da36b9bc653cec57bb44838329db448769 |
+| final/audit-result.json | dbe850d9a6de1badab89d0f92c1d5e1e57f13b398db22b368aab040e0dd84fdd |
+| final/gates.full_precision.json | 44681b7567791caebcc3f68dcd408305f50614bf5c992e4e4f14ff4e9d4628c2 |
+| final-receipt.json | d34ff1e8c4989aaa45f4c4f022aadb905946611818582b833f813061b5ab59be |
+
+### 62.2 八个有效身份、原始指标与主gate
+
+共同artifact root=`artifacts/m4-development/urbanev-target-history-local-shape-v1`；相对根路径为`amd-m4-target-history-local-shape-v1/UrbanEV/target_exogenous/volume/horizon_<h>/fold_6/seed_2024/<run_id>`。A=`M4_THLS_CONTROL`，N=`M4_THLS`；实际config_hash、源码/数据和全部身份已由上述最终审计核验，不借旧P2/Sonnet/parallel control填表。以下为封存指标原值，metric space=train-standardized、完整validation，均由validation严格MSE best选择，不重选best。
+
+| arm | h | run_id | best epoch | validation MSE | validation MAE |
+|---|---:|---|---:|---:|---:|
+| A | 3 | `20260914T135224.227179Z-b9dc4ac3` | 10 | 0.3320888165464615 | 0.35823024858008906 |
+| N | 3 | `20260914T165641.471691Z-8a388fb1` | 10 | 0.3264282964731281 | 0.35311362529315815 |
+| A | 6 | `20260914T135223.822324Z-c26d1011` | 10 | 0.5033341150287228 | 0.4782123063526025 |
+| N | 6 | `20260914T165641.459824Z-79f524f6` | 10 | 0.5016362030590209 | 0.4767814989008557 |
+| A | 9 | `20260914T135223.715012Z-82e2e52a` | 9 | 0.5888574372385947 | 0.5293017547775071 |
+| N | 9 | `20260914T165641.469296Z-b8298555` | 9 | 0.5825945078715153 | 0.5251359085660047 |
+| A | 12 | `20260914T135224.306900Z-757826f6` | 8 | 0.5276191658527529 | 0.49801264016617325 |
+| N | 12 | `20260914T165641.471242Z-97b17e0f` | 8 | 0.5241891838837841 | 0.49538935512045157 |
+
+主口径为`100*(mean_h(N_h)/mean_h(A_h)-1)`，四H等权，正值表示退化；判定使用封存未舍入值，60位Decimal与binary64交叉核对。A/N MSE macro分别为`0.487974883666632975`/`0.4837120478218621`；MAE macro分别为`0.4659392374690929775`/`0.46260509697011753`。
+
+- 主MSE变化（%）：`-0.873576896568941509534578296928395809560940331215483693664500`。
+- 主MAE变化（%）：`-0.715574098692774322893797491320101291479393652306504188538500`。
+- 补充“逐H相对变化均值”MSE（%）：`-0.93887817851321898141932507120714311903114237769939425605230`；MAE（%）：`-0.760325319590105115490952562956708001198481159135892800948775`。补充口径不替代主gate。
+- 移除h3/h6/h9/h12后的MSE macro变化（%），依次为`-0.703219405719831867829051801407464584133147564712742762976300`、`-1.05990597326425774983083432451618562850092703259050351538030`、`-0.791495290744273851628303400742998770298114414462711750123800`、`-0.956367981218426666267192391682078175418163247818060587319500`。
+
+因此主MSE≤−0.5%、主MAE≤0、至少3/4 H MSE严格改善（实际4/4）、任一H MSE退化≤1%（实际全部改善）、全部leave-one-out严格改善五项均Passed；四H MAE也均改善。ChatGPT本轮结果review=Passed，仅登记本fold6/seed2024/四horizon UrbanEV合同的positive development signal，不称多seed稳定、收益均衡、ETTm1已安全或最终结构冻结。
+
+### 62.3 实际两波调度、成本和中断排除
+
+实际执行器为`/public/home/yueweiting/大论文/amd-launchers/urbanev-thls-two-wave-bfrk651z`，其审批、plan/state、changeover和日志SHA见封存inputs及final-receipt。用户在串行启动后明确要求停止并改为**Wave 1: A-h3/A-h6/A-h9/A-h12同时运行；全部四个成功退出且身份/history/checksum核验通过后，Wave 2: N-h3/N-h6/N-h9/N-h12同时运行**。这是实际已授权执行，不用§61旧串行准备快照代替，也不倒改该节。
+
+8/8有效run、各10epochs、80 run-epochs；按history与Adam state交叉核验有效训练步骤594040。启动器起止UTC为2026-09-14 13:52:19.042973至20:08:33.042051，完整墙钟`22573.999078273773 s = 6.270555299520493 h`，约6小时16分14秒；包括启动、波间核验及收尾，不含旧中断尝试与训练后审计。A波artifact创建至最后完成窗口11050.236465930939 s，N波11509.00117611885 s；边界与总启动器墙钟不同。各worker时长合计87303.81450486183 s不是实测串行基线或物理GPU占用时间；不得用它或旧情景估算除以当前墙钟冒称实测加速比。
+
+旧A-h3目录`horizon_3/fold_6/seed_2024/.20260914T133453.933009Z-91835b6d.staging`为用户中断，未完成首epoch、无last.pt/history可供合法resume，保留且不计有效run；对应后续全新有效A-h3为`20260914T135224.227179Z-b9dc4ac3`。旧启动器墙钟338.60538268089294 s；额外optimizer步骤**Not recorded，已有记录界为≤7435**，不当成0、不退款、不与594040混为全部尝试成本。旧日志存`m461-two-wave-switch-3n9ny6q1/serial-log-archive/`，保留SHA；本轮未移动/删除任何旧文件。根目录核账为8有效completed、有效running/failed/incomplete均0，加1个明确排除的旧failed staging，不写成整个root无staging。
+
+### 62.4 审计修正、访问范围和不能外推的结论
+
+最终完整性审计复用生产summary/身份检查：104个受控文件Python/系统checksum、8条完整history/strict best、16份独立best/last、model/optimizer有限性、tensor key/shape/dtype、source/data/Git、duplicate均通过。首次外置审计脚本错误地要求所有注册参数都有Adam state，在A-h12处停止（2次CPU权重读取，exit1）；证据保留。实际`models/common.py:252–287`在T12/patch12下DDI递推range(12,12,12)为空，`fc_blocks.0.norm1.weight/bias`和`fc_blocks.0.agg.weight/bias`未参与计算；PyTorch Adam仅对有梯度参数惰性建state。修正仅接受这四个精确缺失项，并核对其best/last不变和BatchNorm初值/计数不变；其余A的53组、N的68组Adam状态齐全，step依H为74350/74290/74220/74160。不能推广为任意缺失state可接受，生产模型、环境与产物均未改。最终审计16次CPU读取，每份一次；含首次失败本次完整审计实际共18次，不隐瞒额外读取。
+
+最终审计新增model/Dataset/optimizer构造与forward/backward/Adam均0，test解析/构造/迭代/评价均0、非预期拒绝0；原始数据仅作已批准字节指纹。**本轮结果登记再次新增这些计数全部0，checkpoint反序列化0、原始CSV观测读取0。** 训练隔离依据封存前缀reader、实际配置/数据身份及产物无test结果；未采集全过程独立内核I/O trace，不捏造全训练实测test访问数。N四run各保留一次既有cuDNN/NVRTC workaround warning，无新环境修补；不能仅凭warning撤销已通过完整性。
+
+### 62.5 ETTm1最小接入只读核对：已具备与真实缺口
+
+以下行号指本轮起始源码；均为静态核对，不是新任务动态验收。THLS已审T512/5–31数学、642(train)/594(deploy)参数、初始化、目标hidden接入和模块部署证据直接复用；GPU短序列兼容证据不能代替T512训练兼容。
+
+| 文件/实际函数 | 已具备能力、缺口及拟最小增量 |
+|---|---|
+| `utils/dataloader.py` `_compute_split_endpoints`、`CustomDataLoader._read_data/_make_dataset` | 已有ETTm1 official split、MS保留七输入只输出OT、val/test前512点context、train-only StandardScaler和完整H滑窗；**无须修改loader**。实际会完整解析CSV，再取前57600行划分并构造test；不是UrbanEV前缀隔离管线。 |
+| `main.py:1367/4817/4687` `_prepare_enhanced_contract`、`_build_target_exogenous_schema_contract`、`_build_generic_runtime_data` | 已有显式七列/target6/aux0…5 schema和generic runtime，THLS属于policy-development集合，可复用development-only test元数据；不另造runtime。 |
+| `main.py:698/680/4916/2001` `_prepare_thls_contract`、`_thls_ms_interface_contract`、`_build_model`、`prepare_args`及CLI协议choices | 当前只接受UrbanEV/F4/fold6/T12/pred1/validation-only；factory固定3/7。拟按精确dataset/protocol二选一扩展ETTm1/T512/patch16/H96/192/336/720、5/31与test-inclusive政策，并绑定新协议常量；旧UrbanEV行为与序列化值原样保持，不开放其他组合。 |
+| `models/modules/target_history_local_shape_residual.py:19/39` `configuration/interface_contract`与常量 | `configuration(T,kS,kL)`本已支持T512，但interface_contract无参调用默认T12/3/7。仅使元数据helper显式接受已验证T/kernel参数并保留旧默认字节，新增ETTm1协议常量；**不改模块forward/初始化/数学**。 |
+| `models/tsAMD_enhanced.py:174/607/1073` 构造/forward | 已接收任意合法T、kernel与pred_len；单次RevIN的目标历史clone不detach、仅修正target hidden、原selector与完整denorm/选择不变。T512时DDI递推实际发生31次，norm1/agg参与；不得沿用UrbanEV四参数无state的审计例外。此文件预计无需修改。 |
+| `main.py:3366/3413/3436/3544/3567/3626` loss、SSE/SAE/Q、evaluate、Adam、train、best | 已支持`[B,H,1]`与`[B,H]`或`[B,H,1]`全H精确适配、全部目标元素聚合、尾batch、原MoE辅助项、严格validation best；保持原实现。 |
+| `main.py:4040/4227` `_load_resume_checkpoint`及artifact路径/发布 | 已有外置metadata/source/data/schema/候选接口/目的/model_form/epochs拒绝后再CPU反序列化、原子tensor校验及staging-only恢复；需由新候选接口传入正确T/kernel/protocol，复用所有边界，不豁免旧source。 |
+| `summarize_results.py:929/988/2350/2570` THLS contract/checkpoints、evaluation policy、分派 | 通用test-inclusive汇总已存在，但THLS验证写死UrbanEV、T12/pred1、3/7卷积shape。拟按明确任务合同派生dataset、horizon、评价/接口、5/31 tensor shape；保留旧验证、duplicate与seed std=N/A。 |
+
+拟生产改动最小集合为**main.py、THLS模块文件的纯合同/元数据部分、summarize_results.py**；常量/helper签名旧默认值兼容，不扩大source算法/集合。预计24文件集合不变、source SHA在实际实现后重新计算，不能预填。本轮不改这些文件、common.py GELU兼容patch、RevIN、feature_schema、永久tests或执行器。永久测试拟仅扩展`tests/test_runner.py`、`tests/test_tsAMD_enhanced.py`、`tests/test_summarize_results.py`的现有夹具和断言，不建第二框架。
+
+### 62.6 唯一ETTm1安全验证合同（全部新增执行内容Proposed，待一次性批准）
+
+目的仅为检验本THLS候选在ETTm1完整H上相对fresh AMD是否安全；不复活P2三臂，不把它称新增来源模块或正式未见test实验。以下采用已存在的数据/数学能力，但**THLS新任务身份、参数实例、预算、工程/兼容负载与安全线均待本提案批准**。
+
+| 字段 | 唯一建议值与依据 |
+|---|---|
+| 数据身份 | `/public/home/yueweiting/大论文/AMD/data/ETTm1.csv`；已登记SHA=`6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`，列序schema SHA=`f6dd94841b5d9d0b7515b19e0ff1876bf6476068054eacdc02ac6fcab3f084dc`，来源§47.6/§53.2及loader源码。本轮未开CSV/重算数据SHA，执行前须字节核验；schema hash只是列序hash，不代替task/target/split身份。 |
+| 任务与形状 | dataset=ETTm1，task_mode=target_exogenous，feature_type=MS；ordered features=[HUFL,HULL,MUFL,MULL,LUFL,LULL,OT]，target=OT/index6、aux=[0,1,2,3,4,5]，不使用未来辅助观测；T512/patch16，H=[96,192,336,720]，pred_len=model_pred_len=label_horizon=artifact_horizon=H，fold=official、feature_preset=None。X=[B,512,7]，prediction=[B,H,1]，监督连续全部H个OT点，不变成单偏移标签。 |
+| split/scaler | train=[0,34560)，validation=[34560,46080)，development-test=[46080,57600)；val/test输入context分别从34048/45568开始，标签全在各自split；StandardScaler仅train拟合、逐特征，原float32 Dataset和顺序不变。现有loader整文件解析行为如§62.5，超出used_rows的记录不进入训练/评价窗；不得宣称本任务raw不持有test。 |
+| A/N与新任务身份 | implementation_variant仍`amd-m4-target-history-local-shape-v1`，structure_contract_version仍`target_history_signed_diff_residual_v1`；A=`M4_THLS_CONTROL`、N=`M4_THLS`；新增development_protocol_id=`m4_thls_ettm1_full_horizon_safety_two_arm_from_scratch_v1`（Proposed）。原UrbanEV protocol字符串/语义保留，明确拒绝跨dataset/protocol/policy混配。training_protocol_id=standard_from_scratch，artifact_purpose=m4_development_candidate、schema_version1/artifact_schema_version2，model_form=train。 |
+| AMD共同参数 | 逐字段沿§47.6/§53.2：n_block1、alpha0、mix_layer_num3/mix_layer_scale2、dropout.1、norm/layernorm=true，8 experts、expert hidden2048、top_k2、selector_mode=horizon_shared_dense_emphasis，target_slice=None/full_denorm_then_task_select，teb_context_dim32仅零占位；原MDM/DDI/AMS/RevIN/loss及CPU GELU兼容均不改。 |
+| N支路与关闭项 | 原signed[y,d1,d2]→目标hidden；d8、kernels5/31、feature LN eps1e-5、FFN ratio2、dropout.1、eta_init.001无约束、原Xavier/零bias与非零输出投影，train-form642参数；A不实例化支路、不消耗其RNG。PMCR/v1/P2/Sonnet/CCE/全部TEB均关闭且guard保留。 |
+| 初始化/预算 | A/N同一次新实现review/closure后的同源码fresh from scratch；run seed=train_generator seed=2024，N local_shape_init_seed2024的隔离CPU子流、共同AMD构造/RNG/首batch匹配。四H×两臂=**8个全新run、各固定10epochs、最多80 run-epochs**；不复用旧P2/Sonnet/parallel的A，不读取旧权重，不把compat checkpoint带入训练。 |
+| 优化与采样 | batch32、fresh Adam lr3e-5/wd1e-7、betas(.9,.999)、eps1e-8、amsgrad/maximize/capturable/differentiable=false、foreach/fused=None；全部自身参数置trainable，实际有梯度者由原Adam更新；无warm-start/epoch0 best/scheduler/AMP/clip/early stop。train shuffle/drop_last=true、generator2024；val/test shuffle/drop_last=false、workers0/pin_memory=false。 |
+| loss/评价 | 全H OT元素prediction MSE＋原MoE auxiliary；metric=train-standardized，SSE/SAE/Q全元素累计，不平均batch均值。每epoch全validation、finite MSE严格下降选best、等值保留早epoch、best仅1…10；仅训练完后对validation-selected best做一次完整development-test，不用test选checkpoint/调参。 |
+| test政策 | evaluation_policy=train_validation_test，test_access_policy=development_only；ETTm1数据不进入正式未见test主表。未来smoke/compat允许现有generic runtime解析及构造test，但test迭代/评价为0；其数据访问能力须与UrbanEV前缀禁test策略明确分开。本轮所有真实观测/评价为0。 |
+| 环境 | 固定amd Python，A800 UUID=GPU-3d365efd-300b-f527-e8fe-703fb0cfb738，cuda:0、每进程4计算线程、已登记affinity8–11,40–43；Python3.11.15/torch2.0.1/CUDA11.8/cuDNN8700、NumPy1.24.3/pandas2.0.3/SciPy1.11.4/sklearn1.3.2；float32、benchmark=false、cudnn_deterministic=true、deterministic_algorithms=false、matmul TF32=false/cudnn TF32=true，interop/BLAS沿封存环境，执行前实核；本轮未重新测资源或修改环境。 |
+| artifact与恢复 | 新root=`artifacts/m4-development/ettm1-thls-safety-two-arm-v1`（Proposed，本轮不创建）。按variant/dataset/task/target/horizon/fold/seed/run_id独立路径；完整config hash绑定新protocol、input/target、H、kernel、policy、预算/source/env；比较时只忽略预定A/N差异，不忽略dataset/source/预算。原staging-only same-identity resume、checksum/原子发布/duplicate拒绝保留；不接受UrbanEV checkpoint或跨source resume，state_dict同shape也不豁免身份。 |
+
+静态预算算术（不是新实测）：
+
+| H | train windows | train steps/epoch（batch32/drop_last） | val及test各windows | val及test各batch数 | val及test各Q=windows×H |
+|---:|---:|---:|---:|---:|---:|
+| 96 | 33953 | 1061 | 11425 | 358 | 1096800 |
+| 192 | 33857 | 1058 | 11329 | 355 | 2175168 |
+| 336 | 33713 | 1053 | 11185 | 350 | 3758160 |
+| 720 | 33329 | 1041 | 10801 | 338 | 7776720 |
+
+8个成功run完整成本为84260个Adam步骤；按10次validation＋1次final development-test，外层前向算术为115082 batch调用。失败/中断另记实际成本，不把成功额度变成无限重试许可；严格同身份resume只补未完成预算，先审计，不自动fresh重跑。完整训练墙钟尚未测得，不用UrbanEV实测时长或N160加速比推断ETTm1速度；完成有限兼容后给估算，不给长训练强杀deadline。训练前建议可用磁盘≥8GiB，须再按实际checkpoint/日志空间核对。
+
+### 62.7 N vs A安全线与停止条件（THLS新提案，未获执行授权）
+
+全部8run完整且身份/finite/checksum有效后统一判，不按中途A结果省略N。参考旧ETTm1门槛，但下列是**THLS新提案**：四H等权、主口径`100*(mean(N_h)/mean(A_h)-1)`，validation MSE macro≤+0.5%、development-test MSE macro≤+0.5%、development-test MAE macro≤+0.5%、任一H development-test MSE≤+1%。全部成立才记THLS ETTm1 safety Passed；这不是要求显著优于A，也不自动登记组合或正式冻结。逐H原值/差值、两种macro与四项leave-one-out另报，不新增事后门槛、不以补充relative均值替代gate，不按样本量pooling。非正分母、缺臂、重复、身份不符、非finite均证据无效，不加epsilon。
+
+任一最终安全线失败，保留原结果并停止此序列，不追加seed/epoch、不调阈值/LR、不开放Sonnet组合；已接受UrbanEV结果原样保留。任一技术失败/OOM/NaN/受禁访问/资源超限先停止所属调度、保留staging/checkpoint/history/log，不能用串行重跑或加预算掩盖异常。通过也只进入后续审核，Sonnet＋THLS仍Not evaluated/未实施、正式结构未冻结，M4不自动结束。
+
+### 62.8 最小集成验收、真实smoke及并发兼容（各独立Proposed预算）
+
+既有333方法结果、原THLS T512/5–31数学/梯度/642–594部署、CPU GELU兼容与RevIN限定比较证据复用，不重做专题诊断或整套333回归。只补实际新接入：拟6个方法，使用既有测试类/helper和本轮新合成CSV/source/checkpoint，不改旧断言/默认值、不用成功桩代替生产链路。
+
+1. runner：8组ETTm1 A/N参数、protocol/policy/schema/H/kernel绑定及错误任务/目标/目的/组合的runtime前拒绝；并检查原UrbanEV默认接口字节/hash不变。
+2. runner：真实CustomDataLoader读取**新合成ETTm1 CSV**，四H official split/context、train-only scaler、OT6/aux顺序、全部H标签和逆变换，拒绝错序/错target；不读真实观测。
+3. enhanced/factory：四H×A/N×CPU f32/CUDA f32的shape/finite/共同初始化、构造后RNG/generator/首batch；关闭A与同依赖AMD对照，N各逻辑参与参数组梯度finite；保留现有RevIN指定float32仿射组规则，其余严格断言不扩大。每A/N各一次forward，A另与参考前向比；N各一次backward，不为参考另做反向诊断。
+4. runner：四H A/N真实合成runtime→目标loss→1个有限合成epoch（2train批）→2validation批（尾批）→best→2synthetic development-test批→发布/checksum；并补UrbanEV h3 A/N各1train＋2validation批，验证原test禁止路径不变。采用既有Subset有界迭代方式，只缩短新合成夹具的迭代，不改真实数据split/生产循环，不把有限epoch登记成候选10epoch训练。
+5. runner：h96 N两epoch同身份连续/中断/恢复对照（各epoch1train批、2validation批，完成后2test批），原staging-only、外置metadata反序列化前拒绝、跨dataset/protocol/H/target/policy/source拒绝、tensor key/shape/dtype原子拒绝与train/deploy边界。负例纯改本轮合成副本；保留completed-resume先拒绝ValueError的真实合同，不加载历史权重。
+6. summary：复用上述合成产物核验ETTm1 test-inclusive结果/新protocol/5–31 shape、原UrbanEV validation-only、mixed identity/duplicate拒绝、metadata中的test政策与test指标区别；不增加模型调用。strict best/tie与全元素tail断言复用现有纯函数检查和真实评价。
+
+新增合成总上限拟为**128 forward/API、40 backward、24 Adam.step**；静态主要调用约94/30/22（factory24/8/0，ETTm1八生命周期48/16/16，UrbanEV回归6/2/2，h96恢复对照16/4/4），额外参照/API及失败均计入上限，未完成最终覆盖时不能自动追加。单方法≤180s、总≤1800s、RSS≤8GiB、CUDA reserved≤4GiB、输出≤4GiB、启动可用空间≥8GiB，依据T512/H720模型状态与多合成生命周期为新提案计价；CPU/CUDA必需项缺失记Pending，不变成skip。临时合成fixture用唯一/tmp根，工具与最终证据仍在Git/持久根，不触及原artifact。拟方法/子case在实施前一次定版与核账；本轮没有创建测试或消耗预算。
+
+**独立真实单批smoke拟16 forward、4 backward、0 Adam**：四H×A/N各CUDA batch32 train/validation各1批；仅N四个train批做一次backward，不更新参数，不全epoch/全评价，不发布development artifact。核全H shape/loss/finite、train-only scaler/目标schema、公共初始化/首batch及allocated/reserved/时长。CPU已由合成覆盖。全组≤600s、RSS≤8GiB/reserved≤4GiB、输出≤256MiB；未来按本任务development-only政策构造generic runtime，test不迭代/评价，明确不承诺prefix-only解析。失败不改batch、环境或容差。
+
+**独立并发兼容拟320 Adam步骤，336 forward、320 backward、16 validation批**：现存有效并发证据仅覆盖UrbanEV AMD-Concat/THLS短序列；旧ETTm1 P2串行及smoke也不是本THLS四路证据。为覆盖A/N和四个H，不从H720一项推断其余H：固定8个任务A-H96/192/336/720与N-H96/192/336/720，先分别四任务串行，再同四任务同时运行，A与N两组互不重叠；共16个fresh worker，每worker原batch32/4线程、4warm-up＋16连续测量训练批（均含Adam.step），再1validation批。无额外trace/重复轮/2路或6/8路搜索，不复用UrbanEV160步权重。
+
+对应任务初值/buffer、构造后RNG、generator及batch摘要严格一致；warm-up/final完整参数、buffer、Adam状态和loss有限，整数/身份严格相同、浮点用atol1e-6/rtol1e-5，bitwise另报；该检查不用RevIN跨入口专属例外，不以少数loss截图替代完整状态。单卡同UUID，同一A/N组四H使不同输出长度与竞争真实覆盖；CUDA计时边界同步，记录各worker prepare/train/validation/save与同组端到端makespan，不将并发耗时求和称GPU占用。为保持最小包，不另建稳定段全局屏障；没有统一窗口就只报逐worker训练段，不声称消除了准备阶段干扰。
+
+拟限整包≤1200s、每worker从创建至退出≤180s，RSS每worker≤8GiB/四者≤32GiB，管理监控另≤1GiB，CUDA reserved每worker≤4GiB（不含完整上下文）、输出≤8GiB、启动可用空间≥12GiB；完整状态对照使用独立临时文件/目录，完成后仅保存聚合证据/校验清单与所需状态证据，不覆盖正式artifact。软件监控不称OS硬配额。未来现场资源/依赖/affinity变化先报告，不能以整机64逻辑核代替已见8 CPU。所有尝试计账、失败不自动重试，无旧checkpoint读取，不以validation改善选并发。
+
+按用户本轮确认的**已验证并发自动沿用**规则：本提案预算一经批准且上述正确性/资源成立、A与N各自同四任务的四路makespan均小于其串行值，就直接准备/采用**Wave A四H → 全部成功且核验 → Wave N四H**的同合同8-run调度，**不再索要独立四路许可或二次预算批准**。这仍是一次有限短测，不保证10epoch逐位相同/相同速度比。若仅速度不优而正确性/资源通过，使用预先列明的串行顺序H96 A→N、H192 A→N、H336 A→N、H720 A→N；技术/数值失败则停止，不借fallback掩盖。必要implementation review、版本提交/clean及训练前核验仍保留，长训练默认用户启动；它们不是重复并发授权。
+
+### 62.9 一次性待批项、文档范围与停止
+
+待一次性批准的是：§62.5的最小ETTm1接入/旧UrbanEV兼容与新任务身份；§62.6八fresh run/80epochs及development-only test；§62.7 N vs A安全线；§62.8合成128/40/24、真实smoke16/4/0、并发兼容336/320/320的独立预算、时间/资源界与通过后自动采用的调度规则。不能从本轮只读核对、旧P2预算、UrbanEV160步或已接受positive signal推导这些新执行预算已获批准；本轮全部只形成提案，不制作/启动训练包。
+
+当前状态：**THLS UrbanEV development gate=Passed；ChatGPT本轮结果review=Passed；ETTm1 safety=Not evaluated；Sonnet＋THLS=Not evaluated/未实施；最终结构未冻结；M4 In Progress。P2原Not passed、Sonnet S2 Passed/leading保持。** 本轮只更新canonical当前摘要及M4文件头、追加本节，旧§§1–61正文保留，不改Closed milestone/阶段表，不修改代码/tests/执行器/环境/数据/既有证据。起始HEAD不变；结束应仅两文档modified、index空、untracked none，diff --check及保护核验后交ChatGPT审核，不stage/commit/push、不单独docs closure。两文档最终SHA在回执给出，避免自引用递归；仅这两文档按最终SHA上传/替换Project供审核，服务器封存证据不要求上传。
+
+
+## 63. 第四十轮：ETTm1 THLS最小接入与增量工程验收（2026-09-15 UTC）
+
+### 63.1 本次用户批准与现场
+
+用户本条消息明确批准§62.5–62.9的最小接入/任务身份、8 fresh runs/最多80 run-epochs、development-only test与四项安全线，以及独立合成128/40/24、真实smoke16/4/0、后续并发336/320/320额度和原时间/资源/停止线。本轮仅实施三文件接入、六项合成验收和真实smoke；后续320步兼容及8-run已获合同批准，但须待新接入implementation review/统一closure及训练前核验，不在本轮启动。已验证并发按既定规则自动采用，不另索四路许可，长训练仍默认用户启动。旧§62 Proposed是当时状态，原文保持。
+
+实际起点HEAD=`e93f008f9f82546e13bf4c7f2522b1728d81cbdf`，branch=AMD-paper-repro-custom-modules-v1，local/tracking/live一致、0/0，index空、untracked none，仅两份§62已审文档modified；没有要求先clean或提交。适用AGENTS已显式读取。canonical起始SHA=`47d94c66e3cc5a3db4fcb655b386ffb7f8d4fcf12b78bda4fdd4c6328b181b63`，M4起始SHA=`286554140a334b5098a775487950c9cb26c308ebc38c0b61a91c30e313af8a0d`；修前24-file source=`16343e9298a9c4a1eb477c061f7b58552ab04b0706f751b8b83e42749b703a7f`。未加载历史权重或重算UrbanEV指标，未重跑333项。
+
+### 63.2 最小实现、任务隔离和修复记录
+
+生产只改三个文件：`main.py`新增ETTm1精确协议/task/schema/T512/patch16/完整H/OT6/aux0…5约束、5/31 factory和参数化接口；`models/modules/target_history_local_shape_residual.py`仅新增ETTm1协议常量并令`interface_contract`显式接收T/kernel（旧默认12/3/7字典及序列化逐值相同）；`summarize_results.py`分离两任务的身份/评价/接口与卷积shape验证。新protocol=`m4_thls_ettm1_full_horizon_safety_two_arm_from_scratch_v1`，variant仍amd-m4-target-history-local-shape-v1，A/N仍M4_THLS_CONTROL/M4_THLS。新字段经原config、candidate_contract、manifest、checkpoint、staging-only strict resume和summary贯通；source改变后的完整config hash照实变化，不承诺旧完整hash不变，不修改旧artifact/hash或豁免跨source resume。
+
+原UrbanEV协议/F4/fold6/T12/3–7/validation-only与ETTm1/official/T512/5–31/train-validation-test严格分支；数据读取继续使用原generic loader，loss仍覆盖全部H目标元素，未另建管线。THLS类forward/初始化、AMDEnhanced、loader、common.py GELU补丁、RevIN、MDM/DDI/AMS及目标loss均保持字节或原函数不变；不开放其他模块组合。
+
+无负载静态核对发现新错列序fixture缺必需date列，已在新夹具中补齐，保持错列序本身不变，防止较早的缺列异常冒充schema拒绝。首个业务尝试随后发现：新ETTm1参数校验漏比较预声明schema_fingerprint与固定七列指纹，负例已到达被观察的runtime入口。该次0 passed/1 failure/5 unexecuted、**forward/backward/Adam=0/0/0**，非预期数据拒绝0，旧报告/源码快照保留。按既定身份合同在ETTm1分支补一行`args.schema_fingerprint != stable_hash(features)`检查；没有弱化断言、改变数学或扩大预算。修后重新封存并从六项首项完整执行，未拼接首轮结果。
+
+初次接入source=`3c1e76ef6f7743204cc7a7c792b30b574455c5cffa287428fdfc68e26b966a2f`；修后实际24-file source=`4d707b1d878d3490a55243e060a3d43258c60a70414edf23d2ff3fc4acedbc9a`。集合/length-prefixed算法不变，旧UrbanEV及333验收的来源仍保留旧SHA，不追写成新版本。
+
+### 63.3 执行器复用与无模型自检
+
+沿用`restricted-regression-minimal-v3`的file guard、sitecustomize父子bootstrap、SharedBudget、精确ID/fixture感知`execute_cases`和资源监控；本任务的方法/预算/阶段配置及薄驱动保存在持久证据根的`execute_incremental.py`，没有运行旧专题诊断或新增通用执行框架。工具增量仅`current_policy.py`、`restricted_io_guard.py`的ETTm1单文件smoke策略绑定及`bundle.sha256`更新；现有restriction条目、理由、历史缺口/当前批准区分和原333清单不变。
+
+新访问策略`ettm1_thls_development_smoke_v1`仅绑定real阶段、M4_63_ETTm1_16_4_0、精确`data/ETTm1.csv` realpath和已批准数据SHA，允许该文件只读；其他data/历史artifact仍受禁，write不获豁免。旧UrbanEV permit_real_file边界不变，合成策略不能借用本许可。内部复用旧real_prefix阶段槽位只是执行器接口，本次ETTm1并非prefix-only。
+
+无模型自检确认：静态总清单339=原333＋新增六个唯一ID（只选择六项）；旧接口序列化相同；三项阶段/文件错配拒绝；主/实际Python子进程均在读前拒绝两个独立合成禁区负例；新合成checkpoint可读、platform/pipe/bash语法路径正常；父子共享预算/超限拒绝及JSON序列化通过。自检手工dummy计数不是模型/API或autograd工作量，和业务账目分离。无模型阶段真实数据读取/模型/forward/backward/Adam均0。工具自身SHA变化如实封存，不声称等同旧工具字节或完整OS沙箱。
+
+每次业务执行用独立/tmp/amd-thls-restricted-* fixture树，synthetic CSV/checkpoint/artifact与持久证据分离；未整体放行/tmp。正常测试cleanup及已核验的新合成产物清理仅作用于本轮临时目录，不移动/覆盖/删除任何旧实验产物。
+
+### 63.4 同一修后版本六项永久增量验收
+
+| 完整方法ID | 最终终态 | 方法墙钟s |
+|---|---|---:|
+| `test_runner.THLSETTm1RunnerTests.test_exact_task_protocol_schema_horizon_and_preconstruction_rejections` | Passed | 0.860433 |
+| `test_runner.THLSETTm1RunnerTests.test_synthetic_official_split_context_scaler_full_horizon_and_schema` | Passed | 1.402635 |
+| `test_tsAMD_enhanced.AMDEnhancedTHLSETTm1Tests.test_four_horizon_cpu_cuda_factory_fairness_full_horizon_and_gradients` | Passed | 11.823729 |
+| `test_runner.THLSETTm1RunnerTests.test_four_horizon_an_lifecycles_and_urbanev_compatibility` | Passed | 77.703845 |
+| `test_runner.THLSETTm1RunnerTests.test_fixed_two_epoch_staging_resume_preload_and_atomic_rejection` | Passed | 18.721386 |
+| `test_summarize_results.THLSETTm1SummaryTests.test_exact_ettm1_and_urbanev_summary_contracts_and_policy_rejections` | Passed | 8.555603 |
+
+最终**6 passed，skip/failure/error/blocked/unexecuted均0**，每ID本定版序列一次；静态discover为339，但原333只是继承证据，不能称新source重跑全部339。永久测试仅向tests/test_runner.py、tests/test_tsAMD_enhanced.py、tests/test_summarize_results.py追加helper/六方法，原永久测试正文逐字节保留。
+
+实际覆盖：四H×A/N参数及27种错误配置的runtime/model/load前拒绝；合成ETTm1真实CSV/official split/context、train-only scaler、全H标签/OT逆变换及实际错列序拒绝；四H×A/N×CPU f32/CUDA f32共16次factory输出及八次关闭A参考前向，shape/finite通过，A对同依赖AMD prediction/MoE逐位一致，A/N公共参数/buffer、构造后Python/NumPy/CPU/CUDA RNG、generator及首batch严格匹配；N八次有限反向中各逻辑参数组获得finite梯度，全部71个实际参与eval参数梯度finite，未要求未参与者有梯度或将N预测强制等于A。
+
+四H A/N各两train批、两validation批含尾batch、两synthetic test批的真实生命周期、checkpoint/原子发布/系统checksum/summary/duplicate拒绝通过；另实际执行UrbanEV h3 A/N各一train＋两validation批的兼容，test构造/评价、越界读取/解析均0，原接口字典保持。训练路径中A/N各57/72组有梯度参数均具有finite Adam state，T512的DDI norm1/agg四项均参与，不套用T12例外。全H元素数与尾batch核对为每次评价Q=3×H、2批；严格best/tie/finite断言保持。
+
+h96 N连续两epoch与从同一总2epoch合同在epoch2前受控中断、合法staging恢复的四个实际Adam步骤完成；最终model/buffer/Adam/best/RNG/generator及非时间history逐位一致。八项跨protocol/H/目标/dataset/source/policy/train-deploy外置拒绝在torch.load前发生，八项model/best state的key/shape/dtype/finite拒绝无污染；completed输入保留并按ValueError hidden-staging合同在读取前拒绝。summary新test-inclusive与旧validation-only分别通过。原GELU/RevIN数值规则未改，本轮关闭A仅新增前向对照，没有重新执行跨入口仿射梯度专题或宣称其历史数值通过变成逐位通过。
+
+合成实际**116 forward/API、30 backward、22 Adam**，含首轮0/0/0后累计相同；剩余**12/10/2**，不转给其他阶段。相对提案94个主要模型调用，额外22次是原生产MSELoss作为独立Module的真实API调用，不漏算。最终阶段123.14732225501211 s，含首失败累计129.87299589405302 s；最长方法77.70384457497858 s。RSS峰值4215922688 bytes（约3.93GiB），CUDA reserved峰值583008256 bytes（556MiB）；采样fixture输出峰值583064865 bytes，均在原上限内；非预期拒绝0。
+
+### 63.5 真实ETTm1 CUDA smoke：16/4/0
+
+仅在合成全部通过后执行。固定amd环境、实际GPU UUID=GPU-3d365efd-300b-f527-e8fe-703fb0cfb738（A800 80GB PCIe），负载前无其他GPU进程；实际CPU affinity=[8,9,10,11,40,41,42,43]，每进程4计算线程。持久根实际为parastor挂载且可写，起始可用317395605184512 bytes，未安装或修改环境。原cuDNN/NVRTC workaround warning保留，不加软链接或环境修补。
+
+真实`data/ETTm1.csv`实际SHA核验=`6ce1759b1a18e3328421d5d75fadcb316c449fcd7cec32820c8dafda71986c9e`。七列/OT6/aux0…5、T512/patch16、四H、batch32、原split/context、scaler.n_samples_seen_=34560与schema实际核对；A/N公共初始化、构造后RNG、generator及train/validation首batch逐位一致。每H×A/N的train/validation各一批，输出与目标均[32,H,1]、全H loss/输出finite；仅N四train批反向，参与梯度finite，无optimizer构造/step、旧checkpoint读取、完整评价或development artifact发布。
+
+| H | 输出/目标shape | N train前向＋反向s | CUDA peak allocated bytes | CUDA peak reserved bytes |
+|---:|---|---:|---:|---:|
+| 96 | `[32,96,1]` | 1.102873039 | 244032000 | 526385152 |
+| 192 | `[32,192,1]` | 0.113845755 | 262227456 | 536870912 |
+| 336 | `[32,336,1]` | 0.415942905 | 275883520 | 538968064 |
+| 720 | `[32,720,1]` | 0.349588448 | 329647616 | 566231040 |
+
+实际**16 forward、4 backward、0 Adam**，阶段墙钟11.987533578008879 s；RSS峰值1268547584 bytes，allocated最大329647616 bytes，reserved最大566231040 bytes，证据输出采样峰值41025 bytes，均通过原600s/资源线。单批耗时包括首次内核/库准备影响，不作为训练性能结论；没有Adam状态，不能称完整训练峰值测量。
+
+本阶段实际完整CSV解析8次、8个runtime各构造test对象；test DataLoader迭代、Dataset取样和evaluate哨兵均0，非预期file-guard拒绝0。许可仅此ETTm1阶段，未赋予合成回归或UrbanEV；不宣称真实test未解析、prefix-only或全过程独立内核I/O trace。没有消耗后续320步额度。
+
+### 63.6 证据、保护与后续状态
+
+本轮持久证据根：`/public/home/yueweiting/大论文/amd-execution-evidence/m4/m463-ettm1-integration-3n2q889b`。修前文件快照/逐文件SHA、批准、无模型检查、首轮失败、schema最小patch、修后封存、命令、逐ID日志、预算、CPU/CUDA数值、真实访问记录均保留；最终完整清单和Python/系统checksum在收尾生成，不覆盖历史记录。关键文件：
+
+| 相对本轮根 | SHA-256 |
+|---|---|
+| `authorization.json` | `08b820ade8423440dc348f2eeff2217f6ce272962920dddbcd23700c9db9e37b` |
+| `no-model-check-result.json` | `a05ad52d9ba6126787dd25f03da4d17e5ef0f43c72ad87e521d01e1e6e3674e2` |
+| `acceptance-conclusion.json` | `c388f5dde72cfa6918fc1dc6ddbf00f751b120002f677237c390a152d7cf8e8e` |
+| `attempt-2/selection-and-budget.json` | `4107c8a76a1d72d68aa245d545e1d5f8eb621eb8218276e3fcc6b1a6fca4a3fe` |
+| `attempt-2/sealed-inputs.json` | `14b5e680d62623f39a9c6184781da964602524c9cd2099278319e2f141e88c9a` |
+| `attempt-2/new_cuda/report.json` | `b6200f819a637b486e921fdf089a3ac9a6c84cc52ed18365da8f5cef73dd48b9` |
+| `attempt-2/real_prefix/report.json` | `d7f1bf5d05a743f345cc30f513da5bb828c3246914aef6c12ff3d513bdd9e1e7` |
+
+结果仅登记**ETTm1新接入implementation complete、incremental engineering gate=Passed；ChatGPT implementation review/统一closure Pending；ETTm1 performance/safety仍Not evaluated**。UrbanEV positive development signal、P2原Not passed、Sonnet S2 Passed/leading、M4 In Progress不变，未实施组合或进入M5/M7。
+
+后续在本接入review/closure后执行已批准336/320/320（16 worker/16validation批），通过正确性/资源且A/N各自四路makespan优于串行时自动采用Wave A四H→成功核验→Wave N四H；只速度不优时用已批准串行fallback，技术/数值失败停止，不另索独立并发授权。8 fresh runs/80 run-epochs及四项安全线已确认，但本轮无并发负载、无长训练启动包/启动。
+
+本轮未stage/commit/push，HEAD保持e93f008f9f82546e13bf4c7f2522b1728d81cbdf；不单独docs closure。原模块/loader/common/AGENTS、Closed milestone、数据与旧artifact保持；baseline仍`amd_reproduced_baseline_v1 -> fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。旧§§1–62正文保持，仅更新文件头并追加本节；canonical同步当前批准与结果。累计改动为三生产文件、三永久测试文件、两工具策略绑定文件＋bundle、两权威文档，最终精确清单/完整SHA和Git核验见回执及final-file-sha256.json；工具/测试仅服务器/Git维护，两文档按最终SHA上传/替换Project供审核，不声称已同步。
