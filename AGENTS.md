@@ -2,7 +2,7 @@
 
 1. 本文件只规定工作方式，不替代科学合同。canonical：`docs/AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`。进度以最新 Git/现场与对应唯一 milestone 为准；权威冲突先报告，不猜测、不静默采用旧状态。
 
-2. 新会话不等于全文重读：先核验 SHA、提取标题索引，再依次读 canonical、当前及最近 milestone、必要来源的相关内容。同 milestone 默认只读文件头、当前状态、本轮合同、最新相关轮次和 diff；Closed milestone 默认仅核验 SHA，确需历史合同才读相关小节。
+2. 新会话不等于全文重读：先核验 SHA、提取标题索引，再依次读 canonical、当前及最近 milestone、必要来源的相关内容。同 milestone 默认只读文件头、当前状态、本轮合同、最新相关轮次和 diff；Closed milestone 默认仅核验 SHA，确需历史合同才读相关小节。ChatGPT 优先通过 Remote Desktop Commander 服务器直读 canonical/current milestone；未经实际读取，不宣称 ChatGPT 已核验该版本。连接失败时使用可核对至对应 SHA 的片段/diff 或临时上传 fallback。直读渠道不授予任意服务器写入、test/checkpoint 读取或负载启动权限。
 
 3. 科学合同锁定后，普通实现、测试、训练准备和 closure 不重读论文全文；仅新来源首次审计、重大合同修订或真实冲突才扩大读取。完整计算文件 SHA 不等于全文输出。
 
@@ -18,4 +18,4 @@
 
 9. 永久回归测试保留；仅清理本轮明确创建且获准清理的一次性文件。不擅自删除 artifact、checkpoint、staging、history 或日志，不移动 baseline tag，不执行未授权破坏性 Git 操作。本文件不授予新结构、实验预算或阶段推进权限。
 
-10. 每次最终回复独立设置“本次文档变更与 ChatGPT Project 同步提醒”。对变化文档逐份报告相对路径、增/改/删、SHA-256、摘要/用途及同步动作。无变化时写：“本次未新增、修改或删除任何文档，无需同步 ChatGPT Project。”
+10. 每次最终回复独立设置“本次文档变更与 ChatGPT Project 同步提醒”。对变化文档逐份报告相对路径、增/改/删、完整 SHA-256、摘要/用途及 Project 操作。canonical/current milestone 默认“无需上传（ChatGPT通过服务器直读核验）”，此为核验渠道，不代表修后版本已被读取；AGENTS、代码、测试和工具默认“无需操作（仅服务器端）”。无变化时写：“本次未新增、修改或删除任何文档，无需同步 ChatGPT Project。”
