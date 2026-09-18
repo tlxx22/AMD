@@ -138,6 +138,7 @@ class AMDEnhanced(AMD):
         cce_insertion_point=None,
         cce_input_representation=None,
         comparison_contract_id=None,
+        ch3_contract=None,
         sonnet_thls_contract_declared=False,
         local_shape_contract_declared=False,
         use_target_history_local_shape=False,
@@ -173,6 +174,21 @@ class AMDEnhanced(AMD):
         teb_patch_gate_init=None,
         teb_global_prediction_role=None,
     ):
+        if ch3_contract is not None:
+            from utils.ch3_contract import validate_amd_declaration
+            if (comparison_contract_id is not None or sonnet_thls_contract_declared
+                    or local_shape_contract_declared or target_slice is not None
+                    or use_pmcr or use_pmcr_p2 or use_cce or use_teb):
+                raise ValueError("new formal declaration cannot borrow an M4 identity")
+            validate_amd_declaration(
+                ch3_contract, input_shape=input_shape, pred_len=pred_len, patch=patch,
+                layernorm=layernorm, target_idx=target_idx, aux_idx=aux_idx,
+                norm=norm, task_mode=task_mode, s2=use_sonnet_mvca,
+                thls=use_target_history_local_shape)
+            if use_target_history_local_shape and (local_shape_kernel_small, local_shape_kernel_large) != (
+                    (3, 7) if ch3_contract['dataset']=='UrbanEV' else (5, 31)):
+                raise ValueError("formal six-domain THLS kernel mapping mismatch")
+        self.ch3_contract = ch3_contract
         if type(use_target_history_local_shape) is not bool or type(local_shape_contract_declared) is not bool:
             raise TypeError("THLS switches must be bool")
         if type(sonnet_thls_contract_declared) is not bool:
@@ -201,9 +217,9 @@ class AMDEnhanced(AMD):
         self.sonnet_thls_contract_declared = sonnet_thls_contract_declared
         thls_declared = local_shape_contract_declared or use_target_history_local_shape
         if thls_declared and (
-            not norm or not layernorm or task_mode != TARGET_EXOGENOUS
+            not norm or (not layernorm and ch3_contract is None) or task_mode != TARGET_EXOGENOUS
             or target_slice is not None or use_pmcr or use_pmcr_p2
-            or (use_sonnet_mvca and not (sonnet_thls_contract_declared or comparison_contract_id)) or use_cce or use_teb
+            or (use_sonnet_mvca and not (sonnet_thls_contract_declared or comparison_contract_id or ch3_contract)) or use_cce or use_teb
         ):
             raise ValueError("THLS requires normalized independent target_exogenous A/N")
         if use_target_history_local_shape and local_shape_init_seed != 2024:

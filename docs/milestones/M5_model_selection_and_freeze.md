@@ -1,10 +1,22 @@
 # M5：模型筛选与结构冻结
 
-状态：**In Progress — 最新§10：八个独立作者原生模型均完成CUDA合成训练链smoke；Sonnet首次Adam API失败后唯一机械复验通过，合计保守扣账129次Adam调用。ETTh1受限loader固定13项首次全Passed，累计13/26。旧工具绑定阻塞已由本次授权的两个窄用途解除。TiDE Deferred，正式520 runs/最多5600 run-epochs按三包规划，未启动。旧筛选包不执行，正式结构配置/六域接入缺口仍在，J未冻结。**
+最新状态（§16）：**本次用户明确批准的数据准入已落地；Weather/PJM各一次受限train/validation前缀连通通过，修后精确CPU 16/16通过。** Weather保留作者原记录，允许非唯一但非递减时间；ECL/Exchange以已核验benchmark身份作标准化评价并披露未知解释；PJM锁定TimeXer、n=52416及既定端点，原EPF d−1可得性作为documented source assumption。细分事实/接受范围/限制，未一键改成Passed。495/5340、54组/195worker、模型训练配置与NVML门禁保持；probe端点/尾批技术缺口已收口，dry-run/preflight只剩审核许可、统一closure/clean及用户启动，完整probe尚未执行。首轮CPU7 passed/1 error/8 unexecuted，唯一机械夹具修复后完整16通过，累计24次方法调用；§14额外调用偏差保留。0GPU/模型/Adam/前向/反向/checkpoint，未重哈希原数据。J未冻结、M5未关闭、M6未启动；以下§15及以前均为历史时点。
+
+最新状态（§15）：**来源/版本直接核验已完成五组主比对：PJM与ETTh1为A类原始字节一致；Weather/ECL/Exchange为B类，仅CRLF→LF后文本一致。作者分发的Weather同样含19043/19044重复时间；PJM n=52416，既定端点36691/41933/52416。** UrbanEV复用Closed M1审计并核对Git对象，不重读数据。EPF原论文已明确day-ahead外生预测在d−1可得，不能继续写成完全没有来源说明；但这不是逐条vintage审计。另取得原EPF Zenodo发布物，发现其header/列序与TimeXer转换版不同（C类），转换链仍有独立缺口。本轮不落地§14.4降级政策、不改loader/配置/mandatory；全部新事实待审核后联动生产准入。495/5340、54组/195worker不变；0模型/GPU/训练/checkpoint，8项合成审计方法首次通过，无复验。完整字节比较实际遍历test字节，test数值解析/统计/评价为0。论文表格的文本冲突未获页面图像复核，保留限制，不据此裁定。§14额外test调用偏差原样保留。
+
+最新状态（§14）：**NVML命名空间PID映射和未登记CUDA时序缺口已在正常权限下实际解决。** 自有`/proc/<pid>/sched`内核PID与NVML逐一匹配；1→2→4个16MiB张量进程实际准入通过，首次27.87秒、4实例，0模型/Adam/前向/反向。CPU首次16/16；另1次嵌套旧test断言调用造成严格首验调用计数17（上限16），偏差待审。同步实测资源状态、移除嵌套test调用后唯一复验16/16，未重跑CUDA。此结论只覆盖监测链，不发正式模型并发许可。495/5340、54组/195worker及所有科学配置保持；四域数据仍mandatory blocked，精确合并待决方案见§14.4。当前可提交整体审核并在获准后统一closure；完整probe仍需修后审核、实际closure/clean、用户启动及PJM尾批等数据边界处置。J未冻结、M6未启动，以下§13及更早内容均保留历史时点。
+
+最新状态（§13）：**用户重新决定恢复A/J双方UrbanEV F1–F4输入消融；本次只恢复AMD/F1–F3的72个计划。当前495 runs/最多5340 run-epochs，54组/195代表worker。** 双方F4复用主表；F0、J/F0、PJM TargetOnly均为0。schema v2及`input_variant`保持，完整配置指纹更新。本轮16个精确CPU方法首次全通过、无复验，0 CUDA/Adam/前向/反向，生产模型和训练路径不改。数据mandatory与NVML归属Not verified沿用§12；已将资源路径缺口加入完整probe启动前阻塞，不能先跑全队再重复发现。完整probe/正式训练未启动，J未冻结、M6未开始。以下§12及更早摘要均为当时事实；当前范围、命令及停止线见§13。
+
+最新状态（§12）：**In Progress；当前423 runs/最多4620 run-epochs，51组/183代表worker。全部消融仅UrbanEV：F4模块A/N/S/J只新增N/S；输入仅J/F1–F4，F4引用主表。撤下97个未执行计划，J/F0始终非法。** 新正式schema统一`input_variant`；修后CPU25/25及一个J/ECL CUDA方法1/1通过，本轮累计CPU50调用、2 Adam/6 forward/2 backward。Weather重复原始时间、PJM版本端点/单位/as-of、ECL/Exchange映射与单位缺口保持Blocked；NVML进程归属仍Not verified，无资源许可。完整probe/正式训练未执行，J未冻结、M6未开始。以下§11摘要是历史快照，当前规则与操作命令以§12为准；旧证据未覆盖。
+
+历史实施登记（§11）：用户当时授权“按模型分组＋固定配置轻量资源准入”替代三包启动及未执行旧B/probe补丁，额度不叠加。起点99be14ce840e67ecd72720860f5d4ab0247418a1，三端0/0、worktree/index clean。实施前精确写入清单：本文件、canonical、configs/ch3_formal_profiles.json、utils/ch3_contract.py、utils/ch3_data.py、models/ch3_adapter.py、models/tsAMD_enhanced.py、ch3_runner.py、tests/test_ch3_formal.py、tools/restricted_regression/m5_formal_entry.py、tools/restricted_regression/restricted_io_guard.py、tools/restricted_regression/sitecustomize.py、tools/restricted_regression/bundle.sha256、scripts/ch3/start_model.sh、scripts/ch3/start_probe.sh。保留旧loader及旧M4入口/构造合同，新增正式声明和共享管线；不改作者仓库/环境/Closed文档/空间方案。证据仅amd-execution-evidence/m5/m5-formal-admission-bizsxh0v，合成fixture仅/tmp/amd-m5-formal-jef2lnmg。该轮完整资源probe未启动；§11收尾为当时事实。
+
+历史§11状态：**当时按模型分组520 runs/最多5600 run-epochs；正式声明/adapter/前缀loader/共享runner及入口已实现。最终CPU清单25/25；四个代表性CUDA方法首次及唯一模型复验均4/4。模型累计16 Adam/48 forward/16 backward。Weather重复时间戳及既有数据映射/as-of缺口仍blocked，完整资源probe未执行，J未冻结、M6未启动。** §10八源smoke、ETTh1固定13项及原失败成本保留，未重跑。下列三包与旧筛选方案均为历史记录；当前规则见§12。
 
 开始日期：2026-09-16（UTC）。canonical：`docs/AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`，v2.1-R1。
 
-2026-09-16阶段启动与§§1–9各轮提案/授权及旧工具Blocked保留历史时点。最新用户指令整体取代未执行的“来源准备＋解除测试阻塞”指令，仅按§10执行来源准备、限定工具增量和实测验收；不重复征询已确认参数/职责/消融范围，不复活旧四臂筛选。**正式训练、正式模型/runner/身份/早停/汇总接入、M6与最终结构冻结均未授权。** 空间本轮只有方案文档修订。
+历史§10时点：2026-09-16阶段启动与§§1–9各轮提案/授权及旧工具Blocked保留历史。该轮只授权§10来源准备、限定工具增量和实测验收，正式模型/runner等当时未获授权。**本轮§11已经授权必要正式接入及短验收，但正式训练、完整probe现场启动、M6与最终结构冻结仍未授权。** 本轮空间方案/源码/数据/环境均不修改或准备。
 
 ## 1. 启动门槛、版本与继承事实
 
@@ -414,3 +426,583 @@ TiDE **Deferred**：本轮不clone Google Research、不装TensorFlow、不检�
 **仍未闭环**：正式六域target/MS/信息集与purpose/manifest/checkpoint/resume/summary接入、已登记Weather/ECL/Exchange/PJM数据及as-of/单位事实、各模型逐正式任务结构配置锁定与适配、公平early-stop/best/汇总、正式预算/冻结及用户启动仍需后续包处理；不把本轮smoke配置当正式结构。§9.3的TimeXer捆绑baseline表仅是旧轮次静态历史，不再作为这些模型当前作者来源。ECL骨干layernorm=False与项目旧J守卫、正式域THLS核映射冲突保持blocked，THLS自身feature-LN不能随骨干关闭；本轮不改main.py/tsAMD_enhanced.py解除守卫。许可证文件缺口和环境pip-check的cmake提示分别如实登记，不影响已实际完成的有限链结论，也不宣称完整环境/正式runner通过。
 
 原M4总gate Not passed、H192失败/原1%线、单seed及development-test限制、原科学序列停止与真实来源不改。源码smoke Passed与loader工程Passed均不等于六域可执行、正式效果Passed或J冻结。收尾仅精确diff、范围、AST/格式/SHA/Git核验；无stage/commit/push/closure或下一包启动。最终仍是本轮授权的dirty工作区，修后字节与本包证据待ChatGPT审核，未声称ChatGPT已读。
+
+## 11. 按模型分组、正式接入与轻量资源probe准备（本轮实际实现）
+
+### 11.1 起点、授权与唯一机器清单
+
+起点实际核验为`99be14ce840e67ecd72720860f5d4ab0247418a1`，local/tracking/live remote一致、0/0、worktree/index clean、untracked none。适用AGENTS及Closed M4分别为用户指定SHA `4dfbc7161b731e20674d28eb1b4759dd1ffbc403ae5217add26efd7433091e6c`、`3b29d43624de290ebdec6a1701066f6dded33f8e788d8b183cc1fa416df4c11e`；baseline仍指向`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。本轮先登记文件头15路径再实施，未增加第二milestone/状态摘要。证据根为`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-formal-admission-bizsxh0v/`，合成fixture根为`/tmp/amd-m5-formal-jef2lnmg`；不改旧证据、作者仓库、环境、Closed文档、原loader/tests或空间方案。
+
+用户本轮授权必要接入/修复、短验收、真实train/validation前缀连通、固定配置资源probe准备和模型入口；全部未执行旧B/probe补丁作废，额度不叠加。**没有完整probe现场启动、正式训练、J冻结或M6授权。** 旧§4筛选矩阵、§10三包启动不执行；§§1–10保留历史事实。§10.6“PJM fit Unknown”更正：**F=1和train=floor(.7n)、test=floor(.2n)、val=n−train−test已确认**；缺的是版本n/端点及单位、as-of等事实，不rolling、不train+val重训。
+
+`configs/ch3_formal_profiles.json`是唯一任务/配置/执行清单，`utils/ch3_contract.py::generate_tasks/generate_groups`重算并拒绝重复、遗漏或清单偏差。任务ID明确model/dataset/preset/fold/H/seed，A/J跨主表和消融引用同一ID；完整Sonnet、AMD-upstream不加入正式矩阵。
+
+| 模型组 | runs | 最多run-epochs | 内容 |
+|---|---:|---:|---|
+| AMD/A | 138 | 1440 | 六域主表、UrbanEV F0–F4、PJM TargetOnly |
+| J | 113 | 1180 | 六域主表及UrbanEV F1–F3；F0 N/A |
+| DLinear / PatchTST / iTransformer / ModernTCN / TimeXer，每组 | 41 | 460 | 原各域主表 |
+| TimeMixer | 16 | 200 | 四标准域主表 |
+| N / S，每组 | 24 | 240 | 仅UrbanEV F4 |
+| 当前合计 | **520** | **5600** | 单配置、seed2024、0搜索 |
+
+TiDE25 runs/最多260继续Deferred，含TiDE545/5860完整规划不删除。Last Observation非训练评价仍保留，不计上述run；本包不宣称已执行其正式评价。
+
+### 11.2 结构来源与实施边界
+
+统一训练项沿§9.2，不用作者脚本的batch/LR/epochs/scheduler覆盖。AMD patch为U12/PJM24/ETTh1-Weather-ECL16/Exchange4；MDM3/倍率2、DDI1、alpha0/dropout.1、AMS8/TopK2/hidden2048及原辅助loss系数1、RevIN开启；仅ECL骨干LN=False。S2 d64/K8/alpha.5/dropout.1/gamma.001与THLS hidden8/ratio2/dropout.1/eta.001保持原数学和匹配初始化；THLS显式U7/3、其余31/5，内部feature-LN保持。独立`ch3-target-ms-formal-v1`声明允许新正式shape，旧M4构造/恢复身份不放宽。
+
+原生结构已从各自作者来源实际静态展开到JSON `sources/defaults_source/structures`，完整路径、commit、文件SHA和解析值逐项登记；外置`resolved-structures.json`保留解析记录。不是从TimeXer附带baseline代取，也不是§10 small-smoke配置。U/PJM使用本次用户精确结构表＋该模型自身默认项。标准域选择下列已选脚本，H相关覆盖分别保存：
+
+| 模型 / 作者commit | 标准域结构来源（相对各自作者根） |
+|---|---|
+| DLinear `0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6` | 自身`models/DLinear.py`/`run_longExp.py`默认；individual=False、moving_avg25；不改作者初始化 |
+| PatchTST `204c21efe0b39603ad6e2ca640ef5896646ab1a9` | supervised `scripts/PatchTST/{etth1,weather,electricity}.sh`；Exchange用自身ETTh1模板 |
+| iTransformer `c2426e68ca13f74aaec08045c5c724d8ad328124` | `scripts/multivariate_forecasting/ETT/iTransformer_ETTh1.sh`及Weather/ECL/Exchange各自脚本；保留脚本逐H层宽/层数 |
+| TimeMixer `e24610583b36fdd8c76cc17a8df4e65759a5f460` | 原TimeMixer的`long_term_forecast/*_script/*_unify.sh`，Exchange用自身ETTh1；不换TimeMixer++ |
+| ModernTCN `56a9a2c018385cd5acef015378cae7f084d1b11c` | `ModernTCN-Long-term-forecasting/scripts/{ETTh1,weather,ECL,Exchange}.sh`；不启用未用部署分支 |
+| TimeXer `76011909357972bd55a27adba2e1be994d81b327` | `scripts/forecast_exogenous/{ETTh1,Weather,ECL}/TimeXer.sh`；Exchange固定2层/d128/FF128/8头/patch16/dropout.1 |
+
+`models/ch3_adapter.py`每baseline只导入自身绑定源码；每worker独立进程，避免同名models/layers污染。TimeMixer保持C输出宽度再选择目标；TimeXer真正features=MS并将指定目标可逆移到末列，其他原生多输出只切指定目标监督。生产A仍为本项目AMD关闭模块路径。未修改作者源码、模型主体数学、环境或旧baseline。
+
+`utils/ch3_data.py`按固定端点逐记录解析前缀，不先整表读后slice；scaler仅fit训练；标准域validation借T历史context但完整H标签均在val，UrbanEV各split独立取窗。数据始终留CPU，batch才传GPU。`ch3_runner.py`实现目标MSE＋原AMD辅助loss、严格有限validation-MSE best（相等留早epoch）、PJM连续5轮无改善停止、完整尾批流式SSE/SAE、fold/H宏汇总、唯一ID拒重、purpose/config/source/data/RNG/optimizer/epoch/步数状态。保存CPU状态，恢复用CPU反序列化；final选择best前释放optimizer，不保存GPU预测全集或带图loss列表。恢复入口要求已审manifest/checkpoint/history指纹与合法本次身份；已完成run不自动重跑，失败目录不删除、不自动fresh。
+
+正式数据及未来test能力单独受purpose/approval约束；正式入口要求实际closure commit/clean、源和环境/硬件绑定、全配置已审、对应任务无mandatory blocker、结构冻结/M6授权以及已审probe报告。当前approval模板全为false/null；不会猜未来commit或自动批准。
+
+### 11.3 实际前缀核验与尚存数据阻塞
+
+最终文本证据：`prefix-final/prefix-results.json`和同目录audit/config/log。只解析获准记录前缀，未解析/统计/评价本任务正式test，未读取/哈希任何旧checkpoint或历史artifact；record-prefix SHA明确不是全文件SHA，不把逻辑记录审计冒充内核逐字节读取追踪。
+
+| 域 | 本轮实际范围与结论 | 仍需保留的限制 |
+|---|---|---|
+| UrbanEV | F0–F4×6fold共30项，分别止于648/1317/1965/2634/3304/3909；每项实际h3的train/val首batch连通。275节点同序，小时索引；六fold四H标签端点另以合成索引核验 | 其他H真实batch未冒称逐项动态跑过；其窗口数逐项算出。每fold按自己的授权前缀，不把较早fold测试期自然进入后续fold训练误称跨任务test评价 |
+| ETTh1 | 读至11520、fit8640；首H96 train8033/val2785窗，小时索引；四H窗口数登记 | 全文件/正式test未核验；不是重跑旧13项 |
+| Weather | 读至42157；header保留原U+FFFD字符，ISO时间格式已确认。前缀有1处重复时间戳：0-based行19044与前行均为2020-05-12 06:00:00；loader拒绝继续 | **Blocked**。不删行、去重、排序或改split；频率/版本解释仍未闭环，OT辅助身份限制保留。不得把时间字段可解析写成版本Passed |
+| ECL | 读至21044、fit18412，小时索引；H96 train17805/val2537窗，321字段/目标OT保持 | 客户ID、单位转换/处理链仍Not verified，mandatory阻塞未解除 |
+| Exchange | 读至6071、fit5311，每日索引；H96 train5120/val665窗 | 匿名列币种、基准币/报价方向与原映射仍Not verified；不猜OT币种 |
+| PJM | 仅header＋首行，原3字段/前导空格/拼写保留；首时刻2013/1/1 0:00 | F=1和70/10/20政策Confirmed；版本n/端点、单位、forecast as-of仍Blocked。未为了求n扫描整表，未以时间戳证明forecast当时已发布，也不据缺证据断言泄漏 |
+
+UrbanEV每fold/preset记录CPU数组字节及当时RSS；最终前缀审计进程累计VmHWM=738361344 bytes，这是该审计进程峰值，不是六fold同时常驻或正式多worker RAM上界。数据/元数据缺口不由工程Passed核销。
+
+### 11.4 验收终态、失败成本与复用范围
+
+固定ID见JSON `acceptance`，通过正常unittest生命周期和LedgerResult执行，未discover旧套件再过滤。25个`ContractTests/DataTests`覆盖任务/预算/波次、字段/核映射/声明负例、严格best/耐心、汇总身份/缺项、前缀毒化行/训练fit/尾批、六fold四H标签、目标流式指标、权限/精确ID及恢复拒绝。首次25 passed、修复后25 passed、最终CPU诊断补充后25 passed；每次failure/error/skipped/unexecuted均0。CPU unittest首次25/160、机械累计50/160，未删断言或增skip。
+
+四个模型ID为`test_ch3_formal.ModelTests.test_amd_target_only_resume`、`test_j_ecl_new_declaration`、`test_time_mixer_native_width`、`test_time_xer_true_ms`。分别绑定AMD-U-F0/h3、J-ECL/H96、TimeMixer-Exchange/H96、TimeXer-U-F4/h3；固定正式结构，短接入batch2，**不是正式batch资源测试**。每项CUDA执行2 Adam/6 forward/2 backward，实际参数变化、有限值、目标validation/尾批、严格best/last保存、本包自产恢复/继续更新和跨purpose拒绝；首次4/4、唯一模型复验4/4。两次合计**16 Adam/48 forward/16 backward**，各轮8/24/8低于32/128/64；未重跑八源smoke、旧13项/333/339/24-run。
+
+首个真实前缀流程因UrbanEV原始时间字符串格式不同而失败，已按既有语义改为解析时间比较并新增合成断言。第二流程因Weather解析格式误配失败，其回溯查找不存在的`AMD/strptime.pyx`被guard拒绝；拒绝4次、受保护文件成功读取0，日志保留，未增加pyx白名单。纠正为实际ISO格式后第三流程发现真实重复时间戳而停止；最终诊断流程保留Weather Blocked并完成其他独立域。共4次前缀流程，前三次失败成本不抹除，最终流程exit0只代表报告完成，不代表六域均Passed。guard/身份异常仍停止动态业务，不绕过保护。
+
+占位标准库验收2次：tmux 3.2a实际脱离终端运行，固定波次、日志、第二GPU锁拒绝、波次间STOP通过；另一次SIGTERM验证活动子进程被回收、后续波次未启动、Python子进程继承相同guard SHA。5个入口检查通过：probe/AMD dry-run；未审probe start、未冻结正式start、未知model均前置拒绝，未启动真实负载。若将前缀流程及这些入口/占位检查也保守各计一个CPU方法，则首次33、机械53，仍均≤160。完整流水账见`execution-ledger.json`；CPU/模型/probe额度分别计。
+
+最终CPU诊断只改loader错误信息、按域保留Blocked和Weather时间格式；其后probe准入估计还静态补为取torch peak reserved与NVML采样峰值的最大值，避免忽略allocator峰值。该probe分支本轮未动态执行。**没有追加第二次模型复验**。`model-evidence-reuse.json`核对全部520计算profile不变，明确列出与模型复验时不同的CPU/probe工具seal字节；只复用未变化的实际模型/optimizer/恢复路径证据，不声称最终整个包字节被再次CUDA运行。
+
+修后模型短验收NVML进程PID归属仍Not verified（不再将未匹配记录成0占用）；整卡采样峰值约0.53/1.05/0.55/0.68GiB，实际采样间隔约0.21–1.43s，建议100ms不冒称已达到。CPU affinity=8个可见逻辑CPU，cgroup v1 quota=-1、period=100000；每进程threads4。新probe记录原始NVML进程表和整卡采样；不能归属进程时仅用串行整卡峰值作保守上界，另列Not verified。历史smoke“整进程4GiB Not verified”保持；本包未通过正式batch显存/并发/完整epoch资源验收。
+
+### 11.5 固定组probe：已准备、尚未启动
+
+56个去重代表组、Q=200（48组q4＋8个PJM q1），520 run→profile→组/固定波次均在唯一JSON。标准域真实四H组合；UrbanEV以fold1四H代表，其他fold同T/C/输出/B/结构，标签跨度不改变GPU形状。validation按代表任务实际余数尾批；较小尾批仅沿模型eval中batch独立、无跨batch聚合的结构依据复用，不假称每fold尾批均实测。PJM版本端点未知使实际尾批未知，八个PJM worker目前预登记Blocked，完整probe也不虚构n或尾批；不从Q/正式矩阵删除它们。
+
+每worker：2 Adam→完整validation batch＋实际尾批（整除时登记无余数、第二批为完整batch）→4 Adam；计6 Adam/8 forward/6 backward/2 validation调用。先串行取初始参数/RNG/batch/六步轨迹/最终状态及资源；直接测获准q路，必要时两路分波，禁止任意混合补位。按最大Q预算，三阶段首验上限3600 Adam/4800 forward/3600 backward/1200 validation；额外机械/诊断预留512 Adam，本轮使用0。实际因q1不并行或Blocked而少执行时记真实账，不凑数、不自动重试相同失败配置。
+
+资源预留max(8GiB,10%总显存)，整卡外部占用计入。监测构造、首次Adam、持续更新及验证切换；采样峰值不称连续上界。identity/初始RNG不一致停止全probe；模型数值/生命周期异常阻塞该配置，资源不足才允许下调并发。四路静态不准入记ResourceRejected，短包无收益与资源安全分开；只有对应组实际安全、严格短轨迹且同q任务makespan有收益才采用并发，其余不循环搜索。持续allocated/RSS增长会阻塞组，不默认追加32步。
+
+`m5_formal_entry.py`复用原文件guard/bootstrap、LedgerResult、预算hook和bundle seal，限定CPU/前缀/模型验收/probe/正式worker/占位目的，业务前校验ID/代码/配置/作者来源；旧M4清单/预算逻辑保持。probe的共同源码/权限失败停止全部；局部资源失败日志保留。完整probe、本轮正式训练均为**0次启动/0 Adam**，暂无可靠ETA；用户启动后按首批真实耗时评估，不承诺4–8小时。
+
+### 11.6 可执行入口与停止位置
+
+以下均在仓库根执行。`probe-review-request.json`/`formal-review-request.json`是本包外置待审模板（false/null），**不是许可**；ChatGPT审核并统一closure后，须由相应批准形成实际`probe-approval.json`，绑定真实commit、当前protocol/code/environment/hardware。缺失或不匹配时start拒绝。不能把待审模板的false静默改成true，也不在本轮生成猜测commit的许可。
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+CH3_EVIDENCE=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-formal-admission-bizsxh0v
+
+# 现在可看计划；当前preflight/start拒绝是预期，未授权完整probe。
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight --approval "$CH3_EVIDENCE/probe-approval.json"
+
+# 仅修后审核/closure并取得实际许可后，由用户一次启动；tmux后台。
+bash scripts/ch3/start_probe.sh start --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+tail -n 60 "$CH3_EVIDENCE/probe-controller.log"
+bash scripts/ch3/start_probe.sh complete
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+probe完成以`probe/complete.json`存在并逐组核对终态/预算/Blocked为准，文件存在不代表所有组Passed；进度为`probe/progress.json`，每worker日志/配置/预算在其组子目录，安全停止只终止本入口子进程并保留产物。没有为全包异常或未执行项伪造complete；未做任何resource probe时不宣称并发度已核验。
+
+```bash
+# 后续另获结构冻结/M6执行许可、解决对应mandatory blocker、完成probe审核之后：
+CH3_MODEL=AMD  # 也可逐次选 J/DLinear/PatchTST/iTransformer/TimeMixer/ModernTCN/TimeXer/N/S
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" dry-run
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" preflight \
+  --approval "$CH3_EVIDENCE/formal-approval.json" --probe-report "$CH3_EVIDENCE/probe/complete.json"
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" start \
+  --approval "$CH3_EVIDENCE/formal-approval.json" --probe-report "$CH3_EVIDENCE/probe/complete.json"
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" status
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" logs
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" complete
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" safe-stop
+```
+
+默认正式输出为本证据根`formal-<模型>/`，controller日志在根目录`model-<模型>-controller-<时间标识>.log`；组内任务、history、manifest及checkpoint独立。`complete.json`要求该组全部唯一run与合法summary，不能用历史artifact补缺。失败先审计：恢复许可需逐run的`resume_audits`，区分complete/resume/not_started，并绑定manifest/result或last/best/history的SHA；批准后在同一start命令追加`--resume`。没有这种审计记录便拒绝，不覆盖旧日志/产物、不自动fresh。不同模型用户逐次独立启动，永不自动进入下一个模型。
+
+**收尾状态**：已完成本包接入及限定工程证据，仍有真实数据阻塞、NVML进程归属限制和完整probe/正式训练未执行项；不写“六域正式准备全部Passed”。正式结构/配置审阅、M5冻结决定、M6授权及未来实际训练各保持独立。原M4总gate Not passed、H192失败、1%线、单seed/development-test及来源历史不改。代码/文档/证据待整体审核，本轮不stage/commit/push/closure、不关闭M5。全部前后SHA、精确diff及最终Git检查保存在本包`change-inventory.json`、`review.diff`、`static-verification.json`；未声称ChatGPT已读取本轮新字节。
+
+## 12. UrbanEV消融范围收敛、input_variant及最小复验（2026-09-18）
+
+### 12.1 授权、起点与精确增量
+
+用户本次明确取消AMD额外输入消融及PJM TargetOnly；模块消融只做UrbanEV F4 A/N/S/J，输入消融只做J/F1–F4，两表的A/J主表run直接引用。J/F0非法，不关闭S2保留J身份，不造零辅助/复制目标；不新增N/F0或其他替代实验。447/4860是含非法J/F0的错误建议，**不是用户曾批准的合同**。TiDE Deferred、按模型分组、统一训练表与首次正式test前锁定全部配置的规则不变。
+
+起点HEAD/local/tracking/live remote均为`99be14ce840e67ecd72720860f5d4ab0247418a1`，ahead/behind 0/0，index空，6 modified＋9 untracked路径项，**不是clean**。canonical修前`2d7a22956d020caff48d6f685b8107712be687b4220b7fb17d91ff377cc8a387`；本文件修前`ea094ad188c8ae695b4dc9e7311c67024e55a3569cb5d9e7514018132edd000a`。其余13文件与旧`m5-formal-admission-bizsxh0v/change-inventory.json`一致，该清单SHA=`dedc22ca6046d6e3e9026a993ba7890895d361911276d79399649fd79c919ac8`。AGENTS与Closed M4的固定SHA及baseline解引用commit=`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`核对一致。
+
+写入前以`scope.json`登记本轮精确9文件：canonical、本文件、`configs/ch3_formal_profiles.json`、`utils/ch3_contract.py`、`utils/ch3_data.py`、`ch3_runner.py`、`tests/test_ch3_formal.py`、`tools/restricted_regression/m5_formal_entry.py`、`tools/restricted_regression/bundle.sha256`。增量复用原有管线，不新建runner/adapter/入口或平台。两启动脚本、adapter、tsAMD_enhanced、guard/bootstrap保持§11字节；作者仓库、环境、Closed文档、baseline及旧证据不改。
+
+本包永久证据唯一根：`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-input-scope-8ah0wzk_`（下称E）；合成fixture唯一根：`/tmp/amd-m5-input-37zlykjd`。旧200份证据未覆盖、未重新校验整包checkpoint。当前15文件累计dirty修改继续保留；本轮未stage/commit/push、未closure。
+
+### 12.2 由清单生成的任务、输入方案与probe核账
+
+`plan-difference.json`逐项保存97个撤下ID及423个保留ID；逐项静态比较旧/新profile，除contract版本、`input_variant`字段名外，保留任务ID、模型、目标、有序输入、fold/H、结构与训练设置完全一致。撤下AMD-UrbanEV-F0/F1/F2/F3共96和AMD-PJM-TargetOnly 1，全部为未执行计划；不删历史产物或失败日志。独立算术见`independent-accounting.json`，不以手填计数替代生成验证。
+
+| 当前组成 | 唯一runs | 最多run-epochs |
+|---|---:|---:|
+| AMD/A，仅六域主表 | 41 | 460 |
+| J，六域主表及UrbanEV F1–F3 | 113 | 1180 |
+| DLinear/PatchTST/iTransformer/ModernTCN/TimeXer，各组 | 各41 | 各460 |
+| TimeMixer，四标准域 | 16 | 200 |
+| N/S，各自UrbanEV F4 | 各24 | 各240 |
+| 当前合计 | **423** | **4620** |
+| TiDE Deferred | 25 | 260 |
+| 含暂缓的完整规划 | **448** | **4880** |
+
+另一核算为六域主表303＋N/S额外48＋J/F1–F3额外72；UrbanEV288×10＋PJM7×最多20＋ETTh1/Weather/Exchange各32×10＋ECL32×20＝最多4620。§11的520/5600和更早545/5860仅为历史快照，不再作当前合计。
+
+F1=volume＋calendar（C6/aux5）；F2=F1＋e_price＋s_price（C8/aux7）；F3=F1＋weather（C9/aux8）；F4=volume＋calendar＋price＋weather（C11/aux10）。F2/F3并列。F0字段及历史能力保留，但正式清单、代表worker和正式表行中的F0、J/F0、PJM TargetOnly、AMD额外输入消融数量均为0。当前schema `ch3-target-ms-formal-v2` 的生产者、profile/声明、metadata、manifest/恢复身份、result/summary和入口读到同一`input_variant`；历史日志/配置/checkpoint不追改。`profile`和AMD声明均前置拒绝J/S空aux。旧520协议指纹保留在`supersedes`作拒绝依据，不是兼容许可。
+
+| 实际覆盖 | 组 | 代表worker |
+|---|---:|---:|
+| 四标准域，每域8模型×四H | 32 | 128 |
+| UrbanEV F4九模型 | 9 | 36 |
+| UrbanEV J/F1–F3 | 3 | 12 |
+| PJM七个主表MS单fit | 7 | 7 |
+| 合计 | **51** | **183** |
+
+44组四任务、7组单任务；每组固定原有H顺序与fold波次，代表fold仍1，不跨模型/数据集/输入方案补位。共享GPU形状不声称六fold数据、标签或host内存相同；沿用§11六fold前缀及标签证据，本轮不重读30个UrbanEV前缀。每worker仍6 Adam/8 forward/6 backward/2 validation batch；串行1098 Adam，候选四路至多1056，必要两路回退至多1056，固定流程合计至多3210（保守授权18Q=3294）。相应至多4280 forward/3210 backward/1070 validation batch。额外机械/诊断512 Adam只为上限、未使用，不叠加旧余额；单fit不重复并发。完整probe本轮0次。
+
+### 12.3 工程验收、修复与证据复用
+
+执行前固定`exact-cpu-ids.json`完整25 ID（8个受影响ContractTests、12个IncrementalTests、5个DataTests），在业务import/fixture前校验精确ID、bundle、源码和新配置指纹，正常unittest/LedgerResult生命周期，无discover扩大范围。首次CPU25 passed，failure/error/skipped/unexecuted均0，0 Adam/模型/GPU。覆盖423/4620、51/183、固定波次/完整覆盖、消融复用、空aux/J-F0拒绝、schema、旧许可/报告拒绝、身份/汇总/恢复前元数据拒绝，以及Weather诊断与NVML空/部分/未知PID、N/A显存、整卡降级。
+
+首次CPU结束后的只读资源检查发现NVML另列驱动保留显存：total81920 MiB、reserved699、used1、free81222。首次实现遗漏reserved会错误拒绝准入；仅作一次机械修复，纳入`memory.reserved`守恒项，保留原整数查询2 MiB舍入界限及max(8GiB,10%)整卡余量，不改科学参数、删断言或放宽测试。记录`mechanical-repair.json`。修后对同25 ID完整复验：**25 passed、0 failure/error/skipped/unexecuted**。本轮CPU调用50≤32＋32；不拼接修前/修后结果。首次Passed证据仍保留其旧监控实现局限。
+
+因正式声明字段及恢复身份接入变化，只执行`test_ch3_formal.ModelTests.test_j_ecl_new_declaration`一个限定CUDA方法；绑定`J-ECL-MS-f1-h96-s2024`，合成batch2，使用原正式结构，**1 passed，2 Adam/6 forward/2 backward**。检查目标训练、参数更新、完整/尾批validation、best/last自产保存、异purpose拒绝、optimizer/RNG恢复及eval一致性后继续更新；模型复验0次。它不是正式batch128资源probe，也不验证六域正式准入。方法采用本包新formal_identity后改为合成purpose，未读取旧权重。
+
+`evidence-reuse.json`证明：adapter/tsAMD_enhanced、shell入口/guard/bootstrap字节未变；save_state/restore_state、init_training/update/evaluate、probe_worker、固定波次/dispatch/锁、Windows/prefix_csv/batches的AST未变。保留任务科学profile逐项一致；旧TimeMixer输出宽度、TimeXer真实MS、模型数学、六fold标签等沿用已接受的§11限定证据，不重跑八作者smoke、旧13项或旧333/339。§11 CPU75、模型16/48/16、前缀失败及占位检查成本全部保留；§11＋§12累计CPU125方法调用，模型18 Adam/54 forward/18 backward，不是新授权余额。
+
+受影响入口仅做6次无负载CLI检查：probe及AMD的dry-run/preflight/complete；预期退出分别0/2/0，两组均符合，preflight因未审核closure/无许可拒绝，complete为false。另计于`entry-checks.json`，不冒充CPU测试方法；无tmux/互斥锁重复负载，未启动下一个模型。
+
+### 12.4 数据与NVML真实状态、集中待决项
+
+详细来源URL、已证/未证与建议见`metadata-findings.json`；以下建议均Proposed，不改变现行mandatory条款，也不把补证不足解释为模型不适用。
+
+| 项目 | 本次查到的事实 | 剩余阻塞与一个推荐 |
+|---|---|---|
+| Weather | 仅沿既有prefix权限遍历到19048记录，输出零基19041–19047的原始时间：05:40、05:50、06:00、06:00、06:10、06:20、06:30，日期2020-05-12；数值观测解析0、test读取0。直接字符串已重复，排除pandas转换碰撞。 | 不能证明重复来自原发布版本还是本地转换；不下载档案、不删/去重/排序/重采样。推荐补齐发布版本绑定后，另行明确批准“按原记录顺序预测、保留重复行”：T/H按记录计而不保证每步严格10分钟；批准前保留unique-index断言和具体机器阻塞项。 |
+| PJM | F=1、70/10/20取整已确认；仅7个主表MS任务。作者epftoolbox文档给2013-01-01至2018-12-24。 | 公开日期不能认证本地n；旧材料未提供可绑定本地CSV的行数，endpoints仍null。缺本地版本/行数与转换清单、价格/负荷单位、forecast发行时刻与修订/as-of说明。推荐保留任务blocked并补这份版本说明，不扫描test求n，不由历史行推定已发布或反推已泄漏。 |
+| ECL | 作者基准README说明321客户、2012–2014、小时消费；UCI原始说明为15分钟kW、除4转kWh。 | 本地CSV如何选列、改名和聚合/换算尚未闭环；不能将原始单位直接移植。推荐把客户映射要求明确为“发布版本与基准列槽位对应”，不要求真实客户身份；处理链/单位仍mandatory。若不可补，应另审仅标准化基准量、不解释原单位的条款修订，不自动optional。 |
+| Exchange | 作者README列8国日汇率及1990–2016；项目OT第7通道及输入顺序保持。 | 国名列表不是本地匿名列字典，报价分子/分母未证。推荐若找不到可靠字典，另审“固定版本匿名基准列＋标准化指标、无币种/报价单位解释”的窄修订；现mandatory不解除、不猜币种。 |
+| NVML | 实测GPU UUID=`GPU-3d365efd-300b-f527-e8fe-703fb0cfb738`；容器PID/NSpid=49030，而NVML列PID=46399，正常权限无法对应；驱动保留显存已纳入。 | process_attribution=Not verified，进程峰值null，不填0；外部竞争不能可靠归属时不发并发许可。仅整卡可靠、外部占用可判断、余量满足时允许整卡口径；空/部分/未知PID和坏采样已用合成方法覆盖。不提权、不改驱动/环境。 |
+
+Weather名义10分钟聚合及归档组织有[站点说明](https://www.bgc-jena.mpg.de/wetter/Weatherstation.pdf)和[2020归档目录](https://www.bgc-jena.mpg.de/wetter/weather_data.html)支持，但不证明本地版本和重复行的来源。PJM仅采用[作者数据提取说明](https://epftoolbox.readthedocs.io/en/latest/modules/data_extract.html)的时期元数据；其数据库链接本次不可访问，未另下观测。ECL/Exchange依据[作者基准README](https://github.com/laiguokun/multivariate-time-series-data)及[UCI原始单位说明](https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014)，不从shape或匿名列吻合升级Passed。
+
+本次J/ECL短验收整卡采样峰值1127219200 bytes（约1.050 GiB）、CPU RSS峰值1219395584 bytes；采样间隔实测0.284224812–1.388134556秒，100ms只是请求目标。仅采样峰值，非严格连续峰值，也不是正式batch资源证明。`resource_admission=false`，进程映射缺口继续存在；旧整进程4GiB Not verified不倒改。
+
+### 12.5 启动前停止点与完整操作命令
+
+**新版probe入口/清单已完成增量修正并通过上述限定验收，但不能称51组只剩按键启动即可全部准入。** 审核/统一closure/用户启动仍缺；PJM7组还缺版本端点与实际尾批，入口会保留Blocked。其余44组有合成计算覆盖定义，不保证实测资源Passed；当前NVML进程归属/外部竞争限制可能得到ResourceNotVerified，不能冒发并发许可。正式数据完整准入方面，Weather/ECL/Exchange各8组及PJM7组共31组有mandatory阻塞；UrbanEV12组＋ETTh1 8组没有新增mandatory数据项，但仍须正式资源/冻结/M6批准。无新许可、无猜测未来commit，模板reviewed=false/commit=null；旧520摘要/报告不能通过当前协议指纹与组覆盖校验。
+
+以下仅为将来的可执行操作命令，**本轮未执行start**；许可文件须由后续审核/实际closure形成，模板不改true来绕过审批。当前先用dry-run/preflight查看拒绝原因：
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+CH3_EVIDENCE=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-input-scope-8ah0wzk_
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight
+# 后续已审实际closure、clean及用户明确启动后：
+bash scripts/ch3/start_probe.sh preflight --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh start --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+tail -f "$CH3_EVIDENCE/probe-controller.log"
+bash scripts/ch3/start_probe.sh complete
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+tmux仍为§11已测守护；会话`ch3-resource-probe`。`probe/progress.json`与各组worker/process日志保留完整终态；`complete`校验当前协议、Q及51组覆盖，不以文件存在或部分Passed冒充全包准入。安全停止只停止本入口子进程/后续波次，不杀无关进程。ETA须将来按首批实测给出。失败保留现场，先审计、不自动fresh或覆盖。
+
+```bash
+# 后续另获结构冻结、M6及该模型正式启动许可，解决mandatory并审核probe后：
+CH3_MODEL=AMD  # 一次只选AMD/J/DLinear/PatchTST/iTransformer/TimeMixer/ModernTCN/TimeXer/N/S之一
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" dry-run
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" preflight \
+  --approval "$CH3_EVIDENCE/formal-approval.json" --probe-report "$CH3_EVIDENCE/probe/complete.json"
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" start \
+  --approval "$CH3_EVIDENCE/formal-approval.json" --probe-report "$CH3_EVIDENCE/probe/complete.json"
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" status
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" logs
+tail -f "$CH3_EVIDENCE"/model-"$CH3_MODEL"-controller-*.log
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" complete
+bash scripts/ch3/start_model.sh --model "$CH3_MODEL" safe-stop
+```
+
+输出仍为E下`formal-<model>`，逐run隔离。恢复须审核本次产物与`resume_audits`，再在同一start命令追加`--resume`；新协议/input_variant不符在读取checkpoint前拒绝，合法恢复沿用原CPU反序列化与RNG流程。不用M4或§11旧purpose/配置跨协议恢复。模型组互斥，用户决定下一个模型，入口不自动衔接。
+
+本轮停在修后代码/文档/证据待整体审核；完整probe、正式训练、J冻结与M6均未启动/批准。AGENTS、Closed M0–M4、八作者仓库、环境、baseline及空间方案保持。`change-inventory.json`给9文件本轮前后SHA；`review.diff`是相对§11已审dirty字节的精确增量，`cumulative-review.diff`为相对HEAD累计15文件；`static-verification.json`和`evidence.sha256`登记终态，后者不包含旧checkpoint。本文件本轮为内容修改且Git tracked modified，不能沿用早期M5 untracked状态。canonical/current M5无需上传（ChatGPT通过服务器直读核验）；该渠道说明不代表ChatGPT已读取本次修后字节。
+
+## 13. 恢复UrbanEV A/J同输入消融的限定增量（2026-09-18）
+
+### 13.1 用户决定、起点及文件范围
+
+用户本次重新决定：UrbanEV输入消融由§12的仅J改为A/J双方F1/F2/F3/F4，两者F4引用各自主表同run；只恢复AMD/F1–F3的72个未执行计划。§12当时取消AMD输入消融的授权与事实完整保留，不倒写为本次授权。不恢复任何F0/PJM TargetOnly，不新增N/F0或其他模型/数据集消融；N/S仍仅UrbanEV F4。447/4860从未获批；当前含TiDE的520规划也不是§11旧520集合。
+
+起点分支`AMD-paper-repro-custom-modules-v1`；HEAD/local/tracking/live remote=`99be14ce840e67ecd72720860f5d4ab0247418a1`，ahead/behind 0/0，index空、6 modified＋9 untracked路径项，非clean。canonical修前SHA=`8a15448e5ab9a1ae7d2ee100a32fcfad8a4d85f2f43f34ccff0e012018303663`；M5修前SHA=`705dcf1a83e68f58246973750740833a91faec54b941e0de6e882ca4a15cb199`。§12的`change-inventory.json` SHA=`9c7040049f6df16446105cc0ba6473b371bcacc1cef539f4b195630fffda0cac`及所列字节匹配；AGENTS、Closed M4及baseline解引用commit保持原值。
+
+写入前`scope.json`登记精确六文件：canonical、本文件、`configs/ch3_formal_profiles.json`、`utils/ch3_contract.py`、`tests/test_ch3_formal.py`、`ch3_runner.py`。其中runner只改报告Q从当前组清单派生，并在probe preflight报告当前机器配置的mandatory资源阻塞；不改训练/恢复/调度实现。`m5_formal_entry.py`、bundle、两启动脚本、guard/bootstrap、loader、adapter、模型本体均无需修改。无重建runner/平台、clone/pull或环境安装。
+
+本包永久证据唯一目录：`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-aj-input-7rzf5m90`（E）；唯一合成fixture根：`/tmp/amd-m5-aj-5zperqe6`。§11/§12证据不覆盖；只复制必要旧计划JSON作版本对照，不读取旧checkpoint或运行曲线。本轮无真实前缀、网站补证或原始数据修改。
+
+### 13.2 495任务及同输入身份核账
+
+现有generate_tasks/generate_groups按UrbanEV AMD/J双方F1–F4生成，其他主表模型和N/S在UrbanEV只生成F4，其他域只生成MS。`plan-difference.json`保存423保留ID＋72新增ID，删除0；新增集合严格为AMD×UrbanEV×F1/F2/F3×六fold×h3/6/9/12。全部423旧任务字典及profile逐项完全相等。72新增ID与§11计划对应，科学profile在字段名/历史contract表示归一后匹配；当前实际身份仍用schema v2及新完整配置指纹，不借旧计划许可恢复。
+
+| 模型组 | 唯一runs | 最多run-epochs |
+|---|---:|---:|
+| AMD/A，主表＋UrbanEV F1–F3 | 113 | 1180 |
+| J，主表＋UrbanEV F1–F3 | 113 | 1180 |
+| DLinear/PatchTST/iTransformer/ModernTCN/TimeXer，各组 | 各41 | 各460 |
+| TimeMixer | 16 | 200 |
+| N/S，各组 | 各24 | 各240 |
+| 当前合计 | **495** | **5340** |
+| TiDE Deferred | 25 | 260 |
+| 含Deferred完整规划 | **520** | **5600** |
+
+独立算术：303主表＋48 N/S模块消融＋144 A/J输入消融＝495；UrbanEV360×10＋PJM7×最多20＋ETTh1/Weather/Exchange各32×10＋ECL32×20＝最多5340。含TiDE的520包含暂缓TiDE且没有F0/TargetOnly；§11旧520包含AMD/F0及PJM TargetOnly而没有TiDE，两集合不同。按完整指纹与任务/组内容验证，不以某旧数字自动判真伪。F0定义/旧能力及J/S非空aux前置拒绝不变，正式清单F0/J-F0/PJM TargetOnly全部0。
+
+每个F1–F4内A/J字段和顺序、目标、scaler、fold、标签、训练/评价完全一致，profile除model身份外相等；A关闭S2/THLS，J同时启用。F2价格和F3天气并列。共有AMD初始化复用原`build`路径；THLS与S2分别在`torch.random.fork_rng`隔离子流内构造，退出恢复公共RNG，关闭模块不构造它；训练数据使用`init_training`独立返回的generator并传给`batches`。这比“seed相同”更强，且相关源码未变，本轮未新增数值证明。F4每个A/J run仅出现一次，主表/模块表/输入表引用同ID；原summarize可同时输出同输入方案A/J组，不重新训练或择优挑选统计。
+
+schema保持`ch3-target-ms-formal-v2`，本轮无字段语义改名。旧423及旧520完整配置指纹作为负例保留；许可/报告用当前digest、代码及完整组覆盖核对，恢复元数据使用当前digest/profile/input_variant，旧版本在checkpoint读取前拒绝。当前495的协议SHA见`plan-difference.json`，模板不授予实际许可。
+
+### 13.3 54组、195worker及资源停止线
+
+| 覆盖 | 组 | 代表worker |
+|---|---:|---:|
+| 四标准域 | 32 | 128 |
+| UrbanEV F4九模型 | 9 | 36 |
+| UrbanEV A/J F1–F3 | 6 | 24 |
+| PJM七个单fit | 7 | 7 |
+| 合计 | **54** | **195** |
+
+仅新增AMD-UrbanEV-F1/F2/F3三个组；47组四任务＋7组单任务。保留fold1代表、同模型/数据集/input_variant的原固定H与fold波次，不补位或自动启动下一模型。共享GPU形状不等于六fold数据/标签/host内存相等；沿用已有分fold工程证据，不再读取UrbanEV前缀。
+
+每worker仍6 Adam/8 forward/6 backward/2 validation；生成式核账：串行195×6=1170，候选四路188×6=1128，必要两路回退188×6=最多1128，实际固定流程至多3426 Adam、4568 forward、3426 backward、1142 validation batch。保守授权18×195=3510 Adam；额外机械/诊断余量512不变且不叠加旧额度。没有新增恢复矩阵、长测或调度搜索，195以外profile不自动扩额。本轮完整probe为0。
+
+沿用§12：进程归属Not verified；当前`resource_assessment`依赖每个活动worker在正常权限下匹配PID/NSpid和NVML记录，才能排除未知外部竞争。§12实测环境未满足，整卡记录有效也不能据此发许可。本轮仅将`active_worker_pid_attribution_unresolved_reviewed_admission_path_required`登记到配置并在preflight提前拒绝；不改PID匹配、NVML采样或余量规则，不新建监测平台。**完整probe启动前必须先有已审核且实际可通过的资源准入路径，当前不能启动全队去逐组重复发现此阻塞。** 后续解决时须更新真实配置/源码绑定并重新审核，不把字段删掉或模板置true冒充解决。
+
+数据阻塞集中沿用§12.4：Weather重复原始时间与发布版本/按行预测政策；PJM F=1已定但版本n/端点、单位/as-of未闭环；ECL转换/单位与基准列对应；Exchange列与报价对应。Weather按行、匿名标准化基准口径仍Proposed，现mandatory不变。PJM7组资源尾批仍Blocked；Weather/ECL/Exchange各8组正式数据仍Blocked。增加AMD三个UrbanEV组不解除这些31组的数据限制；UrbanEV15组＋ETTh1 8组也仍需资源、冻结/M6等正式许可。旧4GiB Not verified、M4 gate Not passed/H192/1%线及单seed/development-test限制不改。
+
+### 13.4 精确16方法、成本与证据复用
+
+执行前固定`exact-cpu-ids.json`的16个完整ID，使用既有ch3_cpu入口在业务import/fixture前绑定，正常unittest/LedgerResult生命周期、无discover。首次**16 passed，failure/error/skipped/unexecuted均0**；机械修复/复验0，模型/optimizer/GPU/Adam/forward/backward均0，未构造新CUDA模型。首次16≤16，未使用额外额度。
+
+方法内参数化循环显式记入`parameterized-case-plan.json`：10模型计数、148个固定波次case、495训练profile、423保留任务/profile子case、72新增ID集合、96组A/J同输入fold/H子case与192行合成summary、2个旧许可指纹、4个报告负例、3个恢复元数据负例、4个输入宽度、2个空aux臂。均为CPU断言，不将子case隐去当作未耗费，也不伪算成新增模型实验。
+
+覆盖新增/保留集合、495/5340与54/195、A/J F4重复拒绝及四输入方案汇总、禁止F0/TargetOnly、旧423/旧520清单/许可/报告/恢复身份拒绝、相同计数的外来内容拒绝以及全队启动前监测阻塞。6个CLI检查另计：probe及AMD的dry-run/preflight/complete，退出0/2/0符合预期；AMD显示113任务，probe显示54/195和监测阻塞，complete=false，无start/占位worker负载。
+
+`reuse-proof.json`核验训练/结构/来源/数据政策配置区块不变，profile/AMD声明/summary、保存恢复/初始化/目标训练评价/固定波次与锁的AST不变，adapter/模型/loader及受限工具字节不变。模型结构、映射和生产训练路径没有改变；新72配置与已登记旧计划一致，故无需AMD/F1 CUDA方法。这个依赖证明不冒充新正式batch或shape动态Passed。§11/§12旧CPU125及模型18 Adam/54 forward/18 backward与失败成本保持；本轮新增CPU16后累计**141方法调用**，模型累计仍18/54/18。未重跑八作者smoke、旧13项、旧整套回归或真实训练。
+
+### 13.5 操作命令、审核与停止
+
+本轮已完成清单/合同增量及限定验收，停在整体审核；当前资源阻塞没有解决，**不是只剩closure便可启动完整probe**。两启动脚本仍原版本，不自动启动下一模型。当前查看命令：
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+CH3_EVIDENCE=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-aj-input-7rzf5m90
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+bash scripts/ch3/start_probe.sh complete
+```
+
+以下命令仅在资源路径真实解决并获审、数据/尾批限制明确、修后整体review/实际closure/clean及用户启动许可完成后使用。本轮没有生成猜测未来commit的许可；`probe-approval.template.json`为reviewed=false/commit=null，不能用于启动。
+
+```bash
+bash scripts/ch3/start_probe.sh preflight --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh start --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+tail -f "$CH3_EVIDENCE/probe-controller.log"
+bash scripts/ch3/start_probe.sh complete
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+沿已测tmux会话`ch3-resource-probe`；进度`probe/progress.json`，完成报告`probe/complete.json`逐组核验当前协议、195worker和54组内容，存在文件不等于全Passed。日志/预算/失败产物保持；safe-stop只停止本入口拥有的子进程/后续波次。未运行不得产生假complete；首批实测前无可靠ETA。
+
+正式入口仍`bash scripts/ch3/start_model.sh --model AMD dry-run`，模型名可逐次独立选AMD/J/DLinear/PatchTST/iTransformer/TimeMixer/ModernTCN/TimeXer/N/S；后续start仍需独立冻结/M6/对应模型授权、无mandatory数据阻塞、审核后的资源报告。操作形式沿§12.5，但证据根用本节E，旧许可不得复用；本轮无正式启动。恢复只允许审核过的本次合法产物，不读旧权重、不自动fresh。
+
+终态：本轮只改上述六文件，保留累计15文件dirty现场，index空；不stage/commit/push或单独closure。AGENTS/Closed M4、baseline、作者仓库/环境及空间路线均未修改。`change-inventory.json`列六文件前后完整SHA，`review.diff`为相对§12增量，`cumulative-review.diff`为相对HEAD累计范围，`static-verification.json`及`evidence.sha256`给终态与新证据指纹。本轮canonical/M5均为内容修改、Git tracked modified；新字节待审核，不声称ChatGPT已读。
+
+## 14. 有限NVML现场修复与四域数据决策收敛
+
+### 14.1 起点、授权与不变项
+
+2026-09-18，用户确认§13已实际直读审核接受；本轮不重做495任务清单或此前验收。起点HEAD/local/tracking/live remote=`99be14ce840e67ecd72720860f5d4ab0247418a1`，0/0、index空、6 modified＋9 untracked文件，非clean。canonical/M5修前SHA分别为`8140b800767ec4e8abf2ebc6a291a1c5ee4f8e8da617cad0b109c7c9ae433f0f`、`6ee9c68621f9bbe9e10bb734fea1146b96a81d9827e247a5b3f896156720a052`；config/runner及§11–13累计inventory绑定均匹配。适用AGENTS、Closed M4及baseline保持登记字节/commit。
+
+写入前登记六文件：canonical、本文件、`tools/restricted_regression/m5_formal_entry.py`、`tests/test_ch3_formal.py`、`configs/ch3_formal_profiles.json`、`tools/restricted_regression/bundle.sha256`。runner、adapter、模型、loader、guard/bootstrap及两启动脚本字节不变；不扩命令白名单、不新建监测平台。仅在现有ch3分支添加`ch3_resource_diagnostic`窄用途，仍于业务/fixture前校验精确ID、当前源码/配置SHA、路径和0 Adam/forward/backward额度；禁止模型、optimizer和autograd，真实数据/checkpoint无权限。完整probe的review/closure/clean门禁未解除。
+
+唯一永久证据E=`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_`；临时fixture=`/tmp/amd-m5-nvml-2iwrai5e`。旧证据不覆盖。任务、groups、模型/训练/数据/source配置逐字段与§13相同；只更新本包执行位置、CPU IDs、诊断额度和已验证资源状态。495唯一runs/最多5340、54组/195worker、A/J F1–F4、无F0/PJM TargetOnly、TiDE Deferred全部不变。无模型小smoke、完整probe、真实数据读取/哈希、旧checkpoint访问或新来源调查。
+
+### 14.2 根因、修复与现场正例
+
+§12只读取status/NSpid，容器可见PID不能对应NVML的内核PID。本轮正常权限读取**本包自有**进程的status、stat、sched及PID namespace：本机sched首行提供另一PID，实际与NVML表逐项相符。修后只使用该直接内核元信息映射，不以“新出现的PID”或显存增量猜归属；采样前后stat启动时刻必须相同，缺失、权限不足、PID生命周期变化或重复host映射均不能变成有效归属。未读取其他用户/proc文件，不提权或调整容器、驱动/环境。
+
+旧`resource_assessment`要求活动worker必须已有CUDA表记录，CPU初始化时因此误报外部占用未知。修后可靠自有PID元信息足以识别归属边界；尚无CUDA记录标`alive_not_registered`，进程显存保持缺失/Not verified，不能断言GPU显存为0。CPU-ready消息在本次诊断中额外证明尚未开始CUDA；生产采样仅报告可观察的未登记状态。NVML中未归属且不在基线的进程仍拒绝；UUID变化、坏采样、非有限/负显存、driver_reserved不自洽和余量不足仍拒绝。采样间退出的自有进程单列生命周期事件并重新取活动集合；不把退出/采样失败伪造成0显存。
+
+实际诊断使用共享GPU锁，先确认无外部compute进程及安全余量，再逐步持有1→2→4个独立进程。每实例通过CPU-ready、GO、CUDA-ready、RELEASE消息，只创建一个float32 CUDA张量（4,194,304元素=16MiB）、填充并同步，最后正常退出。此16MiB不限制整个CUDA进程上下文显存。
+
+| 容器PID | 自有sched中的内核PID＝NVML PID | CUDA-ready后NVML进程采样值 |
+|---:|---:|---:|
+| 62415 | 5409 | 506MiB |
+| 62491 | 5618 | 506MiB |
+| 62567 | 5804 | 506MiB |
+| 62653 | 6019 | 506MiB |
+
+GPU UUID=`GPU-3d365efd-300b-f527-e8fe-703fb0cfb738`；命名空间`pid:[4026534934]`；本次NSpid字段未暴露外层PID，原样保存为空。4次CPU-ready观测、1/2/4存活规模各3次CUDA观测全部`admission=true`，CUDA稳态`process_attribution=Measured`；全部4个returncode=0。首验27.869539秒、4实例，诊断复验0，未用其余4实例额度。整卡采样峰值2041MiB，驱动保留699MiB，预留8192MiB；单进程506MiB包含上下文等开销，不写成16MiB整进程。全事件采样间隔0.664153–4.584536秒（包含子进程初始化等待），相同CUDA稳态相邻采样0.664153–0.774722秒；100ms仅请求目标，非实测达成、非连续峰值。就绪/退出时间、原始NVML表与映射元信息均保存在`resource-diagnostic-attempt1/`。
+
+因此可以将原`active_worker_pid_attribution_unresolved_reviewed_admission_path_required`标记为本机监测链已解决；配置保留结果路径/SHA及“仅16MiB自有张量进程通过，正式组未测”的限定状态，未设置正式审批为true。该结论不证明正式batch/模型构造/Adam/validation峰值、四路数值一致或加速，不授予任何54组并发许可。旧smoke“整进程4GiB Not verified”与§12当时Not verified不倒改。不需要采用削弱归属要求的整卡保守替代提案。
+
+### 14.3 精确验收、修复复验和成本
+
+`exact-cpu-ids.json`在fixture前固定`test_ch3_formal.ResourceAdmissionTests`下16个完整方法，正常unittest/LedgerResult生命周期，无discover。覆盖known/unknown PID、CPU初始化、未映射、退出、采样失败、驱动保留、8GiB/10%余量、UUID、N/A显存、sched、PID复用、解析、非有限/负值、重复映射及用途/完整probe门禁。两种非法显存、两种设备总量余量为显式子case；首验parser case复用一次既有无fixture的断言方法，不计作另一个独立旧验收通过。随后将其内联，避免跨test方法调用；同步经实际诊断确认的资源状态并修正永久测试中旧“缺口未解决”断言，记录于`cpu-repair-reason.json`。
+
+首验16 passed；上述机械测试/状态修正后的唯一CPU复验16 passed，最终同一版本全部16通过；两次failure/error/skipped/blocked/unexecuted均0，不拼接版本。新增正常unittest生命周期32方法；§11–13累计141保留，至本轮累计173。**额外调用偏差必须单列：首验另有1次旧`test_nvml_parser_namespace_and_na`作为断言helper的直接调用，没有独立生命周期。若按所有test方法实际函数调用计，首验为17而非16，超出本轮首验上限1次；本轮合计33。不能仅凭ledger的16/16宣称调用额度完全合规。该调用已移除，唯一修后复验16方法无此额外调用；偏差及原证据保留，待整体审核，不自动追认授权。** GPU诊断4实例/27.87秒；0模型、0optimizer、0Adam、0forward/backward、0checkpoint，未重跑模型来源链。历史模型18 Adam/54 forward/18 backward不变。诊断入口、映射和准入源码在实测后没有变化；末次CPU复验仅涉及测试断言和配置资源状态，科学配置不变，故无需消耗CUDA复验。诊断config保存实际执行时完整SHA绑定，不冒充执行时已经使用修后状态字段。
+
+### 14.4 四域合并待决稿——全部Proposed，批准前不生效
+
+沿§12.4证据，不重复前缀、网页概述或全文件观测读取。本轮没有新定位而尚未读过的生成脚本/版本说明，因而没有新来源事实可登记Passed。共同拟保留的硬要求：目标/有序字段、原split与train-only scaler、完整H、train-standardized MSE/MAE、seed及任务数量不变；**可复现本地版本绑定仍为mandatory**。完整字节SHA只能绑定本地artifact，不单独证明其等同作者发布版本或证明转换链；未证的作者版本等价必须披露，不能隐去。
+
+| 域／现行阻塞条款 | 已有事实 | 单一推荐、拟改的准确语义与验收条件 | 任务/论文影响及额外访问 |
+|---|---|---|---|
+| Weather；canonical §5.1末段、§9.1 Weather行；机器`version_frequency`与`duplicate_timestamp_19043_19044_requires_explicit_row_index_policy`；`utils/ch3_data.py::load`唯一时间断言 | 原始字符串在零基19043/19044均为2020-05-12 06:00:00，不是pandas解析碰撞。名义10分钟资料不证明本地发布版本相同。固定端点36887/42157/52696。 | **保留当前文件全部行和原顺序，按记录建窗。** 将“唯一时间索引及时间粒度核验门槛”窄改为“Weather允许非唯一、非递减时间；T/H按原记录数，时间只作索引，不删行/排序/重采样”。拟将`version_frequency`拆为“冻结本地字节版本＋名义频率/异常披露”；不要求补造官方等价结论。验收：字节版本与已登记本地版本核对、既有header/目标/端点不变；后续获准前缀验收报告重复/不等间隔，逆序仍拒绝；synthetic重复时间覆盖。批准前本轮不删unique断言。 | 32个主表run不变；H不再被表述为严格H×10分钟，指标仍按记录目标标准化。推荐补一次只读全文字节SHA与历史已登记版本比对；不解析test，不据SHA宣称官方发布一致。 |
+| PJM；canonical §5.1/§5.5/§9.1 PJM行；`version_row_count`、`market_units`、`forecast_as_of` | F=1与70/10/20取整已定；只有7个MS主表任务。现材料不能确定绑定本地CSV的n；公开2013–2018日期不足。本地forecast单位及发行/vintage/as-of未证。 | **先做最小字节级版本/行界核验，但保持单位/as-of独立硬门槛。** 不修改F=1政策。建议只流式计SHA、物理行界及CSV引号/行界结构，不解码数值/时间/列；确认无引号内换行且末行处理明确后，n=非空数据记录行数（扣一个header），若格式不符合一记录一行即停止，不猜n。按n算train=floor(.7n)、test=floor(.2n)、val=n−train−test及累计端点，登记metadata；不能借此解除`market_units`/`forecast_as_of`。二者验收仍需绑定此数据版本的列单位/转换说明和forecast发行时刻、修订/vintage相对预测起点的可得性证据；资料不足维持Blocked，不换特征。 | 7 runs及指标不变，版本端点只解决窗口/尾批，不证明forecast当时已发布，也不证明泄漏。**全文字节计数/哈希会遍历test区域字节，超出此前前缀权限，必须另获明确批准。** 即使计数通过，正式PJM仍不能开始。 |
+| ECL；canonical §5.1末段、§9.1 ECL行与表后“匿名字段不能替代业务身份”；`processing_chain_customer_map_units` | 已确认C321、OT槽位320及原字段顺序，端点18412/21044/26304。公开原始UCI为15分钟kW；基准说明为小时消费，但本地选择/聚合/单位换算链未证。真实客户身份不是评价必要条件。 | **冻结本地匿名基准版本，限定报告标准化指标。** 拟将客户实名及原单位转换闭环从运行mandatory改为披露限制；替换为“必须绑定不可变本地版本、基准列槽位及有序字段/split/scaler；不主张原kW/kWh、客户业务身份或与官方发布逐字节等价。无法证明的转换链明确未知”。验收：当前完整字节SHA与已登记版本核对、已有header/OT320/端点证据一致；仍不能绑定本地版本则继续Blocked，不用shape过关。准确替换上述两处canonical及机器复合blocker，需用户批准后另行实现，不在本轮optional化。 | 32 runs不变；仅train-standardized目标MSE/MAE，不反变换报告物理用电量或解释具体客户。需本地CSV完整字节SHA的额外只读授权；不读test观测、无需识别真实客户。 |
+| Exchange；canonical §5.1末段、§9.1 Exchange行与表后业务身份约束；`currency_column_quote_map` | C8，目标OT槽位7，端点5311/6071/7588。公开8国列表没有证明本地列的国家顺序、基准币或报价方向。 | **冻结本地匿名汇率基准槽位，仅报告标准化预测误差。** 拟将币种/基准币/报价方向的解释闭环改为强制披露限制；新mandatory为“本地版本可复现、原8列顺序及OT7、既定split/scaler可核验”；不得猜币种，不主张官方等价或经济收益。验收同样要求当前完整字节SHA与已登记版本核对及已有字段/端点一致；版本自身无法绑定仍Blocked。上述canonical和机器条款批准后才能替换。 | 32 runs、目标与输入不变；不报告币值误差、汇率方向结论或交易收益。需当前CSV完整字节SHA授权；无需识别真实币种，test解析仍禁止。 |
+
+以上是一次可确认的**数据政策修订＋窄只读核验**组合，尚未批准/执行。本地固定基准方案的研究主张为“明确版本和列槽位上的同协议标准化预测比较”；它不声称恢复了无法证明的原单位/作者处理链。不能以当前SHA和历史SHA一致推导官方等价；若不同必须停下报告版本差异，不覆盖数据或自动接受新版本。
+
+最小额外访问请求，路径仅四个：`AMD/data/weather.csv`、`AMD/data/electricity.csv`、`AMD/data/exchange_rate.csv`各一次完整字节SHA；`TimeXer/dataset/EPF/PJM.csv`一次流式SHA＋物理行界/引号结构计数。均相对`/public/home/yueweiting/大论文/`，只输出摘要/计数/格式状态，不解码或统计test观测，不输出test内容。承认会遍历整个文件（含test）的原始字节；这是需要用户新增授权的范围，本轮访问量0。其余既有header/前缀证据复用，不再请用户自行查资料。PJM单位/as-of没有已定位未读的新材料，仍为独立待补证事实，不能通过政策批准或行数自动核销。
+
+### 14.5 审核、closure与启动命令
+
+工程状态：正常权限监测链已实际通过，**可进入本轮整体审核，获准后统一closure**；本轮没有stage/commit/push。不是现在可以启动完整probe或训练：probe仍要求修后源码/config审批、实际closure commit及clean、无产物冲突和用户启动；正式组并发必须由完整轻量probe实测产生。PJM7组尚缺n/真实validation尾批，仍不能完整资源准入；Weather/ECL/Exchange各32正式run共96，以及PJM7正式run共103均继续数据mandatory Blocked。其余正式run也仍需要冻结/M6/资源审批。数据决策与许可必须在正式test出现前锁定。M4 gate Not passed、H192、1%线及单seed限制保持。
+
+当前安全查看（不会启动worker）：
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+CH3_EVIDENCE=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+bash scripts/ch3/start_probe.sh complete
+```
+
+本轮实际诊断命令为下列命令（首次目录已存在，**不得作为下一步重复执行**）；日志在`$CH3_EVIDENCE/diagnostic-command.log`，完整逐进程数据在`resource-diagnostic-attempt1/`：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python tools/restricted_regression/m5_formal_entry.py resource-diagnostic
+```
+
+以下仅在审核/closure/clean、PJM等范围阻塞有明确处置及用户启动许可均完成后使用；本轮不生成未来commit审批，也不将模板设true：
+
+```bash
+bash scripts/ch3/start_probe.sh preflight --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh start --approval "$CH3_EVIDENCE/probe-approval.json"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+tail -f "$CH3_EVIDENCE/probe-controller.log"
+bash scripts/ch3/start_probe.sh complete
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+复用已测tmux方式、共享GPU锁和固定波次。状态文件存在不等于Passed；采样失效、UUID/源码/数据边界错误、未知外部竞争或余量不足必须拒绝/安全停本包进程。仍只有54组/195worker原额度，无新shape/并发搜索，不自动启动正式模型组或下一模型。首批probe未执行，无可靠ETA。新版待ChatGPT审核，不声称已被读取；精确增量/累计diff、六文件前后SHA、绑定复用说明与最终Git核验见本包`change-inventory.json`、`review.diff`、`static-verification.json`、`evidence.sha256`。
+
+## 15. 论文—作者发布物—本地文件的只读来源核验（2026-09-18）
+
+### 15.1 起点、权限和实际取得的对象
+
+起点HEAD/local/tracking/live remote均为`99be14ce840e67ecd72720860f5d4ab0247418a1`，0/0、index空、6 modified＋9 untracked文件，非clean。canonical修前SHA=`1a54e48753003b512f4f2b66376aabbccee27c3c1a05f6027535d9affe393cc5`；本文件修前SHA=`eb8cccaba0b77f96ff886e7ccc5056bd53a8a6ee016bcb5ce0ee65bca21e2336`；适用AGENTS、Closed M4、baseline及§14累计版本匹配。本轮只改两文档并新增`tools/m5_source_version_audit.py`，不修改训练/资源工具或生产数据。
+
+唯一证据E=`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f`，发布副本只在`E/reference/`。用户本轮明确允许五个本地文件完整字节比较及对应作者发布物下载；这包括test区域原始字节，不等于批准test字段数值解析/统计/预测/评价。没有替换AMD/data、TimeXer/dataset或当前训练文件，没有运行下载/预处理脚本，没有新装环境、clone、pull或fetch。
+
+八作者仓库HEAD与§10.2逐一完全相同，tracked状态clean；版本完整记录于各`*-git.json`。实际读到的数据入口为AMD-upstream `000d377a1ed8946aa817ff357cdf1de64b99abb9:readme.md`第24–37行、iTransformer `c2426e68ca13f74aaec08045c5c724d8ad328124:README.md`第65行、PatchTST `204c21efe0b39603ad6e2ca640ef5896646ab1a9:README.md`第58行、TimeXer `76011909357972bd55a27adba2e1be994d81b327:README.md`第21行。其余仓库仅核对版本，不遍历数据。
+
+主参照选用AMD-upstream明确指向的iTransformer数据入口：[Drive文件ID `1l51QsKvQPcqILT3DwfjCgx8Dsg2rpjot`](https://drive.google.com/file/d/1l51QsKvQPcqILT3DwfjCgx8Dsg2rpjot/view)，显示名`iTransformer_datasets.zip`。本次取得171600194 bytes，原包SHA=`01d7016eaa3eb571b77542612219d116dfc6a9f5399586dea1f98261fc4d80c4`；仅检查归档路径并提取electricity、exchange_rate、weather三个CSV，不执行包内代码，不提取其他benchmark。完整原包留存，是因为该入口提供整包；无不可变历史版本号，只认证2026-09-18本次取得的副本，不称论文发表时原始字节。未为匹配本地遍历其他网盘或镜像。
+
+PJM主参照为TimeXer固定提交的`dataset/EPF/PJM.csv`，Git blob=`75be301851b30429ad2629df77114b2a98efacd1`。使用`git cat-file blob <commit>:<path>`导出到`reference/PJM-git.csv`，未checkout。blob大小1960359，解析到CSV行界/header，不是LFS指针；该路径filter/text/eol均unspecified，工作文件与原blob字节完全一致，不能仅以Git clean替代本次结果。
+
+ETTh1没有从当前必要记录中找到“双方固定发布对象实比”的充分证据，故取得ETDataset作者固定对象：[`11ab373cf9c9f5be7698e219a5a170e1b1c8a930:ETT-small/ETTh1.csv`](https://raw.githubusercontent.com/zhouhaoyi/ETDataset/11ab373cf9c9f5be7698e219a5a170e1b1c8a930/ETT-small/ETTh1.csv)。仅取此对象及提交元数据，不clone整个仓库；取得时间/响应和SHA见`reference/ETTh1-source.json`。
+
+### 15.2 论文与补充来源的实际版本
+
+既有PDF均只读。下表页码为PDF物理页（1-based）；定位时保存必要页文本，未重新分析模型数学或论文性能。现有amd环境的pypdf可用，没有安装依赖。
+
+| PDF／版本 | 完整SHA-256 | 实际相关位置 |
+|---|---|---|
+| `paper/amd-paper.pdf`，服务器既存14页版；metadata创建2025-04-16 | `02aad9b5b876e3b53d6c34114d6e658eb557898d57f20402baf512b3e264b05e` | p10 Detailed Dataset Descriptions；p11表5，字段数/频率/分割样本描述 |
+| `paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf`，ICLR 2024、43页 | `2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944` | p14表6、数据介绍及脚注1/3/4/6，指向MPI、UCI、LSTNet数据、ETDataset |
+| `paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf`，NeurIPS 2024、30页 | `c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964` | p14 A.1及表6；p11参考文献[15]；p19 H.1外生预测情景 |
+| `paper/Li 等 - 2025 - UrbanEV An Open Benchmark Dataset for Urban Electric Vehicle Charging Demand Prediction.pdf`，Scientific Data 12:523、10页 | `728eefeaa8934dc598799c786ec5ef1ca02cac0e6d6ee257211b262cefbb176b` | p2时期；p4生成/清洗及表2；p5聚合、275区、Data Records和kWh说明 |
+| 新取得`E/reference/epf-2008.08004v2.pdf`，[arXiv:2008.08004v2](https://arxiv.org/pdf/2008.08004v2)，26页 | `8532301359bf3b1efe97ed1eab088e507139de2f09b553727ae2202b52ded6b1` | p6–7 §§3.1/3.3；p8图2及§4.1，单位和前一天可得性 |
+
+补充作者说明也固定到具体对象而非只记首页：LSTNet数据README为`7f402f185cc2435b5e66aed13a3b560ed142e023:README.md`（SHA `fa5e75b4638f607e3a0ac1de6c8b3862dd5883ad5eb26441c59e3449ef626253`）；epftoolbox数据读取说明为`6657f207c047ffb9ca3a1a675d8221690b1bdd0a:epftoolbox/data/_datasets.py`（SHA `7473cb96a15237519f91126e6f09dbe94fbb7b37882799805b43e6df7b7b2a6f`），第112行指向Zenodo record 4624805。仅阅读脚本，未执行它的pandas/下载路径。Zenodo API元数据实际取得，明确PJM是COMED zonal price、system/COMED两种day-ahead load forecast、Eastern Time，以及DST春季插值/秋季重复小时均值处理；不是逐记录发行日志。
+
+**文本冲突和图像核验限制：** ModernTCN p14表6文本写Exchange 7207，而本次两份CSV均7588记录；TimeXer p14正文写Weather目标Wet Bulb，表6文本却写CO2-Concentration。两项并列保留，不静默选择其一或改项目T(degC)/OT7。TimeXer页面文本经pypdf及Desktop Commander两次提取一致，但这不替代图像核验。现有工具未返回可检查的对应页面图像（会议PDF网络读取有大小限制，本地无可用页面栅格化器）；**图像复核未完成，疑似表格矛盾不作最终裁定，不作为数据替换或政策放宽依据**。不以断裂表格文本推算本地n；下述n来自实际字节结构检查。TimeXer README第49行的全球3850站NCEI/ERA5大气象集未下载，也未代替本项目MPI Weather；Sonnet的其他同名数据未使用。
+
+### 15.3 六域对应表与直接比对级别
+
+证据标签固定为【论文明确说明】【作者README/脚本说明】【实际发布文件核验】【本地文件核验】【尚未找到】。A=原始字节一致；B=只按明确格式规则文本一致；C=超出这些规则的实际内容不同；D=参照不可取得/来源不明。本轮五个主比对没有C/D；另一个原始EPF发布参照为C，见§15.4。所有本地及主参照文件读前后device/inode/size/mtime/ctime稳定。
+
+下表本地路径相对`/public/home/yueweiting/大论文/`；L/R分别为本地/发布副本完整SHA。iTransformer包内前缀均为`iTransformer_datasets/`。双方完整header/列序包含在比较范围，没有去字段空格、改header、重排列、数值舍入或填补。
+
+| 数据集｜本地文件 | 作者发布对象 | 论文页码/表号｜README/脚本位置 | 双方摘要及级别 | 已证语义｜真正剩余缺口 |
+|---|---|---|---|---|
+| Weather｜`AMD/data/weather.csv` | 主Drive对象内`weather/weather.csv` | AMD p11表5；ModernTCN p14介绍1/表6；TimeXer p14 A.1；AMD README24–25→iTransformer README65 | **B**；L `9b2b19b13e342d9c9b9c51620d42b4be232df7fba30e7f5c4968b7c79ab138ad`；R `34ee981d07313e51da2a50bb600072c8ae4a69cb4b0651f4cb93a069d7a2ba63`。L7182728/R7235425 bytes；52696记录 | 【发布＋本地核验】仅CRLF/LF不同，21字段及原顺序一致；两副本零基19043/19044均2020-05-12 06:00:00，不是只有本地才发生。【论文】MPI、2020、名义10分钟。【剩余】链接历史不可变版本未证；重复时间与unique断言的政策冲突仍需决定，未证明原始采集时间严格等间隔。 |
+| ECL｜`AMD/data/electricity.csv` | 主Drive对象内`electricity/electricity.csv` | AMD p11表5；ModernTCN p14介绍3；TimeXer p14 A.1；iTransformer README65；LSTNet数据README第11行 | **B**；L `10b4ddd095548839274ce4d55d3c7d6842b4bfa69ac2a4321a7608622da7b4eb`；R `7e45845d54c5219bad0ae6bc1b5316cf8ff9cead5d33fa998a5a51c2e4a497ad`。L95555457/R95581762 bytes；26304记录 | 【发布＋本地核验】321通道和原header/列序（OT320）与该作者分发文件一致。【论文】小时级、321序列；ModernTCN说明2012–2014。【README】LSTNet数据作者明确写kWh及转为小时消费。【剩余】本包benchmark与原UCI逐步转换/列重命名代码未找到；不能把UCI原始15分钟kW直接移植。作者kWh声明与既有UCI原说明的差异须披露，不以客户姓名未知否定已证基准身份。 |
+| Exchange｜`AMD/data/exchange_rate.csv` | 主Drive对象内`exchange_rate/exchange_rate.csv` | AMD p11表5；ModernTCN p14介绍4/脚注4；iTransformer README65；LSTNet数据README第21行 | **B**；L `d55e7aa2641009814a18ba3279431b13f6d413b0eab195b9ff21988d8cf94e97`；R `48b4d9d3d508f5104162e85b9a6042e3557fde11aa9f2944eba8c0d0efc89842`。L630212/R637800 bytes；7588记录 | 【发布＋本地核验】8列与OT7确实对应本次作者包同一列槽位和顺序。【论文/README】日频、1990–2016及8国名单。【尚未找到】明确的“本地列槽位→币种/基准币/报价方向”字典；国家列举顺序不当作字典。ModernTCN表格长度冲突保留，不能据此删381行或换数据。 |
+| PJM｜`TimeXer/dataset/EPF/PJM.csv` | TimeXer固定commit/blob，见§15.1 | TimeXer p14 A.1/表6、参考[15]；EPF p6–8 §§3.1/3.3/4.1和图2；TimeXer README21 | **A**；L=R=`58cc0ad32e22e61d9e183b0dc8201747f8c2ef822e469832c5beea8d88251cc0`；双方1960359 bytes；52416记录 | 【发布＋本地核验】锁定作者CSV及n闭环。【论文】COMED价格、系统/COMED两forecast角色、2013-01-01至2018-12-24；原EPF图2标USD/MWh，§4.1明确day-d预测在d−1可得。【剩余】TimeXer转换版与原EPF发布文件非字节/格式等价；两forecast明确单位、转换/数值精度链、逐条vintage/issue-time仍未闭环。不能将论文级可得性降成“完全没说明”，也不能升成逐条已审。 |
+| ETTh1｜`AMD/data/ETTh1.csv` | ETDataset固定`11ab373cf9c9f5be7698e219a5a170e1b1c8a930:ETT-small/ETTh1.csv` | AMD p11表5；ModernTCN p14介绍6/脚注6；TimeXer p14 A.1 | **A**；L=R=`f18de3ad269cef59bb07b5438d79bb3042d3be49bdeecf01c1cd6d29695ee066`；双方2589657 bytes；17420记录 | 【发布＋本地核验】对应固定ETDataset发布对象，7通道、OT6；完整文件17420行，不是任务test_end14400。【论文】小时级、油温/6负荷。项目任务端点8640/11520/14400、T512/四H/scaler保持，不将论文样本计数当原始长度。 |
+| UrbanEV｜`AMD/data/UrbanEV/data/{volume,e_price,s_price,weather_central}.csv` | `IntelligentSystemsLab/UrbanEV@44f2aa0c8d89f192bce00bafb0def74a21b39c68`，tracked对象与M1所记一致 | UrbanEV p2/p4/p5；Closed M1 §§4–7/11–13，README89/106–122 | **复用M1既有审计，非本轮重比A/B。** M1 volume SHA=`a55a095ce75af33c59aece2643d5d71b5cd5a0dc73bb97bc553f0a48f40ace32`；e_price=`0076d03b8e400c3e911789e2c7ffb7dd0d44a4414247ead676b508def95bcef4`；s_price=`d125783e042024157f38d1749232696ea2aa893c61fc31672a3c54374498d3dc`；weather_central=`da8c16dcc6a25eadc97ca062998b5dbb01efbb4569efdd693ac98fb5bbc6d065` | 【M1实测复用＋本轮Git元信息】官方repo HEAD/index对象仍对应；没有新冲突，未重读/重哈希当前四份数据。【论文】2022-09至2023-02、275区、小时聚合，volume为额定功率估计的kWh，非直接充电表计真值。目标volume、split-local标签/六fold/scaler与官方默认occupancy及其预处理差异继续保留。 |
+
+B类三文件的独立`sed 's/\r$//' 发布副本 | cmp --silent 本地 -`均退出0；本地均LF、参考CRLF，BOM均无，双方末尾换行状态相同（Weather/ECL有，Exchange无）。因此本次实际只需CRLF→LF，不需要末尾换行/BOM规则才匹配。归一化SHA依次为Weather `6f0d06550a3e10e127157ea5b7c396d79795324ee767abcff981661b3132b006`、ECL `33317c3aefc0d68bc9c3a4e0d686923f00a6b21876dd138199c0f1672d008598`、Exchange `d55e7aa2641009814a18ba3279431b13f6d413b0eab195b9ff21988d8cf94e97`。A类两文件另经原始`cmp --silent`退出0。结果见`comparison-results.json`、`independent-cmp.json`，不叫三份B文件“原始字节一致”。
+
+关于Exchange表述的限定推断：7207恰好等于AMD表5所列5120＋665＋1422三个split样本数之和，因此可能涉及窗口样本数与原始记录数的口径区别；数值相等不证明ModernTCN采用该口径，更不能据此认定数据被删改或论文错误。原始7588记录的直接核验不受该解释未决影响。
+
+### 15.4 PJM记录数、算术与原EPF发布链的界限
+
+PJM CSV逐字节检查引号、转义、CRLF/LF及末行，52417记录含1个header，0空记录/引号内换行/字段数量异常，故n=52416，不是用`wc -l`猜值。既定F=1、floor(.7n)/floor(.2n)得train=36691、validation=5242、test=10483；累计端点36691/41933/52416。T168、H24下，仅作整数算术：
+
+| split | 窗口数 | B128批数 | 余数/处理 |
+|---|---:|---:|---|
+| train | 36500 | 285完整批 | 20，既定drop_last=True |
+| validation | 5219 | 41 | 尾批99，保留 |
+| test | 10460 | 82 | 尾批92，保留；只是长度算术，未解析test值 |
+
+与TimeXer表6列示的样本数相符，但证据方向是“本地实测n→既定窗口算术”，不是由表格反推n。生产配置的PJM endpoints本轮仍为null；此事实足以供审核后接入端点/尾批，不自动解除其他阻塞或启动负载。
+
+为核清被TimeXer引用的原EPF发布链，沿作者`_datasets.py:112`取得[Zenodo record 4624805](https://zenodo.org/records/4624805)元数据；它报告PJM文件2530311 bytes，与TimeXer版本1960359不同，这是取得**第二个PJM可信参照**的具体理由，而非搜索相同镜像。只下载该record的PJM.csv；MD5与发布值`bf78d77746b0331c46ceecfbd6bc9592`相符，SHA=`8596cff7a87cf47f9ee2215bd2af9fc8d6950d57339de9e06c87bad2efd407c6`。
+
+原发布header为`Date, Zonal COMED price, System load forecast, Zonal COMED load foecast`；TimeXer header为`date, System load forecast, Zonal COMED load foecast,OT`。在byte1/line1已不同，列序/header超出B类许可，故此辅助参照为**C类**。只核对header，不对test重排列、取数值、舍入或统计近似匹配；不声称只是列移位而全部值相同。锁定TimeXer的相关py/README中未找到把原EPF发布物生成当前CSV的专用转换脚本；原库reader的`Price/Exogenous`重命名也不等于TimeXer这个处理过程。
+
+【论文明确说明】EPF p8 §4.1将day-d两个外生预测列为在d−1可取得的输入；p6–7说明本地时区和DST插值/均值处理，Zenodo元数据明确PJM采用Eastern Time。这提供**基准设计/发行可得性的论文级依据**，不认证每条当前CSV的发行时间、修订版本或日内更新。USD/MWh为原EPF价格图示单位；TimeXer到原EPF数值转换未证明时，只按来源声明记录，不能把两个负荷forecast单位凭常识写成MW已测通过。当前历史输入政策不扩为使用未来forecast。
+
+唯一建议：保留已锁定TimeXer版本，先审核接纳其A类身份、n及端点事实；转换链问题在现有已批准train/validation前缀内作下一笔独立、限定字段/精度核对，必要时向作者求转换说明。即使前缀核对一致也不得外推全部test值或逐条vintage。当前不换数据、不以原Zenodo替代TimeXer、不放宽单位/as-of条款。没有证据支持“已经泄漏”的结论。
+
+### 15.5 已消除疑问、剩余停止线与执行账
+
+可提交审核解除的**事实疑问**：Weather是否仅本地出现重复（本次作者副本也有）、三标准域是否对应明确作者分发文件（B类已证）、PJM是否对应锁定作者Git对象及其n/端点、ETTh1是否对应固定作者发布对象及完整行数。ECL的基准列身份不再因为未知真实客户姓名而写成未知；Exchange的OT7基准槽位身份与具体币种解释分开。以上不自动修改现行复合mandatory字段。
+
+真正剩余：Weather保留重复记录与unique断言之间仍须明确数据协议决定；ECL原UCI→processed benchmark精确转换/单位链；Exchange币种/基准币/报价列字典；PJM TimeXer转换链、两forecast单位和逐条vintage审计范围。主Drive链接的历史版本不能从本次内容一致推定。图像复核限制见§15.2。**§14.4全部仍Proposed**，不能先落地匿名标准化/按记录政策再倒找证明；用户可以基于本次明确发布身份重新判断需要修订的最小条款，不再泛化为“所有版本资料均未知”。
+
+仅新增一份固定路径/对象的标准库审计脚本。先执行8个精确unittest方法（ID写入`exact-test-ids.json`，正常生命周期、方法不互调）；首次8 passed，failure/error/skipped=0，未用机械复验。显式子case为4种非法引号/行界、5个合法路径绑定＋1个拒绝；全部合成，不import业务/model或用真实数据fixture。真实比对在合成验收后运行，脚本无读取任意CSV的CLI；固定五对路径及唯一reference根，扫描器仅处理字节/分隔符，不将数值/日期转换成模型数据。
+
+直接主比对：五个本地文件各完整读取2次（SHA/结构扫描一次＋独立cmp一次），共215836826 bytes；五个主参照比较读取216010006 bytes。Weather另各读到19045记录前缀，逻辑读取本地2564392/reference2583438 bytes，只输出4个时间字段。PJM辅助参照只输出header和首个差异位置；cmp内部缓冲的实际读取量未追踪，上界为已授权完整文件，未虚称只读1 byte。下载/提取/hash的reference读取另记，不冒充模型实验。完整原包171600194 bytes，仅三目标CSV提取；另取得ETTh1固定对象、PJM Git副本、PJM Zenodo副本、EPF论文和必要公开元数据；无空间/大规模气象数据或其他benchmark提取。所有比对前后原件状态稳定。
+
+测试与执行证据：`synthetic-tests.json/log`、`comparison-results.json`、`byte-access-ledger.json`、`independent-cmp.json`、`weather-prefix-times.json`、`pjm-original-release-check.json`、`paper-index.json`、`source-documents.json`、`audit-facts.json`。0模型/GPU/Adam/训练/checkpoint读取或哈希，0正式test数值解析/统计/评价；承认完整test字节被比较。未重跑§14诊断或旧loader/model/probe。§14首验多1次test调用偏差保留，不能用本轮8项抵账。
+
+终态只增加上述审计工具并修改两文档，保留此前15文件累计dirty修改，index空；不stage/commit/push、closure、冻结J、关闭M5或进入M6。原495/5340、54组/195worker，生产配置/loader/mandatory、作者仓库/环境、Closed M1/M4及AGENTS、baseline和空间路线均不变。精确diff、前后SHA与最终Git状态见本包inventory；修后版本尚待ChatGPT审核。
+
+## 16. 用户明确确认后的数据准入收口与限定复验
+
+### 16.1 授权、版本继承与精确变更范围
+
+本轮用户以“我作为用户确认授权”明确批准Weather原记录建窗、ECL/Exchange已核验benchmark标准化评价及解释限制、PJM锁定TimeXer与原EPF论文级可得性依据，以及对应CPU和两域限定前缀验收；不是因收到§15回执自动放行。本节是对§14.4 Proposed的本次精确确认，不倒写§14–15当时授权。
+
+起点HEAD/local/tracking/live remote均为`99be14ce840e67ecd72720860f5d4ab0247418a1`，0/0，index空、6 modified＋10 untracked，非clean。canonical修前`974a2326c404a66ad3ee1dda730a0cd87b6b894a282785707f82ff6a5b4a47c7`；本文件修前`0ffe42dafbde2ae13b7c6ebfe6f2cc5d9016ff7d8a83f935456dc3f95425938b`。§11–15累计16文件的修前摘要逐项一致。AGENTS、Closed M4、不可变baseline、八来源/环境及空间路线不变。
+
+新证据唯一目录`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-data-admission-ozab6blq/`（下称E）；合成fixture唯一根`/tmp/amd-m5-data-axaq0mkd`。本轮实际修改8个既有工作文件：canonical、本M5、`configs/ch3_formal_profiles.json`、`utils/ch3_data.py`、`tests/test_ch3_formal.py`、`tools/restricted_regression/m5_formal_entry.py`、其`bundle.sha256`、`ch3_runner.py`。未新建平台、任务清单或milestone。M5在当前HEAD已tracked，本轮为modified；配置、runner等原untracked文件是本轮内容修改，不是本轮首次创建。
+
+继承§15证据根`m5-source-version-_rkt_o7f`，本轮仅读取文本证据及五文件stat，不完整扫描/哈希数据、不重新下载/提取。绑定：
+
+| §15文本证据 | SHA-256 |
+|---|---|
+| comparison-results.json | bfcfc2adb157750bbbab434b4f8cba7f65b0fcb48ed14d2fa9a2f8bf57ab8ae1 |
+| independent-cmp.json | 4c1f01ff4ce871f973ccabcac62fd021547af714a0af0ca5a6de117c34dfa88d |
+| published-object-manifest.json | ea9fa63671080ae1dc4d45defb57ba8106495bd6f548852819468a99f021fdbc |
+
+五个本地文件device/inode/size/mtime_ns/ctime_ns均与§15读后记录一致。配置登记继承的原始SHA、细分来源状态及文件状态；loader读前/读后核对stat，preflight只作stat复核，变化则拒绝，不自动接受版本。stat继承并非本轮重新证明完整字节相同；发布物及原始SHA仍以§15为证据，不用规范化SHA替换本地文件SHA。
+
+### 16.2 生效数据政策与仍须披露的限制
+
+| 域 | 已证事实及本次接受范围 | 保留的解释限制与硬边界 |
+|---|---|---|
+| Weather | §15作者分发副本与本地仅CRLF/LF不同；两者均有零基19043/19044重复时间。本次仅该域允许非唯一但非递减时间，按原记录T/H造窗；36887/42157/52696、T512、T (degC)/1不变。 | 不删/去重/排序/插值/补时间/重采样；逆序仍拒绝，其他域唯一时间要求不变。名义10分钟不等于每步严格10分钟；重复不是新增样本扩增。云盘当前副本不能证明所有历史版本。 |
+| ECL | 作者benchmark文本一致，321列原顺序、OT320、18412/21044/26304与train-only scaler保持；仅既定train-standardized指标。 | 原UCI至benchmark的完整转换、客户业务身份和物理单位恢复未独立核实，改为必须披露限制，不要求客户实名，不推导物理用电量误差。不能把未知转换写成已验证。 |
+| Exchange | 作者benchmark文本一致，8列及OT7槽位已证；5311/6071/7588及scaler不变。 | 币种、基准币、报价方向未知仍披露，不再作本次标准化基准运行前置；不猜币种、不解释交易收益。 |
+| PJM | TimeXer固定commit `76011909357972bd55a27adba2e1be994d81b327`与§15 A类CSV；n52416、端点36691/41933/52416。原EPF §4.1 d−1可得性为documented source assumption。 | 非record-level vintage audit Passed；两forecast单位、完整TimeXer→原EPF转换和逐条发行审计仍未独立核验，不再是当前运行前置；潜在源数据风险仍披露。不换Zenodo、不搜索全值转换、不引入未来forecast。 |
+
+PJM价格及系统/COMED负荷forecast角色按TimeXer/原EPF登记；原EPF价格图标USD/MWh是来源声明，不由此猜两个forecast的单位。版本/字段/端点、用户接受的来源依据与任务解释范围、仍未核验的业务解释在配置`source_admission`内分别记录；四个旧复合mandatory以本节用户精确授权替代，未把所有metadata标Passed。ETTh1/UrbanEV及其他训练、test隔离、历史信息集、目标/有序aux、split/scaler政策不变。
+
+### 16.3 同SHA页面图像复核与两种规范化口径
+
+本次按用户转达登记“**ChatGPT同SHA页面图像复核**”：ModernTCN PDF SHA `2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944`，物理第14页表6 Exchange Dataset Size确为7207；只确认印刷内容，不裁定原因、不改已核验7588记录。TimeXer PDF SHA `c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964`，物理第14页正文Wet Bulb与表6 CO2-Concentration确实不同，保留不一致，不改本项目T (degC)/1。Codex本轮未渲染/查看这些页面、未安装环境或改PDF；§15当时未取得页面图像的事实保持。
+
+§15脚本`normalized_sha256`使用其完整声明规则：去开头UTF-8 BOM、CRLF→LF、去一个末尾LF；这不是独立cmp的口径。独立cmp仅CRLF→LF即通过，三文件无BOM且双方末尾换行状态相同。本轮仅澄清口径，不重新扫描计算。
+
+### 16.4 精确CPU验收与失败计账
+
+执行前`E/exact-test-ids.json`固定16个完整ID：10个`test_ch3_formal.DataAdmissionTests`方法，以及6个既有`DataTests`方法（prefix_stops_before_poison、scaler_train_only_and_val_context、tail_and_shuffle_policy、no_implicit_test_capability、ordered_header_rejected、short_prefix_rejected）。受限bootstrap在业务import/fixture前核对ID/源码/协议摘要，正常unittest生命周期；方法不互调，普通fixture helper独立。未discover整套、未调用模型路径。新方法覆盖Weather重复保留/逆序拒绝/其他域严格、state变化拒绝、PJM算术、分层来源状态、旧许可/报告拒绝、窄前缀能力、495任务/54组及全部495个原profile逐项相等。
+
+首验执行8方法：7 passed、1 error、0 failure/skip、8 unexecuted。错误是旧协议许可负例夹具误带真实作者来源，preflight试图读未绑定DLinear源码，被guard拒绝；未读到源码内容、不放宽guard。唯一机械修复把该负例来源集合设为空的合成fixture，保留旧protocol mismatch断言。修后同一源码完整复验16方法：16 passed、0 failure/error/skip/unexecuted。合计24次方法调用，未超16＋16上限；不能把首验7项拼接成终态。完整日志、实际启动/终态ID及失败trace保留于两次`cpu-tests-attempt*/{ledger.jsonl,result.json,audit.jsonl}`。
+
+显式参数化负例/核对：其他域唯一时间4子case、来源状态4域、前缀错误3子case、时间策略拒绝2项、495 profile/54组配置相等检查；这些是已列方法内部的固定检查，不运行模型。`acceptance-ledger.json`单列，不隐藏方法互调。§11–15已有成本及§14额外1次test调用偏差保持，不由本轮通过抵账。
+
+### 16.5 两域各一次真实前缀连通
+
+窄`ch3_prefix`能力只接受`ch3.prefix.Weather.train_validation`或`ch3.prefix.PJM.train_validation`，路径/42157或41933记录上限、用途及当前源码SHA在import/fixture前绑定；禁止model/optimizer/GPU，0 Adam/forward/backward。没有扩大旧M4或全局访问策略。
+
+| 域 | 解析／scaler-fit止点 | 实际CPU首batch及目标 | 窗口／尾批与时间核对 |
+|---|---|---|---|
+| Weather | 42157／36887；无test对象 | train/validation各[128,512,21]→[128,96,1]，finite；另取实际尾批55 | H96 train36280、validation5175。前缀42156个间隔中42154个10分钟、1个0分钟（后重复索引19044）、1个100分钟；无逆序。原记录/值保留，未修补间隔。其他H192/336/720 validation窗5079/4935/4551、尾87/71/71为同一前缀长度算术。 |
+| PJM | 41933／36691；无test对象 | train/validation各[128,168,3]→[128,24,1]，finite；另取实际尾批99 | train36500窗，285完整批、drop20；validation5219窗、40完整批＋99。41932个前缀间隔均1小时，无重复/逆序。test10460窗、尾92仅整数算术，未解析test。 |
+
+各域首次通过，0前缀复验；各只调用一次`load`，完整header/字段原序、前缀finite、指定目标及train-only scaler经同一生产路径核对。实际尾批用该validation Dataset最后余数索引与同一collation取得，不遍历完整validation做评价。日志为`weather-prefix-attempt1/`、`pjm-prefix-attempt1/`下的`prefix-result.json`、config/audit/budget和进程日志。prefix摘要只认证已读记录的规范化文本，不是全文件SHA；没有新完整数据SHA。解析止于批准端点，不向模型送数据、不解析/统计/评价test；不把文本I/O缓冲说成逐字节操作系统隔离。
+
+Weather的100分钟间隔作为实际异常明确披露，不与本次已批准的非递减按记录合同冲突，不自动补时间。ECL/Exchange/ETTh1/UrbanEV复用§11–15有效证据，未重读其前缀或UrbanEV全部文件。本轮0GPU、0模型/optimizer、0Adam、0前向/反向、0checkpoint读取/哈希。
+
+### 16.6 54组技术条件、真正停止线与完整操作命令
+
+`E/probe-tail-readiness.json`从未改变的495任务独立核账：495/5340、54组/195代表worker；所有组端点/validation尾批可计算且窗口为正。47组四任务＋7组PJM单fit保持。Exchange H336/H720的validation只有425/41窗、小于B512，真实validation仅尾批；既定probe的合成完整B512是保守资源形状检查，不冒称实际存在整批。静态算术整理时曾误设n≥eval_batch假设并停止，纠正该报告假设后登记真实完整批数0；不是模型/测试额外调用或科学参数变更。
+
+前置工程/数据阻塞在本次范围内已收口；`start_probe.sh dry-run/preflight`实测54/195，阻塞只为`reviewed clean closure required`及`explicit review/closure authorization missing`（preflight预期exit2）。没有生成许可、猜未来commit或把模板置true。继承§14已测PID映射路径，未知外部PID/坏采样/UUID不符/余量不足仍拒绝；正式模型单路及并发资源尚未测，旧smoke整进程4GiB Not verified保持。因此可交ChatGPT整体审核；统一closure/clean及实际许可后由用户启动完整probe，不是在此认定54组资源Passed。完整probe仍3510保守首验Adam上限、实际流程≤3426及额外机械上限512，不追加预算。
+
+以下是修后审核、统一closure后使用的完整命令；`probe-review.json`目前不存在，须绑定实际closure commit、修后完整配置/代码/源/环境/硬件及reviewed用途，不得用旧配置许可。当前直接preflight仍会拒绝。日志/status/complete/safe-stop仅在用户实际启动后使用：
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+CH3_E=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-data-admission-ozab6blq
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight --approval "$CH3_E/probe-review.json"
+bash scripts/ch3/start_probe.sh start --approval "$CH3_E/probe-review.json"
+bash scripts/ch3/start_probe.sh logs
+tail -n 100 "$CH3_E/probe-controller.log"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh complete
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+`start`沿既有tmux守护，`safe-stop`沿自有STOP标志，不杀无关进程；`complete`读取/核验当前协议覆盖的终态，文件存在不自动等于所有组Passed。失败保留全部现场，不能自动fresh重跑。正式`start_model.sh --model <名称>`另外要求结构冻结、M6授权、数据绑定及已审核资源结果，本轮均不代批。模型按组启动规则、同run跨表引用、F0/PJM TargetOnly=0、TiDE Deferred不变。
+
+本轮不stage/commit/push、不closure、不跑完整probe/正式训练、不冻结J/关闭M5/进入M6。精确本轮diff、修前/修后SHA、最终Git状态与范围见`E/change-inventory.json`、`E/changes.patch`和`E/final-verification.json`；只是可审阅材料，不声称ChatGPT已经读取本轮新字节。

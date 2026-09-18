@@ -86,6 +86,11 @@ def check_access(path, writing=False, dir_fd=None):
     state = _STATE
     if state is None:
         raise RuntimeError('guard not installed')
+    if state.get('purpose', '').startswith('ch3_'):
+        from m5_formal_entry import check_access as check_ch3_access
+        if check_ch3_access(real, writing, state, deny,
+                            getattr(_LOCAL, 'ch3_prefix', None)):
+            return real
     if state.get('purpose', '').startswith('m5_'):
         from m5_entry import check_m5_access
         check_m5_access(real, writing, state, deny)
@@ -242,7 +247,10 @@ def install(config_path, expected_sha256):
     log = os.path.realpath(c['audit_log'])
     if not _within(config_path, session) or not _within(log, session):
         raise RuntimeError('configuration/audit log must be inside execution directory')
-    if c.get('purpose', '').startswith('m5_'):
+    if c.get('purpose', '').startswith('ch3_'):
+        from m5_formal_entry import validate_config
+        validate_config(c)
+    elif c.get('purpose', '').startswith('m5_'):
         from m5_entry import validate_config
         validate_config(c)
     elif c.get('fixture_root') is not None:
@@ -279,6 +287,25 @@ def require_installed():
     if _STATE['config_sha256'] != os.environ.get('AMD_RR_CONFIG_SHA256'):
         raise RuntimeError('guard environment handshake failed')
     return _STATE
+
+
+@contextmanager
+def permit_ch3_prefix(path, rows):
+    state=require_installed()
+    real=os.path.realpath(path)
+    if not state.get('purpose','').startswith('ch3_'):
+        raise PermissionError('CH3 prefix requires its own authorization')
+    if _execution_path(real,state):
+        yield
+        return
+    limit=state.get('prefix_files',{}).get(real)
+    if not isinstance(rows,int) or limit is None or not 0<rows<=limit:
+        deny('prefix',real,'unapproved observation endpoint')
+    previous=getattr(_LOCAL,'ch3_prefix',None)
+    _LOCAL.ch3_prefix=real
+    record('ch3_prefix_parse',path=real,record_limit=rows,full_file_hash=False)
+    try:yield
+    finally:_LOCAL.ch3_prefix=previous
 
 
 @contextmanager
