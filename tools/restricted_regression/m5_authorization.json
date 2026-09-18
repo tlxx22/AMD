@@ -1,0 +1,604 @@
+{
+  "package": "m5-source-smoke-8sr2d3d_",
+  "repo": "/public/home/yueweiting/大论文/AMD",
+  "session_root": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-smoke-8sr2d3d_",
+  "fixture_root": "/tmp/amd-m5-8sr2d3d_-7f0p1cul",
+  "sources": {
+    "AMD-upstream": {
+      "root": "/public/home/yueweiting/大论文/AMD-upstream",
+      "repository": "/public/home/yueweiting/大论文/AMD-upstream",
+      "url": "https://github.com/TROUBADOUR000/AMD.git",
+      "commit": "000d377a1ed8946aa817ff357cdf1de64b99abb9",
+      "initial_status": "",
+      "licenses": {
+        "LICENSE": {
+          "sha256": "b0dd13cac7796d87fd9fef46e8aeceaf47239a44d631ac51755fa1dea52bec7b",
+          "opening": "MIT License\n\nCopyright (c) 2024 TROUBADOUR000\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including w"
+        }
+      },
+      "dependency_files": {
+        "requirements.txt": {
+          "sha256": "b527b0f5858882a09303040fe57157b669eac1bc8102928de06b78bde92c1df9",
+          "text": "numpy==1.24.3\npandas==2.0.3\nscikit_learn==1.3.2\ntorch==2.0.1\ntorchaudio==2.0.2\ntorchvision==0.15.2\ntqdm==4.66.2\n"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/AMD-upstream/models/tsAMD.py",
+      "module": "models.tsAMD",
+      "class": "AMD",
+      "config": {
+        "input_shape": [
+          96,
+          7
+        ],
+        "pred_len": 24,
+        "n_block": 1,
+        "dropout": 0.1,
+        "patch": 16,
+        "k": 3,
+        "c": 2,
+        "alpha": 0,
+        "target_slice": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "norm": true,
+        "layernorm": true
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/AMD-upstream/main.py",
+      "four_arg": false,
+      "modules": {
+        "models.tsAMD": "/public/home/yueweiting/大论文/AMD-upstream/models/tsAMD.py",
+        "models": "/public/home/yueweiting/大论文/AMD-upstream/models/__init__.py",
+        "models.common": "/public/home/yueweiting/大论文/AMD-upstream/models/common.py",
+        "models.tsmoe": "/public/home/yueweiting/大论文/AMD-upstream/models/tsmoe.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/AMD-upstream/models/tsAMD.py": "2158162acc897bb173aa6a954f8c431290492958dfcd58c860fe08720d72bfad",
+        "/public/home/yueweiting/大论文/AMD-upstream/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/AMD-upstream/models/common.py": "f599ed84348abc85aad92fbea1ac453318706a3bfe80bd03a88348c90ea398a1",
+        "/public/home/yueweiting/大论文/AMD-upstream/models/tsmoe.py": "ac176ca882c98945900eed79a45c04c4002ac3fa9ebf6013de7a3c3503e50d53"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_AMD-upstream"
+    },
+    "DLinear": {
+      "root": "/public/home/yueweiting/大论文/LTSF-Linear",
+      "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+      "url": "https://github.com/cure-lab/LTSF-Linear.git",
+      "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+      "initial_status": "",
+      "licenses": {
+        "FEDformer/LICENSE": {
+          "sha256": "811126f0b190b1b73691b03f5103e584783b3847a633de4a9d36915de7e405d1",
+          "opening": "MIT License\n\nCopyright (c) 2021 xxxx\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without li"
+        },
+        "LICENSE": {
+          "sha256": "195440db73029b048f34f3a8509add1611d6608e1edafb766eb398a65300f7a2",
+          "opening": "Copyright 2022 DLinear Authors. All rights reserved.\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRO"
+        },
+        "Pyraformer/LICENSE": {
+          "sha256": "63c71c64fbbc0fc885dd7240428a77536eaccb09fac915df161efa2649a4700a",
+          "opening": "Copyright 2022 - The AntGroup-RI team. All rights reserved.\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE"
+        }
+      },
+      "dependency_files": {
+        "Pyraformer/requirements.txt": {
+          "sha256": "c380ca077e71d1ac231679e64e91f4760409cceb485fa4118a34d403c428b713",
+          "text": "absl-py==0.14.1\nAE==0.0.0\naxial-positional-embedding==0.2.1\nbcrypt==3.2.0\ncachetools==4.2.4\ncertifi==2021.5.30\ncffi==1.14.6\ncharset-normalizer==2.0.6\n# Editable install with no version control (compressai==1.1.9.dev0)\n-e /home/szliu/compressai\ncrowdposetools==2.0\ncryptography==3.4.8\ncycler==0.10.0\nCython==3.0.0a9\neinops==0.3.2\nfbm==0.3.0\ngoogle-auth==1.35.0\ngoogle-auth-oauthlib==0.4.6\ngrpcio==1.41.0\nidna==3.2\nimageio==2.9.0\nimportlib-metadata==4.8.1\njoblib==1.1.0\njson-tricks==3.15.5\nkiwisolver==1.3.2\nlocal-attention==1.4.3\nMarkdown==3.3.4\nmatplotlib==3.4.3\nmkl-fft==1.3.0\nmkl-random==1.2.2\nmkl-service==2.4.0\nmunkres==1.1.4\nnumpy==1.21.2\noauthlib==3.1.1\nolefile @ file:///home/conda/feedstock_root/build_artifacts/olefile_1602866521163/work\nopencv-python==4.5.3.56\npackaging==21.0\npandas==1.3.3\nparamiko==2.7.2\nPillow @ file:///tmp/build/80754af9/pillow_1625670624344/work\nproduct-key-memory==0.1.10\nprotobuf==3.18.0\npyasn1==0.4.8\npyasn1-modules==0.2.8\npycocotools==2.0\npycparser==2.20\nPyNaCl==1.4.0\npynvml==11.4.1\npyparsing==3.0.0rc1\npython-dateutil==2.8.2\npytorch-msssim==0.2.1\npytz==2021.1\nPyYAML==5.4.1\nreformer-pytorch==1.4.3\nrequests==2.26.0\nrequests-oauthlib==1.3.0\nrsa==4.7.2\nscikit-learn==1.0.2\nscipy==1.5.4\nsetuptools-scm==6.3.2\nsix @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work\nsklearn==0.0\ntensorboard==2.6.0\ntensorboard-data-server==0.6.1\ntensorboard-plugin-wit==1.8.0\ntensorboardX==2.4\nthreadpoolctl==3.0.0\ntimm==0.4.12\ntomli==1.2.1\ntorch==1.8.0\ntorchvision==0.9.0\ntqdm==4.62.2\ntyping-extensions==3.10.0.2\nurllib3==1.26.7\nWerkzeug==2.0.2\nyacs==0.1.8\nzipp==3.6.0\n"
+        },
+        "requirements.txt": {
+          "sha256": "1d0c070dc34b790d124e137e27e7e75b39509643075455432355f5c37440d6cc",
+          "text": "numpy\nmatplotlib\npandas\nscikit-learn\ntorch==1.9.0"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/LTSF-Linear/models/DLinear.py",
+      "module": "models.DLinear",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 7,
+        "individual": false
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+      "four_arg": false,
+      "modules": {
+        "models.DLinear": "/public/home/yueweiting/大论文/LTSF-Linear/models/DLinear.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/LTSF-Linear/models/DLinear.py": "0893b53cb6473d6bdca7aeca514cb3ee12efa6df227c29c4469571c9711451cc"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_DLinear"
+    },
+    "PatchTST": {
+      "root": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised",
+      "repository": "/public/home/yueweiting/大论文/PatchTST",
+      "url": "https://github.com/yuqinie98/PatchTST.git",
+      "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+      "initial_status": "",
+      "licenses": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "opening": "                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \""
+        },
+        "PatchTST_supervised/Formers/FEDformer/LICENSE": {
+          "sha256": "811126f0b190b1b73691b03f5103e584783b3847a633de4a9d36915de7e405d1",
+          "opening": "MIT License\n\nCopyright (c) 2021 xxxx\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without li"
+        },
+        "PatchTST_supervised/Formers/Pyraformer/LICENSE": {
+          "sha256": "63c71c64fbbc0fc885dd7240428a77536eaccb09fac915df161efa2649a4700a",
+          "opening": "Copyright 2022 - The AntGroup-RI team. All rights reserved.\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE"
+        }
+      },
+      "dependency_files": {
+        "PatchTST_supervised/Formers/Pyraformer/requirements.txt": {
+          "sha256": "c380ca077e71d1ac231679e64e91f4760409cceb485fa4118a34d403c428b713",
+          "text": "absl-py==0.14.1\nAE==0.0.0\naxial-positional-embedding==0.2.1\nbcrypt==3.2.0\ncachetools==4.2.4\ncertifi==2021.5.30\ncffi==1.14.6\ncharset-normalizer==2.0.6\n# Editable install with no version control (compressai==1.1.9.dev0)\n-e /home/szliu/compressai\ncrowdposetools==2.0\ncryptography==3.4.8\ncycler==0.10.0\nCython==3.0.0a9\neinops==0.3.2\nfbm==0.3.0\ngoogle-auth==1.35.0\ngoogle-auth-oauthlib==0.4.6\ngrpcio==1.41.0\nidna==3.2\nimageio==2.9.0\nimportlib-metadata==4.8.1\njoblib==1.1.0\njson-tricks==3.15.5\nkiwisolver==1.3.2\nlocal-attention==1.4.3\nMarkdown==3.3.4\nmatplotlib==3.4.3\nmkl-fft==1.3.0\nmkl-random==1.2.2\nmkl-service==2.4.0\nmunkres==1.1.4\nnumpy==1.21.2\noauthlib==3.1.1\nolefile @ file:///home/conda/feedstock_root/build_artifacts/olefile_1602866521163/work\nopencv-python==4.5.3.56\npackaging==21.0\npandas==1.3.3\nparamiko==2.7.2\nPillow @ file:///tmp/build/80754af9/pillow_1625670624344/work\nproduct-key-memory==0.1.10\nprotobuf==3.18.0\npyasn1==0.4.8\npyasn1-modules==0.2.8\npycocotools==2.0\npycparser==2.20\nPyNaCl==1.4.0\npynvml==11.4.1\npyparsing==3.0.0rc1\npython-dateutil==2.8.2\npytorch-msssim==0.2.1\npytz==2021.1\nPyYAML==5.4.1\nreformer-pytorch==1.4.3\nrequests==2.26.0\nrequests-oauthlib==1.3.0\nrsa==4.7.2\nscikit-learn==1.0.2\nscipy==1.5.4\nsetuptools-scm==6.3.2\nsix @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work\nsklearn==0.0\ntensorboard==2.6.0\ntensorboard-data-server==0.6.1\ntensorboard-plugin-wit==1.8.0\ntensorboardX==2.4\nthreadpoolctl==3.0.0\ntimm==0.4.12\ntomli==1.2.1\ntorch==1.8.0\ntorchvision==0.9.0\ntqdm==4.62.2\ntyping-extensions==3.10.0.2\nurllib3==1.26.7\nWerkzeug==2.0.2\nyacs==0.1.8\nzipp==3.6.0\n"
+        },
+        "PatchTST_supervised/requirements.txt": {
+          "sha256": "72753f868c28ce139b3bcb4e0633cdbe2c5e19fbc1f27e3bb82470acfe5df25a",
+          "text": "numpy\nmatplotlib\npandas\nscikit-learn\ntorch==1.11.0"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/models/PatchTST.py",
+      "module": "models.PatchTST",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 7,
+        "individual": false,
+        "task_name": "long_term_forecast",
+        "label_len": 0,
+        "features": "M",
+        "d_model": 16,
+        "d_ff": 32,
+        "n_heads": 4,
+        "e_layers": 1,
+        "dropout": 0.1,
+        "embed": "timeF",
+        "freq": "h",
+        "factor": 1,
+        "activation": "gelu",
+        "output_attention": false,
+        "use_norm": 1,
+        "patch_len": 16,
+        "stride": 8,
+        "padding_patch": "end",
+        "fc_dropout": 0.0,
+        "head_dropout": 0.0,
+        "revin": 1,
+        "affine": 0,
+        "subtract_last": 0,
+        "decomposition": 0,
+        "kernel_size": 25
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+      "four_arg": false,
+      "modules": {
+        "models.PatchTST": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/models/PatchTST.py",
+        "layers.PatchTST_backbone": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_backbone.py",
+        "layers.PatchTST_layers": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_layers.py",
+        "layers.RevIN": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/RevIN.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/models/PatchTST.py": "49d8bb865e1226d6338842f4b33c4bc6992cefb048dc2a4a5a8c410ca708586b",
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_backbone.py": "df67173153787c2356bdfb6491159cd754332ef7382986efe879e1fbea8ebf26",
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_layers.py": "21c06c70a90c60ee2a269b5c600c702834dea22cdfd72915e6b0f8b4a28db3f6",
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/RevIN.py": "e64c0ccded9228b347134e7368420d3fb10f70c75145b5ff2d8bdd8c3af59df6"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_PatchTST"
+    },
+    "iTransformer": {
+      "root": "/public/home/yueweiting/大论文/iTransformer",
+      "repository": "/public/home/yueweiting/大论文/iTransformer",
+      "url": "https://github.com/thuml/iTransformer.git",
+      "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+      "initial_status": "",
+      "licenses": {
+        "LICENSE": {
+          "sha256": "29d2a4c09fa577780522219dc248466977f77cd420354c5e9a0e86550be2b849",
+          "opening": "MIT License\n\nCopyright (c) 2022 THUML @ Tsinghua University\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restrictio"
+        }
+      },
+      "dependency_files": {
+        "requirements.txt": {
+          "sha256": "c537d7154b0e27442d695788439482a1f4768722762e8504e980374a8b7929c1",
+          "text": "pandas==1.5.3\nscikit-learn==1.2.2\nnumpy==1.23.5\nmatplotlib==3.7.0\ntorch==2.0.0\nreformer-pytorch==1.4.4\n"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/iTransformer/model/iTransformer.py",
+      "module": "model.iTransformer",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 7,
+        "individual": false,
+        "task_name": "long_term_forecast",
+        "label_len": 0,
+        "features": "M",
+        "d_model": 16,
+        "d_ff": 32,
+        "n_heads": 4,
+        "e_layers": 1,
+        "dropout": 0.1,
+        "embed": "timeF",
+        "freq": "h",
+        "factor": 1,
+        "activation": "gelu",
+        "output_attention": false,
+        "use_norm": 1,
+        "class_strategy": "projection"
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/iTransformer/run.py",
+      "four_arg": true,
+      "modules": {
+        "model.iTransformer": "/public/home/yueweiting/大论文/iTransformer/model/iTransformer.py",
+        "model": "/public/home/yueweiting/大论文/iTransformer/model/__init__.py",
+        "layers.Transformer_EncDec": "/public/home/yueweiting/大论文/iTransformer/layers/Transformer_EncDec.py",
+        "layers.SelfAttention_Family": "/public/home/yueweiting/大论文/iTransformer/layers/SelfAttention_Family.py",
+        "layers.Embed": "/public/home/yueweiting/大论文/iTransformer/layers/Embed.py",
+        "layers": "/public/home/yueweiting/大论文/iTransformer/layers/__init__.py",
+        "utils.masking": "/public/home/yueweiting/大论文/iTransformer/utils/masking.py",
+        "utils": "/public/home/yueweiting/大论文/iTransformer/utils/__init__.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/iTransformer/model/iTransformer.py": "6f34777a5a12c253a293f79e7e1fd5b6f79ac100b443951e051e269e7e2542db",
+        "/public/home/yueweiting/大论文/iTransformer/model/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/iTransformer/layers/Transformer_EncDec.py": "985c31f4ae187b08afaa9663dc960a40544b2ec33ab55389ceab3930edc1ce02",
+        "/public/home/yueweiting/大论文/iTransformer/layers/SelfAttention_Family.py": "38ac67428d528b8e145e4944ca059b40629a8446c891142602d5aaadc38dfd9e",
+        "/public/home/yueweiting/大论文/iTransformer/layers/Embed.py": "2de7e5049a696d320a23a8bdb6e08e823cf7fa3f246a0a49555fcd729c5c8398",
+        "/public/home/yueweiting/大论文/iTransformer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/iTransformer/utils/masking.py": "02f453e52cfaec65e34132923add80e7132f188706680fa86d7bd884976e09ef",
+        "/public/home/yueweiting/大论文/iTransformer/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_iTransformer"
+    },
+    "TimeMixer": {
+      "root": "/public/home/yueweiting/大论文/TimeMixer",
+      "repository": "/public/home/yueweiting/大论文/TimeMixer",
+      "url": "https://github.com/kwuking/TimeMixer.git",
+      "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+      "initial_status": "",
+      "licenses": {
+        "LICENSE": {
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "opening": "                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \""
+        }
+      },
+      "dependency_files": {
+        "requirements.txt": {
+          "sha256": "2b7b6434c94f0e74d68ce788eb0ec25a7eb8581991f167f379558a10f21171b9",
+          "text": "einops==0.4.1\nmatplotlib==3.4.3\nnumpy==1.22.4\npandas==1.1.5\npatool==1.12\nreformer_pytorch==1.4.4\nscikit_learn==1.2.1\nscipy==1.8.0\nsktime==0.4.1\nsympy==1.11.1\ntorch==1.7.1\ntqdm==4.64.0\n# only test latest version of sktime\nsktime==0.29.1; python_version == \"3.8\"\nPyWavelets==1.9.0\n"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py",
+      "module": "models.TimeMixer",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 7,
+        "individual": false,
+        "task_name": "long_term_forecast",
+        "label_len": 0,
+        "features": "M",
+        "d_model": 16,
+        "d_ff": 32,
+        "n_heads": 4,
+        "e_layers": 1,
+        "dropout": 0.1,
+        "embed": "timeF",
+        "freq": "h",
+        "factor": 1,
+        "activation": "gelu",
+        "output_attention": false,
+        "use_norm": 1,
+        "down_sampling_layers": 1,
+        "down_sampling_window": 2,
+        "down_sampling_method": "avg",
+        "channel_independence": 1,
+        "decomp_method": "moving_avg",
+        "moving_avg": 25,
+        "use_future_temporal_feature": 0
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+      "four_arg": true,
+      "modules": {
+        "models.TimeMixer": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py",
+        "models": "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py",
+        "layers.Autoformer_EncDec": "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py",
+        "layers.Embed": "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py",
+        "layers.StandardNorm": "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py",
+        "layers": "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py": "817d62f4aac54c8566e560f6d3785856e31c8ee51460279ee3d0a4823f11d4be",
+        "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py": "48745b4bb647355e9845792a855df9c59fd7df7fcc664c765351fec390c4073e",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py": "ab492ea2f68459bbcf3cbffdd1beb75b24d0d70248d017a313a3b470316aaa2b",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py": "cc1c0bc65b7b094bbe83f988fb05b86272a59638c030c3781aa52ce8880379df",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_TimeMixer"
+    },
+    "ModernTCN": {
+      "root": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting",
+      "repository": "/public/home/yueweiting/大论文/ModernTCN",
+      "url": "https://github.com/luodhhh/ModernTCN.git",
+      "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+      "initial_status": "",
+      "licenses": {
+        "LICENSE": {
+          "sha256": "62c172f180a9c70514e597a2e3bd22f12d3eb6eb2af1cbd79c83d4292a749115",
+          "opening": "MIT License\n\nCopyright (c) 2024 luodhhh\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without"
+        }
+      },
+      "dependency_files": {
+        "requirements.txt": {
+          "sha256": "0edd99b0068edf5b31bed4e44b27c34ec68ffe36cac66ca9fd8ba87459b72575",
+          "text": "einops\nmatplotlib\nnumpy\npandas\npatool\nreformer-pytorch\nscikit-learn\nscipy\nsktime\nsympy\ntorch\ntqdm"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py",
+      "module": "models.ModernTCN",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 7,
+        "individual": false,
+        "stem_ratio": 6,
+        "downsample_ratio": 2,
+        "ffn_ratio": 1,
+        "num_blocks": [
+          1
+        ],
+        "large_size": [
+          7
+        ],
+        "small_size": [
+          3
+        ],
+        "dims": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "dw_dims": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "small_kernel_merged": false,
+        "dropout": 0.1,
+        "head_dropout": 0.0,
+        "use_multi_scale": false,
+        "revin": 1,
+        "affine": 0,
+        "subtract_last": 0,
+        "freq": "h",
+        "kernel_size": 25,
+        "patch_size": 8,
+        "patch_stride": 4,
+        "decomposition": 0
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+      "four_arg": false,
+      "modules": {
+        "models.ModernTCN": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py",
+        "layers.RevIN": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/layers/RevIN.py",
+        "models.ModernTCN_Layer": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN_Layer.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py": "daf74722e40d928e5ed6bc871b528a5d5d2c9090f30cafb89110cc88dc60fa30",
+        "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/layers/RevIN.py": "1e08d0b3679f4ef79ac7f98a7f719f8d7f8a04595022ed34f702c7d70c0c4d90",
+        "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN_Layer.py": "b2291534c6a11ebd80882bed89f7cf8c76c721b8e0495294659f2c5b0fe88cea"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_ModernTCN"
+    },
+    "TimeXer": {
+      "root": "/public/home/yueweiting/大论文/TimeXer",
+      "repository": "/public/home/yueweiting/大论文/TimeXer",
+      "url": "https://github.com/thuml/TimeXer.git",
+      "commit": "76011909357972bd55a27adba2e1be994d81b327",
+      "initial_status": "",
+      "licenses": "No LICENSE file in tracked tree; no permission inferred",
+      "dependency_files": {
+        "requirements.txt": {
+          "sha256": "8c6a1840b0922fb9183f3b61ca52aed1fe79c3141475e3e60b5ce698a8a0b96a",
+          "text": "einops==0.4.0\nmatplotlib==3.7.0\nnumpy==1.23.5\npandas==1.5.3\npatool==1.12\nreformer-pytorch==1.4.4\nscikit-learn==1.2.2\nscipy==1.10.1\nsktime==0.16.1\nsympy==1.11.1\ntorch==2.0.0\ntqdm==4.64.1\n"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/TimeXer/models/TimeXer.py",
+      "module": "models.TimeXer",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 7,
+        "individual": false,
+        "task_name": "long_term_forecast",
+        "label_len": 0,
+        "features": "MS",
+        "d_model": 16,
+        "d_ff": 32,
+        "n_heads": 4,
+        "e_layers": 1,
+        "dropout": 0.1,
+        "embed": "timeF",
+        "freq": "h",
+        "factor": 1,
+        "activation": "gelu",
+        "output_attention": false,
+        "use_norm": 1,
+        "patch_len": 16
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/TimeXer/run.py",
+      "four_arg": true,
+      "modules": {
+        "models.TimeXer": "/public/home/yueweiting/大论文/TimeXer/models/TimeXer.py",
+        "models": "/public/home/yueweiting/大论文/TimeXer/models/__init__.py",
+        "layers.SelfAttention_Family": "/public/home/yueweiting/大论文/TimeXer/layers/SelfAttention_Family.py",
+        "layers.Embed": "/public/home/yueweiting/大论文/TimeXer/layers/Embed.py",
+        "layers": "/public/home/yueweiting/大论文/TimeXer/layers/__init__.py",
+        "utils.masking": "/public/home/yueweiting/大论文/TimeXer/utils/masking.py",
+        "utils": "/public/home/yueweiting/大论文/TimeXer/utils/__init__.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/TimeXer/models/TimeXer.py": "b334d7869544d0a5de7a35501d0342d7bd0be4ebda06ccc045855a42819728c0",
+        "/public/home/yueweiting/大论文/TimeXer/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeXer/layers/SelfAttention_Family.py": "6f6592aed0753e342fc04c01db70528c2eb191eeb067cd5fd4c8d348fddcb794",
+        "/public/home/yueweiting/大论文/TimeXer/layers/Embed.py": "17e7c3577324c41a0da427a199c955b782fde905aabb1f7cbc3c4e15ebd4ae35",
+        "/public/home/yueweiting/大论文/TimeXer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeXer/utils/masking.py": "5976ac3dc84915d0d294c1761573bc18434751f29ec421bcca5a9b280de46bae",
+        "/public/home/yueweiting/大论文/TimeXer/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_TimeXer"
+    },
+    "Sonnet": {
+      "root": "/public/home/yueweiting/大论文/Sonnet",
+      "repository": "/public/home/yueweiting/大论文/Sonnet",
+      "url": "https://github.com/ClaudiaShu/Sonnet.git",
+      "commit": "bf3d4801d34c5e7261718490f287c6fb15cadfdb",
+      "initial_status": "",
+      "licenses": "No LICENSE file in tracked tree; no permission inferred",
+      "dependency_files": {
+        "requirements.txt": {
+          "sha256": "dd1f9f264664dc36a671295b81bf5fec17631a297e10e92ece5c4fa520e62231",
+          "text": "pandas==2.2.3\nnumpy==2.1.0\nlightning==2.6.0\npytest==8.3.4\nipykernel==6.29.5\npandas-stubs==2.2.3.241126\ntypes-tqdm\ntorch==2.5.1\ntorchvision==0.20.1\ntimm==1.0.3\nseaborn==0.13.2\nruamel.yaml==0.18.10\nPyWavelets==1.8.0\n"
+        },
+        "setup.py": {
+          "sha256": "85a9f7773200d374a04ad42006a78efbf580c5680602367150b09ebd9979dcc7",
+          "text": "from setuptools import find_packages, setup  # type: ignore\n\n# Read the content of the README file\nwith open(\"README.md\", \"r\") as fh:\n    long_description = fh.read()\n\nsetup(\n    name=\"sonnet\",\n    version=\"0.1.0\",\n    long_description=long_description,\n    long_description_content_type=\"text/markdown\",\n    packages=find_packages(),\n    classifiers=[\n        \"Programming Language :: Python :: 3\",\n        \"License :: OSI Approved :: MIT License\",\n        \"Operating System :: OS Independent\",\n    ],\n    python_requires=\">=3.12\",\n)\n"
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/Sonnet/sonnet/mts_model/models/Sonnet.py",
+      "module": "sonnet.mts_model.models.Sonnet",
+      "class": "Model",
+      "config": {
+        "seq_len": 96,
+        "pred_len": 24,
+        "enc_in": 7,
+        "c_out": 1,
+        "individual": false,
+        "d_model": 16,
+        "n_atoms": 4,
+        "revin": true,
+        "alpha": 0.5,
+        "downsample_factors": [
+          1
+        ]
+      },
+      "configuration_basis": "Author-native constructor schema; fixed engineering small widths/layers, not formal hyperparameters or search",
+      "shape_constraints": "B4,T96,H24,C7; 96 divisible by AMD16/PatchTST16 stride8/TimeXer16; ModernTCN four width entries, 1 stage; Sonnet d16 divisible by4, complex64 native Koopman retained",
+      "runner": "/public/home/yueweiting/大论文/Sonnet/scripts/run_experiment.py",
+      "four_arg": false,
+      "modules": {
+        "sonnet.mts_model.models.Sonnet": "/public/home/yueweiting/大论文/Sonnet/sonnet/mts_model/models/Sonnet.py",
+        "sonnet": "/public/home/yueweiting/大论文/Sonnet/sonnet/__init__.py",
+        "sonnet.mts_model.layers.RevIN": "/public/home/yueweiting/大论文/Sonnet/sonnet/mts_model/layers/RevIN.py",
+        "sonnet.lightning.lightning_module": "/public/home/yueweiting/大论文/Sonnet/sonnet/lightning/lightning_module.py",
+        "sonnet.lightning": "/public/home/yueweiting/大论文/Sonnet/sonnet/lightning/__init__.py",
+        "sonnet.utils.metrics": "/public/home/yueweiting/大论文/Sonnet/sonnet/utils/metrics.py"
+      },
+      "files": {
+        "/public/home/yueweiting/大论文/Sonnet/sonnet/mts_model/models/Sonnet.py": "be4fd33b9d1eb4a4f09be0a325a8aa87d5efd5d754e184606fc8a5808769b684",
+        "/public/home/yueweiting/大论文/Sonnet/sonnet/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/Sonnet/sonnet/mts_model/layers/RevIN.py": "0139409a58e57aca7c7e5423346db3f9224c6e871fecead418797ec4977e756b",
+        "/public/home/yueweiting/大论文/Sonnet/sonnet/lightning/lightning_module.py": "f25e2e9ee1d12444eabf4ad6616c14f4f77c9bdad9a6886091193c6eca744d62",
+        "/public/home/yueweiting/大论文/Sonnet/sonnet/lightning/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/Sonnet/sonnet/utils/metrics.py": "80a9d20ad3a8f85bea96f40e44e3fdf2f7f360c75a44c4a32fb03d906ba33c82"
+      },
+      "test_id": "m5_model_adapter.SourceTrainability.test_Sonnet"
+    }
+  },
+  "loader_modules": {
+    "test_dataloader": "/public/home/yueweiting/大论文/AMD/tests/test_dataloader.py",
+    "utils.dataloader": "/public/home/yueweiting/大论文/AMD/utils/dataloader.py",
+    "utils": "/public/home/yueweiting/大论文/AMD/utils/__init__.py"
+  },
+  "loader_files": {
+    "/public/home/yueweiting/大论文/AMD/tests/test_dataloader.py": "30ef9bf880ced6fef944f9562fa2b8dd12c97fb9530ff7718a725b70680051f1",
+    "/public/home/yueweiting/大论文/AMD/utils/dataloader.py": "0200ee5a1c739ef507220ce9c93203a3ff26e8cb420b4830cd3d9eb7021e44f6",
+    "/public/home/yueweiting/大论文/AMD/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "loader_ids": [
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_prefix_stops_before_poisoned_test_records",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_four_horizons_exact_windows_context_and_target",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_scaler_fits_train_only_and_never_transforms_test",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_named_nonlast_target_order_and_inverse_transform",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_tail_batches_and_training_generator_are_preserved",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_forbidden_test_access_and_truthful_prefix_metadata",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_invalid_policy_dataset_prefix_and_schema_are_rejected",
+    "test_dataloader.ETTh1RestrictedLoaderTests.test_legacy_default_matches_explicit_full_access",
+    "test_dataloader.DataLoaderTestCase.test_public_split_endpoints_are_unchanged",
+    "test_dataloader.DataLoaderTestCase.test_real_window_counts_and_loader_policies",
+    "test_dataloader.DataLoaderTestCase.test_inverse_transform_accepts_full_or_s_ms_target_width",
+    "test_dataloader.DataLoaderTestCase.test_explicit_train_generator_can_be_saved_and_restored",
+    "test_dataloader.DataLoaderTestCase.test_missing_target_is_rejected_for_s_and_ms_but_not_m"
+  ],
+  "toy_ids": [
+    "__main__.ToyChecks.test_exact_id_rejected",
+    "__main__.ToyChecks.test_source_purpose_rejected",
+    "__main__.ToyChecks.test_protected_path_rejected",
+    "__main__.ToyChecks.test_lifecycle_and_child"
+  ],
+  "paths": {
+    "evidence_parent": "/public/home/yueweiting/大论文/amd-execution-evidence",
+    "author_roots": [
+      "/public/home/yueweiting/大论文/AMD-upstream",
+      "/public/home/yueweiting/大论文/LTSF-Linear",
+      "/public/home/yueweiting/大论文/PatchTST",
+      "/public/home/yueweiting/大论文/iTransformer",
+      "/public/home/yueweiting/大论文/TimeMixer",
+      "/public/home/yueweiting/大论文/ModernTCN",
+      "/public/home/yueweiting/大论文/TimeXer",
+      "/public/home/yueweiting/大论文/Sonnet"
+    ]
+  },
+  "limits": {
+    "m5_etth1_loader_only": {
+      "forward": 0,
+      "backward": 0,
+      "adam": 0,
+      "seconds": 300,
+      "reserved": 0
+    },
+    "m5_author_source_trainability": {
+      "forward": 24,
+      "backward": 16,
+      "adam": 16,
+      "seconds": 300,
+      "reserved": 4294967296
+    }
+  },
+  "authorization": "Latest user: 8 sources once + at most one mechanical repair/source <=256 Adam total; loader13 + at most one repair<=26 calls; toy4 once; no formal training or real assets"
+}

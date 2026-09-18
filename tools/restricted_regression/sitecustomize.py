@@ -7,7 +7,10 @@ if os.environ.get('AMD_RR_CONFIG'):
         from restricted_io_guard import install, require_installed
         install(os.environ['AMD_RR_CONFIG'], os.environ['AMD_RR_CONFIG_SHA256'])
         state = require_installed()
-        if state.get('business_bootstrap'):
+        if state.get('purpose', '').startswith('m5_'):
+            from m5_entry import bootstrap
+            bootstrap(state)
+        elif state.get('business_bootstrap'):
             from current_policy import require_scope
             require_scope(state, state['stage'])
             from resource_budget import install as install_budget, install_torch_hooks

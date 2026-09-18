@@ -4,10 +4,12 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from contextlib import redirect_stdout
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import RandomSampler, SequentialSampler
 
@@ -402,6 +404,186 @@ class DataLoaderTestCase(unittest.TestCase):
                 2,
                 'M',
             )
+
+
+class ETTh1RestrictedLoaderTests(unittest.TestCase):
+    """Eight synthetic-only methods; execute only under an approved IO guard."""
+
+    setUp = DataLoaderTestCase.setUp
+    tearDown = DataLoaderTestCase.tearDown
+    write_csv = DataLoaderTestCase.write_csv
+
+    def make_prefix(self, name='ETTh1.csv', count=11520, val_shift=0):
+        rows = (
+            [str(i), float(i), float(2 * i + (val_shift if i >= 8640 else 0)),
+             float(-i)] for i in range(count)
+        )
+        return self.write_csv(name, rows, ['date', 'a', 'OT', 'b'])
+
+    def restricted(self, path, horizon=96, **kwargs):
+        options = dict(dataset_id='ETTh1', access_policy='train_validation_only')
+        options.update(kwargs)
+        with redirect_stdout(io.StringIO()):
+            return CustomDataLoader(path, 128, 512, horizon, 'MS', **options)
+
+    def test_prefix_stops_before_poisoned_test_records(self):
+        path = self.make_prefix()
+        with path.open('a', encoding='utf-8') as stream:
+            stream.write('forbidden,not-a-number,"unterminated test record\n')
+        original_reader = csv.reader
+        consumed = []
+
+        def bounded_reader(*args, **kwargs):
+            reader = original_reader(*args, **kwargs)
+            for index in range(11521):
+                consumed.append(index)
+                yield next(reader)
+            raise AssertionError('attempted to parse a test record')
+
+        with mock.patch('utils.dataloader.csv.reader', side_effect=bounded_reader), \
+                mock.patch('utils.dataloader.pd.read_csv',
+                           side_effect=AssertionError('unbounded pandas parser')):
+            loader = self.restricted(path)
+        self.assertEqual(len(consumed), 11521)
+        self.assertEqual(len(loader.val_df), 3392)
+        self.assertFalse(hasattr(loader, 'test_df'))
+
+    def test_four_horizons_exact_windows_context_and_target(self):
+        path = self.make_prefix()
+        for horizon in (96, 192, 336, 720):
+            with self.subTest(horizon=horizon):
+                loader = self.restricted(path, horizon)
+                train, val = loader.get_train().dataset, loader.get_val().dataset
+                self.assertEqual(len(train), 8640 - 512 - horizon + 1)
+                self.assertEqual(len(val), 2880 - horizon + 1)
+                for index, start in ((0, 8640), (len(val) - 1, 11520 - horizon)):
+                    x, y = val[index]
+                    self.assertEqual(tuple(x.shape), (512, 3))
+                    self.assertEqual(tuple(y.shape), (horizon, 1))
+                    expected_x = loader.val_df.iloc[index:index + 512].to_numpy(np.float32)
+                    expected_y = loader.val_df.iloc[index + 512:index + 512 + horizon, 1:2].to_numpy(np.float32)
+                    np.testing.assert_array_equal(x.numpy(), expected_x)
+                    np.testing.assert_array_equal(y.numpy(), expected_y)
+                    # Independent raw-label check after undoing the target scaler.
+                    np.testing.assert_allclose(
+                        loader.inverse_transform(y.numpy()).ravel(),
+                        2 * np.arange(start, start + horizon), rtol=1e-6, atol=1e-3)
+                self.assertEqual(loader.split_endpoints, {'train_end': 8640, 'val_end': 11520})
+
+    def test_scaler_fits_train_only_and_never_transforms_test(self):
+        first = self.make_prefix('first.csv')
+        second = self.make_prefix('second.csv', val_shift=1000000)
+        from sklearn.preprocessing import StandardScaler
+        transform = StandardScaler.transform
+        lengths = []
+
+        def tracked(scaler, values, *args, **kwargs):
+            lengths.append(len(values))
+            return transform(scaler, values, *args, **kwargs)
+
+        with mock.patch.object(StandardScaler, 'transform', tracked):
+            left, right = self.restricted(first), self.restricted(second)
+        self.assertEqual(lengths, [8640, 3392, 8640, 3392])
+        np.testing.assert_array_equal(left.scaler.mean_, right.scaler.mean_)
+        np.testing.assert_array_equal(left.scaler.scale_, right.scaler.scale_)
+        raw_train = np.column_stack((np.arange(8640), 2 * np.arange(8640), -np.arange(8640)))
+        np.testing.assert_allclose(left.scaler.mean_, raw_train.mean(axis=0))
+        np.testing.assert_allclose(left.scaler.scale_, raw_train.std(axis=0))
+
+    def test_named_nonlast_target_order_and_inverse_transform(self):
+        loader = self.restricted(self.make_prefix())
+        self.assertEqual(loader.metadata()['columns'], ['a', 'OT', 'b'])
+        self.assertEqual(loader.metadata()['target_indices'], [1])
+        self.assertEqual(loader.metadata()['resolved_target'], 'OT')
+        x, y = loader.get_val().dataset[0]
+        self.assertEqual(tuple(x.shape), (512, 3))
+        self.assertEqual(tuple(y.shape), (96, 1))
+        np.testing.assert_allclose(loader.inverse_transform(np.zeros((2, 1))), 8639.0)
+        with self.assertRaisesRegex(ValueError, 'unsupported width'):
+            loader.inverse_transform(np.zeros((2, 2)))
+
+    def test_tail_batches_and_training_generator_are_preserved(self):
+        generator = torch.Generator().manual_seed(2024)
+        loader = self.restricted(self.make_prefix(), train_generator=generator)
+        train, val = loader.get_train(), loader.get_val()
+        self.assertIsInstance(train.sampler, RandomSampler)
+        self.assertTrue(train.drop_last)
+        self.assertIs(train.generator, generator)
+        self.assertIsInstance(val.sampler, SequentialSampler)
+        self.assertFalse(val.drop_last)
+        state = loader.get_train_generator_state()
+        batches = list(val)
+        self.assertEqual(sum(y.numel() for _, y in batches), (2880 - 96 + 1) * 96)
+        self.assertEqual(len(batches[-1][0]), (2880 - 96 + 1) % 128)
+        self.assertTrue(torch.equal(state, loader.get_train_generator_state()))
+        expected = next(iter(train))[0]
+        loader.set_train_generator_state(state)
+        self.assertTrue(torch.equal(expected, next(iter(loader.get_train()))[0]))
+
+    def test_forbidden_test_access_and_truthful_prefix_metadata(self):
+        loader = self.restricted(self.make_prefix())
+        with mock.patch.object(loader, '_make_dataset',
+                               side_effect=AssertionError('test Dataset construction')):
+            with self.assertRaisesRegex(PermissionError, 'test access forbidden'):
+                loader.get_test()
+        self.assertFalse(hasattr(loader, 'test_df'))
+        meta = loader.metadata()
+        self.assertIsNone(meta['raw_rows'])
+        self.assertEqual(meta['parsed_rows'], 11520)
+        self.assertEqual(meta['used_rows'], 11520)
+        self.assertFalse(meta['full_file_verified'])
+        self.assertFalse(meta['test_observations_verified'])
+        self.assertEqual(meta['test_access_policy'], 'forbidden')
+        self.assertEqual(meta['declared_split_endpoints']['test_end'], 14400)
+        self.assertNotIn('test_end', meta['split_endpoints'])
+        self.assertNotIn('test', meta['window_counts'])
+        self.assertNotIn('test', meta['split_context_starts'])
+        json.dumps(meta)
+        meta['split_endpoints']['train_end'] = -1
+        self.assertEqual(loader.metadata()['split_endpoints']['train_end'], 8640)
+
+    def test_invalid_policy_dataset_prefix_and_schema_are_rejected(self):
+        path = self.make_prefix()
+        with mock.patch.object(CustomDataLoader, '_read_raw_dataframe',
+                               side_effect=AssertionError('read before policy validation')):
+            for kwargs in ({'access_policy': 'unknown'}, {'dataset_id': 'ETTm1'}):
+                with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                    self.restricted(path, **kwargs)
+        with self.assertRaisesRegex(ValueError, '11520 rows'):
+            self.restricted(self.make_prefix('short.csv', count=11519))
+        for name, columns, message in (
+                ('duplicate.csv', ['date', 'OT', 'OT'], 'unique'),
+                ('missing.csv', ['date', 'a', 'b'], 'target column')):
+            bad = self.write_csv(name, ([str(i), i, -i] for i in range(11520)), columns)
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, message):
+                self.restricted(bad)
+
+    def test_legacy_default_matches_explicit_full_access(self):
+        path = self.make_prefix(count=14400)
+        for dataset_id in ('ETTh1', 'ETTm1'):
+            with self.subTest(dataset_id=dataset_id):
+                # ETTm1 uses an in-memory synthetic frame, not a >20000-row CSV.
+                def build(explicit):
+                    options = {'dataset_id': dataset_id}
+                    if explicit:
+                        options['access_policy'] = 'train_validation_test'
+                    if dataset_id == 'ETTm1':
+                        t = np.arange(57600, dtype=np.float64)
+                        frame = pd.DataFrame({'a': t, 'OT': 2 * t, 'b': -t})
+                        with mock.patch.object(CustomDataLoader, '_read_raw_dataframe',
+                                               return_value=(frame, 'ettm')):
+                            return CustomDataLoader(path, 128, 512, 96, 'MS', **options)
+                    return CustomDataLoader(path, 128, 512, 96, 'MS', **options)
+
+                with redirect_stdout(io.StringIO()):
+                    default, explicit = build(False), build(True)
+                self.assertEqual(default.metadata(), explicit.metadata())
+                self.assertNotIn('access_policy', default.metadata())
+                for split in ('train', 'val', 'test'):
+                    np.testing.assert_array_equal(getattr(default, split + '_df'),
+                                                  getattr(explicit, split + '_df'))
+                    self.assertEqual(default.window_counts[split], explicit.window_counts[split])
+                self.assertEqual(default.get_test().dataset[0][1].shape, (96, 1))
 
 
 if __name__ == '__main__':

@@ -48,6 +48,14 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-18本轮执行决定（M5 §10）：用户授权八个独立时间作者来源准备、受限合成训练链smoke及ETTh1固定13项loader验收；这不授权正式训练、M6或J冻结。TiDE **Deferred**，本轮不准备/运行、不永久删除或新增替代者；含TiDE完整规划545 runs/最多5860 run-epochs保留，当前推进520/最多5600、暂缓25/最多260。正式训练分为三个独立用户启动包，见§9.6.1。原生结构须各自作者源码绑定，不再从TimeXer附带baseline代取；smoke小配置不覆盖§5.5正式训练表或补作正式结构冻结。ECL骨干layernorm=False与旧J守卫冲突仍blocked，THLS自身feature-LN保持。空间本轮仅确认既定HSTGCN/ASTGRN/G-STAN三个期刊来源例外和原版复现优先顺序（§1.2/§10），没有任何空间准备或执行。以下旧轮次授权及工具Blocked是历史时点，最新实际结果见唯一M5 §10。
+
+2026-09-18最新确认（M5 §9）：用户已确认“正式协议优先”的阶段职责和消融范围，并明确同一数据集所有baseline、AMD/J及实际消融统一epoch、LR、batch和停止规则，精确训练合同见§5.5。M5承担正式协议、必要工程接入/验收准备及提请用户最终结构冻结；M6承担六域主表、UrbanEV完整模块消融、保留的TargetOnly/输入消融与正式效果/成本评价。旧多域单模块效果筛选及新增practical-effect不再作为冻结前置，这是已确认的合同替代，不声称旧要求已满足。原M4总gate Not passed、H192退化1.542951806%及原1%线/科学序列停止不改；J仍未冻结，不按dataset/H切换模型。M5旧§4–8保留历史，旧筛选矩阵不执行；仅旧§6限定ETTh1 loader两文件设计按本次授权启用，正式训练、M6与其他接入包未获授权。以下此前审议/未确认摘要均为历史时点，最新执行状态见唯一M5 §9。
+
+2026-09-18当前审议状态：用户要求M5转为“正式协议优先”的合同收敛，暂停沿M5旧§4筛选包及§6 loader首包推进；旧§4–6保持未批准提案。唯一修订稿见`docs/milestones/M5_model_selection_and_freeze.md` §8，推荐M5以正式协议、必要工程/验收及提请结构冻结为主，M6承担六数据集主表和以UrbanEV为核心的模块消融。精确范围与替代冻结条件均为Proposed，尚未确认，**本段只登记审议状态，不使§9.3/§9.5/§9.6/§19/§21等科学条款变更生效**，也不声称已满足旧多域效果前置。M4原总gate Not passed、H192失败/原1%线及单seed/development-test限制不变；不冻结J、不进入M6，不授权实现、动态验收或训练。
+
+2026-09-16 M5启动登记：用户本次明确批准开始“大论文05｜M5 模型筛选与结构冻结”，本轮仅授权静态可执行性审计、筛选协议提案、首个实施包设计和唯一M5文档建立。A段实际统一closure commit为`3e43a55327eac641445ab5a43d06424d7fc5ed3f`；本轮写入前回核HEAD/tracking/live remote三端一致、ahead/behind=0/0、worktree/index clean，已封存M4 SHA-256=`3b29d43624de290ebdec6a1701066f6dded33f8e788d8b183cc1fa416df4c11e`与用户指定审核字节一致。M4已Closed，不再追加；原18项总gate仍Not passed，ETTm1 H192 J/N退化1.542951806%超过原1%安全线及已知风险保持，J仅为候选审查对象。当前唯一milestone切换为`docs/milestones/M5_model_selection_and_freeze.md`，M5 In Progress（静态审计/协议准备）；新结构、动态测试/训练预算、正式冻结均未获本次授权，M6未启动。下述§68/§69及旧摘要中的M4 In Progress、closure Pending、M5未开始均保留封存前历史时点，不覆盖本段最新状态；阶段职责、科学条款、旧门槛及既有来源不变。
+
 §68结果登记：双数据集N/S/J incremental engineering、ChatGPT implementation review及统一closure已完成，closure/训练HEAD=4abb099d69db04532f066986fde0c43aedf2465a；25-file source=6a11d88f6d22861e49db0122bf685b642b197af2796ab8de4b7a424b4548a97a。已批S/J兼容通过，N证据按已核验前置复用，实际E-S→U-S→E-N→U-N→E-J→U-J六波24run完成：240 run-epochs、1017450 Adam步骤、墙钟39583.71105360985秒。ChatGPT接受完整性及本轮结果review Passed；UrbanEV J/S、J/N各5/5 Passed，ETTm1 J/S 4/4 Passed、J/N 3/4。原18项总gate Not passed，唯一失败是ETTm1 H192 J/N test MSE +1.542951806%超过1%。十二个ETTm1 run文本曲线未发现训练/选择异常，S/N同H也退化；只能确认局部性能取舍，原24-run科学序列停止，不改阈值、不重选best或重训。M4 In Progress，结构未冻结，单模块已接受结果与P2原Not passed保持；详见M4 §68。
 
 §69最新决定（结果已知后的用户准入例外）：服务器直读等工作方式此前已确认；**用户于本次04-03会话明确确认**，在看到§68完整结果、接受ETTm1 H192 J/N development-test MSE退化1.542951806%超过原1%安全线后，允许当前J=AMD+Sonnet S2 target residual+THLS带已知局限保留为后续候选审查对象。此准入例外自本次消息明确确认起成立，不据原草案或§69原有自述认定此前已获批准，不追溯补证。保留N/S及历史比较，不按H或dataset切换模型。原24-run总gate仍Not passed、原科学序列停止，既有结果review Passed不变；不构成新性能验证或EL-AMD冻结，不改模型/阈值、不重选best、不择seed或重复24-run。此前修后版本已由ChatGPT服务器直读并匹配SHA，文档review=Passed。用户现明确批准“结束M4并办理统一收口，M5暂不启动”：M4已批准的诊断、候选开发和有限分析工作结束，无待追加的M4模型、测试或实验任务。本次仅形成最终结束登记待审版本，Git closure尚未执行，尚未完成Closed封存；完整封存以本次修后字节经审核并完成对应累计文件统一Git closure为准。不单独docs closure，M5/M6未开始，本次决定不授予M5启动或正式冻结权限。M5对应任务的正式数据/元数据/MS接口、公平多数据集与独立模块筛选、practical-effect/预算、代价收益及结构/协议冻结要求仍按§5.5、§9.1–9.5、§19、§21执行；M6承担冻结后的正式test、主表、原范围消融、效率与定稿，不升级旧development产物。上述后续任务不全部前置为M4关闭条件，详见M4 §69.3–69.4。
@@ -86,9 +94,9 @@ ETTm1 test 已被纳入模型开发反馈，因此不得作为 M6 正式未见�
 
 “测试集只在 M5 冻结后使用”的限制仅适用于当前正式评价数据集：UrbanEV、EPF-PJM、ETTh1、Weather、ECL、Exchange。这些数据集的结构和超参数选择在 M4/M5 仍只依据 train/validation，其 test 只在 M5 结构冻结后于 M6 使用。ETTm1 当前不属于 M6 正式主表；ETTh1 按本轮决定继续保留在六个正式数据集中，论文必须披露 ETTm1 曾用于 M4 development；本轮不替换数据源或删减任务。ETTm1 的 development-only 例外不得扩展到任何正式评价数据集。
 
-正式政策 **formal seed list=[2024]** 继续适用于第三/四章正式比较、消融及对应预算；不追加seed、不择优，不改变其他模块已登记的初始化子流。正式结果报固定seed 2024、seed std=N/A，原M5三seed一致性暂缓且未验证；其他多数据集、独立模块及practical-effect要求保持。MS精确合同见§5、§9及M4 §50，字段选择已User confirmed；Weather/ECL/Exchange/PJM的未决正式任务继续blocked，元数据和接口未闭环不能因字段确认便称为正式可执行。
+正式政策 **formal seed list=[2024]** 继续适用于第三/四章正式比较、消融及对应预算；不追加seed、不择优，不改变其他模块已登记的初始化子流。正式结果报固定seed 2024、seed std=N/A，三seed一致性暂缓、稳定性Not evaluated；第三章效果评价范围及冻结前置依本次修订的§9.3/§9.5/§21，不保留旧多域单模块效果或新practical-effect作为冻结前置。MS精确合同见§5、§9及M4 §50，字段选择已User confirmed；Weather/ECL/Exchange/PJM的元数据/接口缺口仍按任务blocked，不因合同批准核销事实。
 
-“平均退化不超过 0.5%”只是安全底线，不能单独构成模块保留依据；practical-effect threshold 尚未锁定，必须在 M5 正式筛选前由用户确认。第三章至少两个近期来源模块、明确修改并经消融的组织方式是用户当前创新策略，并非学校或导师外部硬性要求。保留真实来源和有效性证据；是否调整该策略由用户决定，不因v1表现自动取消，也不为凑数量新增实验。
+旧“平均退化不超过0.5%”及筛选前锁定新practical-effect的冻结条件已由本次§9.5/§21替代，历史gate不倒改，不据此把旧失败记Passed。第三章两个近期来源模块、明确修改并接受消融评价仍是用户创新组织策略，并非学校或导师外部硬性要求；实际有效性由M6证据决定，负向结果须收缩论断，不能以结构冻结宣称两个模块均有效或为凑数量新增实验。
 
 # 1. 总体来源路线与冻结边界
 
@@ -254,6 +262,8 @@ UrbanEV 的 `train_validation_only` 必须在数据构造层隔离：不创建 t
 上述全部结构、source paper/repo/commit/PDF/core SHA、license-text-missing、retained/deleted components、raw/latent order、d/K/alpha/epsilon/dropout/gamma、FFT/denominator/scale/softmax/var_attn/reconstruction/readout/init policy、task/schema/order、evaluation policy 与 module-init-seed policy必须进入 resolved config、scientific/comparison hash、checkpoint、manifest、resume preflight 和 summarizer。resume 只允许同一 Sonnet variant/ablation/task/schema/order/T/d/K/alpha/policy/evaluation/scientific config 的 `strict=True` restore；跨 TimeXer/CrossLinear/XLinear、control/candidate、target/parallel、schema/order或结构不匹配、partial `sonnet_mvca.*`、key/shape/dtype 不匹配均须在写参前原子拒绝。
 
 ## 1.2 第四章：时空模型
+
+用户已明确批准三个历史来源例外：HSTGCN-core来源HSTGCN、SADR来源ASTGRN、SC-SimGCA来源G-STAN；三篇期刊来源继续保留，不被新替代候选的“2023年及以后顶会”规则自动淘汰，不重问例外、不换成PDFormer或其他新结构。本次新增原版复现准入顺序及有限止损原则，见§10，不改变下述模块数学。
 
 空间基准：
 
@@ -609,6 +619,21 @@ y = volume[t+12+label_horizon-1]
 四个 horizon 独立训练。禁止把 AMD `pred_len` 直接设为 3/6/9/12 并误做连续多步输出。
 
 ## 5.5 新正式任务的损失、信息集与身份（User confirmed）
+
+正式训练统一合同（2026-09-18 User confirmed）：同一dataset内所有baseline、AMD/J及实际开展的模块/TargetOnly/输入消融均用下表；各模型原生结构项与训练项分开登记，来源脚本不得覆盖本表。
+
+| dataset | train/eval batch | epochs | LR | early-stop |
+|---|---|---|---|---|
+| UrbanEV | 128/128 | fixed10 | 3e-5 | off |
+| PJM | 128/128 | max20 | 5e-5 | patience5 |
+| ETTh1 | 128/128 | fixed10 | 5e-5 | off |
+| Weather | 128/128 | fixed10 | 5e-5 | off |
+| ECL | 128/128 | fixed20 | 3e-4 | off |
+| Exchange | 512/512 | fixed10 | 3e-4 | off |
+
+共同使用Adam、betas=(.9,.999)、eps=1e-8、weight_decay=1e-7；固定LR，无scheduler/warmup/OneCycle；float32、梯度累积1、workers0、每进程4线程；train shuffle/drop_last=True，eval不shuffle且保留尾批。每任务每模型单配置、0额外搜索、from-scratch，formal seed=[2024]、std=N/A、稳定性Not evaluated；已登记匹配初始化子流不变。不改变既有TF32/确定性等环境设置，不新增AMP/compile。仅有限目标validation MSE严格下降更新best，相等保留早epoch；PJM严格改善重置耐心，连续5轮无改善的完整epoch结束后停止，最大20轮；其余按fixed预算完成，不早停。不以best更晚为目标，不择run/seed。论文称“统一训练协议比较”，不声称各模型最优，不以未经核实的“其他baseline必然做过搜索”解释差异。
+
+PJM项目协议确认F=1：按时间顺序，train=floor(.7n)、test=floor(.2n)、val=n−train−test，无rolling、无train+val额外重训；T168/H24和原历史信息集不变。实际数据版本、市场/as-of/单位等事实和接口缺口继续blocked。合同及545-run规划不授予本轮正式训练；新身份/模型适配/早停/汇总能力须另行接入验收。
 
 主预测 loss、validation best selection 和最终指标只覆盖指定目标。标准长序列任务保留 H=96/192/336/720，对每个窗口的全部未来 H 步评价；不采用 Sonnet 论文 §2 的仅末时刻评价。UrbanEV 则保持 label_horizon 与 model_pred_len=1 的单点语义，EPF-PJM 保持 168→24 完整区间。
 
@@ -1858,7 +1883,7 @@ state_source =
 | 数据集 | 唯一目标与确认状态 | 输入长度 / 预测合同 | 作用 |
 |---|---|---|---|
 | UrbanEV | volume，index=0；User confirmed，沿用既定合同 | T=12；label_horizon=3/6/9/12；model_pred_len=1；6 folds、全部区域；F4主表及既有输入消融 | 核心EV场景；正式执行仍待冻结 |
-| EPF-PJM | price ↔ 原字段OT，index=2；项目双向字段映射User confirmed，不改CSV | T=168→完整24步；原历史输入；正式split/retraining/fit政策与公开管线待闭环 | 正式任务blocked：市场/单位/as-of等事实与管线未闭环 |
+| EPF-PJM | price ↔ 原字段OT，index=2；项目双向字段映射User confirmed，不改CSV | T=168→完整24步；原历史输入；F=1、时间顺序70/10/20取整及无rolling/retraining见§5.5 | 正式任务blocked：市场/单位/as-of等事实与管线未闭环 |
 | ETTh1 | OT，index=6；User confirmed，沿用已核验字段与数据版本 | T=512；H=96/192/336/720，完整区间 | 标准benchmark；新正式接口仍待验收 |
 | Weather | T (degC)，index=1；字段选择User confirmed | T=512；四个H，完整区间 | 正式任务blocked：当前版本时间粒度仍Not verified |
 | ECL | OT，index=320；字段选择User confirmed | T=512；四个H，完整区间 | 正式任务blocked：原客户/序列映射及单位转换链仍Not verified |
@@ -1877,21 +1902,25 @@ state_source =
 | UrbanEV / EPF-PJM | DLinear、PatchTST、iTransformer、TiDE、TimeXer、ModernTCN、AMD-Concat、EL-AMD |
 | ETTh1 / Weather / ECL / Exchange | DLinear、PatchTST、iTransformer、TimeMixer、ModernTCN、TimeXer、AMD（同输入 MS 输出适配）、EL-AMD |
 
+TiDE本轮Deferred：保留在完整规划名单，UrbanEV/PJM当前分别推进其余7模型；标准四域仍8模型。仅暂缓TiDE对应25 runs，不新增替代模型。作者源码smoke中的AMD-upstream只作参考，实际A和不可变baseline不变；完整Sonnet只核对S2来源，不能作为新增正式比较模型或代替项目S2/J证据。
+
 Last Observation 仍仅在 UrbanEV 单列评价，不计神经网络训练。第二组 TimeXer 的原 parallel 路径拟改为目标外生路径：features=MS、n_vars=1、显式目标末列映射；这是新任务适配，不重命名旧 TimeXer-parallel 结果。保留 TimeMixer，不因统一 MS 而向第二组添加 TiDE，也不添加完整 Sonnet、XLinear 或其他模型。
 
-同一dataset/target/horizon/fold按§5.5统一lookback、输入信息集、split、scaler、mask、目标损失、反归一化及聚合；formal seed list=[2024]。模型专属学习率、hidden、layer、patch、kernel可不同，但验证搜索机会/预算须公平并留档，正式epoch/早停/搜索预算仍未锁定。逐项适配缺口沿用M4 §49.5，P2必需的有限接入范围见§50.5；参考代码有MS分支不等于AMD公开runner已支持新正式矩阵，未参与P2的完整baseline接入不增设为其前置。
+同一dataset/target/horizon/fold按§5.5统一lookback、信息集、split/scaler、mask、目标损失及指标聚合，并统一epoch/LR/train及eval batch/停止规则与共同优化配置。各模型可保留有来源的原生hidden/layer/patch/kernel等结构项，但每任务每模型单配置、0额外搜索；不再采用模型专属LR或暗中增加验证机会。AMD家族同任务公共骨干/共有模块匹配初始化，主表A/J与消融配置兼容时引用同一run。六域主表保留同输入AMD与最终增强模型，推荐J占该位置仍须后续用户明确冻结；不提前冻结J。正式适配缺口继续按M5登记，来源默认值不是已批准结构表缺项的替代证据。
 
 ## 9.3 消融矩阵：当前角色与历史 identity 分离
 
 未来正式消融按 M5 最终冻结的“外生模块”“局部模块”描述，不让历史 Global TEB 或 parallel-TEB 冒充未来结构：
 
-| 当前正式规划角色（尚未注册新 ablation identity） | 原覆盖范围 | 比较问题 |
+| 当前正式规划角色（尚未注册新 ablation identity） | 已确认覆盖范围 | 比较问题 |
 |---|---|---|
 | 同输入 AMD / AMD-Concat | 六数据集主表已含 | 基线 |
-| 仅最终冻结外生模块 | 六数据集相应配置 | 外生模块独立贡献 |
-| 仅最终冻结局部模块 | 六数据集相应配置 | 局部模块独立贡献 |
+| 仅最终冻结外生模块 | UrbanEV F4全部6fold×4H | 核心场景外生模块独立贡献 |
+| 仅最终冻结局部模块 | UrbanEV F4全部6fold×4H | 核心场景局部模块独立贡献 |
 | 最终冻结完整 EL-AMD | 六数据集主表已含 | 完整模型收益 |
 | AMD-TargetOnly | 仅 UrbanEV / EPF-PJM 的原覆盖 | 辅助历史信息贡献 |
+
+完整A/N/S/J模块消融集中UrbanEV；主表A/J与消融兼容时引用同一run，只新增N/S。其他五域不默认增加N/S；六域主表只能检验完整模型表现，不能证明每个模块跨六域独立有效。原TargetOnly和§9.4输入消融不取消；M4旧artifact不得升级、改purpose/manifest或跨协议恢复。不为换阶段/表格重训。
 
 统一 MS 不自动把 TargetOnly/U0 扩展到 ETTh1、Weather、ECL、Exchange；若以后建议扩大，另列 Proposed 增量及预算。UrbanEV F0 仍为 volume-only，主比较及模块消融同用 F4；F1–F3 的既有范围见 §9.4，不能在同组间改变输入、顺序、fold、scaler、训练政策或评价流程。EPF 的 target-only 只有 price 历史，不能机械套用 UrbanEV 的 volume/F0 名称。
 
@@ -1918,21 +1947,15 @@ F1-F4 的 compact tensor 均保持表中 canonical 顺序，目标 `volume` 位�
 
 ## 9.5 模块验收线
 
-按当前 formal seed list=[2024] 政策，M5 公平筛选仍需满足下列有效条件；单 seed 限制及暂缓项须明确披露：
+用户本次确认以“正式协议优先”替代旧冻结前多域模块效果筛选、0.5%安全/新practical-effect前置；不新增完整M5性能筛选矩阵，不声称旧门槛已满足。M5冻结前须完成正式协议/配置与必要工程验收准备：目标/信息集、身份/恢复、train-only scaler、test隔离、指标/选择及执行配置可核验；涉及结构适用性的事实或配置冲突必须先解决，其他未闭环任务保持blocked。随后依据既有开发证据与明确风险接受，提请用户另作最终结构冻结决定。协议确认或loader通过均不等于冻结J。
 
-1. 相对同输入 AMD 的验证指标平均退化不超过 0.5%；该值仅是安全底线，不能单独构成保留依据；
-2. 至少在一个核心场景和一个独立场景出现改善：
-   - 最终外生模块：UrbanEV/EPF 中至少两项；
-   - 最终局部模块：UrbanEV + Weather/ECL/ETTh1 中至少两项；
-3. 原“3 个锁定 seed 下方向基本一致”要求依用户本轮决定**暂缓核验、Not evaluated**；不记 Passed，不据固定 seed 的跨数据集结果声称随机初始化稳定；
-4. 参数量和耗时增幅与收益相匹配；
-5. 达到在 M5 筛选前由用户锁定的 practical-effect threshold；当前阈值尚未确定。
+M6按§9.3/§9.4完成六域主表、UrbanEV独立/组合模块与保留的输入/TargetOnly消融，逐任务报告效果、负交互及参数/耗时等代价，不承诺正收益、不增新量化效果门槛。冻结结构不等于效果Passed；无独立模块外部域实验时不声称跨域单模块有效；负向结果保留并收缩论文论断，不按dataset/H替换模型或自动调参重训。
 
-暂停多 seed 核验不取消其余多数据集、来源模块独立消融及 practical-effect 要求。M4 development 证据不能直接作为冻结正式协议的结果；未来按冻结正式协议新运行的 seed=2024 结果可以进入正式表。若候选不满足有效条件，不能简单关闭模块后仍宣称满足“两模块”要求，须按第 21 节处理。
+formal seed=[2024]、std=N/A、随机初始化稳定性Not evaluated保持；fold/H差异不替代seed方差。M4 development及ETTm1 development-test不能进入正式未见test主表，不改旧身份/manifest或旧失败gate；新正式test仅在M5明确冻结后按批准任务执行。两个模块实际有效性仍待正式证据，不以关闭模块冒充“两模块已验证”。
 
 ## 9.6 正式实验资源预算与效率预检
 
-本节是长期资源规划，不表示进入 M5/M6，不表示最终时间模型、baseline 或执行配置已经冻结，本节本身不授予训练或额外预算；P2本次独立的ETTm1 Stage 1授权以M4 §53为准。任务范围仍依 §9.1–9.4；用户现已决定第三/四章正式比较与消融默认 S=1、formal seed list=[2024]；下列 3/5 seed 只保留为未授权扩展情景，不再是当前强制计划。原三 seed 一致性按 §9.5 暂缓、未验证，其余验收条件不变。效率预检也须另行审定精确 probe 预算和命令后执行。
+本节是规划，不授予正式训练或额外预算；当前M5进行正式协议/必要工程准备，M6未启动，最终时间结构未冻结。第三章矩阵与统一训练合同依§5.5/§9.1–9.5；formal seed=[2024]，多seed稳定性Not evaluated。工程/失败成本、效率预检及正式训练分别授权，旧P2等历史预算不转为新额度。
 
 证据标签统一为：**Measured**＝已有实际运行记录或现场只读观察（注明来源和限制）；**Extrapolated**＝依据已测数据外推；**Scenario**＝条件性算术情景；**Unknown**＝尚无可靠测量或合同未定。不能把后三者写成实测均值、性能结论或保证上界。
 
@@ -1944,28 +1967,40 @@ F1-F4 的 compact tensor 均保持表中 canonical 顺序，目标 `volume` 位�
 |---|---:|---|
 | UrbanEV | 6 fold × 4 horizon = 24 | 正式主表按 F4 情景核算 |
 | ETTh1、Weather、ECL、Exchange | 4 数据集 × 4 horizon = 16 | 统一MS及每个数据集一个指定字段已确认；原H不变，元数据/接口缺口仍保留 |
-| EPF-PJM | F_PJM | 表示实际独立 fit 次数；rolling/retraining 尚未锁定 |
+| EPF-PJM | F_PJM=1 | 无rolling/retraining；项目切分政策见§5.5，数据事实缺口不核销 |
 | Last Observation | 不计神经网络训练次数 | 单列评价成本，仍按既定适用任务评价 |
 | ETTm1 | 不进入 M6 正式主表 | 仅为 development，M4 成本另计 |
 
-主比较训练数为 **N_main = 8 × (40 + F_PJM) × S**，当前 S=1、seed=2024。MS 不按输出变量数 C 除法缩减训练次数，也不因目标少了自动删模型或任务。以下暂取 F_PJM=1，仅用于展示名义情景（Scenario），并非声明 EPF 只需一次 fit：
+主比较训练数为 **N_main = 8 × (40 + 1) = 328**，当前S=1、seed=2024、F_PJM=1已确认。MS不按输出变量数C缩减次数。以下多seed数仅为未授权历史扩展情景：
 
 | seeds S | 1（当前默认） | 3（未授权扩展） | 5（未授权扩展） |
 |---|---:|---:|---:|
 | 主比较 trains，F_PJM=1 | 328 | 984 | 1640 |
 
-**完整消融展开情景（Scenario，未批准预算）**假设消融覆盖全部相关 fold/horizon，且主表使用 F4：
+**已确认范围的规划计数（不是训练授权）**：主表F4，模块消融集中UrbanEV，原输入/TargetOnly保留：
 
 | 组成 | 新增 trains / seed，F_PJM=1 | 去重依据 |
 |---|---:|---|
 | 主比较 | 328 | 已含 AMD / AMD-Concat 与完整 EL-AMD |
-| 模块 / target-only 消融 | 3×25 + 2×16 = 107 | 25=UrbanEV 24+PJM 1：target-only 与两个单模块角色；16 个标准长序列 MS 配置仍只加两个单模块角色，不扩增 TargetOnly/U0 |
+| UrbanEV N/S模块消融 | 2×24 = 48 | A/J已计主表；其他五域不默认N/S |
+| UrbanEV/PJM target-only | 24+1 = 25 | 保留原覆盖，不扩增四标准域TargetOnly |
 | UrbanEV F1–F3，AMD-Concat / EL-AMD | 3×2×24 = 144 | F4 已在主表，F0 已在 target-only 角色，不重复计数 |
-| 合计 | **579** | 当前 S=1；3/5 seeds 的 1737/2895 仅为未授权扩展 |
+| 合计 | **545唯一runs** | 单配置、seed2024；同run跨表引用 |
 
-若 F_PJM 改变，上述展开式为 [8×(40+F_PJM)+3×(24+F_PJM)+2×16+144]×S = (568+11×F_PJM)×S。F4、AMD、EL-AMD 及已有 F0 均只计一次；F0 下 EL-AMD 仍为 N/A，不补造训练任务。最终消融角色按 M5 冻结的外生/局部模块映射，不执行历史失败 TEB 结构。统一 MS 不把 TargetOnly/U0 自动扩展到另外四个数据集；若未来建议增加这 16 项覆盖，须另列 Proposed 增量，当前 579 不含它。
+按dataset核算：UrbanEV408×10=4080 run-epochs；PJM9×最多20=最多180；ETTh1/Weather/Exchange各32×10=各320；ECL32×20=640。合计545 runs、最多5860 run-epochs。F0上J为N/A；不额外相加旧M5的112+4F筛选包，不沿用旧579或463剩余数。原568+11F/579属于已被替代的六域模块消融规划，历史时延记录不因此改写。
 
-可选 F0+PMCR、额外 EPF 市场、Solar、调参、效率预检及 M4 development 不在 579 内；工程、搜索、失败处理等成本另列。该表是覆盖展开情景，既不要求重跑可合法复用的完全匹配结果，也不允许把历史 parallel run、Sonnet control 或不匹配 artifact 当成新实验结果。
+可选F0+PMCR、额外市场/Solar、效率预检及M4 development不在545内；额外配置搜索=0，必要工程/失败成本另列。兼容的正式主表与消融引用同一run，不为换表/阶段重训；旧development/parallel artifact不得改名复用。未知窗口/步骤/实测耗时仍Unknown，1.4只可标并发假设，不据旧耗时情景承诺工期。
+
+**本轮TiDE暂缓与三包调度决定**：上列545/5860为含TiDE完整规划；TiDE只在UrbanEV/PJM，暂缓24+1=25 runs、24×10+1×20=最多260 run-epochs。当前520 runs/最多5600如下，均为规划而非本轮正式训练授权：
+
+| 独立用户启动包 | 唯一runs | 最多run-epochs | 范围 |
+|---|---:|---:|---|
+| 包1 | 82 | 920 | A/J六域主表，2×(24+1+16) |
+| 包2 | 221 | 2500 | 其余非TiDE baseline主表：5×25+6×16 |
+| 包3 | 217 | 2180 | 剩余消融：UrbanEV N/S48＋TargetOnly25＋F1–F3 A/J144 |
+| 当前推进合计 | **520** | **5600** | 同run跨表引用，不重复训练 |
+
+每包内部自动队列，包间不得自动启动。后续包的结构/配置/评价规则在包1正式test结果出现前锁定；不得据中途效果改变未运行模型、删任务或增加搜索。§5.5统一训练表、固定seed2024/0额外搜索、正式test冻结边界保持；PJM fit、窗口、步骤及未实测耗时仍待核验，1.4仍只是并发假设。TiDE暂缓不计已消耗或已完成，M4旧artifact不升级。
 
 ### 9.6.2 第四章条件性计数与覆盖缺口
 
@@ -1976,9 +2011,9 @@ PEMS 未来 12 点是一次多步输出任务，不乘成 12 次独立训练。2
 目前覆盖缺口只登记，不因资源表而自行补实现：
 
 - 原M-to-M规划与S2单目标数学之间的不一致已按用户确认的MS精确合同调整，字段选择不再待用户确认；Weather/ECL/Exchange/PJM的相关元数据仍未闭环，对应正式任务blocked。S2公开runner/summarizer仍只锁定ETTm1/UrbanEV development身份，正式接入、完整H指标与冻结前test隔离仍需工程验收，不能称覆盖缺口已全部解决。
-- EPF-PJM pipeline 及独立 fit 次数 F_PJM 尚需完成；rolling/retraining 不能按名义 F_PJM=1 视为已锁定。
+- EPF-PJM pipeline及数据事实仍须闭环；项目F_PJM=1、无rolling/retraining现已确认，不能据政策批准宣称市场/as-of/单位已验证。
 - Sonnet+PMCR/P2 组合尚未实现、尚未授权；P2 specification review 不解除组合 guard。
-- 正式 epoch、早停与搜索预算尚未冻结，不能直接继承 M4 固定 10 epoch。
+- 正式epoch/早停与搜索合同现已确认于§5.5，相关接口/验收及正式执行预算未自动获批；不是继承M4旧开发身份。
 
 MS精确合同与P2有限依赖调整已获用户确认；不得为补齐资源表重选目标、改成S-to-S、添加parallel Sonnet、恢复失败TEB或减少数据集。P2工程已获条件性授权，MS文档closure已完成；A/B最小接口已有实现、定向测试及单批证据（完整回归有受访问政策限制的skip，见M4 §51），ChatGPT implementation review=Passed且Git closure已完成；候选C production implementation complete、engineering gate=Passed，ChatGPT final implementation review=Passed且Git closure已完成（2f0bd489b7ebd408fba359811fe580984895fe10；有限工程范围见M4 §52.6–52.9）。M4 §§47.6–47.8原24-run现已完成；ETTm1两个安全gate Passed，UrbanEV完整性Passed、两个主效果gate Not passed，P2整体development adequacy=Not passed并停止该序列（M4 §55）。未参与下一轮两项P2 development任务的正式缺口继续blocked，不阻塞该有限工程范围；未实现模型/管线在效率预检中标blocked，不为profiling提前实施。S2结论、第四章路线与state_source/零context/M7边界不变。
 
@@ -2011,7 +2046,7 @@ prepare 包括必要的数据/模型准备；save/verify 计入各次 checkpoint
 
 M1 §12 的六折 train split 长度为 576/1171/1747/2342/2937/3475，T=12，H=3/6/9/12。按 W=max(0, split_length−12−H+1)，每折四 horizon 的时间窗口数和为 2230/4610/6914/9294/11674/13826；六折总和 48548，fold6 为 13826。因此比例为 **48548/13826 = 3.5113554173**，乘共同的 275 区后仍相同（13350700/3802150）；不把六折简单乘六。
 
-于是 249.620 min × 3.5113554173 / 60 = **14.6084 h**。这是按训练样本量进行的外推：validation 窗口比例不同，数据准备、完整 epoch 行为、final evaluation、checkpoint/校验等固定开销也不随训练窗口严格线性变化。正式 epoch 政策尚未锁定，14.6 h 不是正式预算实测值或保证上界。全部历史资源只作为旧任务证据/外推基准，不能直接当新正式 MS 的实测时延，也不能假定从多输出改为单目标就按 C 倍加速。
+于是 249.620 min × 3.5113554173 / 60 = **14.6084 h**。这是历史按训练样本量的外推，当时正式epoch政策未锁定；现在§5.5已确认统一训练项，仍不能把14.6 h当新正式任务实测或保证上界。validation比例、准备、完整epoch、final evaluation和保存/校验等不随训练窗口严格线性变化，目标输出减少也不保证按C倍加速。
 
 以下为 **Scenario**：F_PJM=1、主比较每 seed 328 次；S=1 为当前默认，S=3/5 为未授权扩展。假设平均完整 run 为 20/40/60 min，按每日连续运行 24 h 折算串行等效工作量：
 
@@ -2021,9 +2056,11 @@ M1 §12 的六折 train split 长度为 576/1171/1747/2342/2937/3475，T=12，H=
 | 3 | 13.7 日 | 27.3 日 | 41.0 日 |
 | 5 | 22.8 日 | 45.6 日 | 68.3 日 |
 
-579-run 完整消融情景在 40 min/run 下约 **16.1 日/seed**。这些均值是假设，不是全矩阵实测均值或上界，也不是并发后的实际墙钟保证。额外工程、搜索、profiling、排队和失败处理成本分开；时间预留不自动追加训练权限。当前单 seed 是用户明确决定，不能据情景表自动追加 seed；原多 seed 稳定性仅为暂缓未验证，其他科学要求不变。
+旧579-run情景在40 min/run下约16.1日/seed仅保留为历史假设，不适用于当前545-run/统一训练合同。上述均值及任何1.4并发折算都不是新矩阵实测工期或保证上界；缺少实际时延的任务保持Unknown。额外工程、profiling、排队和失败成本另列，不自动追加训练/搜索/seed。
 
 ### 9.6.4 A800 batch / 并发效率预检（有限对照完成、适用边界与后续规划）
+
+当前第三章训练项以§5.5已确认表为准；本节下文历史效率探索与长期候选流程不授权改变固定batch/LR/epoch/停止或新增搜索。既有并发仅在原已验证范围复用，新的任务/形状不可凭1.4假设直接外推放行；没有实际时延的任务保持Unknown。
 
 2026-09-16当前更新：THLS单模块两dataset既有结果保持；§67双数据集N/S/J工程/review/closure完成，N入口等价/初始化/首batch前置通过并复用既有同形状并发证据。S/J缺口兼容672/640/640已通过，随后按用户指定E-S→U-S→E-N→U-N→E-J→U-J六波、全局最多四路完成24run，无效果前置或逐波人工确认。实际墙钟39583.71105360985秒，不由短测或worker时长相除声称实测加速比。§68登记完整性及结果review Passed、原18项总gate Not passed（ETTm1 H192 J/N唯一安全失败），科学序列停止；本轮仅文本分析，不新增效率负载。下文旧AMD-Concat有限对照保留其历史适用范围，不是当前NSJ审批状态。
 
@@ -2050,6 +2087,14 @@ MPS 仅列可选项，须核验权限、对共享 GPU 的影响及恢复策略�
 未来长时任务仍须完成获准实现、review/closure 和独立训练前准备；守护方式实测后按 tmux > systemd-run --user > nohup+setsid 选择，提供完整启动、日志、进程/状态、完成判断和安全停止命令，默认由用户启动。失败/中断先审计 resume，不删除证据、不自动重跑。本节规划不等于执行上述流程的授权。
 
 # 10. 第四章：每个数据域必须独立获得时间基线
+
+空间实施准入顺序（用户本轮确认，仅文档生效，未启动空间阶段）：
+
+1. 当前及未来候选backbone先在原版作者模型上复现指定论文任务，通过后再按既定计划直接使用或改造。选论文中1–2个可取得数据集，使用与原结果可比的任务、处理、指标和训练协议；不用第三章统一训练表去要求原论文数值复现。
+2. HSTGCN已知有Boulder公开实验；3h/6h是同一个数据集的两个任务。北京数据不可得时如实记录，不强凑两个数据集，不声称其所有数据均私有。原版复现与后续EL-AMD+HSTGCN-core项目实验分开，不用改造core冒充原版；改造后只做必要工程验收与计划内正式效果/消融，不另设core必须复现原论文指标的关卡。
+3. SADR/SC-SimGCA等模块不要求完整复现来源模型整篇论文指标；保留来源核对、既定修改工程验收和本项目消融。HSTGCN/ASTGRN/G-STAN三个已批期刊例外按§1.2保留，不改变模块数学。
+4. 复现预算、具体对照数值与容差在相应空间阶段执行前锁定；有限排障后仍无法复现，先记录原因和成本，再提出替换候选，不无限改epoch/seed/结构救援。新选择的替代backbone/模块须2023年及以后顶会、优先作者开源；无代码按更高材料风险审查。替代backbone仍先原版指标复现，替代模块不增加整篇指标复现要求。
+5. 结论限定为“指定任务上复现通过/未通过/条件不足”；通过不是整篇论文无造假的证明，未复现也不直接推断作者造假。本轮不clone空间仓库、不准备数据/环境、不跑模型/toy graph/复现，不创建M7/M8等milestone。
 
 禁止把 UrbanEV 的 EL-AMD checkpoint 直接用于 CHARGED 或 PEMS 测试。
 
@@ -2422,7 +2467,7 @@ S6 vs S4/S5
 - 不输入未来真实天气、负荷、汇率或其他未来观测；
 - 主预测loss、validation best及最终指标只覆盖指定目标，标准数据覆盖完整H步；多输出内部结构不能引入其他未来标签监督；
 - 主表同一dataset/target/horizon/fold按§5.5使用相同lookback、输入变量/ordered aux、划分、scaler、seed、mask、目标反归一化和全元素聚合；标准日期列仅作索引，不给个别baseline额外time-mark；
-- 模型专属超参数可以不同，但搜索空间、预算和验证选择依据必须留档；
+- 模型原生结构项可不同并记录来源；第三章训练项严格沿§5.5统一表、单配置和0额外搜索，不因模型不同另给LR/batch/epoch或搜索机会；其他阶段仍依各自合同留档，不由本次修改改变第四章路线；
 - 第三/四章正式比较及消融固定 formal seed list=[2024]，不自动补 seed、不 seed 择优，模块已登记的内部初始化子流不变；
 - 主表报告固定 seed 2024 的实际结果，seed std=N/A，不报伪造的均值±0；fold/horizon/city差异不是seed方差，不宣称随机初始化稳定性已验证；
 - 既有 development artifact 不得升级为正式主表；未来按冻结正式协议新运行的 single-seed 结果可进入正式表，原 M5 三 seed 一致性暂缓且不标 Passed；
@@ -2501,9 +2546,9 @@ tests/
 | M1 | TemporalRegionDataset + GraphWindowDataset | 标签、切分、node order、`state_source`/`y_time` 双接口一致性测试通过 |
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
-| M4 | 时间模块诊断与候选迭代（In Progress） | S2 adequacy Passed/leading不变；MS精确合同及文档closure已完成；A/B最小接口 ChatGPT implementation review=Passed且Git closure已完成，测试/探针及skip见M4 §51；C production implementation complete、engineering gate=Passed、ChatGPT final implementation review=Passed且Git closure已完成；24-run合同已确认，当前仅ETTm1 Stage 1共12 runs获执行授权，默认用户启动，UrbanEV On hold；performance gate Not evaluated（§53） |
-| M5 | 模型筛选与结构冻结（未开始） | 按固定seed=2024做公平多数据集与独立模块筛选；三seed一致性暂缓未验证；已确认MS语义，仍须闭环对应正式元数据/接口并冻结训练预算、practical-effect、最终时间结构与正式variant |
-| M6 | 第三章正式实验与定稿（未开始） | 冻结正式MS协议后运行正式test；固定seed=2024，std=N/A；完成主表、原范围消融、效率与定稿 |
+| M4 | 时间模块诊断与候选迭代（Closed） | 已封存；原18项总效果gate Not passed，H192失败及风险接受保留，不追加M4任务 |
+| M5 | 模型筛选与结构冻结（In Progress） | 正式协议与配置、必要工程接入/验收准备后，依据既有开发证据及风险接受提请用户明确结构冻结；不默认新增完整多域效果筛选或practical-effect前置，不提前冻结J |
+| M6 | 第三章正式实验与定稿（未开始） | 明确冻结后按统一训练协议执行六域主表、UrbanEV模块消融及保留的TargetOnly/输入消融、正式test和效率报告；seed2024/std=N/A，负向结果照实报告 |
 | M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
 | M8 | HSTGCN-core 与双图构建 | 图归一化、官方地理图、train-only DTW、S0-S3 与图测试通过 |
 | M9 | SADR 状态需求残差图 | S4、blockwise top-k、关系可视化 |
@@ -2512,7 +2557,7 @@ tests/
 | M12 | 论文正文、图表与结果分析 | 全文叙事、图表、结果分析与章节一致性完成 |
 | M13 | 终稿审校、复现材料与答辩 | 终稿、复现清单、答辩材料与最终校验完成 |
 
-阶段任务表保持原文；其中M4行的§53执行状态保留为历史时点，当前结果/停止边界按§0.1及M4 §55读取。效率执行规划按§9.6.4衔接M4有限预检→M5实际选定模型配置确认→M6批准任务清单调度；不据此宣布M5/M6启动、整体阶段重排、正式variant冻结或组合guard解除。
+本次仅按用户确认更新M4封存状态及M5/M6职责，M0–M3和第四章路线不改。M5协议确认不等于正式训练或最终variant冻结，必要工程与具体负载仍按对应授权执行。效率规划保持M5确认执行配置、M6按批准清单调度及单独报告。
 
 # 20. 结果表与可视化
 
@@ -2567,13 +2612,9 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 | SADR | b_lambda 更负；k/d_a；正则 | ASTGRN global adaptive graph 与 DTW 的残差融合 | 更换另一篇近三年空间图模块；退回静态双图只算排障结果 |
 | SC-SimGCA | rho 初始化；层数；SimAM lambda | 保留 G-STAN 层融合，移除 Graph-SimAM，改名 SC-GCF | 若仍失败，更换另一篇近三年空间传播模块 |
 
-单模块正式通过线由 M5 执行：
+本次确认以§9.5的新冻结前置替代旧“单模块正式通过线由M5执行”：不再要求冻结前新增EV＋外部域单模块效果矩阵或锁定新practical-effect，不把旧0.5%安全线、多域改善/组合稳定不退化要求记为已满足。M5以正式协议、必要工程准备、既有开发证据与明确风险接受提请冻结；两模块有效性、组合交互与代价在M6的UrbanEV完整消融和六域整体模型比较中如实评价。负向结果须保留并收缩主张，不为凑数量新增候选、不按dataset/H关模块冒充同一模型；改变结构/任务须另行决定，不能看test后救援。
 
-1. 相对同输入/同骨干基线平均退化不超过 0.5%；该值只是安全底线，不能单独支持保留；
-2. 至少在一个 EV 数据域和一个外部数据域或第二城市上产生稳定改善；
-3. 原“3 seed 方向基本一致”要求按 §0.1、§9.5 的现行政策暂缓核验，记为 Not evaluated；formal seed list=[2024]、seed std=N/A，不记 Passed、不自动补 seed，也不据单 seed 结果声称随机初始化稳定性已验证；
-4. 最终组合不因模块交互产生稳定退化；
-5. 达到用户在 M5 筛选前锁定的 practical-effect threshold。
+formal seed list=[2024]、std=N/A，原三seed方向一致性暂缓且Not evaluated，不记Passed；两个来源模块“经消融有效”是待证目标，结构冻结不是其证明。M4所有来源、停止线、原gate Not passed、H192及1%阈值原样保留，失败历史路线和第四章来源合同不改。
 
 # 22. 代码与复现难度
 

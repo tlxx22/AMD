@@ -1,3 +1,4 @@
+import csv
 from copy import deepcopy
 from pathlib import Path
 
@@ -102,7 +103,12 @@ class CustomDataLoader:
             target='OT',
             train_generator=None,
             dataset_id=None,
+            *,
+            access_policy='train_validation_test',
     ):
+        if access_policy not in ('train_validation_test', 'train_validation_only'):
+            raise ValueError('unsupported access_policy')
+        self.access_policy = access_policy
         self.data = Path(data).expanduser()
         if not self.data.is_file():
             raise FileNotFoundError(f"dataset file does not exist: {self.data}")
@@ -125,6 +131,9 @@ class CustomDataLoader:
         self.feature_type = feature_type
         self.target = target
         self.dataset_id = dataset_id.strip()
+        if (self.access_policy == 'train_validation_only'
+                and self.dataset_id != 'ETTh1'):
+            raise ValueError('train_validation_only supports only ETTh1')
         self.resolved_target = None
         self.target_slice = slice(0, None)
         self._train_generator = None
@@ -197,7 +206,26 @@ class CustomDataLoader:
             # Solar-Energy is headerless; the first observation is real data.
             df = pd.read_csv(self.data, header=None)
         else:
-            df_raw = pd.read_csv(self.data)
+            if self.access_policy == 'train_validation_only':
+                # Consume exactly the header and validation prefix as CSV records.
+                # Do not let pandas tokenize a buffered block containing test rows.
+                with self.data.open('r', encoding='utf-8', newline='') as stream:
+                    reader = csv.reader(stream, strict=True)
+                    columns = next(reader, None)
+                    if (not columns or len(columns) != len(set(columns))
+                            or any(not name for name in columns)):
+                        raise ValueError('restricted CSV requires unique nonempty columns')
+                    rows = []
+                    for _ in range(11520):
+                        row = next(reader, None)
+                        if row is None:
+                            raise ValueError('ETTh1 validation prefix requires 11520 rows')
+                        if len(row) != len(columns):
+                            raise ValueError('restricted CSV row width does not match header')
+                        rows.append(row)
+                df_raw = pd.DataFrame(rows, columns=columns)
+            else:
+                df_raw = pd.read_csv(self.data)
             if 'date' not in df_raw.columns:
                 raise ValueError(
                     f"non-Solar CSV must contain a 'date' column: {self.data}"
@@ -238,17 +266,24 @@ class CustomDataLoader:
             target_idx = int(df.columns.get_loc(self.resolved_target))
             self.target_slice = slice(target_idx, target_idx + 1)
 
-        train_end, val_end, test_end = _compute_split_endpoints(
-            self.dataset_id, raw_row_count
-        )
+        restricted = self.access_policy == 'train_validation_only'
+        if restricted:
+            if raw_row_count != 11520:
+                raise ValueError('ETTh1 validation prefix requires exactly 11520 rows')
+            train_end, val_end, test_end = 8640, 11520, 14400
+        else:
+            train_end, val_end, test_end = _compute_split_endpoints(
+                self.dataset_id, raw_row_count
+            )
         val_start_with_context = train_end - self.seq_len
         test_start_with_context = val_end - self.seq_len
 
         window_counts = {
             'train': train_end - self.seq_len - self.pred_len + 1,
             'val': (val_end - train_end) - self.pred_len + 1,
-            'test': (test_end - val_end) - self.pred_len + 1,
         }
+        if not restricted:
+            window_counts['test'] = (test_end - val_end) - self.pred_len + 1
         invalid_splits = {
             name: count for name, count in window_counts.items() if count <= 0
         }
@@ -268,7 +303,8 @@ class CustomDataLoader:
 
         train_df = df.iloc[:train_end]
         val_df = df.iloc[val_start_with_context:val_end]
-        test_df = df.iloc[test_start_with_context:test_end]
+        if not restricted:
+            test_df = df.iloc[test_start_with_context:test_end]
 
         self.scaler = StandardScaler()
         self.scaler.fit(train_df.values)
@@ -279,7 +315,8 @@ class CustomDataLoader:
 
         self.train_df = scale_df(train_df)
         self.val_df = scale_df(val_df)
-        self.test_df = scale_df(test_df)
+        if not restricted:
+            self.test_df = scale_df(test_df)
         self.n_feature = int(self.train_df.shape[-1])
         self.split_endpoints = {
             'train_end': int(train_end),
@@ -333,11 +370,28 @@ class CustomDataLoader:
             },
             'window_counts': deepcopy(self.window_counts),
         }
+        if restricted:
+            declared_endpoints = deepcopy(self.split_endpoints)
+            del self.split_endpoints['test_end']
+            self._preprocessing_metadata.update({
+                'access_policy': self.access_policy,
+                'test_access_policy': 'forbidden',
+                'raw_rows': None,
+                'parsed_rows': raw_row_count,
+                'used_rows': val_end,
+                'observation_scope': 'train_validation_prefix_only',
+                'full_file_verified': False,
+                'test_observations_verified': False,
+                'declared_split_endpoints': declared_endpoints,
+                'split_endpoints': deepcopy(self.split_endpoints),
+                'split_context_starts': {'train': 0, 'val': val_start_with_context},
+            })
 
         # Report the number of real (input, target) windows, not raw split rows.
         print("train : ", self.window_counts['train'])
         print("valid : ", self.window_counts['val'])
-        print("test  : ", self.window_counts['test'])
+        if not restricted:
+            print("test  : ", self.window_counts['test'])
 
     def _make_dataset(self, data, shuffle, drop_last, generator=None, split_name=None):
         array = np.asarray(data, dtype=np.float32)
@@ -417,6 +471,8 @@ class CustomDataLoader:
         )
 
     def get_test(self):
+        if self.access_policy == 'train_validation_only':
+            raise PermissionError('test access forbidden by train_validation_only')
         return self._make_dataset(
             self.test_df,
             shuffle=False,

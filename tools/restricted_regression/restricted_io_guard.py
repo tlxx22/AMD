@@ -86,6 +86,9 @@ def check_access(path, writing=False, dir_fd=None):
     state = _STATE
     if state is None:
         raise RuntimeError('guard not installed')
+    if state.get('purpose', '').startswith('m5_'):
+        from m5_entry import check_m5_access
+        check_m5_access(real, writing, state, deny)
     # Task-bound full CSV access; this does not grant UrbanEV or synthetic access.
     if (not writing and state.get('access_policy') == 'ettm1_thls_development_smoke_v1'
             and real == state.get('approved_real_file')):
@@ -239,7 +242,10 @@ def install(config_path, expected_sha256):
     log = os.path.realpath(c['audit_log'])
     if not _within(config_path, session) or not _within(log, session):
         raise RuntimeError('configuration/audit log must be inside execution directory')
-    if c.get('fixture_root') is not None:
+    if c.get('purpose', '').startswith('m5_'):
+        from m5_entry import validate_config
+        validate_config(c)
+    elif c.get('fixture_root') is not None:
         base = Path(c['fixture_execution_root'])
         fixture = Path(c['fixture_root'])
         stage = c.get('stage')
