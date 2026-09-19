@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-19当前有效阶段：用户明确授权将J冻结为第三章最终EL-AMD（AMD＋Sonnet/MVCA S2 target residual＋THLS），结构身份`el-amd-s2-thls-v1`；M5阶段结束并随本轮closure封存，当前唯一milestone转为`docs/milestones/M6_formal_experiments.md`。M6已有495个fresh正式run/最多5340 run-epochs获本次授权，按十个模型组各自用户启动，组内按既定dataset/input_variant/H/fold波次自动执行；不自动启动下一模型。源/形状不变的54/54 probe证据沿M5 §24继承，并发只在已验证范围使用。M4原18项总gate Not passed和H192 J/N +1.542951806%风险保持；结构冻结不等于模块正式效果已获证。正式模型数学、T/epoch、AMD家族batch/LR及外部baseline来源batch/LR均未变，std=N/A。此前带日期或§编号的状态是历史快照，不重新开放已经裁决的阶段/参数事项。
+
 2026-09-19当前状态（M5 §24）：RSS复合判据与后端条件数值准入后的10组补测已完成并审核，54/54组技术准入全部Passed（44继承＋10本轮新通过）。本轮实际480 Adam/640前向/480反向，低于594硬上限；80条worker轨迹均finite、0 OOM、0资源归属失败、0受限审计deny。Passed并发为q4 44组、q2 3组、q1 7组。报告与当前protocol/code/environment/hardware/许可、kernel admission均匹配。该结论仅为资源/并发/短轨迹数值技术gate Passed，不是效果gate，不冻结J；M5仍未Closed，M6未开始。以下§23及更早为历史时点。
 
 2026-09-19当前状态（M5 §23）：按用户本次RSS复合判据及条件性数值授权完成接入。RSS需连续增长且净增>32MiB、平均>1MiB/step，并经24步窗口（前6步warm-up）末8步无平台才作CPU持续增长阻塞；显著短窗增长先标NeedsLongWindow，不冒充泄漏。三组24步代表均平台。四个数值作用域的固定Conv1d输入/权重/上游梯度重放均实测默认梯度非逐位、仅诊断切换cuDNN确定性后重复exact；生产确定性设置未改。TimeMixer/Exchange、ModernTCN/Weather采用全浮点1e-4及指标1e-6；ModernTCN/ECL初始界失败保留，条件证据成立后前瞻性采用state1e-3、validation1e-6、loss abs1e-6+rel1e-5并经新轨迹通过；原RSS阻塞还掩盖TimeMixer/Weather数值差异，已在原10组范围内补2串行验证，state1e-4、validation1e-6、loss abs1e-6+rel1e-5通过，正式并发仍待probe。32次CPU方法通过；21诊断worker实际180 Adam/294前向/252反向，机械余108；原48次隔离grad漏计单列补账、钩子修复，旧记录不改。44组155代表继承核验，10组40代表补测只用594既有余额，核心<=480，资源性候选回退按固定顺序限余额，不增加预算。495/5340、全部正式profile与训练数学不变；尚未启动新probe/J冻结/M5关闭/M6。以下§22及更早为历史时点。
@@ -1934,7 +1936,7 @@ TiDE本轮Deferred：保留在完整规划名单，UrbanEV/PJM当前分别推进
 
 Last Observation 仍仅在 UrbanEV 单列评价，不计神经网络训练。第二组 TimeXer 的原 parallel 路径拟改为目标外生路径：features=MS、n_vars=1、显式目标末列映射；这是新任务适配，不重命名旧 TimeXer-parallel 结果。保留 TimeMixer，不因统一 MS 而向第二组添加 TiDE，也不添加完整 Sonnet、XLinear 或其他模型。
 
-同一dataset/target/horizon/fold按§5.5统一lookback、信息集、split/scaler、mask、目标损失及指标聚合，并统一epoch/停止规则与共同优化配置；batch/eval batch及初始LR仅外部baseline按§5.5/ M5 §17已确认来源层覆盖，AMD家族保持原表。各模型可保留有来源的原生hidden/layer/patch/kernel等结构项，但每任务每模型单配置、0额外搜索；本次允许上述有限模型专属batch/LR，不新增搜索或暗中增加验证机会。AMD家族同任务公共骨干/共有模块匹配初始化，主表A/J与消融配置兼容时引用同一run。六域主表保留同输入AMD与最终增强模型，推荐J占该位置仍须后续用户明确冻结；不提前冻结J。正式适配缺口继续按M5登记，来源默认值不是已批准结构表缺项的替代证据。
+同一dataset/target/horizon/fold按§5.5统一lookback、信息集、split/scaler、mask、目标损失及指标聚合，并统一epoch/停止规则与共同优化配置；batch/eval batch及初始LR仅外部baseline按§5.5/ M5 §17已确认来源层覆盖，AMD家族保持原表。各模型可保留有来源的原生hidden/layer/patch/kernel等结构项，但每任务每模型单配置、0额外搜索；本次允许上述有限模型专属batch/LR，不新增搜索或暗中增加验证机会。AMD家族同任务公共骨干/共有模块匹配初始化，主表A/J与消融配置兼容时引用同一run。六域主表保留同输入AMD与最终增强模型；用户本次已明确冻结J为EL-AMD，执行身份保留J，正式结构身份为el-amd-s2-thls-v1。正式适配缺口继续按M5登记，来源默认值不是已批准结构表缺项的替代证据。
 
 ## 9.3 消融矩阵：当前角色与历史 identity 分离
 
@@ -1982,7 +1984,7 @@ formal seed=[2024]、std=N/A、随机初始化稳定性Not evaluated保持；fol
 
 ## 9.6 正式实验资源预算与效率预检
 
-本节是规划，不授予正式训练或额外预算；当前M5进行正式协议/必要工程准备，M6未启动，最终时间结构未冻结。第三章矩阵与统一训练合同依§5.5/§9.1–9.5；formal seed=[2024]，多seed稳定性Not evaluated。工程/失败成本、效率预检及正式训练分别授权，旧P2等历史预算不转为新额度。
+本节历史资源情景保留；当前有效授权为已冻结J和现有495个正式run/最多5340 run-epochs，M5已收口、M6进入用户分模型启动准备。可选扩展、额外seed和新增搜索不在本次授权内。第三章矩阵与统一训练合同依§5.5/§9.1–9.5；formal seed=[2024]，多seed稳定性Not evaluated。工程/失败成本、效率预检及正式训练分别授权，旧P2等历史预算不转为新额度。
 
 证据标签统一为：**Measured**＝已有实际运行记录或现场只读观察（注明来源和限制）；**Extrapolated**＝依据已测数据外推；**Scenario**＝条件性算术情景；**Unknown**＝尚无可靠测量或合同未定。不能把后三者写成实测均值、性能结论或保证上界。
 
@@ -2100,9 +2102,9 @@ M1 §12 的六折 train split 长度为 576/1171/1747/2342/2937/3475，T=12，H=
 
 ### 9.6.4 A800 batch / 并发效率预检（有限对照完成、适用边界与后续规划）
 
-**当前补测准备（M5 §23）**：44组/155代表继承、10组/40代表待补测，核心串行＋一个可行并发候选至多480 Adam；总硬上限594，额外额度0。四路资源不适合先按原规则两路；若已耗额度不足以完成可选回退并保留后续组核心额度，则只保留已验证单路，不把未测并发写Passed，不以降并发掩盖数值失败。RSS与条件数值规则见唯一M5 §23，原结果不改。新许可必须绑定实际closure/code/protocol/父证据及kernel证据；full probe由用户启动。
+**历史补测准备（M5 §23；已由§24全通过收口）**：44组/155代表继承、10组/40代表待补测，核心串行＋一个可行并发候选至多480 Adam；总硬上限594，额外额度0。四路资源不适合先按原规则两路；若已耗额度不足以完成可选回退并保留后续组核心额度，则只保留已验证单路，不把未测并发写Passed，不以降并发掩盖数值失败。RSS与条件数值规则见唯一M5 §23，原结果不改。新许可必须绑定实际closure/code/protocol/父证据及kernel证据；full probe由用户启动。
 
-**当前数值准入（M5 §19，本次用户明确确认）**：仅TimeMixer/Exchange四H具名tokenConv权重/梯度/Adam两动量采用逐元素atol=1e-7、rtol=0，finite强制；loss/归一化validation同界，初始/RNG/batch/步数与其他状态仍exact，其他模型域不放宽。旧exact失败保留，新六步H192串行/并发对照已通过；44组170代表仍待完整补测。机械余额450，3036补测额度未用，准备review/closure后用户启动，不进入M6。规则与完整证据见唯一M5 §19。
+**历史数值准入（M5 §19；当前限定规则以§23–24为准）**：仅TimeMixer/Exchange四H具名tokenConv权重/梯度/Adam两动量采用逐元素atol=1e-7、rtol=0，finite强制；loss/归一化validation同界，初始/RNG/batch/步数与其他状态仍exact，其他模型域不放宽。旧exact失败保留，新六步H192串行/并发对照已通过；44组170代表仍待完整补测。机械余额450，3036补测额度未用，准备review/closure后用户启动，不进入M6。规则与完整证据见唯一M5 §19。
 
 **历史收口（M5 §18）**：10组有条件继承核对、44组170代表补测计划保持；新增709已明确批准，2327＋709=3036，机械余额474单列。源码、范围、父证据和额度在输出创建前检查。双时点RSS检查已限定验收，旧AMD/ETTh1代表6步未触发；TimeMixer/Exchange串行重复亦不exact，完整补测仍Blocked，未放宽数值规则/改变确定性。工程commit/push不等于M5 Closed或M6启动。§17以下是此前时点。
 
@@ -2601,8 +2603,8 @@ tests/
 | M2 | PMCR | shape、gradient、无跨变量、reparam 测试通过 |
 | M3 | TEB | AMD-Concat 公平对照、parallel mode、zero context 测试通过；工程闭环不等于性能通过 |
 | M4 | 时间模块诊断与候选迭代（Closed） | 已封存；原18项总效果gate Not passed，H192失败及风险接受保留，不追加M4任务 |
-| M5 | 模型筛选与结构冻结（In Progress） | 正式协议与配置、必要工程接入/验收准备后，依据既有开发证据及风险接受提请用户明确结构冻结；不默认新增完整多域效果筛选或practical-effect前置，不提前冻结J |
-| M6 | 第三章正式实验与定稿（未开始） | 明确冻结后按统一训练协议执行六域主表、UrbanEV F4模块消融与A/J的F1–F4同输入消融、正式test和效率报告；seed2024/std=N/A，负向结果照实报告 |
+| M5 | 模型筛选与结构冻结（Closed） | 正式协议与配置、必要工程接入/验收准备后，依据既有开发证据及风险接受提请用户明确结构冻结；不默认新增完整多域效果筛选或practical-effect前置，不提前冻结J |
+| M6 | 第三章正式实验与定稿（In Progress；用户分模型启动） | 明确冻结后按统一训练协议执行六域主表、UrbanEV F4模块消融与A/J的F1–F4同输入消融、正式test和效率报告；seed2024/std=N/A，负向结果照实报告 |
 | M7 | 时间状态接口与 Graph Mode | 训练 StateAdapter；`H_time [B,N,d]`、target-only output、适配后一致性测试通过 |
 | M8 | HSTGCN-core 与双图构建 | 图归一化、官方地理图、train-only DTW、S0-S3 与图测试通过 |
 | M9 | SADR 状态需求残差图 | S4、blockwise top-k、关系可视化 |

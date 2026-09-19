@@ -4558,8 +4558,8 @@
   },
   "execution": {
     "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python",
-    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-rss-kernel-t9a2njbt",
-    "fixture": "/tmp/amd-m5-rss-kernel-yuep_3nw",
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu",
+    "fixture": "/tmp/amd-m6-prelaunch-_s5m4p2c",
     "cpu_first_methods": 16,
     "cpu_retry_methods": 16,
     "model_first": {
@@ -4897,6 +4897,13 @@
         "worker_instances": 21,
         "mechanical_remaining": 108
       }
+    },
+    "phase": "M6",
+    "m6_preparation": {
+      "cpu_first": 16,
+      "cpu_repair": 16,
+      "model_updates": 0,
+      "prefix_policy": "train_validation_only"
     }
   },
   "tasks": [
@@ -12549,22 +12556,22 @@
   ],
   "acceptance": {
     "cpu_ids": [
-      "test_ch3_formal.RssKernelAdmissionTests.test_profiles_unchanged",
-      "test_ch3_formal.RssKernelAdmissionTests.test_numeric_scope_bounds",
-      "test_ch3_formal.RssKernelAdmissionTests.test_rss_tiny_growth_not_rejected",
-      "test_ch3_formal.RssKernelAdmissionTests.test_large_short_growth_needs_long_not_leak",
-      "test_ch3_formal.RssKernelAdmissionTests.test_sustained_material_long_growth_rejected",
-      "test_ch3_formal.RssKernelAdmissionTests.test_long_plateau_not_rejected",
-      "test_ch3_formal.RssKernelAdmissionTests.test_net_and_average_both_required",
-      "test_ch3_formal.RssKernelAdmissionTests.test_tiny_positive_tail_is_plateau",
-      "test_ch3_formal.RssKernelAdmissionTests.test_gpu_growth_still_rejected",
-      "test_ch3_formal.RssKernelAdmissionTests.test_invalid_memory_rejected",
-      "test_ch3_formal.RssKernelAdmissionTests.test_budget_caps_existing594",
-      "test_ch3_formal.RssKernelAdmissionTests.test_budget_old_approval_rejected",
-      "test_ch3_formal.RssKernelAdmissionTests.test_rss_policy_immutable",
-      "test_ch3_formal.RssKernelAdmissionTests.test_kernel_missing_blocks",
-      "test_ch3_formal.RssKernelAdmissionTests.test_kernel_negative_and_positive_evidence",
-      "test_ch3_formal.RssKernelAdmissionTests.test_no_global_training_determinism_change"
+      "test_ch3_m6.M6PreparationTests.test_freeze_and_stage",
+      "test_ch3_m6.M6PreparationTests.test_all_scientific_profiles_unchanged",
+      "test_ch3_m6.M6PreparationTests.test_model_task_counts",
+      "test_ch3_m6.M6PreparationTests.test_wave_coverage_and_q",
+      "test_ch3_m6.M6PreparationTests.test_no_cross_model_or_duplicate_tasks",
+      "test_ch3_m6.M6PreparationTests.test_one_coordinator_per_wave",
+      "test_ch3_m6.M6PreparationTests.test_wave_failure_stops_next",
+      "test_ch3_m6.M6PreparationTests.test_stop_before_launch",
+      "test_ch3_m6.M6PreparationTests.test_horizon_metadata_generic",
+      "test_ch3_m6.M6PreparationTests.test_horizon_metadata_urban",
+      "test_ch3_m6.M6PreparationTests.test_result_identity_rejected",
+      "test_ch3_m6.M6PreparationTests.test_nonfinite_result_rejected",
+      "test_ch3_m6.M6PreparationTests.test_approval_requires_every_run_binding",
+      "test_ch3_m6.M6PreparationTests.test_binding_capability_only_validation",
+      "test_ch3_m6.M6PreparationTests.test_formal_monitor_streams",
+      "test_ch3_m6.M6PreparationTests.test_formal_failfast_owned_workers"
     ],
     "model_cases": {}
   },
@@ -15253,5 +15260,19 @@
         }
       }
     }
+  },
+  "structure_freeze": {
+    "id": "el-amd-s2-thls-v1",
+    "family": "EL-AMD",
+    "variant": "J",
+    "components": [
+      "AMD",
+      "Sonnet/MVCA S2 target residual",
+      "THLS"
+    ],
+    "source_commit": "2f6a5d8cc9faf9e33373a34471be8fd78fe9dec0",
+    "m4_effect_gate": "Not passed",
+    "risk_accepted": "ETTm1 H192 J/N development-test MSE +1.542951806% exceeds original1%",
+    "frozen_by": "user explicit authorization in current conversation"
   }
 }

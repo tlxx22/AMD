@@ -37,6 +37,16 @@ def validate_config(s):
     if os.environ.get('TMPDIR')!=s['fixture_root'] or not Path(s['fixture_root']).is_dir():raise ValueError('fixture environment mismatch')
     purpose=s['purpose']
     if purpose=='ch3_cpu':expected=c['acceptance']['cpu_ids']
+    elif purpose=='ch3_formal_bindings':
+        if c['execution'].get('phase')!='M6' or s.get('task') or s.get('kernel_probe'):raise ValueError('M6 prefix-only capability required')
+        from utils.ch3_m6 import source_states
+        expected=['ch3.m6.data_bindings']
+        limits={}
+        for name,d in c['datasets'].items():
+            if name=='UrbanEV':
+                for f in ('volume.csv','e_price.csv','s_price.csv','weather_central.csv'):limits[str(Path(d['path'])/f)]=max(x[1] for x in c['urban_folds'])
+            else:limits[d['path']]=d['endpoints'][1]
+        if s['prefix_files']!=limits:raise ValueError('M6 binding prefix scope mismatch')
     elif purpose=='ch3_model_acceptance':
         expected=[c['acceptance']['model_cases'][s['case']]['id']]
         if s['task']!=c['acceptance']['model_cases'][s['case']]['run_id']:raise ValueError('model acceptance task mismatch')
@@ -75,7 +85,7 @@ def validate_config(s):
     ensure_unique_exact(s['ids'],expected)
     source=c['sources'].get(task_by_id(c,s['task'])['model']) if s.get('task') else None
     if s['author_files']!=(source['files'] if source else {}):raise ValueError('purpose/source closure mismatch')
-    ceilings={'ch3_cpu':(0,0,0),'ch3_prefix':(0,0,0),'ch3_placeholder':(0,0,0),
+    ceilings={'ch3_formal_bindings':(0,0,0),'ch3_cpu':(0,0,0),'ch3_prefix':(0,0,0),'ch3_placeholder':(0,0,0),
               'ch3_model_acceptance':(2,6,2),'ch3_probe':(6,8,6),'ch3_step_diagnostic':(6,8,6),'ch3_resource_diagnostic':(0,0,0)}
     if purpose=='ch3_step_diagnostic':
         kind=cases[s['case']]['kind']
@@ -87,11 +97,11 @@ def validate_config(s):
     elif s.get('kernel_probe'):raise ValueError('kernel replay is diagnostic-only')
     if purpose in ceilings:
         if tuple(s['limits'][k] for k in ('adam','forward','backward'))!=ceilings[purpose]:raise ValueError('exact operation budget mismatch')
-    if purpose not in ('ch3_prefix','ch3_formal') and s['prefix_files']:raise ValueError('real prefix forbidden for this purpose')
+    if purpose not in ('ch3_prefix','ch3_formal','ch3_formal_bindings') and s['prefix_files']:raise ValueError('real prefix forbidden for this purpose')
     if not inside(s['output'],s['session_root']):raise ValueError('output outside current evidence')
     for p,h in s['author_files'].items():
         if sha(p)!=h:raise ValueError('author binding changed: '+p)
-    if purpose in ('ch3_cpu','ch3_prefix','ch3_placeholder') and os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise ValueError('CPU-only purpose')
+    if purpose in ('ch3_cpu','ch3_prefix','ch3_placeholder','ch3_formal_bindings') and os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise ValueError('CPU-only purpose')
 
 
 def check_access(real,writing,s,deny,permitted_prefix):
@@ -129,7 +139,7 @@ def bootstrap(s):
     torch.set_num_threads(4)
     from resource_budget import install,counted,instrument_module_calls
     install(s)
-    if s['purpose'] in ('ch3_cpu','ch3_prefix'):
+    if s['purpose'] in ('ch3_cpu','ch3_prefix','ch3_formal_bindings'):
         def forbidden(*a,**k):raise PermissionError('CH3 CPU purpose forbids model/optimizer/GPU construction')
         torch.nn.Module.__init__=forbidden;torch.optim.Optimizer.__init__=forbidden;torch.cuda._lazy_init=forbidden
     elif s['purpose']=='ch3_resource_diagnostic':
@@ -259,14 +269,19 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
     out=Path(out);out.mkdir(parents=True,exist_ok=False)
     src=c['sources'].get(task_by_id(c,task)['model']) if task else None
     prefix={}
-    if purpose=='ch3_prefix':
+    if purpose=='ch3_formal_bindings':
+        for name,d in c['datasets'].items():
+            if name=='UrbanEV':
+                for f in ('volume.csv','e_price.csv','s_price.csv','weather_central.csv'):prefix[str(Path(d['path'])/f)]=max(x[1] for x in c['urban_folds'])
+            else:prefix[d['path']]=d['endpoints'][1]
+    elif purpose=='ch3_prefix':
         if case not in ('Weather','PJM'):raise ValueError('Weather/PJM prefix only')
         prefix={c['datasets'][case]['path']:{'Weather':42157,'PJM':41933}[case]}
     elif purpose=='ch3_formal':
         t=task_by_id(c,task);d=c['datasets'][t['dataset']]
         if t['dataset']=='UrbanEV':prefix={str(Path(d['path'])/f):c['urban_folds'][t['fold']-1][2] for f in ['volume.csv','e_price.csv','s_price.csv','weather_central.csv']}
         else:prefix[d['path']]=d['endpoints'][2]
-    ids=(c['acceptance']['cpu_ids'] if purpose=='ch3_cpu' else
+    ids=(['ch3.m6.data_bindings'] if purpose=='ch3_formal_bindings' else c['acceptance']['cpu_ids'] if purpose=='ch3_cpu' else
          [c['acceptance']['model_cases'][case]['id']] if purpose=='ch3_model_acceptance' else
          ['ch3.diagnostic.'+case] if purpose=='ch3_step_diagnostic' else
          [task] if task else ['ch3.resource_diagnostic' if purpose=='ch3_resource_diagnostic' else 'ch3.prefix.'+case+'.train_validation' if purpose=='ch3_prefix' else 'ch3.placeholder'])
@@ -311,7 +326,9 @@ def spawn(config):
 
 def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
-    stop_file=Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
+    formal=all(c['purpose']=='ch3_formal' for c in configs)
+    stop_file=Path(configs[0]['artifact_root']).parent/'STOP' if formal else Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
+    aggregate=dict(process_peaks={},cpu_peaks={},whole_peak=None,last_time=None,min_interval=None,max_interval=None,settled_count=0,all_admitted=True,count=0)
     def terminate_owned(sig,frame):raise InterruptedError('safe-stop own process tree')
     previous=signal.signal(signal.SIGTERM,terminate_owned);exit_observation=None
     try:
@@ -323,6 +340,7 @@ def run_configs(configs,out,monitor=False):
         with (out/'memory.jsonl').open('x',encoding='utf-8') as log:
             while any(p.poll() is None for p,_ in children) or (monitor and exit_observation.pending):
                 if stop_file.exists():raise InterruptedError('safe-stop; own workers only')
+                if formal and any(p.poll() not in (None,0) for p,_ in children):raise RuntimeError('formal worker failed; stop owned wave before further dispatch')
                 if time.monotonic()-start>max(c['limits']['seconds'] or 1e12 for c in configs):raise TimeoutError('worker wall time limit')
                 if monitor:
                     active=[p.pid for p,_ in children if p.poll() is None]
@@ -338,13 +356,28 @@ def run_configs(configs,out,monitor=False):
                     if transient:sample['assessment']['admission']=False
                     elif not after and not unknown:
                         sample['assessment']=resource_assessment(sample,[],baseline)
-                    samples.append(sample);log.write(json.dumps(sample)+'\n');log.flush()
+                    if formal:
+                        aggregate['count']+=1
+                        for key,destination in [('process_gpu','process_peaks'),('cpu_rss','cpu_peaks')]:
+                            for pid,value in sample.get(key,{}).items():
+                                if value is not None:aggregate[destination][pid]=max(aggregate[destination].get(pid,0),value)
+                        aggregate['whole_peak']=max(aggregate['whole_peak'] or 0,sample['used'])
+                        if aggregate['last_time'] is not None:
+                            interval=sample['time']-aggregate['last_time']
+                            aggregate['min_interval']=interval if aggregate['min_interval'] is None else min(interval,aggregate['min_interval'])
+                            aggregate['max_interval']=interval if aggregate['max_interval'] is None else max(interval,aggregate['max_interval'])
+                        aggregate['last_time']=sample['time']
+                        if not sample.get('admission_deferred'):
+                            aggregate['settled_count']+=1;aggregate['all_admitted']=aggregate['all_admitted'] and sample['assessment']['admission']
+                        samples[:]=[sample]
+                    else:samples.append(sample)
+                    log.write(json.dumps(sample)+'\n');log.flush()
                     if not sample['assessment']['card_reliable']:raise MemoryError('whole-card sampling unreliable')
                     if sample['free']<sample['assessment']['reserve']:raise MemoryError('whole-card headroom crossed')
                     if unknown or (len(configs)>1 and not transient and after and not sample['assessment']['external_occupancy_known']):
                         raise MemoryError('external occupancy unknown; concurrency not admitted')
                 time.sleep(.1)
-    except (MemoryError,TimeoutError,InterruptedError,subprocess.CalledProcessError,ValueError) as exc:
+    except (MemoryError,TimeoutError,InterruptedError,subprocess.CalledProcessError,ValueError,RuntimeError) as exc:
         failure=('whole-card sampling failed: ' if isinstance(exc,(subprocess.CalledProcessError,ValueError)) else '')+str(exc)
     finally:
         for p,h in children:
@@ -365,6 +398,12 @@ def run_configs(configs,out,monitor=False):
     settled=[s for s in samples if not s.get('admission_deferred')]
     result['exit_transitions_resolved']=exit_observation is not None and not exit_observation.pending
     result['resource_admission']=bool(settled) and not failure and result['exit_transitions_resolved'] and all(s['assessment']['admission'] for s in settled)
+    if formal:
+        result.update(process_peaks={str(p.pid):aggregate['process_peaks'].get(str(p.pid)) for p,_ in children},
+                      cpu_peaks={str(p.pid):aggregate['cpu_peaks'].get(str(p.pid)) for p,_ in children},
+                      whole_card_peak=aggregate['whole_peak'],actual_interval_min=aggregate['min_interval'],actual_interval_max=aggregate['max_interval'],
+                      resource_admission=bool(aggregate['settled_count']) and not failure and result['exit_transitions_resolved'] and aggregate['all_admitted'],
+                      sample_count=aggregate['count'],monitor_memory='streamed formal records; one retained sample')
     result['baseline']=baseline
     result['process_attribution']='Measured' if result['process_peaks'] and all(v is not None for v in result['process_peaks'].values()) else 'Not verified'
     failed_logs=[(Path(c['output'])/'worker.log').read_text() for c,code in zip(configs,codes) if code]
@@ -469,9 +508,15 @@ def worker():
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
         probe_worker(c,task_by_id(c,s['task']),out)
+    elif purpose=='ch3_formal_bindings':
+        from utils.ch3_m6 import build_data_bindings
+        build_data_bindings(c,out)
     elif purpose=='ch3_formal':
         from ch3_runner import formal_worker
-        formal_worker(c,task_by_id(c,s['task']),Path(s['artifact_root']),s['approval'],s['resume'])
+        began=time.time();error=None
+        try:formal_worker(c,task_by_id(c,s['task']),Path(s['artifact_root']),s['approval'],s['resume'])
+        except BaseException as exc:error=repr(exc);raise
+        finally:dump(out/'runtime.json',dict(task=s['task'],pid=os.getpid(),started=began,finished=time.time(),elapsed=time.time()-began,error=error))
     elif purpose=='ch3_placeholder':
         # Exercise exactly the same fixed-wave dispatch and lock, no torch.
         with GPULock(c):

@@ -28,7 +28,7 @@ def git(*args):return subprocess.check_output(['git','-C',str(ROOT),*args],text=
 
 
 def code_binding():
-    files=['ch3_runner.py','utils/ch3_contract.py','utils/ch3_data.py','models/ch3_adapter.py',
+    files=['ch3_runner.py','utils/ch3_m6.py','tests/test_ch3_m6.py','utils/ch3_contract.py','utils/ch3_data.py','models/ch3_adapter.py',
            'models/tsAMD.py','models/tsAMD_enhanced.py','models/common.py','models/tsmoe.py',
            'utils/dataloader_urbanev.py','utils/feature_schema.py']
     files += ['tests/test_ch3_formal.py','scripts/ch3/start_model.sh','scripts/ch3/start_probe.sh',
@@ -154,6 +154,8 @@ def preflight(c,model,approval=None,probe=False):
                 if unresolved:reasons.append(domain+': '+','.join(unresolved))
                 if domain not in approval.get('data_bindings',{}):reasons.append(domain+': reviewed data prefix binding missing')
             if not approval.get('probe_report_sha'):reasons.append('reviewed resource decisions missing')
+            from utils.ch3_m6 import approval_reasons
+            reasons.extend(approval_reasons(c,model,approval))
     for src in c['sources'].values():
         if subprocess.check_output(['git','-C',src['repository'],'rev-parse','HEAD'],text=True).strip()!=src['commit']:
             reasons.append('author commit changed: '+src['repository'])
@@ -777,7 +779,14 @@ def main():
         else:
             complete=(out/'complete.json').exists()
             if complete:validate_model_completion(c,args.model,json.loads((out/'complete.json').read_text()))
-            print(json.dumps({'output':str(out),'complete':complete,'logs':[str(p) for p in out.glob('*.log')]}))
+            logs=sorted(str(p) for p in out.glob('*/worker.log'))
+            control=json.loads((out/'controller.json').read_text()) if (out/'controller.json').exists() else {}
+            proc=Path('/proc')/str(control.get('pid','missing'))/'stat'
+            try:running=proc.read_text().split()[21]==control.get('start_ticks')
+            except OSError:running=False
+            print(json.dumps({'output':str(out),'complete':complete,'running':running,
+                              'completed_runs':len(list(out.glob('*/result.json'))),
+                              'progress':str(out/'progress.json'),'logs':logs},ensure_ascii=False))
         return
     approval=json.loads(Path(args.approval).read_text()) if args.approval else None
     reasons=preflight(c,args.model,approval)
@@ -807,17 +816,13 @@ def main():
             if t['model']==args.model:recovery[t['id']]=audit_resume(out/t['id'],approval,t['id'])
         waves=[[run for run in wave if recovery[run]!='complete'] for wave in waves]
         waves=[wave for wave in waves if wave]
-    else:out.mkdir(parents=True,exist_ok=False)
     controller_out=out/('recovery-'+str(time.time_ns())) if args.resume else out
-    controller_out.mkdir(exist_ok=True)
     with GPULock(c):
+        if not args.resume:out.mkdir(parents=True,exist_ok=False)
+        controller_out.mkdir(exist_ok=True)
         dump(out/'controller.json',dict(pid=os.getpid(),start_ticks=Path('/proc/self/stat').read_text().split()[21],model=args.model))
-        def command(run):
-            cmd=[c['execution']['python'],str(ROOT/'tools/restricted_regression/m5_formal_entry.py'),
-                    'formal-worker','--run-id',run,'--output',str(out/run),'--approval',args.approval]
-            if recovery.get(run)=='resume':cmd.append('--resume')
-            return cmd
-        dispatch(waves,command,controller_out)
+        from utils.ch3_m6 import run_formal_waves
+        run_formal_waves(c,waves,controller_out,out,approval,recovery)
         rows=[json.loads((out/t['id']/'result.json').read_text()) for t in c['tasks'] if t['model']==args.model]
         dump(out/'complete.json',dict(model=args.model,protocol_sha=digest(c),
              task_ids=[t['id'] for t in c['tasks'] if t['model']==args.model],results=summarize(c,rows)))

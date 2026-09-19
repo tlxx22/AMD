@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+**Closed：用户于本次会话明确批准J最终结构冻结和进入M6。** 正式身份`el-amd-s2-thls-v1`，工程运行名J保留。M5最终技术准入54/54 Passed；原M4效果gate Not passed不改。以下§24及更早记录保留当时事实；本文件随本轮Git closure封存后不再追加。当前阶段文档为`docs/milestones/M6_formal_experiments.md`。
+
 2026-09-19当前状态（M5 §24）：RSS复合判据与后端条件数值准入后的10组补测已完成并审核，54/54组技术准入全部Passed（44继承＋10本轮新通过）。本轮实际480 Adam/640前向/480反向，低于594硬上限；80条worker轨迹均finite、0 OOM、0资源归属失败、0受限审计deny。Passed并发为q4 44组、q2 3组、q1 7组。报告与当前protocol/code/environment/hardware/许可、kernel admission均匹配。该结论仅为资源/并发/短轨迹数值技术gate Passed，不是效果gate，不冻结J；M5仍未Closed，M6未开始。以下§23及更早为历史时点。
 
 2026-09-19当前状态（M5 §23）：按用户本次RSS复合判据及条件性数值授权完成接入。RSS需连续增长且净增>32MiB、平均>1MiB/step，并经24步窗口（前6步warm-up）末8步无平台才作CPU持续增长阻塞；显著短窗增长先标NeedsLongWindow，不冒充泄漏。三组24步代表均平台。四个数值作用域的固定Conv1d输入/权重/上游梯度重放均实测默认梯度非逐位、仅诊断切换cuDNN确定性后重复exact；生产确定性设置未改。TimeMixer/Exchange、ModernTCN/Weather采用全浮点1e-4及指标1e-6；ModernTCN/ECL初始界失败保留，条件证据成立后前瞻性采用state1e-3、validation1e-6、loss abs1e-6+rel1e-5并经新轨迹通过；原RSS阻塞还掩盖TimeMixer/Weather数值差异，已在原10组范围内补2串行验证，state1e-4、validation1e-6、loss abs1e-6+rel1e-5通过，正式并发仍待probe。32次CPU方法通过；21诊断worker实际180 Adam/294前向/252反向，机械余108；原48次隔离grad漏计单列补账、钩子修复，旧记录不改。44组155代表继承核验，10组40代表补测只用594既有余额，核心<=480，资源性候选回退按固定顺序限余额，不增加预算。495/5340、全部正式profile与训练数学不变；尚未启动新probe/J冻结/M5关闭/M6。以下§22及更早为历史时点。
@@ -1479,3 +1481,11 @@ TimeMixer/Exchange q4四代表均通过当前全浮点条件规则，最大state
 ### 24.5 当前裁决与M5停止点
 
 因此，本轮**资源/并发/短轨迹数值技术gate = Passed（54/54）**。这只解决M5进入正式实验前的工程准入，不改写M4效果事实，也不是预测效果gate。J仍只是M5候选，没有因本次资源probe自动冻结；M5未Closed，M6未授权/未启动，495个正式run仍未执行。下一步若要冻结结构或进入M6，必须按用户新的明确决定执行，不能由本节自动推进。
+
+## 25. 最终结构冻结与M5阶段结束
+
+用户最新明确授权“授权. 然后给我每一个实验的启动命令”，承接上一轮所述J冻结、M5结束、进入M6及按模型分组正式实验准备。本次固定第三章最终EL-AMD=完整AMD＋Sonnet/MVCA S2 target residual＋THLS，结构ID=`el-amd-s2-thls-v1`，保留代码/任务中的J身份；A/N/S仍为已登记比较与消融臂。不是完整Sonnet模型，也不把历史PMCR/P2/TEB/CCE路线改写成最终模块。
+
+选择依据是已接受M4开发证据、用户已明确接受的已知风险，以及§24的54/54资源/并发/短轨迹数值技术准入。原18项效果总gate Not passed、ETTm1 H192 J/N development-test MSE +1.542951806%超过1%保持；不重新训练原24run、不删H、不换seed或按域关模块，不宣称正式效果已通过。
+
+所有495个正式profile与冻结前逐项一致，M6最多5340 run-epochs、max optimizer steps 16,482,750；正式训练/test由用户按模型入口启动。M5不新增效果筛选矩阵；两模块有效性与代价由M6既定UrbanEV消融和六域主表如实评价。M5阶段工作结束，随本轮精确Git closure封存；正式入口最小接线及启动材料登记在唯一M6，不再回写Closed M5。
