@@ -75,6 +75,11 @@ def preflight(c,model,approval=None,probe=False):
     validate_manifest(c)
     if model is not None and model not in {t['model'] for t in c['tasks']}:raise ValueError('model group not registered')
     reasons=[]
+    from utils.ch3_contract import training_blockers
+    for task in c['tasks']:
+        if model is None or task['model']==model:
+            reasons.extend(training_blockers(c,task))
+    reasons=list(dict.fromkeys(reasons))
     from utils.ch3_data import verify_source_state
     for name,d in c['datasets'].items():
         try:verify_source_state(d)
@@ -82,7 +87,11 @@ def preflight(c,model,approval=None,probe=False):
         if probe:
             reasons.extend(name+': '+reason for reason in d['mandatory_blockers'])
             if name!='UrbanEV' and d['endpoints'] is None:reasons.append(name+': probe tail endpoints missing')
-    if probe:reasons.extend(c['execution']['probe'].get('mandatory_blockers',[]))
+    if probe:
+        reasons.extend(c['execution']['probe'].get('mandatory_blockers',[]))
+        from utils.ch3_contract import followup_limits
+        try:followup_limits(c,approval)
+        except (ValueError,KeyError,TypeError) as exc:reasons.append('follow-up: '+str(exc))
     if git('status','--porcelain','--untracked-files=all'):reasons.append('reviewed clean closure required')
     if approval is None:reasons.append('explicit review/closure authorization missing')
     else:
@@ -124,7 +133,8 @@ def tensor_digest(value):
     h=hashlib.sha256()
     def add(v):
         if torch.is_tensor(v):
-            a=v.detach().cpu().contiguous();h.update(str((a.dtype,tuple(a.shape))).encode());h.update(a.numpy().tobytes())
+            a=v.detach().cpu().contiguous();h.update(str((a.dtype,tuple(a.shape))).encode())
+            if a.numel():h.update(memoryview(a.numpy()).cast('B'))
         elif isinstance(v,dict):
             for k in sorted(v,key=str):h.update(str(k).encode());add(v[k])
         elif isinstance(v,(list,tuple)):
@@ -244,13 +254,30 @@ def init_training(c,task,device):
     return p,model,opt,torch.Generator().manual_seed(2024)
 
 
-def probe_worker(c,task,out,device='cuda:0'):
+def memory_growth_review(memory):
+    """Keep strict four-point rule; CPU pre-hash still includes prior history."""
+    if len(memory)<4:return {'blocked':False,'triggers':[],'scope':'insufficient observations'}
+    recent=memory[-4:]
+    triggers=[key for key in ('allocated','rss_before_hash')
+              if all(b[key]>a[key] for a,b in zip(recent,recent[1:]))]
+    after_grows=all(b['rss_after_hash']>a['rss_after_hash'] for a,b in zip(recent,recent[1:]))
+    return dict(blocked=bool(triggers),triggers=triggers,after_hash_grows=after_grows,
+                scope='six-step check; pre-hash RSS may retain earlier hash allocator effects; not proof of GPU leak')
+
+
+def probe_worker(c,task,out,device='cuda:0',capture_states=False):
     import torch
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     import random,numpy as np
     def rng():return tensor_digest((random.getstate(),np.random.get_state(),torch.get_rng_state(),
                                    torch.cuda.get_rng_state_all() if torch.cuda.is_initialized() else [],generator.get_state()))
-    initial=tensor_digest(model.state_dict());initial_rng=rng()
+    def rss():
+        return next(int(line.split()[1])*1024 for line in Path('/proc/self/status').read_text().splitlines() if line.startswith('VmRSS:'))
+    def capture(label):
+        if capture_states:
+            torch.save(dict(model=cpu_tree(model.state_dict()),optimizer=cpu_tree(opt.state_dict()),
+                            gradients={k:cpu_tree(v.grad) for k,v in model.named_parameters() if v.grad is not None}),out/(label+'.pt'))
+    initial=tensor_digest(model.state_dict());initial_rng=rng();capture('initial')
     b=p['training']['batch'];v=p['training']['eval_batch']
     d=c['datasets'][task['dataset']]
     if task['dataset']=='UrbanEV':
@@ -263,30 +290,35 @@ def probe_worker(c,task,out,device='cuda:0'):
         x=torch.randn(size,p['T'],p['C'],generator=generator)
         y=torch.randn(size,p['pred_len'],1,generator=generator)
         return x,y
-    trajectory=[];batch_ids=[];memory=[]
+    trajectory=[None]*6;batch_ids=[None]*6;memory=[None]*6
     for step in range(6):
-        x,y=batch(b);batch_ids.append(tensor_digest((x,y)))
+        x,y=batch(b);batch_ids[step]=tensor_digest((x,y))
         loss=update(model,opt,x,y,p,device)
-        trajectory.append(dict(step=step+1,loss=loss,state=tensor_digest(model.state_dict()),optimizer=tensor_digest(opt.state_dict())))
-        if step==1:
-            # Full validation batch plus explicit genuine non-full tail shape.
-            validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
+        # Measurement is before CPU state hashing; previous steps' hashing can
+        # still affect RSS. Both phases remain visible and no tolerance changes.
+        if str(device).startswith('cuda'):torch.cuda.synchronize()
+        before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
+        trajectory[step]=dict(step=step+1,loss=loss,state=tensor_digest(model.state_dict()),optimizer=tensor_digest(opt.state_dict()))
+        after=rss()
+        if step==1:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y
-        if str(device).startswith('cuda'):
-            torch.cuda.synchronize()
-            rss=next(int(line.split()[1])*1024 for line in Path('/proc/self/status').read_text().splitlines() if line.startswith('VmRSS:'))
-            memory.append(dict(step=step+1,allocated=torch.cuda.memory_allocated(),reserved=torch.cuda.memory_reserved(),rss=rss))
-    if str(device).startswith('cuda'):torch.cuda.synchronize()
+        if str(device).startswith('cuda'):torch.cuda.synchronize()
+        memory[step]=dict(step=step+1,allocated=allocated,
+             reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,
+             rss_before_hash=before,rss_after_hash=after,rss=rss())
+        capture('step-'+str(step+1))
     result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,
                 batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,
                 final=tensor_digest(model.state_dict()),final_rng=rng(),memory=memory,
                 allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,
                 reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,
-                affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True)
+                affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,
+                diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory))
     dump(out/'trajectory.json',result)
-    if len(memory)>=4 and any(all(b[key]>a[key] for a,b in zip(memory[-4:],memory[-3:])) for key in ('allocated','rss')):
+    if result['memory_review']['blocked']:
         raise RuntimeError('persistent memory growth in measured updates; group blocked pending diagnosis')
     return result
+
 
 
 def formal_worker(c,task,out,approval,resume=False):

@@ -40,6 +40,17 @@ def validate_config(s):
     elif purpose=='ch3_model_acceptance':
         expected=[c['acceptance']['model_cases'][s['case']]['id']]
         if s['task']!=c['acceptance']['model_cases'][s['case']]['run_id']:raise ValueError('model acceptance task mismatch')
+        from utils.ch3_contract import training_blockers
+        if training_blockers(c,task_by_id(c,s['task'])):raise ValueError('unresolved baseline training source')
+    elif purpose=='ch3_step_diagnostic':
+        cases=c['execution'].get('diagnostics',{}).get('cases',{})
+        case=cases.get(s.get('case'))
+        if case is None or s.get('task')!=case['run_id'] or s.get('diagnostic')!='current-profile-six-step':
+            raise ValueError('exact current-package diagnostic capability required')
+        if s['limits']['seconds']!=180:raise ValueError('diagnostic time bound')
+        from utils.ch3_contract import training_blockers
+        if training_blockers(c,task_by_id(c,s['task'])):raise ValueError('diagnostic unresolved source')
+        expected=['ch3.diagnostic.'+s['case']]
     elif purpose in ('ch3_probe','ch3_formal'):
         t=task_by_id(c,s['task']);expected=[t['id']]
         if purpose=='ch3_probe' and t['id'] not in [x for g in c['groups'] for x in g['representatives']]:raise ValueError('not a representative worker')
@@ -65,7 +76,7 @@ def validate_config(s):
     source=c['sources'].get(task_by_id(c,s['task'])['model']) if s.get('task') else None
     if s['author_files']!=(source['files'] if source else {}):raise ValueError('purpose/source closure mismatch')
     ceilings={'ch3_cpu':(0,0,0),'ch3_prefix':(0,0,0),'ch3_placeholder':(0,0,0),
-              'ch3_model_acceptance':(2,6,2),'ch3_probe':(6,8,6),'ch3_resource_diagnostic':(0,0,0)}
+              'ch3_model_acceptance':(2,6,2),'ch3_probe':(6,8,6),'ch3_step_diagnostic':(6,8,6),'ch3_resource_diagnostic':(0,0,0)}
     if purpose in ceilings:
         if tuple(s['limits'][k] for k in ('adam','forward','backward'))!=ceilings[purpose]:raise ValueError('exact operation budget mismatch')
     if purpose not in ('ch3_prefix','ch3_formal') and s['prefix_files']:raise ValueError('real prefix forbidden for this purpose')
@@ -203,6 +214,37 @@ def gpu_sample(pids):
                 process_states={p:('registered' if p in own else m.get('state','alive_not_registered')) for p,m in metadata.items()})
 
 
+class ExitObservation:
+    """A bounded wait for observed own exits, never a cached ownership grant.
+
+    No sample containing a stale PID can grant admission. A later clean sample
+    must resolve it; PID reuse, UUID change and unrelated competitors fail closed.
+    """
+    def __init__(self, baseline):
+        self.uuid=baseline['uuid'];self.known={};self.pending={}
+    def classify(self,sample,owned,active):
+        if sample['uuid']!=self.uuid:raise ValueError('GPU UUID changed')
+        now=sample['time'];active={str(p) for p in active};owned={str(p) for p in owned}
+        for pid,m in sample.get('owned_pid_metadata',{}).items():
+            if pid not in owned:raise ValueError('foreign PID metadata')
+            if m.get('host_pid') is not None:
+                identity=(str(m['host_pid']),m['start_ticks'])
+                if pid in self.known and self.known[pid]!=identity:raise ValueError('owned PID lifetime changed')
+                self.known[pid]=identity
+        observed=set(sample.get('nvml_processes',{}));waiting=[]
+        for pid,(host,start) in self.known.items():
+            metadata=sample.get('owned_pid_metadata',{}).get(pid,{})
+            if (pid not in active or metadata.get('host_pid') is None) and host in observed:
+                deadline=self.pending.setdefault((pid,host,start),now+3.0)
+                if now>deadline:raise ValueError('owned exit observation did not settle within 3 seconds')
+                waiting.append(host)
+            elif pid in active and metadata.get('start_ticks')==start:
+                self.pending.pop((pid,host,start),None)
+        for key in list(self.pending):
+            if key[1] not in observed:del self.pending[key]
+        return waiting
+
+
 def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=None,resume=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=False)
     src=c['sources'].get(task_by_id(c,task)['model']) if task else None
@@ -216,21 +258,23 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
         else:prefix[d['path']]=d['endpoints'][2]
     ids=(c['acceptance']['cpu_ids'] if purpose=='ch3_cpu' else
          [c['acceptance']['model_cases'][case]['id']] if purpose=='ch3_model_acceptance' else
+         ['ch3.diagnostic.'+case] if purpose=='ch3_step_diagnostic' else
          [task] if task else ['ch3.resource_diagnostic' if purpose=='ch3_resource_diagnostic' else 'ch3.prefix.'+case+'.train_validation' if purpose=='ch3_prefix' else 'ch3.placeholder'])
     limits=dict(adam=0,backward=0,forward=0,seconds=1200)
     if purpose=='ch3_model_acceptance':limits.update(adam=2,forward=6,backward=2)
     elif purpose=='ch3_probe':limits.update(adam=6,backward=6,forward=8,seconds=1800)
+    elif purpose=='ch3_step_diagnostic':limits.update(adam=6,backward=6,forward=8,seconds=180)
     elif purpose=='ch3_formal':limits=dict(seconds=None,adam=None,forward=None,backward=None)
     elif purpose=='ch3_resource_diagnostic':limits['seconds']=180
     config=dict(version='restricted-regression-minimal-v3',repo=str(REPO),tool_root=str(TOOL),
                 purpose=purpose,case=case,task=task,ids=ids,protocol_sha=digest(c),
-                diagnostic='owned_cuda_tensor_16mib' if purpose=='ch3_resource_diagnostic' else 'train_validation_connectivity' if purpose=='ch3_prefix' else None,
+                diagnostic='current-profile-six-step' if purpose=='ch3_step_diagnostic' else 'owned_cuda_tensor_16mib' if purpose=='ch3_resource_diagnostic' else 'train_validation_connectivity' if purpose=='ch3_prefix' else None,
                 session_root=c['execution']['evidence'],fixture_root=c['execution']['fixture'],
                 audit_log=str(out/'audit.jsonl'),budget_file=str(out/'budget.json'),
                 output=str(out),limits=limits,bound_files=repository_files(),
                 author_roots=[s['repository'] for s in c['sources'].values()],
                 author_files=src['files'] if src else {},prefix_files=prefix,forbidden_roots=[],
-                device='cuda:0' if purpose in ('ch3_probe','ch3_model_acceptance','ch3_formal','ch3_resource_diagnostic') else 'cpu',approval=approval,
+                device='cuda:0' if purpose in ('ch3_probe','ch3_model_acceptance','ch3_step_diagnostic','ch3_formal','ch3_resource_diagnostic') else 'cpu',approval=approval,
                 artifact_root=str(artifact_root or out),resume=resume)
     for dirname in ('cache/torch/kernels','mpl','cuda-cache'):(out/dirname).mkdir(parents=True,exist_ok=True)
     dump(out/'config.json',config)
@@ -256,27 +300,35 @@ def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
     stop_file=Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
     def terminate_owned(sig,frame):raise InterruptedError('safe-stop own process tree')
-    previous=signal.signal(signal.SIGTERM,terminate_owned)
+    previous=signal.signal(signal.SIGTERM,terminate_owned);exit_observation=None
     try:
         if monitor:
             baseline=gpu_sample([])
             if not resource_assessment(baseline,[])['admission']:raise MemoryError('whole-card admission unavailable before launch')
+            exit_observation=ExitObservation(baseline)
         children=[spawn(c) for c in configs]
         with (out/'memory.jsonl').open('x',encoding='utf-8') as log:
-            while any(p.poll() is None for p,_ in children):
+            while any(p.poll() is None for p,_ in children) or (monitor and exit_observation.pending):
                 if stop_file.exists():raise InterruptedError('safe-stop; own workers only')
                 if time.monotonic()-start>max(c['limits']['seconds'] or 1e12 for c in configs):raise TimeoutError('worker wall time limit')
                 if monitor:
                     active=[p.pid for p,_ in children if p.poll() is None]
                     sample=gpu_sample(active)
-                    if active!=[p.pid for p,_ in children if p.poll() is None]:
-                        log.write(json.dumps(dict(event='owned_process_exit_during_sample',sample=sample))+'\n');log.flush()
-                        continue
-                    sample['assessment']=resource_assessment(sample,active,baseline)
+                    after=[p.pid for p,_ in children if p.poll() is None]
+                    waiting=exit_observation.classify(sample,[p.pid for p,_ in children],after)
+                    # Exited children are not silently reattributed. During this
+                    # bounded transition, check the card and all OTHER unknowns.
+                    sample['assessment']=resource_assessment(sample,active or [p.pid for p,_ in children],baseline)
+                    unknown=set(sample['assessment']['unknown_pids'])-set(waiting)
+                    transient=bool(waiting or active!=after)
+                    sample['exit_pending']=waiting;sample['admission_deferred']=transient
+                    if transient:sample['assessment']['admission']=False
+                    elif not after and not unknown:
+                        sample['assessment']=resource_assessment(sample,[],baseline)
                     samples.append(sample);log.write(json.dumps(sample)+'\n');log.flush()
                     if not sample['assessment']['card_reliable']:raise MemoryError('whole-card sampling unreliable')
                     if sample['free']<sample['assessment']['reserve']:raise MemoryError('whole-card headroom crossed')
-                    if len(configs)>1 and not sample['assessment']['external_occupancy_known']:
+                    if unknown or (len(configs)>1 and not transient and after and not sample['assessment']['external_occupancy_known']):
                         raise MemoryError('external occupancy unknown; concurrency not admitted')
                 time.sleep(.1)
     except (MemoryError,TimeoutError,InterruptedError,subprocess.CalledProcessError,ValueError) as exc:
@@ -297,7 +349,9 @@ def run_configs(configs,out,monitor=False):
                 cpu_quota=Path('/sys/fs/cgroup/cpu.max').read_text().strip() if Path('/sys/fs/cgroup/cpu.max').exists() else
                     {k:Path('/sys/fs/cgroup/cpu/'+k).read_text().strip() for k in ('cpu.cfs_quota_us','cpu.cfs_period_us')})
     result['whole_card_peak']=max((s['used'] for s in samples),default=None)
-    result['resource_admission']=bool(samples) and all(s['assessment']['admission'] for s in samples)
+    settled=[s for s in samples if not s.get('admission_deferred')]
+    result['exit_transitions_resolved']=exit_observation is not None and not exit_observation.pending
+    result['resource_admission']=bool(settled) and not failure and result['exit_transitions_resolved'] and all(s['assessment']['admission'] for s in settled)
     result['baseline']=baseline
     result['process_attribution']='Measured' if result['process_peaks'] and all(v is not None for v in result['process_peaks'].values()) else 'Not verified'
     failed_logs=[(Path(c['output'])/'worker.log').read_text() for c,code in zip(configs,codes) if code]
@@ -393,6 +447,10 @@ def worker():
             arithmetic[str(h)]={k:dict(windows=n,full_batches=n//p['training']['batch'],remainder=n%p['training']['batch']) for k,n in counts.items()}
         dump(out/'prefix-result.json',dict(success=True,metadata=metadata,batches=checks,window_arithmetic=arithmetic,
              test_arithmetic_only=True,models=0,adam=0,forward=0,backward=0,gpu=0))
+    elif purpose=='ch3_step_diagnostic':
+        from ch3_runner import probe_worker
+        case=c['execution']['diagnostics']['cases'][s['case']]
+        probe_worker(c,task_by_id(c,s['task']),out,capture_states=case['capture_states'])
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
         probe_worker(c,task_by_id(c,s['task']),out)
@@ -416,11 +474,39 @@ def worker():
 def probe_all(c,approval):
     reasons=preflight(c,None,approval,probe=True)
     if reasons:raise RuntimeError('; '.join(reasons))
-    root=Path(c['execution']['evidence'])/'probe';root.mkdir(exist_ok=False)
+    from utils.ch3_contract import followup_limits
+    maximum=followup_limits(c,approval)
+    followup=c['execution'].get('followup')
     report=dict(protocol_sha=digest(c),code=code_binding(),hardware=hardware_binding(),environment=environment_binding(),Q=sum(g['q'] for g in c['groups']),decisions={},steps=0)
+    if followup:
+        parent_path=Path(followup['parent_complete'])
+        if sha(parent_path)!=followup['parent_sha256']:raise ValueError('parent evidence changed')
+        parent=read(parent_path)
+        report['inheritance']=dict(parent=str(parent_path),sha256=followup['parent_sha256'],groups={})
+        for gid in followup['inherit_groups']:
+            decision=parent['decisions'][gid]
+            if decision['status']!='Passed':raise ValueError('cannot inherit failed parent decision')
+            group=next(g for g in c['groups'] if g['id']==gid);checks={}
+            for run in group['representatives']:
+                path=parent_path.parent/gid/'serial'/run/'trajectory.json'
+                trajectory=read(path)
+                if trajectory['profile_sha']!=digest(profile(c,task_by_id(c,run))):
+                    raise ValueError('inherited effective profile differs: '+run)
+                checks[run]=dict(path=str(path),sha256=sha(path),profile_sha=trajectory['profile_sha'])
+            report['decisions'][gid]=decision
+            report['inheritance']['groups'][gid]=dict(status='Reviewed equivalent computation; original result retained',references=checks)
+        groups=[g for g in c['groups'] if g['id'] in followup['retest_groups']]
+        report['allowance']=dict(original_remaining=followup['remaining_first_adam'],approved_extra=followup['approved_extra_adam'],effective_max=maximum)
+    else:groups=c['groups']
+    # Scope, source, approval, extra budget and inheritance all checked before
+    # creating any output. No rejected preflight can leave an empty run root.
+    root=Path(c['execution']['evidence'])/'probe'
     with GPULock(c):
+        root.mkdir(exist_ok=False)
         dump(root/'controller.json',dict(pid=os.getpid(),start_ticks=Path('/proc/self/stat').read_text().split()[21]))
-        for group in c['groups']:
+        for group in groups:
+            group_max=6*group['q']*(1 if group['q']==1 else 3)
+            if report['steps']+group_max>maximum:raise RuntimeError('insufficient remaining budget before group launch')
             if group['dataset']=='PJM' and c['datasets']['PJM']['endpoints'] is None:
                 report['decisions'][group['id']]=dict(status='Blocked',reason='version endpoints/actual validation tail Not verified',executed_workers=0)
                 dump(root/'progress.json',report);continue
@@ -478,7 +564,7 @@ def probe_all(c,approval):
                         decision.update(concurrency=concurrency,parallel='Passed on this one short group');break
             report['decisions'][group['id']]=decision
             dump(root/'progress.json',report)
-            if report['steps']>18*report['Q']:raise RuntimeError('probe budget exceeded')
+            if report['steps']>maximum:raise RuntimeError('probe budget exceeded')
         dump(root/'complete.json',report)
 
 
@@ -554,13 +640,18 @@ def main():
     if args.action=='resource-diagnostic':return resource_diagnostic(c,args.attempt,args.repair_reason)
     if args.action=='model-tests':
         all_results=[];totals=dict(adam=0,forward=0,backward=0)
+        for ledger in e.glob('model-attempt*-ledger.json'):
+            for k,v in read(ledger)['totals'].items():totals[k]+=v
+        prior=dict(totals)
         for name,case in c['acceptance']['model_cases'].items():
+            if any(totals[k]+v>c['execution']['model_first'][k] for k,v in dict(adam=2,forward=6,backward=2).items()):
+                raise RuntimeError('shared first+retry acceptance allowance exhausted before launch')
             config=make_config(c,'ch3_model_acceptance',e/f'model-attempt{args.attempt}'/name,task=case['run_id'],case=name)
             result=run_configs([config],Path(config['output'])/'process',monitor=True);all_results.append(result)
             for k,v in read(config['budget_file'])['counts'].items():totals[k]+=v
             if any(totals[k]>c['execution']['model_first'][k] for k in totals):raise RuntimeError('shared acceptance budget')
             if result['failure'] or any(result['returncodes']):break
-        dump(e/f'model-attempt{args.attempt}-ledger.json',dict(results=all_results,totals=totals,repair_reason=args.repair_reason));return
+        dump(e/f'model-attempt{args.attempt}-ledger.json',dict(results=all_results,totals={k:totals[k]-prior[k]for k in totals},cumulative=totals,repair_reason=args.repair_reason));return
     purpose={'cpu-tests':'ch3_cpu','weather-prefix':'ch3_prefix','pjm-prefix':'ch3_prefix','placeholder':'ch3_placeholder','formal-worker':'ch3_formal'}[args.action]
     if purpose=='ch3_formal':
         task=task_by_id(c,args.run_id);reasons=preflight(c,task['model'],approval)

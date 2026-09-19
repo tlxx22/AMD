@@ -537,6 +537,141 @@ class DataAdmissionTests(unittest.TestCase):
         self.assertEqual([profile(self.c,t) for t in self.c['tasks']],[profile(before,t) for t in before['tasks']])
 
 
+class BaselineFollowupTests(unittest.TestCase):
+    def setUp(self):
+        self.c=read_profiles()
+        self.old=json.loads((Path(self.c['execution']['evidence'])/'before/configs/ch3_formal_profiles.json').read_text())
+    def task(self,model='DLinear',domain='ETTh1',h=96):
+        return next(t for t in self.c['tasks'] if t['model']==model and t['dataset']==domain and t['h']==h)
+    def entry(self,c=None):return (c or self.c)['baseline_training_overrides']['DLinear']['ETTh1']['96']
+    def test_counts(self):
+        c=validate_manifest(self.c);self.assertEqual((len(c['tasks']),len(c['groups']),sum(g['q']for g in c['groups'])),(495,54,195))
+        f=c['execution']['followup'];self.assertEqual((len(f['inherit_groups']),len(f['retest_groups']),f['Q'],f['planned_adam']),(10,44,170,3036))
+        self.assertEqual(set(f['inherit_groups'])|set(f['retest_groups']),{g['id']for g in c['groups']})
+        self.assertFalse(set(f['inherit_groups'])&set(f['retest_groups']))
+        self.assertEqual((f['remaining_first_adam'],f['additional_first_adam_proposed']),(2327,709))
+    def test_preserved_tasks(self):
+        self.assertEqual(self.c['tasks'],self.old['tasks']);self.assertEqual(self.c['groups'],self.old['groups'])
+    def test_family_training(self):
+        for t in self.c['tasks']:
+            if t['model'] in ('AMD','J','N','S'):
+                with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(self.old,t))
+    def test_only_three_fields(self):
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):
+                a,b=profile(self.old,t)['training'],profile(self.c,t)['training']
+                self.assertLessEqual({k for k in a if a[k]!=b[k]},{'batch','eval_batch','lr'})
+    def test_reject_family_override(self):
+        for m in ('AMD','J','N','S'):
+            with self.subTest(model=m):
+                c=copy.deepcopy(self.c);c['baseline_training_overrides'][m]={}
+                with self.assertRaises(ValueError):profile(c,self.task())
+    def test_reject_unauthorized_field(self):
+        for k in ('T','epochs','patience','scheduler','structure','dtype'):
+            with self.subTest(field=k):
+                c=copy.deepcopy(self.c);self.entry(c)['values'][k]=1
+                with self.assertRaises(ValueError):profile(c,self.task())
+    def test_reject_invalid_value(self):
+        for v in (0,-1,True,1.5,float('inf')):
+            with self.subTest(value=str(v)):
+                c=copy.deepcopy(self.c);self.entry(c)['values']['batch']=v
+                with self.assertRaises(ValueError):profile(c,self.task())
+    def test_require_source(self):
+        c=copy.deepcopy(self.c);self.entry(c)['source']=[]
+        with self.assertRaises(ValueError):profile(c,self.task())
+    def test_pending_blocks(self):
+        from utils.ch3_contract import training_blockers
+        c=copy.deepcopy(self.c);c['baseline_training_overrides']['PatchTST']['ETTh1']['96']['pending']={'lr':'synthetic unresolved source'}
+        self.assertTrue(training_blockers(c,self.task('PatchTST')))
+        self.assertFalse(training_blockers(self.c,self.task()))
+    def test_dlinear_horizons(self):
+        for h,b in ((96,8),(192,8),(336,32),(720,32)):
+            with self.subTest(H=h):
+                tr=profile(self.c,self.task('DLinear','Exchange',h))['training']
+                self.assertEqual((tr['batch'],tr['eval_batch'],tr['lr']),(b,b,.0005))
+    def test_time_mixer_paper(self):
+        for d,b in (('ETTh1',128),('Weather',128),('ECL',32)):
+            with self.subTest(dataset=d):
+                p=profile(self.c,self.task('TimeMixer',d));self.assertEqual((p['training']['batch'],p['training']['lr']),(b,.01))
+    def test_itransformer_partial(self):
+        from utils.ch3_contract import training_blockers
+        p=profile(self.c,self.task('iTransformer'));self.assertEqual(p['training']['batch'],32)
+        self.assertEqual(p['training']['lr'],1e-4);self.assertFalse(training_blockers(self.c,self.task('iTransformer')))
+        self.assertEqual(profile(self.c,self.task('iTransformer','ECL'))['training']['batch'],16)
+    def test_native_options_six_domains(self):
+        from models.ch3_adapter import native_options
+        for d in self.c['datasets']:
+            with self.subTest(dataset=d):
+                t=next(t for t in self.c['tasks']if t['model']=='iTransformer' and t['dataset']==d)
+                p=profile(self.c,t);v=native_options(p);self.assertIs(v['output_attention'],False);self.assertEqual(v['seq_len'],p['T'])
+                self.assertTrue({'use_norm','d_model','embed','freq','dropout','class_strategy','factor','n_heads','d_ff','activation','e_layers'}<=set(v))
+    def test_uniform_T_epochs(self):
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):
+                a,b=profile(self.c,t),profile(self.old,t)
+                self.assertEqual({k:v for k,v in a.items()if k!='training'},{k:v for k,v in b.items()if k!='training'})
+                self.assertEqual((a['training']['epochs'],a['training']['patience']),(b['training']['epochs'],b['training']['patience']))
+    def test_arithmetic_pjm(self):
+        from utils.ch3_contract import step_arithmetic
+        a=step_arithmetic(self.c,self.task('AMD','PJM',24))
+        self.assertEqual((a['train_windows'],a['train_batches'],a['train_dropped'],a['validation_tail'],a['test_tail']),(36500,285,20,99,92))
+    def test_arithmetic_urban(self):
+        from utils.ch3_contract import step_arithmetic
+        t=self.task('AMD','UrbanEV',3);a=step_arithmetic(self.c,t)
+        self.assertEqual(a['train_windows'],(576-12-3+1)*275)
+        self.assertEqual(a['max_optimizer_steps'],a['train_windows']//128*10)
+    def test_old_report_rejected(self):
+        from ch3_runner import validate_probe_report
+        with self.assertRaises(ValueError):validate_probe_report(self.c,dict(protocol_sha=digest(self.old),Q=195,decisions={}))
+    def test_old_identity_changed(self):
+        self.assertNotEqual(digest(self.c),digest(self.old))
+        self.assertNotEqual(digest(profile(self.c,self.task())),digest(profile(self.old,self.task())))
+    def test_eval_profile_consistency(self):
+        rows=json.loads((Path(self.c['execution']['evidence'])/'source-training-table.json').read_text())
+        for row in rows:
+            with self.subTest(model=row['model'],dataset=row['dataset'],H=row['H']):
+                p=profile(self.c,self.task(row['model'],row['dataset'],row['H']))
+                self.assertEqual({k:p['training'][k]for k in ('batch','eval_batch','lr')},row['effective'])
+    def exit_fixture(self):
+        from m5_formal_entry import ExitObservation
+        s=dict(uuid='same',time=1.,nvml_processes={'101':12},owned_pid_metadata={'1':dict(host_pid=101,start_ticks='42')})
+        x=ExitObservation(s);self.assertEqual(x.classify(s,[1],[1]),[])
+        return x,s
+    def test_exit_pending(self):
+        x,s=self.exit_fixture();s.update(time=2.,owned_pid_metadata={})
+        self.assertEqual(x.classify(s,[1],[1]),['101'])
+        self.assertEqual(x.classify(s,[1],[]),['101']);self.assertTrue(x.pending)
+        s['time']=6.
+        with self.assertRaises(ValueError):x.classify(s,[1],[])
+    def test_exit_resolved(self):
+        x,s=self.exit_fixture();x.classify(s,[1],[]);s.update(time=2.,nvml_processes={})
+        self.assertEqual(x.classify(s,[1],[]),[]);self.assertFalse(x.pending)
+    def test_exit_unknown_rejected(self):
+        from m5_formal_entry import resource_assessment
+        x,s=self.exit_fixture();s.update(total=80*1024**3,used=1024**3,free=79*1024**3,driver_reserved=0,process_table_reliable=True,
+                                      nvml_processes={'999':1024},owned_host_pids=[],process_gpu={})
+        self.assertEqual(x.classify(s,[1],[1]),[])
+        a=resource_assessment(s,[1],dict(s,nvml_processes={}))
+        self.assertFalse(a['admission']);self.assertEqual(a['unknown_pids'],['999'])
+        for changes in (dict(process_table_reliable=False),dict(free=0),dict(driver_reserved=999999999)):
+            with self.subTest(changes=changes):
+                self.assertFalse(resource_assessment(dict(s,**changes),[1],dict(s,nvml_processes={}))['admission'])
+    def test_exit_reuse_rejected(self):
+        x,s=self.exit_fixture();s['owned_pid_metadata']['1']['start_ticks']='43'
+        with self.assertRaises(ValueError):x.classify(s,[1],[1])
+        s['uuid']='other'
+        with self.assertRaises(ValueError):x.classify(s,[1],[1])
+    def test_growth_rule_preserved(self):
+        import hashlib,torch
+        from ch3_runner import tensor_digest
+        source=(Path(__file__).resolve().parents[1]/'ch3_runner.py').read_text()
+        self.assertIn("for key in ('allocated','rss_before_hash')",source)
+        for a in (torch.tensor(1.),torch.arange(6).reshape(2,3).T,torch.zeros(0,2),torch.tensor([True,False])):
+            with self.subTest(shape=tuple(a.shape),dtype=str(a.dtype)):
+                v=a.contiguous();h=hashlib.sha256();h.update(str((v.dtype,tuple(v.shape))).encode());h.update(v.numpy().tobytes())
+                self.assertEqual(tensor_digest(a),h.hexdigest())
+
+
 class ModelTests(unittest.TestCase):
     def exercise(self):
         import torch
@@ -565,3 +700,140 @@ class ModelTests(unittest.TestCase):
     def test_j_ecl_new_declaration(self):self.exercise()
     def test_time_mixer_native_width(self):self.exercise()
     def test_time_xer_true_ms(self):self.exercise()
+    def test_itransformer_defaults(self):self.exercise()
+    def test_time_mixer_ecl_batch(self):
+        import torch
+        from restricted_io_guard import require_installed
+        from ch3_runner import init_training,update,evaluate,tensor_digest
+        s=require_installed();c=read_profiles();t=task_by_id(c,s['task'])
+        p,model,opt,g=init_training(c,t,'cuda:0');b=p['training']['batch']
+        self.assertEqual((p['T'],b,p['training']['lr']),(512,32,.01))
+        x=torch.randn(b,p['T'],p['C'],generator=g);y=torch.randn(b,p['pred_len'],1,generator=g)
+        before=tensor_digest(model.state_dict())
+        update(model,opt,x,y,p,'cuda:0');update(model,opt,x,y,p,'cuda:0')
+        self.assertNotEqual(before,tensor_digest(model.state_dict()))
+        self.assertTrue(any(param.grad is not None and torch.isfinite(param.grad).all()for param in model.parameters()))
+        self.assertTrue(torch.isfinite(torch.tensor(evaluate(model,[(x,y)],p,'cuda:0')['mse'])))
+
+
+class SourceClosureTests(unittest.TestCase):
+    """Sixteen exact methods for this approved increment; no test-to-test calls."""
+    def setUp(self):
+        self.c=read_profiles();self.e=Path(self.c['execution']['evidence'])
+        self.old=json.loads((self.e/'before/configs/ch3_formal_profiles.json').read_text())
+    def one(self,m='AMD',d='ETTh1',h=96):
+        return next(t for t in self.c['tasks'] if (t['model'],t['dataset'],t['h'])==(m,d,h))
+    def test_counts_and_allowance(self):
+        from utils.ch3_contract import followup_limits
+        c=validate_manifest(self.c);f=c['execution']['followup']
+        self.assertEqual((len(c['tasks']),len(c['groups']),sum(g['q'] for g in c['groups'])),(495,54,195))
+        self.assertEqual((f['remaining_first_adam'],f['approved_extra_adam'],followup_limits(c)),(2327,709,3036))
+        self.assertEqual((len(f['inherit_groups']),len(f['retest_groups']),f['Q']),(10,44,170))
+    def test_family_unchanged(self):
+        family=[t for t in self.c['tasks'] if t['model'] in ('AMD','J','N','S')]
+        self.assertEqual(len(family),274)
+        for t in family:
+            with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(self.old,t))
+    def test_57_source_values(self):
+        from utils.ch3_contract import training_blockers
+        rows=json.loads((self.e/'source-decisions.json').read_text());self.assertEqual(len(rows),57)
+        for row in rows:
+            with self.subTest(model=row['model'],dataset=row['dataset'],H=row['H']):
+                t=self.one(row['model'],row['dataset'],row['H']);p=profile(self.c,t)
+                self.assertEqual({k:p['training'][k] for k in ('batch','eval_batch','lr')},row['after']['values'])
+                self.assertFalse(training_blockers(self.c,t));self.assertFalse(row['after']['pending'])
+                self.assertTrue(all(x['category']=='user-approved official-code supplement' for x in row['after']['source']))
+        self.assertFalse([t['id'] for t in self.c['tasks'] if training_blockers(self.c,t)])
+    def test_tasks_T_epochs_preserved(self):
+        self.assertEqual(self.c['tasks'],self.old['tasks']);self.assertEqual(self.c['groups'],self.old['groups'])
+        for key in ('datasets','amd','structures','training_common','urban_folds','urban_input_variants','sources'):
+            with self.subTest(key=key):self.assertEqual(self.c[key],self.old[key])
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):
+                a,b=profile(self.c,t),profile(self.old,t)
+                self.assertEqual({k:v for k,v in a.items() if k!='training'},{k:v for k,v in b.items() if k!='training'})
+                self.assertLessEqual({k for k in a['training'] if a['training'][k]!=b['training'][k]},{'batch','eval_batch','lr'})
+    def test_unauthorized_overrides_rejected(self):
+        for model in ('AMD','J','N','S'):
+            with self.subTest(model=model):
+                c=copy.deepcopy(self.c);c['baseline_training_overrides'][model]={}
+                with self.assertRaises(ValueError):profile(c,self.one())
+        for key in ('T','epochs','patience','scheduler','precision'):
+            with self.subTest(field=key):
+                c=copy.deepcopy(self.c);c['baseline_training_overrides']['PatchTST']['ETTh1']['96']['values'][key]=1
+                with self.assertRaises(ValueError):profile(c,self.one('PatchTST'))
+    def test_optimizer_steps_and_tails(self):
+        from utils.ch3_contract import step_arithmetic
+        a=step_arithmetic(self.c,self.one('TimeXer','PJM',24))
+        self.assertEqual((a['train_windows'],a['train_batches'],a['train_dropped'],a['validation_tail']),(36500,2281,4,3))
+        self.assertEqual(sum(profile(self.c,t)['training']['epochs'] for t in self.c['tasks']),5340)
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):
+                a=step_arithmetic(self.c,t);p=profile(self.c,t)['training']
+                self.assertEqual(a['max_optimizer_steps'],a['train_batches']*p['epochs'])
+                self.assertLess(a['validation_tail'],p['eval_batch']);self.assertEqual(p['batch'],p['eval_batch'])
+    def test_pending_and_old_report_rejected(self):
+        from utils.ch3_contract import training_blockers
+        from ch3_runner import validate_probe_report
+        c=copy.deepcopy(self.c);c['baseline_training_overrides']['PatchTST']['ETTh1']['96']['pending']={'lr':'missing'}
+        self.assertTrue(training_blockers(c,self.one('PatchTST')))
+        with self.assertRaises(ValueError):validate_probe_report(self.c,dict(protocol_sha=digest(self.old),Q=195,decisions={}))
+    def test_inherited_profiles_unchanged(self):
+        for gid in self.c['execution']['followup']['inherit_groups']:
+            for t in (x for x in self.c['tasks'] if x['group']==gid):
+                with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(self.old,t))
+    def test_digest_parity(self):
+        import torch,hashlib
+        from ch3_runner import tensor_digest
+        for a in (torch.tensor(1.),torch.arange(6).reshape(2,3).T,torch.zeros(0,2),torch.tensor([True,False])):
+            with self.subTest(shape=tuple(a.shape)):
+                v=a.contiguous();h=hashlib.sha256();h.update(str((v.dtype,tuple(v.shape))).encode());h.update(v.numpy().tobytes())
+                self.assertEqual(tensor_digest(a),h.hexdigest())
+    def test_growth_true_model_rejected(self):
+        from ch3_runner import memory_growth_review
+        for key in ('allocated','rss_before_hash'):
+            rows=[dict(allocated=10,rss_before_hash=20,rss_after_hash=30) for _ in range(6)]
+            for i,row in enumerate(rows):row[key]+=i
+            with self.subTest(field=key):self.assertIn(key,memory_growth_review(rows)['triggers'])
+    def test_growth_hash_only_not_gpu_leak(self):
+        from ch3_runner import memory_growth_review
+        rows=[dict(allocated=10,rss_before_hash=20,rss_after_hash=30+i) for i in range(6)]
+        x=memory_growth_review(rows);self.assertFalse(x['blocked']);self.assertTrue(x['after_hash_grows'])
+    def test_previous_hash_carryover_not_exonerated(self):
+        from ch3_runner import memory_growth_review
+        rows=[dict(allocated=10,rss_before_hash=20+i,rss_after_hash=30+i) for i in range(6)]
+        x=memory_growth_review(rows);self.assertTrue(x['blocked']);self.assertIn('earlier hash',x['scope'])
+    def test_budget_approval_and_excess_rejected(self):
+        from utils.ch3_contract import followup_limits
+        f=self.c['execution']['followup'];good=dict(followup_sha=digest(f),approved_extra_adam=709)
+        self.assertEqual(followup_limits(self.c,good),3036)
+        for bad in ({},dict(good,approved_extra_adam=0),dict(good,followup_sha='old')):
+            with self.subTest(approval=bad):
+                with self.assertRaises(ValueError):followup_limits(self.c,bad)
+        c=copy.deepcopy(self.c);c['execution']['followup']['approved_extra_adam']=0
+        with self.assertRaises(ValueError):followup_limits(c)
+    def test_bad_budget_before_output(self):
+        from m5_formal_entry import probe_all
+        c=copy.deepcopy(self.c);root=Path(c['execution']['fixture'])/'rejected-probe-root'
+        c['execution']['evidence']=str(root);c['execution']['followup']['approved_extra_adam']=0
+        self.assertFalse(root.exists())
+        with patch('m5_formal_entry.preflight',return_value=[]):
+            with self.assertRaises(ValueError):probe_all(c,{})
+        self.assertFalse(root.exists())
+    def test_diagnostic_capability_not_general_probe(self):
+        import m5_formal_entry as entry
+        d=self.c['execution']['diagnostics']
+        self.assertEqual(d['total_limits'],dict(adam=32,forward=48,backward=32))
+        self.assertEqual(set(d['cases']),{'amd_rss','timemixer_exact'})
+        s=dict(protocol_sha=digest(self.c),bound_files=entry.repository_files(),session_root=self.c['execution']['evidence'],fixture_root=self.c['execution']['fixture'],purpose='ch3_step_diagnostic',case='not_authorized',task='foreign',limits={'seconds':180})
+        with patch.dict(os.environ,TMPDIR=s['fixture_root']):
+            with self.assertRaisesRegex(ValueError,'exact current-package'):entry.validate_config(s)
+    def test_exit_transition_positive_and_negative(self):
+        from m5_formal_entry import ExitObservation
+        sample=dict(uuid='gpu',time=1.,nvml_processes={'101':12},owned_pid_metadata={'1':dict(host_pid=101,start_ticks='42')})
+        obs=ExitObservation(sample);self.assertEqual(obs.classify(sample,[1],[1]),[])
+        stale=dict(sample,time=2.,owned_pid_metadata={});self.assertEqual(obs.classify(stale,[1],[]),['101'])
+        self.assertEqual(obs.classify(dict(stale,time=3.,nvml_processes={}),[1],[]),[]);self.assertFalse(obs.pending)
+        with self.assertRaises(ValueError):obs.classify(dict(sample,uuid='other'),[1],[1])
+        reused=copy.deepcopy(sample);reused['owned_pid_metadata']['1']['start_ticks']='43'
+        with self.assertRaises(ValueError):obs.classify(reused,[1],[1])

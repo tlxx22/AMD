@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §18）：用户明确授权ChatGPT接手服务器执行上一轮确认方案及检查工程Git closure。本轮57个来源待决run全部落实，iTransformer/ECL明确采用本模型官方脚本B16；A/J/N/S的274个profile、495任务/5340 run-epochs、54组/195worker及统一T等不变。最终最大optimizer步数算术16,482,750；新增709次补测Adam获批，2327原余额＋709=3036，未消耗。双时点RSS测量保留四点严格增长规则和前序哈希影响说明；CPU16/16首次通过、无复验。限定5worker均正常完成，共30 Adam/40前向/30反向，机械余额474；AMD/ETTh1六步未触发旧增长检查。TimeMixer/Exchange H192初始/RNG/batch及loss一致，但重复串行也有Conv1d权重梯度/Adam微小非逐位差异，exact仍Not passed，不擅调容差或确定性设置。10组25代表继承profile核对通过，44组170代表补测计划保留但全队启动仍Blocked；本轮仅工程版本收口，不生成完整probe许可、不冻结J/关闭M5/进入M6。以下§17及更早为历史时点。
+
 最新状态（§16）：**本次用户明确批准的数据准入已落地；Weather/PJM各一次受限train/validation前缀连通通过，修后精确CPU 16/16通过。** Weather保留作者原记录，允许非唯一但非递减时间；ECL/Exchange以已核验benchmark身份作标准化评价并披露未知解释；PJM锁定TimeXer、n=52416及既定端点，原EPF d−1可得性作为documented source assumption。细分事实/接受范围/限制，未一键改成Passed。495/5340、54组/195worker、模型训练配置与NVML门禁保持；probe端点/尾批技术缺口已收口，dry-run/preflight只剩审核许可、统一closure/clean及用户启动，完整probe尚未执行。首轮CPU7 passed/1 error/8 unexecuted，唯一机械夹具修复后完整16通过，累计24次方法调用；§14额外调用偏差保留。0GPU/模型/Adam/前向/反向/checkpoint，未重哈希原数据。J未冻结、M5未关闭、M6未启动；以下§15及以前均为历史时点。
 
 最新状态（§15）：**来源/版本直接核验已完成五组主比对：PJM与ETTh1为A类原始字节一致；Weather/ECL/Exchange为B类，仅CRLF→LF后文本一致。作者分发的Weather同样含19043/19044重复时间；PJM n=52416，既定端点36691/41933/52416。** UrbanEV复用Closed M1审计并核对Git对象，不重读数据。EPF原论文已明确day-ahead外生预测在d−1可得，不能继续写成完全没有来源说明；但这不是逐条vintage审计。另取得原EPF Zenodo发布物，发现其header/列序与TimeXer转换版不同（C类），转换链仍有独立缺口。本轮不落地§14.4降级政策、不改loader/配置/mandatory；全部新事实待审核后联动生产准入。495/5340、54组/195worker不变；0模型/GPU/训练/checkpoint，8项合成审计方法首次通过，无复验。完整字节比较实际遍历test字节，test数值解析/统计/评价为0。论文表格的文本冲突未获页面图像复核，保留限制，不据此裁定。§14额外test调用偏差原样保留。
@@ -1006,3 +1008,239 @@ bash scripts/ch3/start_probe.sh safe-stop
 `start`沿既有tmux守护，`safe-stop`沿自有STOP标志，不杀无关进程；`complete`读取/核验当前协议覆盖的终态，文件存在不自动等于所有组Passed。失败保留全部现场，不能自动fresh重跑。正式`start_model.sh --model <名称>`另外要求结构冻结、M6授权、数据绑定及已审核资源结果，本轮均不代批。模型按组启动规则、同run跨表引用、F0/PJM TargetOnly=0、TiDE Deferred不变。
 
 本轮不stage/commit/push、不closure、不跑完整probe/正式训练、不冻结J/关闭M5/进入M6。精确本轮diff、修前/修后SHA、最终Git状态与范围见`E/change-inventory.json`、`E/changes.patch`和`E/final-verification.json`；只是可审阅材料，不声称ChatGPT已经读取本轮新字节。
+
+
+## 17. 外部baseline来源batch/LR迁移、首轮probe复核与有限机械修复
+
+2026-09-19当前限定增量（M5 §17）：用户批准外部六baseline仅按对应论文/明确委托的本模型官方代码迁移batch、eval batch及初始LR；A/J及N/S原训练设置、全模型T/epoch/停止/优化器与信息合同保持。唯一profile覆盖层已接入，未决来源字段保持待审并前置拒绝；这是有限参数迁移，不是完整作者recipe复现、不声称各模型最优或纯结构差异完全隔离。原54组probe已完成：13 Passed、22 ResourceNotVerified、19 Blocked，206worker、1183 Adam调用/1580前向/1184反向，失败不退款。当前CPU24+24方法均通过；CUDA两个代表首次及唯一机械复验累计8 Adam/18前向/8反向，修后iTransformer小形状与TimeMixer ECL B32/T512/H96连通、自然退出监测通过，首次退出监测失败仍保留。九组RSS增长旧阻塞及TimeMixer/Exchange旧数值不一致不倒改。495/5340、54组/195worker不变；10组可提交有条件继承审核，44组170worker补测上限3036 Adam，原首验余额2327，额外709仅Proposed；机械512余额504。来源、内存判据及额度待决，修后review/closure和用户启动仍必需，本轮未启动完整补测/正式训练，J未冻结、M5未关闭、M6未开始。以下§16及更早均为历史时点。
+
+### 17.1 起点、授权及不可变项
+
+起点实际HEAD/local/tracking/live remote均为`9e71fd572f866797376584f93cf4b25bd6840c34`，0/0、clean；本轮仅dirty增量，不stage/commit/push。canonical/M5/config修前SHA分别为`1a2e9f6300c558275d051adfb7a107de5ea0874262155dff91e880a55e1aebdc`、`f30dfaff329056770172af8763eff02bedf776ae97d7ecd52c124d56db0958f2`、`c54392cacdbd18cb1627238d1c4c61cb7c3e321fa3e8eadb6955bb2abaa0a5ba`。AGENTS、Closed M4、baseline与作者repo/env不改。新证据唯一目录：`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554`；fixture=`/tmp/amd-m5-followup-zob_s493`。原§9–16和旧54组文件全部保留。
+
+A/J及N/S全部274个run的完整profile与修前逐项相等；495个逻辑ID、54组/固定波次、模型结构/目标/输入/初始化、dataset T/epoch/patience/优化器/精度及数据政策不变。统一T而外部batch/LR部分不同，是有限参数迁移比较，不是完整作者recipe或纯结构隔离实验。未决值不以旧默认值偷偷启动。source表按H完整展开121条，57个正式run涉及未决来源字段；不是57个新增任务。单seed2024/std=N/A/稳定性Not evaluated、M4总gate Not passed/H192/1%与科学停止保持。
+
+### 17.2 论文、作者代码及逐模型数据集解析
+
+先读论文相关实验/附录，再读各自锁定作者脚本/defaults。未搜索、未择优，未读作者真实数据或旧checkpoint。四份缺失论文从对应arXiv入口取得本包reference副本；ModernTCN/TimeXer用服务器既有PDF。页码均物理PDF页；表7文本行明确，无歧义数字未凭其他模型补造。本轮没有新增PDF页面图像复核。
+
+- P1 Are Transformers Effective for Time Series Forecasting?；版本 `['arXiv:2205.13504v3  [cs.AI]  17 Aug 2022']`；PDF `/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf`；SHA-256 `97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b`。
+- P2 A Time Series is Worth 64 Words: Long-term Forecasting with Transformers；版本 `['arXiv:2211.14730v2  [cs.LG]  5 Mar 2023']`；PDF `/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf`；SHA-256 `ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e`。
+- P3 iTransformer: Inverted Transformers Are Effective for Time Series Forecasting；版本 `['arXiv:2310.06625v4  [cs.LG]  14 Mar 2024']`；PDF `/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf`；SHA-256 `83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5`。
+- P4 TimeMixer: Decomposable Multiscale Mixing for Time Series Forecasting；版本 `['arXiv:2405.14616v1  [cs.LG]  23 May 2024']`；PDF `/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf`；SHA-256 `a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d`。
+- P5 ModernTCN: A Modern Pure Convolution Structure for General Time Series Analysis；版本 `locked conference PDF, metadata in paper-index-with-versions.json`；PDF `/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf`；SHA-256 `2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944`。
+- P6 TimeXer: Empowering Transformers for Time Series Forecasting with Exogenous Variables；版本 `locked conference PDF, metadata in paper-index-with-versions.json`；PDF `/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf`；SHA-256 `c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964`。
+
+| 模型/数据集 | H | 旧B/eval/LR | 当前生效B/eval/LR | 未决字段的唯一推荐（未实施） | 来源 |
+|---|---|---|---|---|---|
+| DLinear/UrbanEV | 3,6,9,12 | 128/128 / 3e-05 | 128/128 / 3e-05 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；project-approved transfer（不是该域paper setting） |
+| DLinear/PJM | 24 | 128/128 / 5e-05 | 128/128 / 5e-05 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；project-approved transfer（不是该域paper setting） |
+| DLinear/ETTh1 | 96,192,336,720 | 128/128 / 5e-05 | 32/32 / 0.005 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；S1 + S2 |
+| DLinear/Weather | 96,192,336,720 | 128/128 / 5e-05 | 16/16 / 0.0001 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；S3 + S2 |
+| DLinear/ECL | 96,192,336,720 | 128/128 / 0.0003 | 16/16 / 0.001 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；S4 + S2 |
+| DLinear/Exchange | 96,192 | 512/512 / 0.0003 | 8/8 / 0.0005 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；S5 + S2 |
+| DLinear/Exchange | 336,720 | 512/512 / 0.0003 | 32/32 / 0.0005 | 无新增待决值 | P1: p9 Appendix B.2 (delegates hyperparameters to code)；S5 + S2 |
+| PatchTST/UrbanEV | 3,6,9,12 | 128/128 / 3e-05 | 128/128 / 3e-05 | 无新增待决值 | P2: pp13–14 A.1 supervised protocol; no unique batch/LR；project-approved transfer（不是该域paper setting） |
+| PatchTST/PJM | 24 | 128/128 / 5e-05 | 128/128 / 5e-05 | 无新增待决值 | P2: pp13–14 A.1 supervised protocol; no unique batch/LR；project-approved transfer（不是该域paper setting） |
+| PatchTST/ETTh1 | 96,192,336,720 | 128/128 / 5e-05 | 128/128 / 5e-05 | 128/128 / 0.0001；batch,eval_batch,lr待审 | P2: pp13–14 A.1 supervised protocol; no unique batch/LR；S6 + S7 |
+| PatchTST/Weather | 96,192,336,720 | 128/128 / 5e-05 | 128/128 / 5e-05 | 128/128 / 0.0001；batch,eval_batch,lr待审 | P2: pp13–14 A.1 supervised protocol; no unique batch/LR；S8 + S7 |
+| PatchTST/ECL | 96,192,336,720 | 128/128 / 0.0003 | 128/128 / 0.0003 | 32/32 / 0.0001；batch,eval_batch,lr待审 | P2: pp13–14 A.1 supervised protocol; no unique batch/LR；S9 + S7 |
+| PatchTST/Exchange | 96,192,336,720 | 512/512 / 0.0003 | 512/512 / 0.0003 | 无新增待决值 | P2: pp13–14 A.1 supervised protocol; no unique batch/LR；project-approved transfer（不是该域paper setting） |
+| iTransformer/UrbanEV | 3,6,9,12 | 128/128 / 3e-05 | 128/128 / 3e-05 | 无新增待决值 | P3: p14 implementation: B32, LR search set; ECL code conflicts；project-approved transfer（不是该域paper setting） |
+| iTransformer/PJM | 24 | 128/128 / 5e-05 | 128/128 / 5e-05 | 无新增待决值 | P3: p14 implementation: B32, LR search set; ECL code conflicts；project-approved transfer（不是该域paper setting） |
+| iTransformer/ETTh1 | 96,192,336,720 | 128/128 / 5e-05 | 32/32 / 5e-05 | 32/32 / 0.0001；lr待审 | P3: p14 implementation: B32, LR search set; ECL code conflicts；S10 + S11 |
+| iTransformer/Weather | 96,192,336,720 | 128/128 / 5e-05 | 32/32 / 5e-05 | 32/32 / 0.0001；lr待审 | P3: p14 implementation: B32, LR search set; ECL code conflicts；S12 + S11 |
+| iTransformer/ECL | 96,192,336,720 | 128/128 / 0.0003 | 128/128 / 0.0003 | 16/16 / 0.0005；batch,eval_batch,lr待审 | P3: p14 implementation: B32, LR search set; ECL code conflicts；S13 + S11 |
+| iTransformer/Exchange | 96,192,336,720 | 512/512 / 0.0003 | 32/32 / 0.0003 | 32/32 / 0.0001；lr待审 | P3: p14 implementation: B32, LR search set; ECL code conflicts；S14 + S11 |
+| TimeMixer/ETTh1 | 96,192,336,720 | 128/128 / 5e-05 | 128/128 / 0.01 | 无新增待决值 | P4: p14 Table7 long-term forecasting；S15 + S16 |
+| TimeMixer/Weather | 96,192,336,720 | 128/128 / 5e-05 | 128/128 / 0.01 | 无新增待决值 | P4: p14 Table7 long-term forecasting；S17 + S16 |
+| TimeMixer/ECL | 96,192,336,720 | 128/128 / 0.0003 | 32/32 / 0.01 | 无新增待决值 | P4: p14 Table7 long-term forecasting；S18 + S16 |
+| TimeMixer/Exchange | 96,192,336,720 | 512/512 / 0.0003 | 512/512 / 0.0003 | 无新增待决值 | P4: p14 Table7 long-term forecasting；project-approved transfer（不是该域paper setting） |
+| ModernTCN/UrbanEV | 3,6,9,12 | 128/128 / 3e-05 | 128/128 / 3e-05 | 无新增待决值 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；project-approved transfer（不是该域paper setting） |
+| ModernTCN/PJM | 24 | 128/128 / 5e-05 | 128/128 / 5e-05 | 无新增待决值 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；project-approved transfer（不是该域paper setting） |
+| ModernTCN/ETTh1 | 96,192,336,720 | 128/128 / 5e-05 | 128/128 / 0.0001 | 512/512 / 0.0001；batch,eval_batch待审 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；S19 + S20 |
+| ModernTCN/Weather | 96,192 | 128/128 / 5e-05 | 128/128 / 0.0001 | 256/256 / 0.0001；batch,eval_batch待审 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；S21 + S20 |
+| ModernTCN/Weather | 336,720 | 128/128 / 5e-05 | 128/128 / 0.0001 | 512/512 / 0.0001；batch,eval_batch待审 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；S21 + S20 |
+| ModernTCN/ECL | 96,192,336,720 | 128/128 / 0.0003 | 128/128 / 0.0001 | 32/32 / 0.0001；batch,eval_batch待审 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；S22 + S20 |
+| ModernTCN/Exchange | 96,192 | 512/512 / 0.0003 | 512/512 / 0.0001 | 128/128 / 0.0001；batch,eval_batch待审 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；S23 + S20 |
+| ModernTCN/Exchange | 336,720 | 512/512 / 0.0003 | 512/512 / 0.0001 | 512/512 / 0.0001；batch,eval_batch待审 | P5: pp17–18 C.1 long-term: LR1e-4; batch unspecified；S23 + S20 |
+| TimeXer/UrbanEV | 3,6,9,12 | 128/128 / 3e-05 | 128/128 / 3e-05 | 无新增待决值 | P6: p14 A.2: initial LR1e-4; batch unspecified；project-approved transfer（不是该域paper setting） |
+| TimeXer/PJM | 24 | 128/128 / 5e-05 | 128/128 / 0.0001 | 16/16 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S28 + S25 |
+| TimeXer/ETTh1 | 96,336 | 128/128 / 5e-05 | 128/128 / 0.0001 | 32/32 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S24 + S25 |
+| TimeXer/ETTh1 | 192 | 128/128 / 5e-05 | 128/128 / 0.0001 | 4/4 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S24 + S25 |
+| TimeXer/ETTh1 | 720 | 128/128 / 5e-05 | 128/128 / 0.0001 | 128/128 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S24 + S25 |
+| TimeXer/Weather | 96,192,336,720 | 128/128 / 5e-05 | 128/128 / 0.0001 | 32/32 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S26 + S25 |
+| TimeXer/ECL | 96 | 128/128 / 0.0003 | 128/128 / 0.0001 | 4/4 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S27 + S25 |
+| TimeXer/ECL | 192,336,720 | 128/128 / 0.0003 | 128/128 / 0.0001 | 32/32 / 0.0001；batch,eval_batch待审 | P6: p14 A.2: initial LR1e-4; batch unspecified；S27 + S25 |
+| TimeXer/Exchange | 96,192,336,720 | 512/512 / 0.0003 | 512/512 / 0.0003 | 无新增待决值 | P6: p14 A.2: initial LR1e-4; batch unspecified；project-approved transfer（不是该域paper setting） |
+
+**来源裁决**：DLinear P1 p9 B.2明确委托代码，四标准域按S索引实施；Weather LR为自身run_longExp.py默认1e-4。TimeMixer P4 p14表7给ETTh1/Weather B128与ECL B32、初始LR1e-2；同作者unify脚本ETTh1/Weather命令行128覆盖未使用的shell变量16，不误取16。iTransformer P3 p14 LR仅搜索集合{1e-3,5e-4,1e-4}，不得任选；ETTh1/Weather/Exchange明确batch32已落地；ECL论文通用32与自身脚本16冲突，推荐脚本16/LR5e-4，但三字段待审。PatchTST没有找到足以唯一确定数值的论文设置/明确超参数委托，其supervised脚本B128/128/32、LR1e-4只作一次集中推荐。ModernTCN P5 pp17–18 long-term明确LR1e-4已落地，batch仍为各H脚本待审；不误用p18 M4 short-term LR5e-4。TimeXer P6 p14 A.2 LR1e-4已落地（含PJM）；batch代码补充未冒称论文值，PJM脚本真实16，不拿NP的4。UrbanEV及其他论文缺失域保留已批准迁移值；TimeMixer/PatchTST/TimeXer的Exchange尤其不套其他域的新batch/LR。未发现上述所读论文中独立eval batch数值；本项目默认eval=train，非作者全部runner复现。
+
+作者路径/摘要/显式及继承行号的完整机器记录为`source-code-index.json`；下列S标识对应同模型自身仓库，commit未更新：
+
+| S | 文件 | commit | SHA-256 |
+|---|---|---|---|
+| S1 | `/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/etth1.sh` | `0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6` | `cdd402ec2f78dc525485d278b3360bb705995b2d72d7ae2da8e77c3fc6094ff5` |
+| S2 | `/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py` | `0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6` | `7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b` |
+| S3 | `/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/weather.sh` | `0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6` | `b67d06322415e368e970c18919aaec78952e50687c3c1373912151cedda82016` |
+| S4 | `/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/electricity.sh` | `0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6` | `26ba11e76db043dbed35ced79b642253c7c6750572918828a124662da45551da` |
+| S5 | `/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/exchange_rate.sh` | `0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6` | `01f6734a7bf2b888113b95f45343d93dd7238891049d6bb760faafcdfb6cd18b` |
+| S6 | `/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/etth1.sh` | `204c21efe0b39603ad6e2ca640ef5896646ab1a9` | `556c87cd7dd795094ff6cb73465e84c90686017e1535e0ba23ed43683b9b0897` |
+| S7 | `/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py` | `204c21efe0b39603ad6e2ca640ef5896646ab1a9` | `44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc` |
+| S8 | `/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/weather.sh` | `204c21efe0b39603ad6e2ca640ef5896646ab1a9` | `3f9e2d58fa3f3cb725f7d10b98e99fa1226c07899c2d4a20f7c9eae98a7f386b` |
+| S9 | `/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/electricity.sh` | `204c21efe0b39603ad6e2ca640ef5896646ab1a9` | `e20aefa2c3ebda862dab6eb9f970b2f139c8b30b8d294fd3f8ed355816808920` |
+| S10 | `/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ETT/iTransformer_ETTh1.sh` | `c2426e68ca13f74aaec08045c5c724d8ad328124` | `81f8409cff60b754b45ed2e76133c7e3b6e585a50c8361f04fa3daf3b6997cc0` |
+| S11 | `/public/home/yueweiting/大论文/iTransformer/run.py` | `c2426e68ca13f74aaec08045c5c724d8ad328124` | `650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9` |
+| S12 | `/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Weather/iTransformer.sh` | `c2426e68ca13f74aaec08045c5c724d8ad328124` | `7cbdad479bb1a000b5c5bab82635a4bb5b700fd3e1efe922b265309b9331d054` |
+| S13 | `/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ECL/iTransformer.sh` | `c2426e68ca13f74aaec08045c5c724d8ad328124` | `44c695c21a4ac03d440e09ddcd6e39cb7cb0c09095df085f423281461a983014` |
+| S14 | `/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Exchange/iTransformer.sh` | `c2426e68ca13f74aaec08045c5c724d8ad328124` | `834aa1a46dcd67fc7aae98c97b441ede0e311a7b848ca3d6e1a66ac0476204d8` |
+| S15 | `/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ETT_script/TimeMixer_ETTh1_unify.sh` | `e24610583b36fdd8c76cc17a8df4e65759a5f460` | `13086d899b992b67cdd4409d26f686c1ac7e15e9ad4fd03dd53a2e0728554fc4` |
+| S16 | `/public/home/yueweiting/大论文/TimeMixer/run.py` | `e24610583b36fdd8c76cc17a8df4e65759a5f460` | `2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024` |
+| S17 | `/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/Weather_script/TimeMixer_unify.sh` | `e24610583b36fdd8c76cc17a8df4e65759a5f460` | `24638b0358519d62024bc7d4e42ad76e0cb71f4b85b74482d32bd15d3816f8d2` |
+| S18 | `/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ECL_script/TimeMixer_unify.sh` | `e24610583b36fdd8c76cc17a8df4e65759a5f460` | `89b0c34325def762e3764e89ca093f15a36188f8e93705fe3cea02d66e675123` |
+| S19 | `/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ETTh1.sh` | `56a9a2c018385cd5acef015378cae7f084d1b11c` | `3b70d51a3be4f2875dc5032fae1a03334144391410a2876812bcdf07adcef3fb` |
+| S20 | `/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py` | `56a9a2c018385cd5acef015378cae7f084d1b11c` | `e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75` |
+| S21 | `/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/weather.sh` | `56a9a2c018385cd5acef015378cae7f084d1b11c` | `ab689e89b1907f4fdf67438d4b9ba5307dc48a8d03d7bc1463a6f3db6986852a` |
+| S22 | `/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ECL.sh` | `56a9a2c018385cd5acef015378cae7f084d1b11c` | `776d1f1e325fa40cf7dee19655ddd37b4a200639ca4e0bd7184fb1fa5795c3f1` |
+| S23 | `/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/Exchange.sh` | `56a9a2c018385cd5acef015378cae7f084d1b11c` | `a0b9bde526f2e53115a10d02f8aec036291eddbf11ec44010dbd837a475cb4d6` |
+| S24 | `/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ETTh1/TimeXer.sh` | `76011909357972bd55a27adba2e1be994d81b327` | `ea1f533f05f1efad9ba8711e5d4c0ecb5d1c61ef1101c88c244c57e06407cdda` |
+| S25 | `/public/home/yueweiting/大论文/TimeXer/run.py` | `76011909357972bd55a27adba2e1be994d81b327` | `55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e` |
+| S26 | `/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/Weather/TimeXer.sh` | `76011909357972bd55a27adba2e1be994d81b327` | `b92af18050d96c5db4810fe6bbfda75786d815df701702144cccb4828c60d7a5` |
+| S27 | `/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ECL/TimeXer.sh` | `76011909357972bd55a27adba2e1be994d81b327` | `d507c4142dd8c946c469199daf7c7af0dbd6b9729de945f6b87bdc9054e6512c` |
+| S28 | `/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/EPF/TimeXer.sh` | `76011909357972bd55a27adba2e1be994d81b327` | `4510275fcd7734128459d71f81db90b135bf54bde76980435796d1eb49840855` |
+
+### 17.3 实际实现与算术
+
+`utils.ch3_contract.baseline_training/profile`按共同→dataset→external层合并，只允许batch/eval_batch/lr、正有限值/整数batch和明确source/pending；AMD/J/N/S任何外部覆盖层被拒绝。`training_blockers`由preflight和模型验收配置在业务fixture前拒绝未决来源。`step_arithmetic`不读数据，为495run导出train窗口/整批/丢尾/最大optimizer steps及validation/test尾批；test仅端点算术。`effective-profiles.json`逐run记录新旧profile摘要、训练值、来源待决项；完整协议摘要与旧审批/报告不兼容，新artifact根为本包，旧文件不覆盖。
+
+逐run求和：原最大optimizer调用规划15,883,010，当前部分落地、含未决占位值的算术为16,140,950，增257,940；这不是最终已锁定步骤预算，57个未决run锁定后须重算。495/5340不变，旧耗时不沿用，ETA Unknown。PJM A/J仍36500训练窗/285整批/丢20，validation5219窗尾99、test10460尾92（算术）。
+
+### 17.4 首轮结果与明确机械问题
+
+原`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-data-admission-ozab6blq/probe/complete.json` SHA=`bae5e732a1d41d8b3cba53c11e55fdd75b6809ee4b36db8828addd46d85993ef`；54组13 Passed/22 ResourceNotVerified/19 Blocked；206worker、1183 Adam调用、1580 forward、1184 backward。失败调用不等于成功更新、不退款。首轮失败分为iTransformer六组缺output_attention、九组RSS单调增长、PatchTST/TimeMixer/ModernTCN ECL B128三组单路OOM、TimeMixer/Exchange数值轨迹不一致，以及资源归属退出时序（RNV另外计）。
+
+iTransformer adapter的纯参数构造`native_options`补作者run.py默认output_attention=False，六域必要键静态/CPU核验；不改作者主体。NVML `ExitObservation`只保存本波曾稳定核验的host PID/start_ticks，UUID或生命周期变化拒绝；退出或元信息短暂不可得时最多3秒等待，该窗口永不发许可，须后续稳定同生命周期映射恢复或NVML条目消失，未知外部PID仍立即拒绝。首验TimeMixer自有7425→host28137退出窗口触发拒绝，唯一机械修复覆盖metadata_unavailable短暂状态，修后真实8581→host33215等待并清除成功。无无限缓存归属、无未知内存填0、无CPU/GPU环境变更。
+
+九组memory.json/trajectory证据最后4点CUDA allocated均不增长，RSS小幅单调增长（`memory-growth-review.json`）。原hash对每个GPU参数/Adam状态先复制CPU，再numpy.tobytes额外分配bytes；已用memoryview消除第二份临时bytes，四种tensor布局/类型/空张量摘要与旧实现一致。此修复不证明原九组host增长已消除；原allocated/RSS四点严格单调停止线原样保留，不删断言/不加empty_cache。**待审唯一建议**：未来在固定update后、任何CPU哈希前测RSS，同时保留哈希后RSS作归因，预分配六个日志槽；相同四点规则仍适用于模型阶段RSS及allocated。模型阶段真实单调增长仍拒绝；只有哈希后增长不能冒称GPU泄漏。因改变测量相位会影响准入，该方案本轮未实施/未批准；需正例（两阶段增长）与反例（只额外CPU摘要分配）验收后才替代旧判据。
+
+TimeMixer/Exchange已逐H比较旧serial/q4/q2 JSON：initial/RNG/batch相等，但trajectory内optimizer/参数摘要及部分final不同，详见`timemixer-exchange-review.json`；未解析旧checkpoint、未测差异幅度、未放宽exact。该域论文无新batch/LR唯一值、保留现有project-approved transfer，尚未证明可机械修复；本轮不重复旧整套诊断，完整六步一致性仍Blocked，需在最终经审核profile补测中保留严格对照。ECL旧B128 OOM事实不改；A/J ECL保持128；仅TimeMixer ECL新B32/T512/H96本轮两步短验收通过，不外推其他H或四路，PatchTST/ModernTCN的ECL来源batch仍待审未负载。
+
+### 17.5 固定验收、实际成本及证据复用
+
+精确24个CPU ID先固化于`frozen-execution-order.json`及配置acceptance，fixture前验证代码/配置/用途，正常unittest生命周期，test方法不互调。24首次passed；因上述监测机械修复，同24方法修后再次passed，合计48方法调用，0fail/error/skip/unexecuted；参数化子case定义由同SHA源码及495清单冻结，单列`subcase-inventory.json`（每轮1420个subcase，不隐藏为零）。没有重跑旧13项/333/339/8源smoke。
+
+| CUDA方法 | 首次 | 唯一机械复验 | 每次实际调用 |
+|---|---|---|---|
+| ModelTests.test_itransformer_defaults：U/F4、batch2 | 计算及监测通过 | 同修后监测通过 | 2 Adam /6 forward /2 backward；自产best/last及拒绝跨身份恢复、预测复现 |
+| ModelTests.test_time_mixer_ecl_batch：T512/B32/H96/LR.01 | 计算passed、退出监测失败 | 计算/监测通过 | 2 Adam /3 forward /2 backward；1 validation、finite/参数更新 |
+
+当前两次合计8 Adam/18 forward/8 backward，从机械512扣8，余额504；本轮64/96/64额度尚余56/78/56，但不自动使用。首次资源失败成本不退款、不拼接两个版本。修后自然退出样本见`natural-exit-verification.json`；两方法实际采样间隔分别0.314–0.650s、0.298–0.597s，不把100ms目标写实测；TimeMixer进程采样峰值29379002368 bytes，约27.36 GiB。旧4GiB缺项不倒改；本轮只获这两个有限路径的证据，不授予54组资源Passed。未新做张量诊断或新并发；CPU最终24/24和GPU最终两方法在同一修后代码/bundle上通过。
+
+### 17.6 精确补测/继承与剩余待决
+
+`followup-plan.json`从54组生成完整划分：10组（25代表worker）仅列有条件继承审核，其余44组170worker补测；每组明确changed_profiles、pending_source、parent_status、代表ID。继承必须在后续审核核对父证据profile/源/模型数学/摘要等价及环境硬件，不能把相同seed当证明，不能直接用旧全局protocol报告。无原Passed的组不自动改Passed。
+
+可提交继承的10组：`AMD-UrbanEV-F2`、`AMD-PJM-MS`、`J-UrbanEV-F4`、`J-PJM-MS`、`DLinear-PJM-MS`、`PatchTST-PJM-MS`、`PatchTST-Exchange-MS`、`ModernTCN-UrbanEV-F4`、`ModernTCN-PJM-MS`、`S-UrbanEV-F4`。
+
+补测固定流程上限：170代表串行1020 Adam；其中168代表为四任务组，候选q4最多1008，必要q2回退最多1008；合计3036 Adam/4048 forward/3036 backward/1012 validation batch。原首验3510已耗1183，剩2327；**额外首验709 Adam仅Proposed，当前批准额外为0**，不与504机械余额混账。改变batch/LR不重置预算。参数未决若后续批准会更新协议/计划摘要；该3036是完整待补集合的保守规划，并非本轮授权启动量。
+
+集中待决只有：①表17.2的PatchTST数值、iTransformer LR/ECL冲突、ModernTCN与TimeXer batch推荐；②上文RSS测量相位方案，当前旧停止线不动；③TimeMixer/Exchange保持exact的最终profile补测，若仍不一致停止，不自动容差救援；④补测首验额度709及10组具体继承依赖审定。数据§16政策没有新增缺口，不重读真实前缀/CSV；来源未决不是数据缺陷或模型不适用。
+
+共享`start_probe.sh`不复制/不重建，资源入口增加followup精确划分和父complete SHA、许可followup摘要检查，每组启动前保守预扣最大消耗，避免末尾才发现越额。当前dry-run为54/195；preflight退出2，真实拒绝来源待决/当前mandatory、dirty closure及无新许可；未生成未来commit或review=true模板。因预算与来源尚未批准，不能声称只剩审核/closure。完整正式模型入口仍独立需结构冻结/M6授权，不自动启动下个模型。
+
+### 17.7 操作命令与停止点
+
+下列start仅供后续来源/判据/额度及继承条件落实、修后审核和统一closure、绑定实际commit的新review文件生成后，由用户一次执行；**当前preflight预期拒绝，Codex未执行start**。新review须包含完整protocol/code/environment/hardware与`followup_sha=digest(execution.followup)`，不得沿用旧probe-review。后续若需要改配置以采纳待决项，须同一整体审核更新effective profiles/计划/许可，不直接手改review绕过。
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+export PATH="/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin:$PATH"
+export PYTHONDONTWRITEBYTECODE=1
+E="/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554"
+bash scripts/ch3/start_probe.sh dry-run --approval "$E/probe-review.json"
+bash scripts/ch3/start_probe.sh preflight --approval "$E/probe-review.json"
+# 仅全部前置通过后由用户执行；本轮未创建此许可
+bash scripts/ch3/start_probe.sh start --approval "$E/probe-review.json"
+tail -n 80 -F "$E/probe-controller.log"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh logs
+bash scripts/ch3/start_probe.sh complete
+# complete=true只表示文件完成，仍须审核逐组status、继承和预算
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+停止时只写本包STOP、结束本包worker，保留logs/staging/自产checkpoint，不自动fresh重跑。日志逐组位于`$E/probe/<group>/.../worker.log`；机器状态`$E/probe/progress.json`、终态`complete.json`。本轮不重演tmux/互斥锁，占位入口未改；启动脚本字节保持。当前交付仅修后代码、源表、实际短验收及补测准备待ChatGPT审核，不声称ChatGPT已读新字节。
+
+
+## 18. 用户授权ChatGPT直执行：来源定值、测量诊断及工程收口
+
+### 18.1 授权与执行边界
+
+用户在本会话明确提出Codex额度用尽，授权ChatGPT通过Remote Desktop Commander直接执行上一轮方案并检查closure。本次直接接手仅限该方案，不更改长期职责规则。起点HEAD/local/tracking/live remote=`9e71fd572f866797376584f93cf4b25bd6840c34`、0/0，保留§17九项modified；未使用reset/clean/stash。修前canonical/M5 SHA分别为`ca4ddf3fa8d17828049ae8a7e67704ea3d92f569e664436efe3835e57a5c899c`、`ed685eadadbcfe94313448f71de53f01c3a087aa3ec24dfe4119b4863adcb2b0`。
+
+本轮独立证据根：`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-approved-source-direct-veaod729`；fixture=`/tmp/amd-m5-direct-1swdep9l`。`authorization.json`记录用户授权、执行者及32 Adam/48前向/32反向合并诊断上限。作者仓库/环境、原观测、旧checkpoint、AGENTS、Closed M4、baseline与空间方案保持；完整probe/正式训练均未启动。
+
+### 18.2 最终来源定值与范围
+
+按用户本次选择落实§17.2全部57个未决run，标记为user-approved official-code supplement。原论文未给唯一值的字段不冒称paper-explicit；iTransformer/ECL脚本B16与论文通用B32的差异保留，采用16是本次明确选择。eval batch等于train batch；以下四元组顺序为H96/192/336/720。
+
+| 模型 | 数据集 | train/eval batch | 固定LR |
+|---|---|---|---|
+| PatchTST | ETTh1、Weather | 128 | 1e-4 |
+| PatchTST | ECL | 32 | 1e-4 |
+| iTransformer | ETTh1、Weather、Exchange | 32 | 1e-4 |
+| iTransformer | ECL | 16 | 5e-4 |
+| ModernTCN | ETTh1 | 512 | 1e-4 |
+| ModernTCN | Weather | 256/256/512/512 | 1e-4 |
+| ModernTCN | ECL | 32 | 1e-4 |
+| ModernTCN | Exchange | 128/128/512/512 | 1e-4 |
+| TimeXer | PJM | 16 | 1e-4 |
+| TimeXer | ETTh1 | 32/4/32/128 | 1e-4 |
+| TimeXer | Weather | 32 | 1e-4 |
+| TimeXer | ECL | 4/32/32/32 | 1e-4 |
+
+其他已落实值和项目迁移值不变，未搜索T/batch/LR、不增加scheduler/AMP/seed；来源路径/commit/SHA继承§17并逐条列于`source-decisions.json`。495逻辑任务、全部T/epochs/patience/结构/信息合同不变，274个AMD家族完整profile与§17逐项相等；F0与PJM TargetOnly仍为0。最终max_optimizer_steps算术为16,482,750，非正式训练授权或耗时实测。`effective-profiles.json`逐run记录参数和窗口/尾批，TimeXer/PJM新B16为train2281整批/丢尾4、validation尾批3。
+
+### 18.3 测量实现及预算前置
+
+`probe_worker`预分配六个trajectory/batch/memory槽，在每次update后、CPU状态哈希之前记录RSS及CUDA allocated，再记录哈希后RSS。保留四点严格递增判定（allocated或rss_before_hash），哈希后增长单独可见。明确本步哈希前RSS仍可能受上一步哈希/allocator历史影响，不把它宣称为纯模型内存，也不自动将旧九组改Passed。摘要byte语义、update/evaluate/init_training/save/restore/formal_worker数学代码不变；未设置empty_cache或新数值容差。
+
+新增纯合同函数`followup_limits`同时检查54组精确划分、170代表、3036/4048/3036/1012上限以及2327＋709的授权；缺少额外额度或匹配followup摘要必须在创建probe目录/worker前拒绝。父complete SHA和25条继承代表profile在创建输出前再次核对。新许可还需绑定`approved_extra_adam=709`，未生成许可、未消耗额外709。
+
+限定诊断使用单独`ch3_step_diagnostic`目的，仅允许当前包固定AMD/ETTh1 H96与TimeMixer/Exchange H192，6/8/6每worker、180秒、真实配置/源码绑定，禁止观测及旧权重访问；这不是解除dirty状态下完整probe审批。诊断保存的CPU参数/梯度/Adam状态只属于本包合成证据，不得转为正式产物或资源许可。
+
+### 18.4 验收、实际诊断与未通过项
+
+16个SourceClosureTests首次完整通过：16 passed、0 failure/error/skip/unexecuted，无复验、无test互调。覆盖57定值、274家族不变、495/5340、继承profile、违规覆盖、端点尾批、旧报告拒绝、四点增长正反例、709前置拒绝与有限诊断入口。测试ID及顺序在`frozen-execution-order.json`先行固定。参数化子case按日志保留，不冒称为0。
+
+五个真实CUDA诊断worker均exit0、finite，进程监测与退出观察无失败：AMD/ETTh1一次6步；TimeMixer/Exchange H192串行1、两路各6步，以及出现摘要差异后唯一串行重复。合计30 Adam、40 forward、30 backward，未做额外机械复验，未超32/48/32。机械池原504减30=474，首验补测池与机械池不混账；原§17及更早失败/嵌套test额度偏差保持。
+
+AMD/ETTh1原增长触发代表的末四步allocated/RSS无持续递增，新测量检查通过。这只证明本次代表路径，不代表原九组已全修复或长期无泄漏。
+
+**TimeMixer/Exchange仍不满足exact。** 四个worker初始状态/RNG/batch相同；本轮loss、validation、final RNG一致，但两次独立串行也自第1步出现`enc_embedding.value_embedding.tokenConv.weight`梯度及Adam moment非逐位差异。所有本轮对照中最大梯度绝对差`4.470348358154297e-08`、最大Adam状态绝对差`1.1175870895385742e-08`；一份并发副本第6步仅1/48个卷积权重出现绝对差`1.4901161193847656e-08`。对应张量、步次和幅度见`numeric-state-comparison.json`；不由小误差自动判等。
+
+该证据说明问题不是仅在并发时出现，已定位首个可见分歧的参数/梯度路径；仍不能唯一归因某个CUDA kernel或推出长期误差无害。没有改变确定性设置、容差、seed、模型、batch或LR。按现行exact规则仍Not passed，完整补测preflight保持明确阻塞，不通过临时改为单路掩盖串行自身非逐位重复性。
+
+新增28份自产CPU状态文件仅用于本次比较；没有读取或哈希历史checkpoint。本轮0真实观测读取、0test解析/评价，合成诊断不属于正式效果实验。
+
+### 18.5 源码审核、证据复用与下一步
+
+57参数和709额度均已落地。10组/25代表继承profile与父证据实际核对一致，计算/作者源/环境依赖延用已有审核，原Passed记录不倒改；其余44组/170代表计划仍保留。新范围及父来源见`inheritance-verification.json`，完整补测没有运行。
+
+动态CPU与诊断完成后，唯一配置增量为`execution.probe.mandatory_blockers`从“待诊断”改成实际TimeMixer exact阻塞说明；其他参数/来源/额度/test ID/生产代码保持相同。该纯状态文本差异的复用依据见`post-test-binding-delta.json`，不宣称对最终全局摘要又重复执行过验收。
+
+本轮可以对已验收实现和真实未通过记录进行工程版本closure，但这不是M5阶段关闭，也不意味着TimeMixer数值验收通过。准确closure commit、三端/clean、保护对象及逐文件最终SHA记录在外置`closure-verification.json`，不为文档自写commit递归修改/提交。
+
+下一步需用户明确选择针对TimeMixer该路径的确定性执行验证或限定数值准入修订；本轮不擅自执行任一选择。源参数和709额度无需再次确认。未知来源/数据政策不重开，完整补测不得带已知exact阻塞启动。
+
+操作（本轮不执行start）：
+```bash
+cd /public/home/yueweiting/大论文/AMD
+export PATH="/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin:$PATH"
+export PYTHONDONTWRITEBYTECODE=1
+E=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-approved-source-direct-veaod729
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight
+# preflight当前应拒绝TimeMixer exact阻塞及缺少新review许可。
+# 不创建review=true，不运行start，不删除/覆盖旧probe结果。
+```

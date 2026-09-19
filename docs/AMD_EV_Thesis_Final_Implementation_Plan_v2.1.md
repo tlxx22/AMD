@@ -48,6 +48,10 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-19当前状态（M5 §18）：用户明确授权ChatGPT接手服务器执行上一轮确认方案及检查工程Git closure。本轮57个来源待决run全部落实，iTransformer/ECL明确采用本模型官方脚本B16；A/J/N/S的274个profile、495任务/5340 run-epochs、54组/195worker及统一T等不变。最终最大optimizer步数算术16,482,750；新增709次补测Adam获批，2327原余额＋709=3036，未消耗。双时点RSS测量保留四点严格增长规则和前序哈希影响说明；CPU16/16首次通过、无复验。限定5worker均正常完成，共30 Adam/40前向/30反向，机械余额474；AMD/ETTh1六步未触发旧增长检查。TimeMixer/Exchange H192初始/RNG/batch及loss一致，但重复串行也有Conv1d权重梯度/Adam微小非逐位差异，exact仍Not passed，不擅调容差或确定性设置。10组25代表继承profile核对通过，44组170代表补测计划保留但全队启动仍Blocked；本轮仅工程版本收口，不生成完整probe许可、不冻结J/关闭M5/进入M6。以下§17及更早为历史时点。
+
+2026-09-19当前限定增量（M5 §17）：用户批准外部六baseline仅按对应论文/明确委托的本模型官方代码迁移batch、eval batch及初始LR；A/J及N/S原训练设置、全模型T/epoch/停止/优化器与信息合同保持。唯一profile覆盖层已接入，未决来源字段保持待审并前置拒绝；这是有限参数迁移，不是完整作者recipe复现、不声称各模型最优或纯结构差异完全隔离。原54组probe已完成：13 Passed、22 ResourceNotVerified、19 Blocked，206worker、1183 Adam调用/1580前向/1184反向，失败不退款。当前CPU24+24方法均通过；CUDA两个代表首次及唯一机械复验累计8 Adam/18前向/8反向，修后iTransformer小形状与TimeMixer ECL B32/T512/H96连通、自然退出监测通过，首次退出监测失败仍保留。九组RSS增长旧阻塞及TimeMixer/Exchange旧数值不一致不倒改。495/5340、54组/195worker不变；10组可提交有条件继承审核，44组170worker补测上限3036 Adam，原首验余额2327，额外709仅Proposed；机械512余额504。来源、内存判据及额度待决，修后review/closure和用户启动仍必需，本轮未启动完整补测/正式训练，J未冻结、M5未关闭、M6未开始。以下§16及更早均为历史时点。
+
 2026-09-18当前准入收口（M5 §16）：用户已明确确认并授权四域数据政策及限定CPU/前缀验收，§14.4相关提案现由本次精确合同替代。继承§15五文件来源摘要，stat与其读后状态一致，本轮未完整扫描或重哈希数据。Weather仅允许非唯一但非递减时间，保留原记录按T/H建窗；ECL/Exchange采用已核验benchmark列槽位和train-standardized指标，原转换/单位及币种解释未知作为必须披露限制；PJM采用锁定TimeXer文件、n52416及36691/41933/52416端点，原EPF §4.1 d−1可得性为documented source assumption，不冒充逐记录vintage审计。CPU首验7 passed/1 error/8 unexecuted，经唯一机械夹具修复后16/16通过，累计24次调用；Weather/PJM各一次限定前缀连通通过，其他域复用旧有效证据。54组195worker的端点与尾批均具备，dry-run/preflight仅拒绝未审核许可及未closure/clean；资源/正式模型尚未实测，完整probe仍由用户在审核和统一closure后启动。495/5340、模型与训练、NVML门禁不变；J未冻结、M5未关闭、M6未开始。§14额外调用偏差与所有旧失败保留。以下§15及更早为历史时点。
 
 2026-09-18当前来源事实（M5 §15）：本轮沿锁定作者README取得具体发布物并直接比对：Weather/ECL/Exchange与iTransformer明确分发包仅CRLF/LF不同（B类文本一致，非原始字节一致）；PJM与TimeXer固定Git blob、ETTh1与固定ETDataset对象为A类字节一致。作者Weather副本同样含零基19043/19044重复时间。PJM实测n=52416，既定端点36691/41933/52416，T168/H24/B128的validation尾批99；本轮只登记事实，生产endpoints及mandatory未变。EPF原论文已有d−1可得的day-ahead外生预测说明，但非逐记录vintage审计；原EPF Zenodo发布文件与TimeXer版本header/列序不同，转换链另列待核。UrbanEV复用Closed M1及Git对象，不重读数据。§14.4降级政策仍Proposed，不修改loader、数据、科学条款或准入；新证据待审核后决定可解除的具体事实项。495/5340、54组/195worker不变，§14额外test调用偏差保留。本轮8个合成审计方法首次通过，0模型/GPU/训练/checkpoint；完整字节比较遍历test字节，test数值解析/统计/评价为0。完整probe未启动、J未冻结、M5未关闭、M6未开始。以下§14及更早为历史时点。
@@ -632,7 +636,7 @@ y = volume[t+12+label_horizon-1]
 
 ## 5.5 新正式任务的损失、信息集与身份（User confirmed）
 
-正式训练统一合同（2026-09-18 User confirmed）：同一dataset内所有baseline、AMD/J及实际开展的模块/输入消融均用下表；当前范围按M5 §12，不含TargetOnly。各模型原生结构项与训练项分开登记，来源脚本不得覆盖本表。
+正式训练合同（2026-09-19 User confirmed，M5 §17及§18取代此前所有baseline必须使用AMD数据集batch/LR的条款）：下表batch/eval batch/LR严格适用于A/J及既定N/S；epochs和early-stop仍适用于全部模型。DLinear、PatchTST、iTransformer、TimeMixer、ModernTCN、TimeXer仅允许经来源核定的batch/eval batch/LR覆盖，唯一映射为configs/ch3_formal_profiles.json的baseline_training_overrides，按共同项→dataset→外部覆盖解析；不得覆盖T、epochs、patience、scheduler、结构等其他项。论文初始LR作为项目固定LR，eval batch默认等于train batch，不线性缩放LR。§18已由用户明确选择本模型锁定官方脚本补值，57个来源待决run已清零；iTransformer/ECL采用脚本B16而非论文通用B32的差异明确保留。没有对应论文的迁移域维持既定项目值。新增未裁决来源仍Blocked，不能将缺省值冒称来源已核实。当前495任务范围沿M5 §13，无F0/TargetOnly；A/J输入消融与N/S匹配政策不变。
 
 | dataset | train/eval batch | epochs | LR | early-stop |
 |---|---|---|---|---|
@@ -643,7 +647,7 @@ y = volume[t+12+label_horizon-1]
 | ECL | 128/128 | fixed20 | 3e-4 | off |
 | Exchange | 512/512 | fixed10 | 3e-4 | off |
 
-共同使用Adam、betas=(.9,.999)、eps=1e-8、weight_decay=1e-7；固定LR，无scheduler/warmup/OneCycle；float32、梯度累积1、workers0、每进程4线程；train shuffle/drop_last=True，eval不shuffle且保留尾批。每任务每模型单配置、0额外搜索、from-scratch，formal seed=[2024]、std=N/A、稳定性Not evaluated；已登记匹配初始化子流不变。不改变既有TF32/确定性等环境设置，不新增AMP/compile。仅有限目标validation MSE严格下降更新best，相等保留早epoch；PJM严格改善重置耐心，连续5轮无改善的完整epoch结束后停止，最大20轮；其余按fixed预算完成，不早停。不以best更晚为目标，不择run/seed。论文称“统一训练协议比较”，不声称各模型最优，不以未经核实的“其他baseline必然做过搜索”解释差异。
+共同使用Adam、betas=(.9,.999)、eps=1e-8、weight_decay=1e-7；固定LR，无scheduler/warmup/OneCycle；float32、梯度累积1、workers0、每进程4线程；train shuffle/drop_last=True，eval不shuffle且保留尾批。每任务每模型单配置、0额外搜索、from-scratch，formal seed=[2024]、std=N/A、稳定性Not evaluated；已登记匹配初始化子流不变。不改变既有TF32/确定性等环境设置，不新增AMP/compile。仅有限目标validation MSE严格下降更新best，相等保留早epoch；PJM严格改善重置耐心，连续5轮无改善的完整epoch结束后停止，最大20轮；其余按fixed预算完成，不早停。不以best更晚为目标，不择run/seed。论文称“统一T、训练轮数/停止及信息评价边界下，外部baseline有限batch/初始LR来源迁移比较”；不称完整作者recipe复现、每模型最优或纯结构差异被完全隔离，不以未经核实的“其他baseline必然做过搜索”解释差异。
 
 PJM项目协议确认F=1：按时间顺序，train=floor(.7n)、test=floor(.2n)、val=n−train−test，无rolling、无train+val额外重训；T168/H24和原历史信息集不变。实际数据版本、市场/as-of/单位等事实和接口缺口继续blocked。合同及545-run规划不授予本轮正式训练；新身份/模型适配/早停/汇总能力须另行接入验收。
 
@@ -1918,7 +1922,7 @@ TiDE本轮Deferred：保留在完整规划名单，UrbanEV/PJM当前分别推进
 
 Last Observation 仍仅在 UrbanEV 单列评价，不计神经网络训练。第二组 TimeXer 的原 parallel 路径拟改为目标外生路径：features=MS、n_vars=1、显式目标末列映射；这是新任务适配，不重命名旧 TimeXer-parallel 结果。保留 TimeMixer，不因统一 MS 而向第二组添加 TiDE，也不添加完整 Sonnet、XLinear 或其他模型。
 
-同一dataset/target/horizon/fold按§5.5统一lookback、信息集、split/scaler、mask、目标损失及指标聚合，并统一epoch/LR/train及eval batch/停止规则与共同优化配置。各模型可保留有来源的原生hidden/layer/patch/kernel等结构项，但每任务每模型单配置、0额外搜索；不再采用模型专属LR或暗中增加验证机会。AMD家族同任务公共骨干/共有模块匹配初始化，主表A/J与消融配置兼容时引用同一run。六域主表保留同输入AMD与最终增强模型，推荐J占该位置仍须后续用户明确冻结；不提前冻结J。正式适配缺口继续按M5登记，来源默认值不是已批准结构表缺项的替代证据。
+同一dataset/target/horizon/fold按§5.5统一lookback、信息集、split/scaler、mask、目标损失及指标聚合，并统一epoch/停止规则与共同优化配置；batch/eval batch及初始LR仅外部baseline按§5.5/ M5 §17已确认来源层覆盖，AMD家族保持原表。各模型可保留有来源的原生hidden/layer/patch/kernel等结构项，但每任务每模型单配置、0额外搜索；本次允许上述有限模型专属batch/LR，不新增搜索或暗中增加验证机会。AMD家族同任务公共骨干/共有模块匹配初始化，主表A/J与消融配置兼容时引用同一run。六域主表保留同输入AMD与最终增强模型，推荐J占该位置仍须后续用户明确冻结；不提前冻结J。正式适配缺口继续按M5登记，来源默认值不是已批准结构表缺项的替代证据。
 
 ## 9.3 消融矩阵：当前角色与历史 identity 分离
 
@@ -2084,7 +2088,11 @@ M1 §12 的六折 train split 长度为 576/1171/1747/2342/2937/3475，T=12，H=
 
 ### 9.6.4 A800 batch / 并发效率预检（有限对照完成、适用边界与后续规划）
 
-**当前流程（M5 §13，沿§11–12轻量流程，取代下文P0–P3未执行长期流程）**：只测实际使用的model×dataset×input_variant组。标准域直接四H一组；UrbanEV各输入方案以四H/fold1代表GPU形状，不更换代表fold，六fold数据/标签与CPU占用证据另核并沿用。由495清单生成54组、Q=195：四标准域32组128worker、UrbanEV F4九组36、A/J F1–F3六组24、PJM七个单fit组7；47组四任务＋7组单任务，仅新增三个AMD组。正式清单与probe均无F0、无PJM TargetOnly。PJM端点与validation尾批99已由M5 §16限定前缀连通核实；仍仅一个fit，不复制四fit。每worker六次Adam（2 warm-up→一完整validation batch及真实余数尾批→4次更新），使用正式结构/batch与合成数据，保留原生辅助loss；数据前缀连通与模型资源负载分开。
+**最新收口（M5 §18）**：10组有条件继承核对、44组170代表补测计划保持；新增709已明确批准，2327＋709=3036，机械余额474单列。源码、范围、父证据和额度在输出创建前检查。双时点RSS检查已限定验收，旧AMD/ETTh1代表6步未触发；TimeMixer/Exchange串行重复亦不exact，完整补测仍Blocked，未放宽数值规则/改变确定性。工程commit/push不等于M5 Closed或M6启动。§17以下是此前时点。
+
+**当前补测准备（M5 §17）**：原54组结果及失败成本见本节最新摘要/唯一M5；不重跑54组、不重置3510首验/512机械额度。新来源batch/LR改变的profile不能沿用旧数值轨迹或资源许可，当前精确补测44组/170worker、10组有条件继承；3036 Adam上限比首验余额2327多709，仅列待批，机械余额504单列，不默认挪用。每worker仍6 Adam/8 forward/6 backward/2 validation，固定四H波次及按模型分组不变。只做来源迁移，不搜索T/batch/LR/线程。新许可须绑定实际修后closure、完整配置/代码/来源/环境/硬件、精确followup摘要及父证据；没有review/额度/来源闭环不能启动。旧54组13 Passed不等于正式训练获批。
+
+**首轮流程历史快照（M5 §13，沿§11–12轻量流程，当前补测见§17；取代下文P0–P3未执行长期流程）**：只测实际使用的model×dataset×input_variant组。标准域直接四H一组；UrbanEV各输入方案以四H/fold1代表GPU形状，不更换代表fold，六fold数据/标签与CPU占用证据另核并沿用。由495清单生成54组、Q=195：四标准域32组128worker、UrbanEV F4九组36、A/J F1–F3六组24、PJM七个单fit组7；47组四任务＋7组单任务，仅新增三个AMD组。正式清单与probe均无F0、无PJM TargetOnly。PJM端点与validation尾批99已由M5 §16限定前缀连通核实；仍仅一个fit，不复制四fit。每worker六次Adam（2 warm-up→一完整validation batch及真实余数尾批→4次更新），使用正式结构/batch与合成数据，保留原生辅助loss；数据前缀连通与模型资源负载分开。
 
 先串行各worker建立唯一资源/初始与RNG/batch/短轨迹参照；q>1且资源准入时直接测该q任务组，最多四路。四路资源不准入/OOM或短包无收益才测相同任务的两路分波，仍不成立则只用已通过单路。每组最多一次各候选，不搜索batch/线程、不做完整1/2/4排列研究；同任务组makespan作分母，资源安全与短包收益分开。身份/初始RNG异常停止整个probe；数值/模型失败阻塞配置，不用降低并发掩盖。只有资源不足允许按计划降并发。严格短轨迹规则不放宽，六步不保证完整epoch绝无OOM。
 

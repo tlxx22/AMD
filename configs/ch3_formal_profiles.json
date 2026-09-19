@@ -4558,14 +4558,14 @@
   },
   "execution": {
     "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python",
-    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-data-admission-ozab6blq",
-    "fixture": "/tmp/amd-m5-data-axaq0mkd",
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-approved-source-direct-veaod729",
+    "fixture": "/tmp/amd-m5-direct-1swdep9l",
     "cpu_first_methods": 16,
     "cpu_retry_methods": 16,
     "model_first": {
-      "adam": 0,
-      "forward": 0,
-      "backward": 0
+      "adam": 32,
+      "forward": 48,
+      "backward": 32
     },
     "model_retry": {
       "adam": 0,
@@ -4585,8 +4585,10 @@
       "trajectory_rule": "exact equality (no widened tolerance)",
       "allow_full_probe_now": false,
       "first_adam_max": 3510,
-      "mandatory_blockers": [],
-      "resource_diagnostic_status": "Passed on owned 16MiB tensor processes; formal groups untested",
+      "mandatory_blockers": [
+        "TimeMixer/Exchange H192 exact trajectory remains Not passed: serial repeat also differs in tokenConv gradient/Adam state; deterministic-execution or tolerance-policy change requires explicit new decision. Do not launch full follow-up."
+      ],
+      "resource_diagnostic_status": "Historical owned-tensor evidence retained; original full probe 13 Passed /22 ResourceNotVerified /19 Blocked; lifecycle repair requires current review.",
       "resource_diagnostic_evidence": {
         "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_/resource-diagnostic-attempt1/result.json",
         "sha256": "bc791666929dcf7e981c3d871de455198bcb428eca616bcf93bb26da8610fbe4"
@@ -4594,11 +4596,104 @@
     },
     "formal_approval": null,
     "probe_review": null,
-    "resource_diagnostic": {
-      "max_processes": 4,
-      "tensor_bytes": 16777216,
-      "seconds": 180,
-      "attempts": 2
+    "followup": {
+      "parent_complete": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-data-admission-ozab6blq/probe/complete.json",
+      "parent_sha256": "bae5e732a1d41d8b3cba53c11e55fdd75b6809ee4b36db8828addd46d85993ef",
+      "parent_first_adam_spent": 1183,
+      "remaining_first_adam": 2327,
+      "mechanical_pool": 512,
+      "short_diagnostic_max": {
+        "adam": 32,
+        "forward": 48,
+        "backward": 32
+      },
+      "inherit_groups": [
+        "AMD-UrbanEV-F2",
+        "AMD-PJM-MS",
+        "J-UrbanEV-F4",
+        "J-PJM-MS",
+        "DLinear-PJM-MS",
+        "PatchTST-PJM-MS",
+        "PatchTST-Exchange-MS",
+        "ModernTCN-UrbanEV-F4",
+        "ModernTCN-PJM-MS",
+        "S-UrbanEV-F4"
+      ],
+      "retest_groups": [
+        "AMD-UrbanEV-F1",
+        "AMD-UrbanEV-F3",
+        "AMD-UrbanEV-F4",
+        "AMD-ETTh1-MS",
+        "AMD-Weather-MS",
+        "AMD-ECL-MS",
+        "AMD-Exchange-MS",
+        "J-UrbanEV-F1",
+        "J-UrbanEV-F2",
+        "J-UrbanEV-F3",
+        "J-ETTh1-MS",
+        "J-Weather-MS",
+        "J-ECL-MS",
+        "J-Exchange-MS",
+        "DLinear-UrbanEV-F4",
+        "DLinear-ETTh1-MS",
+        "DLinear-Weather-MS",
+        "DLinear-ECL-MS",
+        "DLinear-Exchange-MS",
+        "PatchTST-UrbanEV-F4",
+        "PatchTST-ETTh1-MS",
+        "PatchTST-Weather-MS",
+        "PatchTST-ECL-MS",
+        "iTransformer-UrbanEV-F4",
+        "iTransformer-PJM-MS",
+        "iTransformer-ETTh1-MS",
+        "iTransformer-Weather-MS",
+        "iTransformer-ECL-MS",
+        "iTransformer-Exchange-MS",
+        "TimeMixer-ETTh1-MS",
+        "TimeMixer-Weather-MS",
+        "TimeMixer-ECL-MS",
+        "TimeMixer-Exchange-MS",
+        "ModernTCN-ETTh1-MS",
+        "ModernTCN-Weather-MS",
+        "ModernTCN-ECL-MS",
+        "ModernTCN-Exchange-MS",
+        "TimeXer-UrbanEV-F4",
+        "TimeXer-PJM-MS",
+        "TimeXer-ETTh1-MS",
+        "TimeXer-Weather-MS",
+        "TimeXer-ECL-MS",
+        "TimeXer-Exchange-MS",
+        "N-UrbanEV-F4"
+      ],
+      "Q": 170,
+      "planned_adam": 3036,
+      "planned_forward": 4048,
+      "planned_backward": 3036,
+      "planned_validation": 1012,
+      "additional_first_adam_proposed": 709,
+      "approved_extra_adam": 709,
+      "approval_basis": "Current user requests direct execution of the explicit 709-step plan",
+      "mechanical_remaining_before_current": 504
+    },
+    "diagnostics": {
+      "cpu_methods_first": 16,
+      "cpu_methods_retry": 16,
+      "total_limits": {
+        "adam": 32,
+        "forward": 48,
+        "backward": 32
+      },
+      "cases": {
+        "amd_rss": {
+          "run_id": "AMD-ETTh1-MS-f1-h96-s2024",
+          "capture_states": false
+        },
+        "timemixer_exact": {
+          "run_id": "TimeMixer-Exchange-MS-f1-h192-s2024",
+          "capture_states": true
+        }
+      },
+      "max_worker_instances": 5
     }
   },
   "tasks": [
@@ -12251,22 +12346,22 @@
   ],
   "acceptance": {
     "cpu_ids": [
-      "test_ch3_formal.DataAdmissionTests.test_weather_duplicate_records",
-      "test_ch3_formal.DataAdmissionTests.test_weather_reverse_rejected",
-      "test_ch3_formal.DataAdmissionTests.test_other_domain_duplicates_rejected",
-      "test_ch3_formal.DataAdmissionTests.test_weather_policy_not_global",
-      "test_ch3_formal.DataAdmissionTests.test_source_status_and_limits",
-      "test_ch3_formal.DataAdmissionTests.test_changed_source_state_rejected",
-      "test_ch3_formal.DataAdmissionTests.test_pjm_endpoints_windows_tails",
-      "test_ch3_formal.DataAdmissionTests.test_old_protocol_rejected",
-      "test_ch3_formal.DataAdmissionTests.test_prefix_binding_before_access",
-      "test_ch3_formal.DataAdmissionTests.test_unchanged_manifest_and_profiles",
-      "test_ch3_formal.DataTests.test_prefix_stops_before_poison",
-      "test_ch3_formal.DataTests.test_scaler_train_only_and_val_context",
-      "test_ch3_formal.DataTests.test_tail_and_shuffle_policy",
-      "test_ch3_formal.DataTests.test_no_implicit_test_capability",
-      "test_ch3_formal.DataTests.test_ordered_header_rejected",
-      "test_ch3_formal.DataTests.test_short_prefix_rejected"
+      "test_ch3_formal.SourceClosureTests.test_counts_and_allowance",
+      "test_ch3_formal.SourceClosureTests.test_family_unchanged",
+      "test_ch3_formal.SourceClosureTests.test_57_source_values",
+      "test_ch3_formal.SourceClosureTests.test_tasks_T_epochs_preserved",
+      "test_ch3_formal.SourceClosureTests.test_unauthorized_overrides_rejected",
+      "test_ch3_formal.SourceClosureTests.test_optimizer_steps_and_tails",
+      "test_ch3_formal.SourceClosureTests.test_pending_and_old_report_rejected",
+      "test_ch3_formal.SourceClosureTests.test_inherited_profiles_unchanged",
+      "test_ch3_formal.SourceClosureTests.test_digest_parity",
+      "test_ch3_formal.SourceClosureTests.test_growth_true_model_rejected",
+      "test_ch3_formal.SourceClosureTests.test_growth_hash_only_not_gpu_leak",
+      "test_ch3_formal.SourceClosureTests.test_previous_hash_carryover_not_exonerated",
+      "test_ch3_formal.SourceClosureTests.test_budget_approval_and_excess_rejected",
+      "test_ch3_formal.SourceClosureTests.test_bad_budget_before_output",
+      "test_ch3_formal.SourceClosureTests.test_diagnostic_capability_not_general_probe",
+      "test_ch3_formal.SourceClosureTests.test_exit_transition_positive_and_negative"
     ],
     "model_cases": {}
   },
@@ -12321,5 +12416,2639 @@
     "protocol_sha": "25c4d44a39775bc0130a1b2201d20d77e63ba2bb8ea29fc20549fcc066cebb0e",
     "earlier_protocol_sha": "a42fa0d1eb53e151b771c699ea99ea3700b41fd85b2dd621180511044d54a53f",
     "authority": "M5 section13 restores72 AMD UrbanEV F1-F3 plans; full identity check, no old permission reuse"
+  },
+  "baseline_training_overrides": {
+    "DLinear": {
+      "UrbanEV": {
+        "3": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "6": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "9": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "12": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "PJM": {
+        "24": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ETTh1": {
+        "96": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/etth1.sh",
+              "script_sha256": "cdd402ec2f78dc525485d278b3360bb705995b2d72d7ae2da8e77c3fc6094ff5",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/etth1.sh",
+              "script_sha256": "cdd402ec2f78dc525485d278b3360bb705995b2d72d7ae2da8e77c3fc6094ff5",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/etth1.sh",
+              "script_sha256": "cdd402ec2f78dc525485d278b3360bb705995b2d72d7ae2da8e77c3fc6094ff5",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/etth1.sh",
+              "script_sha256": "cdd402ec2f78dc525485d278b3360bb705995b2d72d7ae2da8e77c3fc6094ff5",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Weather": {
+        "96": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/weather.sh",
+              "script_sha256": "b67d06322415e368e970c18919aaec78952e50687c3c1373912151cedda82016",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/weather.sh",
+              "script_sha256": "b67d06322415e368e970c18919aaec78952e50687c3c1373912151cedda82016",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/weather.sh",
+              "script_sha256": "b67d06322415e368e970c18919aaec78952e50687c3c1373912151cedda82016",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/weather.sh",
+              "script_sha256": "b67d06322415e368e970c18919aaec78952e50687c3c1373912151cedda82016",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ECL": {
+        "96": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/electricity.sh",
+              "script_sha256": "26ba11e76db043dbed35ced79b642253c7c6750572918828a124662da45551da",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/electricity.sh",
+              "script_sha256": "26ba11e76db043dbed35ced79b642253c7c6750572918828a124662da45551da",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/electricity.sh",
+              "script_sha256": "26ba11e76db043dbed35ced79b642253c7c6750572918828a124662da45551da",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.001
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/electricity.sh",
+              "script_sha256": "26ba11e76db043dbed35ced79b642253c7c6750572918828a124662da45551da",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Exchange": {
+        "96": {
+          "values": {
+            "batch": 8,
+            "eval_batch": 8,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/exchange_rate.sh",
+              "script_sha256": "01f6734a7bf2b888113b95f45343d93dd7238891049d6bb760faafcdfb6cd18b",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 8,
+            "eval_batch": 8,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/exchange_rate.sh",
+              "script_sha256": "01f6734a7bf2b888113b95f45343d93dd7238891049d6bb760faafcdfb6cd18b",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/exchange_rate.sh",
+              "script_sha256": "01f6734a7bf2b888113b95f45343d93dd7238891049d6bb760faafcdfb6cd18b",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/DLinear-2205.13504.pdf",
+              "paper_sha256": "97abddd1821cc72942c8d7ddde7e99466bb91f1bddc37c2b54e0e97be7b5be1b",
+              "page_scope": "p9 Appendix B.2 (delegates hyperparameters to code)",
+              "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+              "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+              "reason": "Paper B.2 explicitly delegates hyperparameters to own code; source T not transferred.",
+              "script": "/public/home/yueweiting/大论文/LTSF-Linear/scripts/EXP-LongForecasting/Linear/exchange_rate.sh",
+              "script_sha256": "01f6734a7bf2b888113b95f45343d93dd7238891049d6bb760faafcdfb6cd18b",
+              "defaults": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+              "defaults_sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b"
+            }
+          ],
+          "pending": {}
+        }
+      }
+    },
+    "PatchTST": {
+      "UrbanEV": {
+        "3": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "6": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "9": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "12": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "PJM": {
+        "24": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ETTh1": {
+        "96": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/etth1.sh",
+              "script_sha256": "556c87cd7dd795094ff6cb73465e84c90686017e1535e0ba23ed43683b9b0897",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/etth1.sh",
+              "script_sha256": "556c87cd7dd795094ff6cb73465e84c90686017e1535e0ba23ed43683b9b0897",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/etth1.sh",
+              "script_sha256": "556c87cd7dd795094ff6cb73465e84c90686017e1535e0ba23ed43683b9b0897",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/etth1.sh",
+              "script_sha256": "556c87cd7dd795094ff6cb73465e84c90686017e1535e0ba23ed43683b9b0897",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Weather": {
+        "96": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/weather.sh",
+              "script_sha256": "3f9e2d58fa3f3cb725f7d10b98e99fa1226c07899c2d4a20f7c9eae98a7f386b",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/weather.sh",
+              "script_sha256": "3f9e2d58fa3f3cb725f7d10b98e99fa1226c07899c2d4a20f7c9eae98a7f386b",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/weather.sh",
+              "script_sha256": "3f9e2d58fa3f3cb725f7d10b98e99fa1226c07899c2d4a20f7c9eae98a7f386b",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/weather.sh",
+              "script_sha256": "3f9e2d58fa3f3cb725f7d10b98e99fa1226c07899c2d4a20f7c9eae98a7f386b",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ECL": {
+        "96": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/electricity.sh",
+              "script_sha256": "e20aefa2c3ebda862dab6eb9f970b2f139c8b30b8d294fd3f8ed355816808920",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/electricity.sh",
+              "script_sha256": "e20aefa2c3ebda862dab6eb9f970b2f139c8b30b8d294fd3f8ed355816808920",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/electricity.sh",
+              "script_sha256": "e20aefa2c3ebda862dab6eb9f970b2f139c8b30b8d294fd3f8ed355816808920",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/scripts/PatchTST/electricity.sh",
+              "script_sha256": "e20aefa2c3ebda862dab6eb9f970b2f139c8b30b8d294fd3f8ed355816808920",
+              "defaults": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+              "defaults_sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Exchange": {
+        "96": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/PatchTST-2211.14730.pdf",
+              "paper_sha256": "ffd4021d25b4959883242f256b0fe4ec42f477f66db78c61bfacf7baa7848b0e",
+              "page_scope": "pp13–14 A.1 supervised protocol; no unique batch/LR",
+              "repository": "/public/home/yueweiting/大论文/PatchTST",
+              "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      }
+    },
+    "iTransformer": {
+      "UrbanEV": {
+        "3": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "6": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "9": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "12": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "PJM": {
+        "24": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ETTh1": {
+        "96": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ETT/iTransformer_ETTh1.sh",
+              "script_sha256": "81f8409cff60b754b45ed2e76133c7e3b6e585a50c8361f04fa3daf3b6997cc0",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ETT/iTransformer_ETTh1.sh",
+              "script_sha256": "81f8409cff60b754b45ed2e76133c7e3b6e585a50c8361f04fa3daf3b6997cc0",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ETT/iTransformer_ETTh1.sh",
+              "script_sha256": "81f8409cff60b754b45ed2e76133c7e3b6e585a50c8361f04fa3daf3b6997cc0",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ETT/iTransformer_ETTh1.sh",
+              "script_sha256": "81f8409cff60b754b45ed2e76133c7e3b6e585a50c8361f04fa3daf3b6997cc0",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Weather": {
+        "96": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Weather/iTransformer.sh",
+              "script_sha256": "7cbdad479bb1a000b5c5bab82635a4bb5b700fd3e1efe922b265309b9331d054",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Weather/iTransformer.sh",
+              "script_sha256": "7cbdad479bb1a000b5c5bab82635a4bb5b700fd3e1efe922b265309b9331d054",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Weather/iTransformer.sh",
+              "script_sha256": "7cbdad479bb1a000b5c5bab82635a4bb5b700fd3e1efe922b265309b9331d054",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Weather/iTransformer.sh",
+              "script_sha256": "7cbdad479bb1a000b5c5bab82635a4bb5b700fd3e1efe922b265309b9331d054",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ECL": {
+        "96": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default, no hyperparameter search; ECL iTransformer B16 explicitly chosen over paper generic B32.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ECL/iTransformer.sh",
+              "script_sha256": "44c695c21a4ac03d440e09ddcd6e39cb7cb0c09095df085f423281461a983014",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default, no hyperparameter search; ECL iTransformer B16 explicitly chosen over paper generic B32.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ECL/iTransformer.sh",
+              "script_sha256": "44c695c21a4ac03d440e09ddcd6e39cb7cb0c09095df085f423281461a983014",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default, no hyperparameter search; ECL iTransformer B16 explicitly chosen over paper generic B32.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ECL/iTransformer.sh",
+              "script_sha256": "44c695c21a4ac03d440e09ddcd6e39cb7cb0c09095df085f423281461a983014",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 16,
+            "eval_batch": 16,
+            "lr": 0.0005
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default, no hyperparameter search; ECL iTransformer B16 explicitly chosen over paper generic B32.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/ECL/iTransformer.sh",
+              "script_sha256": "44c695c21a4ac03d440e09ddcd6e39cb7cb0c09095df085f423281461a983014",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Exchange": {
+        "96": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Exchange/iTransformer.sh",
+              "script_sha256": "834aa1a46dcd67fc7aae98c97b441ede0e311a7b848ca3d6e1a66ac0476204d8",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Exchange/iTransformer.sh",
+              "script_sha256": "834aa1a46dcd67fc7aae98c97b441ede0e311a7b848ca3d6e1a66ac0476204d8",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Exchange/iTransformer.sh",
+              "script_sha256": "834aa1a46dcd67fc7aae98c97b441ede0e311a7b848ca3d6e1a66ac0476204d8",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.0001
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/iTransformer-2310.06625.pdf",
+              "paper_sha256": "83e889795af52c672090255493266e3ea93e7b2a32c528f58074f2f9f757ffc5",
+              "page_scope": "p14 implementation: B32, LR search set; ECL code conflicts",
+              "repository": "/public/home/yueweiting/大论文/iTransformer",
+              "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/iTransformer/scripts/multivariate_forecasting/Exchange/iTransformer.sh",
+              "script_sha256": "834aa1a46dcd67fc7aae98c97b441ede0e311a7b848ca3d6e1a66ac0476204d8",
+              "defaults": "/public/home/yueweiting/大论文/iTransformer/run.py",
+              "defaults_sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      }
+    },
+    "TimeMixer": {
+      "ETTh1": {
+        "96": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ETT_script/TimeMixer_ETTh1_unify.sh",
+              "script_sha256": "13086d899b992b67cdd4409d26f686c1ac7e15e9ad4fd03dd53a2e0728554fc4",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ETT_script/TimeMixer_ETTh1_unify.sh",
+              "script_sha256": "13086d899b992b67cdd4409d26f686c1ac7e15e9ad4fd03dd53a2e0728554fc4",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ETT_script/TimeMixer_ETTh1_unify.sh",
+              "script_sha256": "13086d899b992b67cdd4409d26f686c1ac7e15e9ad4fd03dd53a2e0728554fc4",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ETT_script/TimeMixer_ETTh1_unify.sh",
+              "script_sha256": "13086d899b992b67cdd4409d26f686c1ac7e15e9ad4fd03dd53a2e0728554fc4",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Weather": {
+        "96": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/Weather_script/TimeMixer_unify.sh",
+              "script_sha256": "24638b0358519d62024bc7d4e42ad76e0cb71f4b85b74482d32bd15d3816f8d2",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/Weather_script/TimeMixer_unify.sh",
+              "script_sha256": "24638b0358519d62024bc7d4e42ad76e0cb71f4b85b74482d32bd15d3816f8d2",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/Weather_script/TimeMixer_unify.sh",
+              "script_sha256": "24638b0358519d62024bc7d4e42ad76e0cb71f4b85b74482d32bd15d3816f8d2",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 128,
+            "eval_batch": 128,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/Weather_script/TimeMixer_unify.sh",
+              "script_sha256": "24638b0358519d62024bc7d4e42ad76e0cb71f4b85b74482d32bd15d3816f8d2",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ECL": {
+        "96": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ECL_script/TimeMixer_unify.sh",
+              "script_sha256": "89b0c34325def762e3764e89ca093f15a36188f8e93705fe3cea02d66e675123",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ECL_script/TimeMixer_unify.sh",
+              "script_sha256": "89b0c34325def762e3764e89ca093f15a36188f8e93705fe3cea02d66e675123",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ECL_script/TimeMixer_unify.sh",
+              "script_sha256": "89b0c34325def762e3764e89ca093f15a36188f8e93705fe3cea02d66e675123",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "batch": 32,
+            "eval_batch": 32,
+            "lr": 0.01
+          },
+          "source": [
+            {
+              "category": "paper-explicit",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Table7 dataset row; CLI overrides unused shell batch16 variable for ETTh1/Weather.",
+              "script": "/public/home/yueweiting/大论文/TimeMixer/scripts/long_term_forecast/ECL_script/TimeMixer_unify.sh",
+              "script_sha256": "89b0c34325def762e3764e89ca093f15a36188f8e93705fe3cea02d66e675123",
+              "defaults": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+              "defaults_sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024"
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Exchange": {
+        "96": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-baseline-followup-0r6ra554/reference/TimeMixer-2405.14616.pdf",
+              "paper_sha256": "a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d",
+              "page_scope": "p14 Table7 long-term forecasting",
+              "repository": "/public/home/yueweiting/大论文/TimeMixer",
+              "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      }
+    },
+    "ModernTCN": {
+      "UrbanEV": {
+        "3": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "6": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "9": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "12": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "PJM": {
+        "24": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ETTh1": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ETTh1.sh",
+              "script_sha256": "3b70d51a3be4f2875dc5032fae1a03334144391410a2876812bcdf07adcef3fb",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ETTh1.sh",
+              "script_sha256": "3b70d51a3be4f2875dc5032fae1a03334144391410a2876812bcdf07adcef3fb",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ETTh1.sh",
+              "script_sha256": "3b70d51a3be4f2875dc5032fae1a03334144391410a2876812bcdf07adcef3fb",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ETTh1.sh",
+              "script_sha256": "3b70d51a3be4f2875dc5032fae1a03334144391410a2876812bcdf07adcef3fb",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Weather": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 256,
+            "eval_batch": 256
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/weather.sh",
+              "script_sha256": "ab689e89b1907f4fdf67438d4b9ba5307dc48a8d03d7bc1463a6f3db6986852a",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 256,
+            "eval_batch": 256
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/weather.sh",
+              "script_sha256": "ab689e89b1907f4fdf67438d4b9ba5307dc48a8d03d7bc1463a6f3db6986852a",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/weather.sh",
+              "script_sha256": "ab689e89b1907f4fdf67438d4b9ba5307dc48a8d03d7bc1463a6f3db6986852a",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/weather.sh",
+              "script_sha256": "ab689e89b1907f4fdf67438d4b9ba5307dc48a8d03d7bc1463a6f3db6986852a",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ECL": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ECL.sh",
+              "script_sha256": "776d1f1e325fa40cf7dee19655ddd37b4a200639ca4e0bd7184fb1fa5795c3f1",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ECL.sh",
+              "script_sha256": "776d1f1e325fa40cf7dee19655ddd37b4a200639ca4e0bd7184fb1fa5795c3f1",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ECL.sh",
+              "script_sha256": "776d1f1e325fa40cf7dee19655ddd37b4a200639ca4e0bd7184fb1fa5795c3f1",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/ECL.sh",
+              "script_sha256": "776d1f1e325fa40cf7dee19655ddd37b4a200639ca4e0bd7184fb1fa5795c3f1",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Exchange": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 128,
+            "eval_batch": 128
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/Exchange.sh",
+              "script_sha256": "a0b9bde526f2e53115a10d02f8aec036291eddbf11ec44010dbd837a475cb4d6",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 128,
+            "eval_batch": 128
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/Exchange.sh",
+              "script_sha256": "a0b9bde526f2e53115a10d02f8aec036291eddbf11ec44010dbd837a475cb4d6",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/Exchange.sh",
+              "script_sha256": "a0b9bde526f2e53115a10d02f8aec036291eddbf11ec44010dbd837a475cb4d6",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 512,
+            "eval_batch": 512
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/ICLR-2024-moderntcn-a-modern-pure-convolution-structure-for-general-time-series-analysis-Paper-Conference.pdf",
+              "paper_sha256": "2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944",
+              "page_scope": "pp17–18 C.1 long-term: LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/ModernTCN",
+              "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/scripts/Exchange.sh",
+              "script_sha256": "a0b9bde526f2e53115a10d02f8aec036291eddbf11ec44010dbd837a475cb4d6",
+              "defaults": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+              "defaults_sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      }
+    },
+    "TimeXer": {
+      "UrbanEV": {
+        "3": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "6": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "9": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "12": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "PJM": {
+        "24": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 16,
+            "eval_batch": 16
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/EPF/TimeXer.sh",
+              "script_sha256": "4510275fcd7734128459d71f81db90b135bf54bde76980435796d1eb49840855",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ETTh1": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ETTh1/TimeXer.sh",
+              "script_sha256": "ea1f533f05f1efad9ba8711e5d4c0ecb5d1c61ef1101c88c244c57e06407cdda",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 4,
+            "eval_batch": 4
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ETTh1/TimeXer.sh",
+              "script_sha256": "ea1f533f05f1efad9ba8711e5d4c0ecb5d1c61ef1101c88c244c57e06407cdda",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ETTh1/TimeXer.sh",
+              "script_sha256": "ea1f533f05f1efad9ba8711e5d4c0ecb5d1c61ef1101c88c244c57e06407cdda",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 128,
+            "eval_batch": 128
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ETTh1/TimeXer.sh",
+              "script_sha256": "ea1f533f05f1efad9ba8711e5d4c0ecb5d1c61ef1101c88c244c57e06407cdda",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Weather": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/Weather/TimeXer.sh",
+              "script_sha256": "b92af18050d96c5db4810fe6bbfda75786d815df701702144cccb4828c60d7a5",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/Weather/TimeXer.sh",
+              "script_sha256": "b92af18050d96c5db4810fe6bbfda75786d815df701702144cccb4828c60d7a5",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/Weather/TimeXer.sh",
+              "script_sha256": "b92af18050d96c5db4810fe6bbfda75786d815df701702144cccb4828c60d7a5",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/Weather/TimeXer.sh",
+              "script_sha256": "b92af18050d96c5db4810fe6bbfda75786d815df701702144cccb4828c60d7a5",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "ECL": {
+        "96": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 4,
+            "eval_batch": 4
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ECL/TimeXer.sh",
+              "script_sha256": "d507c4142dd8c946c469199daf7c7af0dbd6b9729de945f6b87bdc9054e6512c",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ECL/TimeXer.sh",
+              "script_sha256": "d507c4142dd8c946c469199daf7c7af0dbd6b9729de945f6b87bdc9054e6512c",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ECL/TimeXer.sh",
+              "script_sha256": "d507c4142dd8c946c469199daf7c7af0dbd6b9729de945f6b87bdc9054e6512c",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {
+            "lr": 0.0001,
+            "batch": 32,
+            "eval_batch": 32
+          },
+          "source": [
+            {
+              "category": "user-approved official-code supplement",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Locked same-model dataset script/default; numbers not claimed as printed paper values; no search.",
+              "script": "/public/home/yueweiting/大论文/TimeXer/scripts/forecast_exogenous/ECL/TimeXer.sh",
+              "script_sha256": "d507c4142dd8c946c469199daf7c7af0dbd6b9729de945f6b87bdc9054e6512c",
+              "defaults": "/public/home/yueweiting/大论文/TimeXer/run.py",
+              "defaults_sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+              "decision": "User explicitly approved preceding source-value plan and delegated direct execution in current conversation."
+            }
+          ],
+          "pending": {}
+        }
+      },
+      "Exchange": {
+        "96": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "192": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "336": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        },
+        "720": {
+          "values": {},
+          "source": [
+            {
+              "category": "project-approved transfer",
+              "paper_path": "/public/home/yueweiting/大论文/paper/NeurIPS-2024-timexer-empowering-transformers-for-time-series-forecasting-with-exogenous-variables-Paper-Conference.pdf",
+              "paper_sha256": "c2ec27241da87e0559c4f797f5a23d20f725c215c1decb8f007afeb5bfd85964",
+              "page_scope": "p14 A.2: initial LR1e-4; batch unspecified",
+              "repository": "/public/home/yueweiting/大论文/TimeXer",
+              "commit": "76011909357972bd55a27adba2e1be994d81b327",
+              "reason": "Dataset absent from corresponding paper; retain previously approved project settings."
+            }
+          ],
+          "pending": {}
+        }
+      }
+    }
   }
 }

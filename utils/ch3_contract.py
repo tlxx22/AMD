@@ -7,6 +7,77 @@ ROOT = Path(__file__).resolve().parents[1]
 PROFILE_FILE = ROOT / 'configs/ch3_formal_profiles.json'
 CONTRACT = 'ch3-target-ms-formal-v2'
 MODELS = ('AMD','J','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer','N','S')
+BASELINES = frozenset(MODELS)-{'AMD','J','N','S'}
+TRAINING_OVERRIDES = frozenset(('batch','eval_batch','lr'))
+
+
+def baseline_training(c, task):
+    layer=c.get('baseline_training_overrides',{})
+    for model,domains in layer.items():
+        if model not in BASELINES:raise ValueError('external training override forbidden for AMD family')
+        for domain,bank in domains.items():
+            if domain not in c['datasets']:raise ValueError('override dataset unknown')
+            for horizon,entry in bank.items():
+                if horizon!='*' and horizon not in [str(h) for h in c['datasets'][domain]['horizons']]:
+                    raise ValueError('override horizon unknown')
+                if set(entry)!={'values','source','pending'} or set(entry['values'])-TRAINING_OVERRIDES:
+                    raise ValueError('only batch/eval_batch/lr overrides authorized')
+                if not entry['source'] or set(entry['pending'])-TRAINING_OVERRIDES:
+                    raise ValueError('source/decision binding missing')
+                for k,v in entry['values'].items():
+                    import math
+                    if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<=0:
+                        raise ValueError('invalid training override')
+                    if k!='lr' and not isinstance(v,int):raise ValueError('batch must be integer')
+                if ('batch' in entry['values'])!=('eval_batch' in entry['values']):
+                    raise ValueError('explicit train/eval batch pair required')
+    bank=layer.get(task['model'],{}).get(task['dataset'],{})
+    return bank.get(str(task['h']),bank.get('*',dict(values={},source=[],pending={})))
+
+
+def training_blockers(c, task):
+    return [task['model']+'/'+task['dataset']+'/'+str(task['h'])+': '+k+' '+str(v)
+            for k,v in baseline_training(c,task)['pending'].items()]
+
+
+
+def followup_limits(c, approval=None):
+    """Validate exact scope/extra allowance before any output or worker exists."""
+    f=c['execution'].get('followup')
+    if not f:return c['execution']['probe']['first_adam_max']
+    inherited=f['inherit_groups'];retest=f['retest_groups']
+    all_ids={g['id'] for g in c['groups']}
+    if (len(set(inherited))!=len(inherited) or len(set(retest))!=len(retest)
+            or set(inherited)&set(retest) or set(inherited+retest)!=all_ids):
+        raise ValueError('follow-up exact partition mismatch')
+    groups=[g for g in c['groups'] if g['id'] in retest]
+    factor=sum(g['q']*(1 if g['q']==1 else 3) for g in groups)
+    expected={'Q':sum(g['q'] for g in groups),'planned_adam':6*factor,
+              'planned_forward':8*factor,'planned_backward':6*factor,'planned_validation':2*factor}
+    if any(f.get(k)!=v for k,v in expected.items()):raise ValueError('follow-up budget arithmetic mismatch')
+    for k in ('remaining_first_adam','approved_extra_adam'):
+        if type(f.get(k)) is not int or f[k]<0:raise ValueError('invalid explicit allowance')
+    maximum=f['remaining_first_adam']+f['approved_extra_adam']
+    if f['planned_adam']>maximum:raise ValueError('follow-up exceeds approved original plus extra budget')
+    if approval is not None and (approval.get('followup_sha')!=digest(f)
+            or approval.get('approved_extra_adam')!=f['approved_extra_adam']):
+        raise ValueError('exact follow-up scope/extra approval missing')
+    return maximum
+
+
+def step_arithmetic(c, task):
+    p=profile(c,task);d=c['datasets'][task['dataset']];b=p['training']['batch'];v=p['training']['eval_batch']
+    if task['dataset']=='UrbanEV':
+        a,z,n=c['urban_folds'][task['fold']-1]
+        counts=[(length-p['T']-task['h']+1)*275 for length in (a,z-a,n-z)]
+    else:
+        a,z,n=d['endpoints']
+        counts=[a-p['T']-p['pred_len']+1,z-a-p['pred_len']+1,n-z-p['pred_len']+1]
+    if min(counts)<=0:raise ValueError('empty task windows')
+    return dict(train_windows=counts[0],train_batches=counts[0]//b,train_dropped=counts[0]%b,
+                max_optimizer_steps=counts[0]//b*p['training']['epochs'],
+                validation_windows=counts[1],validation_full_batches=counts[1]//v,validation_tail=counts[1]%v,
+                test_windows_arithmetic_only=counts[2],test_full_batches=counts[2]//v,test_tail=counts[2]%v)
 
 
 def digest(value):
@@ -72,6 +143,7 @@ def profile(c, task):
                 features=names, C=len(names), target_idx=target,
                 aux_idx=[i for i in range(len(names)) if i!=target],
                 training=dict(c['training_common'], **d['training']))
+    base['training'].update(baseline_training(c,task)['values'])
     if task['model'] in ('AMD','J','N','S'):
         base['structure'] = dict(c['amd'], patch=d['amd_patch'], layernorm=task['dataset']!='ECL',
                                  kernel_small=3 if task['dataset']=='UrbanEV' else 5,

@@ -8,6 +8,16 @@ from types import SimpleNamespace
 from utils.ch3_contract import digest, profile
 
 
+def native_options(p):
+    options=dict(p['structure'],task_name='long_term_forecast',seq_len=p['T'],pred_len=p['pred_len'],
+                 enc_in=p['C'],dec_in=p['C'],c_out=p['C'],label_len=0,
+                 features='MS' if p['model']=='TimeXer' else 'M')
+    if p['model']=='iTransformer':
+        # Author run.py --output_attention is store_true (default False).
+        options.setdefault('output_attention',False)
+    return options
+
+
 def build(c, task):
     import torch
     p=profile(c,task); name=task['model']; s=p['structure']
@@ -42,9 +52,7 @@ def build(c, task):
     sys.path.insert(0,src['root'])
     module=importlib.import_module(src['module'])
     if str(Path(module.__file__).resolve())!=src['entry']:raise RuntimeError('foreign model import')
-    options=dict(s,task_name='long_term_forecast',seq_len=p['T'],pred_len=p['pred_len'],
-                 enc_in=p['C'],dec_in=p['C'],c_out=p['C'],label_len=0,
-                 features='MS' if name=='TimeXer' else 'M')
+    options=native_options(p)
     # TimeMixer channel-independent reshape needs native C outputs, not c_out=1.
     model=module.Model(SimpleNamespace(**options))
     for mod in list(sys.modules.values()):
