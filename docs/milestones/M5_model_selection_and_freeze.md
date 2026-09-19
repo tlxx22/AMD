@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §24）：RSS复合判据与后端条件数值准入后的10组补测已完成并审核，54/54组技术准入全部Passed（44继承＋10本轮新通过）。本轮实际480 Adam/640前向/480反向，低于594硬上限；80条worker轨迹均finite、0 OOM、0资源归属失败、0受限审计deny。Passed并发为q4 44组、q2 3组、q1 7组。报告与当前protocol/code/environment/hardware/许可、kernel admission均匹配。该结论仅为资源/并发/短轨迹数值技术gate Passed，不是效果gate，不冻结J；M5仍未Closed，M6未开始。以下§23及更早为历史时点。
+
 2026-09-19当前状态（M5 §23）：按用户本次RSS复合判据及条件性数值授权完成接入。RSS需连续增长且净增>32MiB、平均>1MiB/step，并经24步窗口（前6步warm-up）末8步无平台才作CPU持续增长阻塞；显著短窗增长先标NeedsLongWindow，不冒充泄漏。三组24步代表均平台。四个数值作用域的固定Conv1d输入/权重/上游梯度重放均实测默认梯度非逐位、仅诊断切换cuDNN确定性后重复exact；生产确定性设置未改。TimeMixer/Exchange、ModernTCN/Weather采用全浮点1e-4及指标1e-6；ModernTCN/ECL初始界失败保留，条件证据成立后前瞻性采用state1e-3、validation1e-6、loss abs1e-6+rel1e-5并经新轨迹通过；原RSS阻塞还掩盖TimeMixer/Weather数值差异，已在原10组范围内补2串行验证，state1e-4、validation1e-6、loss abs1e-6+rel1e-5通过，正式并发仍待probe。32次CPU方法通过；21诊断worker实际180 Adam/294前向/252反向，机械余108；原48次隔离grad漏计单列补账、钩子修复，旧记录不改。44组155代表继承核验，10组40代表补测只用594既有余额，核心<=480，资源性候选回退按固定顺序限余额，不增加预算。495/5340、全部正式profile与训练数学不变；尚未启动新probe/J冻结/M5关闭/M6。以下§22及更早为历史时点。
 
 2026-09-19当前状态（M5 §22）：20组补测已完成并审核，54组终态44 Passed/10 Blocked（34继承＋10本轮新通过）。实际846 Adam/1128前向/846反向，低于1440上限，新增144额度未实际动用；0 OOM、0资源归属失败。剩余10组中7组由CPU RSS四点严格递增触发，GPU allocated均稳定；3组为数值准入失败：TimeMixer/Exchange超过原具名单张量1e-7或白名单外exact，ModernTCN/Weather与ModernTCN/ECL仍exact不一致。完整report与当前protocol/code/environment/hardware/许可均匹配。结果review Not passed；J未冻结、M5未Closed、M6未开始。以下§21及更早为历史时点。
@@ -1453,3 +1455,27 @@ CPU两轮各16个已登记方法passed，无fail/error/skip；共32方法。第�
 ### 23.6 closure及启动停止点
 
 本轮完成实现/证据审核后只对八个已审核文件精确stage/commit/push。实际commit和SHA写closure-verification.json；不为记录自身commit递归改文档。closure成功且三端一致/0/0/clean后生成绑定当前code/protocol/环境/硬件、父证据、594余额和kernel证据的新probe-review.json，无负载preflight须blocked=[]。长时probe仍由用户一次启动；不代启，不冻结J、不关闭M5、不进入M6。计数/完整性审计通过不等于44/54历史技术gate追认全通过。
+
+## 24. RSS/数值修订后10组补测完成：54 / 54 技术准入Passed
+
+### 24.1 完整性与版本绑定
+
+用户回复“结束了”后执行最终完成审计。`probe/progress.json`与`probe/complete.json`字节一致，SHA-256=`99c3a6c0d19e36a52189e2c499e3304aa7d89448cc6f5c90d3d48183b1cd5a6d`；54组/195 Q完整覆盖。报告protocol=`b415cec95ab03e547594cc39bda42992fc25c2b67c87759cb51cbb4f78ea471b`，与当前配置、code binding、环境、A800硬件及closure许可全部一致；`conditional-kernel-admission.json` SHA=`64b4e836ca20f57931f8cce714408d8acc09d654895536fd6a831005bbf5bd02`仍匹配四个条件作用域。完成时Git三端一致、0/0、clean；不可变tag仍`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。无正式训练输出。
+
+### 24.2 终态、成本与并发
+
+最终54/54组均为Passed：44组来自已审核继承，10组为本轮新通过。并发决策分布为q4 44组、q2 3组、q1 7组。本轮10组实际80条worker轨迹，全部`finite=true`且各自6步/batch身份完整；52份controller/process记录均返回0、无failure且资源准入为true，80份受限audit日志无deny事件。实际消耗480 Adam/640 forward/480 backward，低于594硬上限，剩余114；无OOM、无NVML/外部PID归属失败，也未触发长窗追加worker。
+
+10个本轮新Passed组为AMD/ECL、J/ETTh1、J/Exchange、PatchTST/Weather、PatchTST/ECL、iTransformer/ECL、TimeMixer/Weather、TimeMixer/Exchange、ModernTCN/Weather、ModernTCN/ECL。AMD/ECL、J/ETTh1、J/Exchange、PatchTST/Weather、PatchTST/ECL、iTransformer/ECL按exact短轨迹数值通过；其余四域按§23条件数值规则通过。
+
+### 24.3 RSS复合判据实际表现
+
+本轮所有新worker的`memory_review`均`blocked=false`且`needs_long_window=false`，因此没有在probe内启动24更新长窗。该结果并不表示取消长窗机制：短窗若同时达到连续增长、累计>32MiB和平均>1MiB/step仍会进入`NeedsLongWindow`，再按24步平台标准判断。此前三个24步代表的平台正例保留为规则验收证据；本轮新10组没有达到显著增长触发线。GPU allocated增长检查仍有效。
+
+### 24.4 数值条件准入在实际四H补测中的结果
+
+TimeMixer/Exchange q4四代表均通过当前全浮点条件规则，最大state绝对差`2.384185791015625e-07`；ModernTCN/Weather q4最大state差`7.723458111286163e-05`；ModernTCN/ECL按资源选择q2，最大state差`4.7803670167922974e-04`；TimeMixer/Weather q4最大state差`7.62939453125e-06`。四个作用域的非浮点/optimizer step/结构等exact残余状态全部满足当前policy，production comparator及报告验证均通过。这些是短轨迹并发工程准入，不代表完整训练轨迹逐位一致或效果等价证明。
+
+### 24.5 当前裁决与M5停止点
+
+因此，本轮**资源/并发/短轨迹数值技术gate = Passed（54/54）**。这只解决M5进入正式实验前的工程准入，不改写M4效果事实，也不是预测效果gate。J仍只是M5候选，没有因本次资源probe自动冻结；M5未Closed，M6未授权/未启动，495个正式run仍未执行。下一步若要冻结结构或进入M6，必须按用户新的明确决定执行，不能由本节自动推进。
