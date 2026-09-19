@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §22）：20组补测已完成并审核，54组终态44 Passed/10 Blocked（34继承＋10本轮新通过）。实际846 Adam/1128前向/846反向，低于1440上限，新增144额度未实际动用；0 OOM、0资源归属失败。剩余10组中7组由CPU RSS四点严格递增触发，GPU allocated均稳定；3组为数值准入失败：TimeMixer/Exchange超过原具名单张量1e-7或白名单外exact，ModernTCN/Weather与ModernTCN/ECL仍exact不一致。完整report与当前protocol/code/environment/hardware/许可均匹配。结果review Not passed；J未冻结、M5未Closed、M6未开始。以下§21及更早为历史时点。
+
 2026-09-19当前状态（M5 §21）：用户明确确认三组限定数值等价及额外144次补测Adam。仅TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1四H采用全浮点state/gradient/Adam moment atol=1e-4、rtol=0，loss与归一化validation atol=1e-6；初始身份/RNG/batch、optimizer step、非浮点状态和param-group结构继续exact，非finite拒绝。TimeMixer/Exchange原具名单张量1e-7规则保持。实现使用预分配CPU缓冲区写原始sidecar，正式训练数学/profile不变。CPU首验12 passed/1 error/3 unexecuted，唯一机械清理修复后16/16；三组H96串行参考＋两路并发＋独立串行重复共72 Adam/96前向/72反向均通过，最大state差分别1.91e-6、1.91e-6、4.32e-5，最大指标差2.38e-7，均在预注册界内；机械余额288。34组/115代表继承已核对，20组/80代表补测上限1440=原余额1296+新批144，尚未启动。J未冻结、M5未Closed、M6未开始。以下§20及更早为历史时点。
 
 2026-09-19当前状态（M5 §20）：用户授权直接修复并准备补测；已审核第二轮54组终态34 Passed/20 Blocked（10继承＋24新通过），本轮原probe实际1740 Adam/2320前向/1740反向，无已尝试worker OOM或资源归属失败，不外推未执行H。新增固定CPU摘要缓冲区，三个原RSS失败代表复验通过且计算轨迹与原版exact相同；没有删除四点规则或放宽门槛。CPU16+16方法通过；15个合成诊断worker累计90 Adam/120前向/90反向，机械余额360。三组数值诊断初始/RNG/batch相同但串行重复也不exact，最大模型状态差约1.55e-6、7.08e-8、5.25e-5，不能直接套TimeMixer/Exchange单张量1e-7白名单，未新增容差。计划34组继承/20组80代表补测上限1440，原补测剩1296，额外144仅Proposed。工程repair可收口，完整补测仍Blocked；J未冻结，M5未Closed，M6未开始。以下§19及更早为历史时点。
@@ -1381,3 +1383,29 @@ bash scripts/ch3/start_probe.sh preflight
 ### 21.4 收口与后续启动边界
 
 本节实现/验收通过后仅允许精确stage/commit/push及三端0/0 clean核验；生成的新`probe-review.json`必须绑定实际closure commit、当前protocol/code/environment/hardware、34/20 followup digest、`approved_extra_adam=144`及四条numeric policy摘要。无负载preflight必须`blocked=[]`。本轮不代用户启动20组补测，不冻结J、不关闭M5、不进入M6或正式训练。补测完成后仍须逐组审计，不能把complete=true等同于全Passed。
+
+## 22. 20组补测完成审计：44 Passed / 10 Blocked
+
+### 22.1 完整性与版本绑定
+
+本轮用户回复“结束了”后执行完成审计。`probe/complete.json`与`progress.json`字节一致，SHA-256=`4e9ceb09b6631b1086e3502915d88e836510ecd7f59f976be312c652ffaa49f2`；54组/195 Q完整覆盖。报告protocol=`a6f0d6daa99294807fe00a21ae3b48265e957a011b0e5ac14f8511c004068217`，与当前配置、code binding、环境和A800硬件均一致；`probe-review.json`仍绑定closure commit `4f27160a4980c9cb110c69093c80e2b867b1306e`、34/20 followup digest与`approved_extra_adam=144`。完成时Git三端一致、0/0、clean；baseline tag仍`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。无残留probe worker。
+
+### 22.2 终态与成本
+
+54组最终为44 Passed、10 Blocked；44个Passed中34组来自审核继承，10组为本轮新通过。Passed并发记录为q4 36组、q2 1组、q1 7组。20组补测实际消耗846 Adam/1128 forward/846 backward，低于1440上限，未进入原1296余额之外，因此本轮新批144未实际消耗。0 OOM、0 NVML/外部PID归属失败；完整补测没有正式epoch训练、test评价或正式checkpoint。
+
+本轮10个新Passed组为：AMD/ETTh1、AMD/Weather、AMD/Exchange、J/UrbanEV-F1、J/UrbanEV-F2、TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1、TimeXer/ETTh1、TimeXer/ECL。已批准的三组全浮点数值等价在实际补测中通过，说明§21生产比较入口可用于对应组，但不外推其他模型/域。
+
+### 22.3 剩余七组RSS阻塞
+
+7组由原四点`rss_before_hash`严格递增规则阻塞：AMD/ECL、J/ETTh1、J/Exchange、PatchTST/Weather、PatchTST/ECL、iTransformer/ECL、TimeMixer/Weather。所有触发轨迹的CUDA `allocated`末四步均稳定，未出现GPU allocated连续增长；典型CPU RSS增量多为4–65 KiB级，但PatchTST/Weather含单次约5.55 MiB，iTransformer/ECL含连续约10.53/10.49 MiB。当前证据因此不能将其写成GPU泄漏，也不能在未改合同前直接判Passed；四点规则仍原样保留。
+
+### 22.4 剩余三组数值阻塞
+
+TimeMixer/Exchange四路实际补测在原§19具名单张量`atol=1e-7`规则下仍Blocked：至少一个代表出现parameter `1.1920928955078125e-07`、gradient `1.4901161193847656e-07`超过1e-7；另一个代表虽然具名张量在界内，但第5–6步白名单外model/optimizer/gradient exact摘要变化，因此`exact_residual_state=false`。原H192有限诊断通过不被倒改，但不能覆盖当前四H实际并发结果。
+
+ModernTCN/Weather和ModernTCN/ECL的串行参考与并发worker均正常完成、资源准入通过，但当前仍使用exact规则，四个代表均出现bitwise numerical mismatch，因此Blocked。当前probe只保存摘要，不能从该报告推出具体最大绝对差；若要改变准入，需另做限定数值诊断并由用户明确决定，不得直接套用ModernTCN/ETTh1的1e-4范围。
+
+### 22.5 当前裁决与停止点
+
+本轮完整性/版本/资源审查Passed，但技术准入为44/54而非全通过，故本轮结果review=`Not passed`。这不是效果gate，也不涉及J的预测性能优劣；不能据此冻结J、关闭M5或进入M6。下一步若继续M5，只允许针对7组RSS判据和3组数值准入做限定诊断/政策决策；34组继承和10组本轮新Passed均不应重跑。

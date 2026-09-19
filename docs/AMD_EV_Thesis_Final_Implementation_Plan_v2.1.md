@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-19当前状态（M5 §22）：20组补测已完成并审核，54组终态44 Passed/10 Blocked（34继承＋10本轮新通过）。实际846 Adam/1128前向/846反向，低于1440上限，新增144额度未实际动用；0 OOM、0资源归属失败。剩余10组中7组由CPU RSS四点严格递增触发，GPU allocated均稳定；3组为数值准入失败：TimeMixer/Exchange超过原具名单张量1e-7或白名单外exact，ModernTCN/Weather与ModernTCN/ECL仍exact不一致。完整report与当前protocol/code/environment/hardware/许可均匹配。结果review Not passed；J未冻结、M5未Closed、M6未开始。以下§21及更早为历史时点。
+
 2026-09-19当前状态（M5 §21）：用户明确确认三组限定数值等价及额外144次补测Adam。仅TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1四H采用全浮点state/gradient/Adam moment atol=1e-4、rtol=0，loss与归一化validation atol=1e-6；初始身份/RNG/batch、optimizer step、非浮点状态和param-group结构继续exact，非finite拒绝。TimeMixer/Exchange原具名单张量1e-7规则保持。实现使用预分配CPU缓冲区写原始sidecar，正式训练数学/profile不变。CPU首验12 passed/1 error/3 unexecuted，唯一机械清理修复后16/16；三组H96串行参考＋两路并发＋独立串行重复共72 Adam/96前向/72反向均通过，最大state差分别1.91e-6、1.91e-6、4.32e-5，最大指标差2.38e-7，均在预注册界内；机械余额288。34组/115代表继承已核对，20组/80代表补测上限1440=原余额1296+新批144，尚未启动。J未冻结、M5未Closed、M6未开始。以下§20及更早为历史时点。
 
 2026-09-19当前状态（M5 §20）：用户授权直接修复并准备补测；已审核第二轮54组终态34 Passed/20 Blocked（10继承＋24新通过），本轮原probe实际1740 Adam/2320前向/1740反向，无已尝试worker OOM或资源归属失败，不外推未执行H。新增固定CPU摘要缓冲区，三个原RSS失败代表复验通过且计算轨迹与原版exact相同；没有删除四点规则或放宽门槛。CPU16+16方法通过；15个合成诊断worker累计90 Adam/120前向/90反向，机械余额360。三组数值诊断初始/RNG/batch相同但串行重复也不exact，最大模型状态差约1.55e-6、7.08e-8、5.25e-5，不能直接套TimeMixer/Exchange单张量1e-7白名单，未新增容差。计划34组继承/20组80代表补测上限1440，原补测剩1296，额外144仅Proposed。工程repair可收口，完整补测仍Blocked；J未冻结，M5未Closed，M6未开始。以下§19及更早为历史时点。
