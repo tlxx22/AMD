@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §23）：按用户本次RSS复合判据及条件性数值授权完成接入。RSS需连续增长且净增>32MiB、平均>1MiB/step，并经24步窗口（前6步warm-up）末8步无平台才作CPU持续增长阻塞；显著短窗增长先标NeedsLongWindow，不冒充泄漏。三组24步代表均平台。四个数值作用域的固定Conv1d输入/权重/上游梯度重放均实测默认梯度非逐位、仅诊断切换cuDNN确定性后重复exact；生产确定性设置未改。TimeMixer/Exchange、ModernTCN/Weather采用全浮点1e-4及指标1e-6；ModernTCN/ECL初始界失败保留，条件证据成立后前瞻性采用state1e-3、validation1e-6、loss abs1e-6+rel1e-5并经新轨迹通过；原RSS阻塞还掩盖TimeMixer/Weather数值差异，已在原10组范围内补2串行验证，state1e-4、validation1e-6、loss abs1e-6+rel1e-5通过，正式并发仍待probe。32次CPU方法通过；21诊断worker实际180 Adam/294前向/252反向，机械余108；原48次隔离grad漏计单列补账、钩子修复，旧记录不改。44组155代表继承核验，10组40代表补测只用594既有余额，核心<=480，资源性候选回退按固定顺序限余额，不增加预算。495/5340、全部正式profile与训练数学不变；尚未启动新probe/J冻结/M5关闭/M6。以下§22及更早为历史时点。
+
 2026-09-19当前状态（M5 §22）：20组补测已完成并审核，54组终态44 Passed/10 Blocked（34继承＋10本轮新通过）。实际846 Adam/1128前向/846反向，低于1440上限，新增144额度未实际动用；0 OOM、0资源归属失败。剩余10组中7组由CPU RSS四点严格递增触发，GPU allocated均稳定；3组为数值准入失败：TimeMixer/Exchange超过原具名单张量1e-7或白名单外exact，ModernTCN/Weather与ModernTCN/ECL仍exact不一致。完整report与当前protocol/code/environment/hardware/许可均匹配。结果review Not passed；J未冻结、M5未Closed、M6未开始。以下§21及更早为历史时点。
 
 2026-09-19当前状态（M5 §21）：用户明确确认三组限定数值等价及额外144次补测Adam。仅TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1四H采用全浮点state/gradient/Adam moment atol=1e-4、rtol=0，loss与归一化validation atol=1e-6；初始身份/RNG/batch、optimizer step、非浮点状态和param-group结构继续exact，非finite拒绝。TimeMixer/Exchange原具名单张量1e-7规则保持。实现使用预分配CPU缓冲区写原始sidecar，正式训练数学/profile不变。CPU首验12 passed/1 error/3 unexecuted，唯一机械清理修复后16/16；三组H96串行参考＋两路并发＋独立串行重复共72 Adam/96前向/72反向均通过，最大state差分别1.91e-6、1.91e-6、4.32e-5，最大指标差2.38e-7，均在预注册界内；机械余额288。34组/115代表继承已核对，20组/80代表补测上限1440=原余额1296+新批144，尚未启动。J未冻结、M5未Closed、M6未开始。以下§20及更早为历史时点。
@@ -1409,3 +1411,45 @@ ModernTCN/Weather和ModernTCN/ECL的串行参考与并发worker均正常完成�
 ### 22.5 当前裁决与停止点
 
 本轮完整性/版本/资源审查Passed，但技术准入为44/54而非全通过，故本轮结果review=`Not passed`。这不是效果gate，也不涉及J的预测性能优劣；不能据此冻结J、关闭M5或进入M6。下一步若继续M5，只允许针对7组RSS判据和3组数值准入做限定诊断/政策决策；34组继承和10组本轮新Passed均不应重跑。
+
+## 23. RSS复合判据、固定算子因果对照及10组补测准备
+
+### 23.1 本次授权与预登记
+
+用户要求RSS不能仅因连续增长而失败，还应有累计/平均增量下限与较长窗口无平台；数值重新检验，确为底层算子误差才可降低准入，并要求给probe启动指令。本轮起点三端`47bce39e79a585e46da4362ceeea0ef6236a3fff`、0/0、clean，直接执行权限沿本会话。证据根为`../amd-execution-evidence/m5/m5-rss-kernel-t9a2njbt`，fixture为`/tmp/amd-m5-rss-kernel-yuep_3nw`。授权/预登记、ECL修订和隐藏Weather增量分别存authorization.json、ecl-policy-preregistered-amendment.json、latent-weather-preregister.json。没有新模型、数据集、seed或正式run。
+
+### 23.2 RSS新规则及24步实测
+
+短窗取末4点，GPU allocated的连续增长停止线保持。CPU RSS同时满足连续增长、累计净增>32MiB、净增/step>1MiB才升级长窗核验。少于24个更新时，显著增长标needs_long_window，不将它判为已证明泄漏，也不直接发资源许可。长窗24更新，排除前6步；末8步range<=8MiB且绝对端点平均变化<=256KiB/step即视为平台。只有复合增长条件成立且无平台时CPU增长blocked。未达到显著门槛的六步screen可以通过，但不声称已观察长期平台。出现needs_long_window时先停止该组进入明确长窗诊断，不偷偷把额外更新混进六步makespan。
+
+实际对AMD/ECL/H336、J/Exchange/H720、iTransformer/ECL/H336分别作24更新合成诊断，各26 forward/24 backward；不逐步复制状态做哈希，观测训练路径本身。三个窗口均达到平台，排除warm-up后RSS净增分别12288、86016、45056 bytes。数据和模型/optimizer数学不变；仅为代表证据，不将旧7组全部倒改Passed。
+
+### 23.3 后端误差的直接证据和限定准入
+
+每个目标诊断捕获一次实际输入卷积的输入、权重、bias及上游梯度，固定这些操作数并重放同一Conv1d反向。默认设置重复梯度有差异；仅在诊断上下文切换cuDNN deterministic=True后重复梯度exact；离开上下文恢复全部原flag且操作数SHA保持。TimeMixer/Exchange、ModernTCN/Weather、ModernTCN/ECL各8次默认/8次确定性；后来补入的TimeMixer/Weather各4次。此为特定形状算子非确定性的实测证据，并非仅引用文档或从小误差猜测；也不声称所有未来误差的唯一来源都已排除。
+
+三组原数值阻塞均进行了6步串行参考、两路并发与独立串行重复。TimeMixer/Exchange全状态最大差1.4901161193847656e-7，指标差0；ModernTCN/Weather最大state差6.179045885801315e-5、最大标量差9.920845345234852e-8，接受固定state atol1e-4/metric atol1e-6、rtol0。TimeMixer/Exchange旧单张量1e-7规则及其失败保持历史事实，当前在后端条件成立后替换为全浮点范围。
+
+ModernTCN/ECL初始state1e-4与绝对loss1e-6候选未通过：最大state约4.67e-4，raw loss约9.35e-5，独立串行也有差异；旧结果保留。依据已成立的后端条件及loss约11的实际量纲，在新复验前登记该域state绝对界1e-3、validation绝对界1e-6，loss采用abs(a-b)<=1e-6+1e-5*max(abs(a),abs(b))。新独立4worker复验通过：最大state4.5868754386901855e-4、validation3.166413207189578e-7、loss9.059906005859375e-5，最高loss allowance占比0.8019067079293531。不能把此后验工程修订写成原界Passed，或当作正式效果/长期稳定性证据。
+
+本轮只读重审另外7个RSS组已存在的六步JSON，发现TimeMixer/Weather四H存在先前被RSS返回码遮住的exact差异，其他已取得并发JSON的RSS组未见该现象。它仍在原10个任务组内；追加2个独立串行H96诊断，算子重放同样证实默认非确定、确定性重复exact；state最大4.842877388000488e-6、validation3.9419564501486093e-7，接受state1e-4/validation1e-6、loss abs1e-6+rel1e-5。这里只完成串行重复对照，四路仍由补测检查，不能声称已验证该域并发。实例规划19补为21，但所有操作计数仍在先登记192/296/256及既有机械余额内。
+
+初始模型/RNG/batch、非浮点状态、optimizer step与param-group结构始终exact；任何NaN/Inf拒绝。此前TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1三域规则保持。其余模型不降低数值门槛。conditional-kernel-admission.json绑定四域证据SHA，未满足条件或证据字节变化则preflight拒绝。
+
+### 23.4 验收、反传计数修复与复用边界
+
+CPU两轮各16个已登记方法passed，无fail/error/skip；共32方法。第二轮核对了隔离梯度计数及ECL规则；之后TimeMixer/Weather为作用域/诊断重复次数的增量，采用两份实际guarded worker与静态依赖检查，不虚称第三轮16/16。全495个profile与初始逐项一致，update/evaluate/init_training/formal_worker/save/restore的AST保持；作者代码、原数据、AGENTS、Closed M4及不可变tag不变。
+
+计账核对发现CH3既有bootstrap只包装autograd.backward，未包装autograd.grad，原3个隔离核验共48次grad调用未出现在budget.json。已保留原raw ledger并独立补账；钩子仅对本次授权的kernel诊断加计autograd.grad，新的ModernTCN/ECL首worker实测6 Adam/24 forward/22 backward，与操作逐项对应。没有删除或重写旧budget.json，也未将漏记视为免费。
+
+本轮合计21个worker实际180 Adam/294 forward/252 backward，其中72次为独立卷积梯度重放；均在192/296/256上限内。机械余额288−180=108。初始ECL数值候选失败、首轮48次漏记事实及历史失败全部保留。无真实观测读取、无正式test计算或旧checkpoint读取；仅本轮自产raw sidecar用于比较。
+
+### 23.5 44继承/10补测及预算纪律
+
+最新父complete为`m5-three-scope-numeric-znYE96/probe/complete.json`，SHA=`4e9ceb09b6631b1086e3502915d88e836510ecd7f59f976be312c652ffaa49f2`。44组155代表的profile与父/祖先引用逐一核验；不能将父Blocked改Passed。重测仅余10组40代表，保留44组已获准结果，不重跑54组。
+
+只使用594的既有补测余额，不追加126或其它额度。每组串行参考和一个可行候选共至多48 Adam，10组核心<=480；所有可选资源回退受总594硬上限和后续组核心预算约束。四路放不下时按已登记形状先两路，无论选哪种每个H仍只运行自身任务；发生模型/数值失败不能降并发掩盖。若继续探测并发会占用后续组核心额度，只保留已验证单路并标该候选未测，不把未测数值或并发说Passed。六步计算预算和模型/数据参数均不改。
+
+### 23.6 closure及启动停止点
+
+本轮完成实现/证据审核后只对八个已审核文件精确stage/commit/push。实际commit和SHA写closure-verification.json；不为记录自身commit递归改文档。closure成功且三端一致/0/0/clean后生成绑定当前code/protocol/环境/硬件、父证据、594余额和kernel证据的新probe-review.json，无负载preflight须blocked=[]。长时probe仍由用户一次启动；不代启，不冻结J、不关闭M5、不进入M6。计数/完整性审计通过不等于44/54历史技术gate追认全通过。

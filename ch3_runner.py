@@ -76,9 +76,12 @@ def validate_probe_report(c, report):
                                 or scalar is None or not math.isfinite(scalar) or scalar<0 or scalar>rule['metric_atol']):
                             raise ValueError('named numeric admission exceeds bound')
                     elif rule['kind']=='full_float_state':
-                        state=row.get('state_max_abs');scalar=row.get('scalar_normalized_max_abs')
+                        state=row.get('state_max_abs')
+                        scalar=row.get('validation_max_abs') if rule.get('loss_rtol',0)>0 else row.get('scalar_normalized_max_abs')
+                        ratio=row.get('loss_error_ratio') if rule.get('loss_rtol',0)>0 else 0.0
                         if (state is None or not math.isfinite(state) or state<0 or state>rule['state_atol']
-                                or scalar is None or not math.isfinite(scalar) or scalar<0 or scalar>rule['metric_atol']):
+                                or scalar is None or not math.isfinite(scalar) or scalar<0 or scalar>rule['metric_atol']
+                                or ratio is None or not math.isfinite(ratio) or ratio<0 or ratio>1):
                             raise ValueError('full-state numeric admission exceeds bound')
                     else:raise ValueError('unknown numeric policy kind')
     return report
@@ -92,6 +95,23 @@ def validate_model_completion(c, model, report):
     for key,value in report['results'].items():
         if value.get('input_variant')!=groups[key]['input_variant']:raise ValueError('model input identity mismatch')
     return report
+
+
+def kernel_admission_reasons(c):
+    """Conditional relaxation requires reviewed same-operand backend evidence."""
+    item=c['execution']['probe'].get('kernel_admission')
+    if not item:return ['kernel attribution and paired numeric review missing']
+    try:
+        p=Path(item['path'])
+        if hashlib.sha256(p.read_bytes()).hexdigest()!=item['sha256']:raise ValueError('kernel evidence SHA mismatch')
+        d=json.loads(p.read_text());expected={'TimeMixer/Exchange','ModernTCN/Weather','ModernTCN/ECL','TimeMixer/Weather'}
+        if set(d['scopes'])!=expected:raise ValueError('kernel scope coverage mismatch')
+        for v in d['scopes'].values():
+            if (v.get('backend_demonstrated') is not True or v.get('paired_passed') is not True
+                    or v.get('flags_restored') is not True or v.get('exact_identity') is not True):
+                raise ValueError('kernel/paired conditions not met')
+        return []
+    except (OSError,KeyError,ValueError,TypeError) as exc:return ['kernel admission: '+str(exc)]
 
 
 def preflight(c,model,approval=None,probe=False):
@@ -111,6 +131,7 @@ def preflight(c,model,approval=None,probe=False):
             reasons.extend(name+': '+reason for reason in d['mandatory_blockers'])
             if name!='UrbanEV' and d['endpoints'] is None:reasons.append(name+': probe tail endpoints missing')
     if probe:
+        reasons.extend(kernel_admission_reasons(c))
         reasons.extend(c['execution']['probe'].get('mandatory_blockers',[]))
         from utils.ch3_contract import followup_limits
         try:followup_limits(c,approval)
@@ -489,10 +510,15 @@ def compare_probe_trajectories(c, task, reference, actual):
         nonlocal scalar_max
         delta=abs(number(a)-number(b));scalar_max=max(scalar_max,delta)
         if delta>limit:failures.append(label)
-    metric_limit=rule['metric_atol']
+    metric_limit=rule['metric_atol'];loss_max=0.0;loss_ratio=0.0
     for step,(ta,tb) in enumerate(zip(reference['trajectory'],actual['trajectory']),1):
         if set(ta)!=set(tb) or set(ta)!={'step','loss','state','optimizer'} or ta['step']!=step or tb['step']!=step:raise ValueError('trajectory schema changed')
-        compare_number(ta['loss'],tb['loss'],'step%d loss'%step,metric_limit)
+        la,lb=number(ta['loss']),number(tb['loss'])
+        delta=abs(la-lb);loss_max=max(loss_max,delta)
+        allowance=rule.get('loss_atol',metric_limit)+rule.get('loss_rtol',0.0)*max(abs(la),abs(lb))
+        loss_ratio=max(loss_ratio,delta/allowance)
+        compare_number(la,lb,'step%d loss'%step,allowance)
+    scalar_max=0.0
     a,b=reference['validation'],actual['validation']
     if set(a)!={'mse','mae','sse','sae','elements'} or set(a)!=set(b):raise ValueError('validation schema changed')
     if type(a['elements']) is not int or type(b['elements']) is not int or a['elements']<=0 or a['elements']!=b['elements']:raise ValueError('validation element count mismatch')
@@ -501,6 +527,7 @@ def compare_probe_trajectories(c, task, reference, actual):
             if number(x[key])!=number(x[total])/x['elements']:raise ValueError('validation aggregation inconsistent')
     for key in ('mse','mae'):compare_number(a[key],b[key],'validation '+key,metric_limit)
     for key in ('sse','sae'):compare_number(a[key]/a['elements'],b[key]/b['elements'],'normalized validation '+key,metric_limit)
+    validation_max=scalar_max;scalar_max=max(scalar_max,loss_max)
     if rule['kind']=='named_tensor':
         traces=[reference.get('numeric_trace'),actual.get('numeric_trace')]
         if any(not isinstance(x,list) or len(x)!=6 for x in traces):raise ValueError('numeric trace missing')
@@ -528,21 +555,102 @@ def compare_probe_trajectories(c, task, reference, actual):
         for step,(x,y) in enumerate(zip(*traces),1):
             if x.get('step')!=step or y.get('step')!=step:raise ValueError('full numeric step mismatch')
             row=_compare_full_numeric_files(rule,x,y);state_max=max(state_max,row['state_max_abs']);count+=row['compared_elements'];exact=exact and row['exact'];failures.extend('step%d '%step+f for f in row['failures'])
-        return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),state_atol=rule['state_atol'],metric_atol=metric_limit,rtol=0.0,equal_nan=False,bitwise_equal=raw_equal and state_max==0 and exact,state_max_abs=state_max,scalar_normalized_max_abs=scalar_max,compared_elements=count,exact_residual_state=exact and not any(f.startswith('step') and 'exact ' in f for f in failures),failures=failures)
+        return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),state_atol=rule['state_atol'],metric_atol=metric_limit,rtol=0.0,equal_nan=False,bitwise_equal=raw_equal and state_max==0 and exact,state_max_abs=state_max,scalar_normalized_max_abs=scalar_max,validation_max_abs=validation_max,loss_max_abs=loss_max,loss_error_ratio=loss_ratio,loss_atol=rule.get('loss_atol',metric_limit),loss_rtol=rule.get('loss_rtol',0.0),compared_elements=count,exact_residual_state=exact and not any(f.startswith('step') and 'exact ' in f for f in failures),failures=failures)
     raise ValueError('unknown numeric policy kind')
 
 def memory_growth_review(memory):
-    """Keep strict four-point rule; CPU pre-hash still includes prior history."""
-    if len(memory)<4:return {'blocked':False,'triggers':[],'scope':'insufficient observations'}
+    """Material growth AND rate AND no longer-window plateau, not mere monotonic RSS."""
+    import math
+    from utils.ch3_contract import RSS_PROBE_POLICY as rule
+    needed=('allocated','rss_before_hash','rss_after_hash')
+    if any(any(k not in r or not isinstance(r[k],(int,float)) or not math.isfinite(r[k]) or r[k]<0 for k in needed) for r in memory):
+        raise ValueError('invalid memory observation')
+    if len(memory)<4:return dict(blocked=False,needs_long_window=True,triggers=[],scope='insufficient memory observations')
     recent=memory[-4:]
-    triggers=[key for key in ('allocated','rss_before_hash')
-              if all(b[key]>a[key] for a,b in zip(recent,recent[1:]))]
-    after_grows=all(b['rss_after_hash']>a['rss_after_hash'] for a,b in zip(recent,recent[1:]))
-    return dict(blocked=bool(triggers),triggers=triggers,after_hash_grows=after_grows,
-                scope='six-step check; pre-hash RSS may retain earlier hash allocator effects; not proof of GPU leak')
+    gpu_growth=all(b['allocated']>a['allocated'] for a,b in zip(recent,recent[1:]))
+    long_enough=len(memory)>=rule['long_total_updates']
+    window=memory[rule['warmup_updates']:] if long_enough else recent
+    rss=[r['rss_before_hash'] for r in window];net=max(0,rss[-1]-rss[0]);rate=net/(len(rss)-1)
+    continuous=all(b['rss_before_hash']>a['rss_before_hash'] for a,b in zip(recent,recent[1:]))
+    material=net>rule['min_cumulative_bytes'] and rate>rule['min_average_bytes_per_step']
+    tail=[r['rss_before_hash'] for r in memory[-rule['plateau_window']:]]
+    plateau=(long_enough and max(tail)-min(tail)<=rule['plateau_range_bytes'] and abs(tail[-1]-tail[0])/(len(tail)-1)<=rule['plateau_abs_slope_bytes_per_step'])
+    cpu_growth=continuous and material and long_enough and not plateau
+    needs_long=continuous and material and not long_enough
+    triggers=(['allocated'] if gpu_growth else [])+(['rss_material_long_no_plateau'] if cpu_growth else [])
+    return dict(blocked=bool(triggers),needs_long_window=needs_long,triggers=triggers,
+        observed_updates=len(memory),rss_continuous_recent=continuous,rss_net_bytes=net,rss_average_bytes_per_step=rate,
+        long_window_observed=long_enough,plateau=plateau,after_hash_grows=all(b['rss_after_hash']>a['rss_after_hash'] for a,b in zip(recent,recent[1:])),
+        policy_id=rule['id'],scope='six-step screen or 24-update window; not proof of lifetime memory stability')
 
 
-def probe_worker(c,task,out,device='cuda:0',capture_states=False):
+class FrozenConvReplay:
+    """Diagnostic only: isolate one Conv1d with frozen operands and grad_output."""
+    def __init__(self,model,name,repetitions=8):
+        import torch
+        module=dict(model.named_modules()).get(name)
+        if not isinstance(module,torch.nn.Conv1d):raise ValueError('exact Conv1d diagnostic path missing: '+name)
+        if repetitions not in (4,8):raise ValueError('bounded kernel replay count')
+        self.module=module;self.name=name;self.saved={};self.repetitions=repetitions
+        def hook(mod,inputs,output):
+            if self.saved:return
+            self.saved={'x':inputs[0].detach().clone(),'w':mod.weight.detach().clone(),
+                        'b':mod.bias.detach().clone() if mod.bias is not None else None}
+            def upstream(g):self.saved['g']=g.detach().clone()
+            output.register_hook(upstream)
+        self.handle=module.register_forward_hook(hook)
+    def run(self):
+        import torch
+        from resource_budget import INSTANCE
+        self.handle.remove();v=self.saved
+        if set(v)!={'x','w','b','g'}:raise ValueError('frozen upstream missing')
+        original=dict(enabled=torch.backends.cudnn.enabled,benchmark=torch.backends.cudnn.benchmark,
+                      deterministic=torch.backends.cudnn.deterministic,allow_tf32=torch.backends.cudnn.allow_tf32)
+        identity=tensor_digest(v);w=v['w'].requires_grad_(True);results={}
+        for label,det in [('current',original['deterministic']),('deterministic',True)]:
+            grads=[];outs=[]
+            with torch.backends.cudnn.flags(enabled=original['enabled'],benchmark=original['benchmark'],deterministic=det,allow_tf32=original['allow_tf32']):
+                for _ in range(self.repetitions):
+                    INSTANCE.sample(torch);INSTANCE.charge('forward','frozen-Conv1d-replay')
+                    y=self.module._conv_forward(v['x'],w,v['b'])
+                    g=torch.autograd.grad(y,w,grad_outputs=v['g'])[0];torch.cuda.synchronize();finite(g);finite(y)
+                    grads.append(g.detach().cpu());outs.append(tensor_digest(y))
+            results[label]=dict(gradient_hashes=[tensor_digest(g) for g in grads],forward_hashes=outs,
+                repeated_gradient_max_abs=max(float((g.double()-grads[0].double()).abs().max()) for g in grads[1:]),
+                all_finite=True)
+        restored=dict(enabled=torch.backends.cudnn.enabled,benchmark=torch.backends.cudnn.benchmark,
+                      deterministic=torch.backends.cudnn.deterministic,allow_tf32=torch.backends.cudnn.allow_tf32)
+        if original!=restored or tensor_digest(v)!=identity:raise ValueError('diagnostic changed flags or operands')
+        current_varies=len(set(results['current']['gradient_hashes']))>1
+        deterministic_exact=len(set(results['deterministic']['gradient_hashes']))==1
+        return dict(repetitions_per_mode=self.repetitions,conv_name=self.name,input_shape=list(v['x'].shape),input_stride=list(v['x'].stride()),
+            weight_shape=list(w.shape),upstream_shape=list(v['g'].shape),operand_sha=identity,
+            original_flags=original,restored_flags=restored,results=results,
+            backend_nondeterminism_demonstrated=current_varies and deterministic_exact,
+            scope='frozen operands Conv1d backward; no concurrent optimizer or RNG; no global training setting changed')
+
+
+def rss_window_worker(c,task,out,device='cuda:0'):
+    """One bounded 24-update diagnostic; no per-step parameter snapshots/hashing."""
+    import torch
+    from utils.ch3_contract import RSS_PROBE_POLICY
+    p,model,opt,generator=init_training(c,task,device);rows=[]
+    def rss():return next(int(x.split()[1])*1024 for x in Path('/proc/self/status').read_text().splitlines() if x.startswith('VmRSS:'))
+    def batch(n):return torch.randn(n,p['T'],p['C'],generator=generator),torch.randn(n,p['pred_len'],1,generator=generator)
+    n=c['datasets'][task['dataset']]['endpoints'];v=p['training']['eval_batch'];tail=(n[1]-n[0]-p['pred_len']+1)%v
+    for i in range(RSS_PROBE_POLICY['long_total_updates']):
+        x,y=batch(p['training']['batch']);update(model,opt,x,y,p,device)
+        if i==1:evaluate(model,[batch(v),batch(tail or v)],p,device)
+        del x,y;torch.cuda.synchronize();r=rss()
+        rows.append(dict(step=i+1,allocated=torch.cuda.memory_allocated(),rss_before_hash=r,rss_after_hash=r))
+    review=memory_growth_review(rows)
+    result=dict(id=task['id'],profile_sha=digest(p),memory=rows,review=review,updates=24,
+                data='synthetic only; no full epoch; no per-step state hashing',finite=True)
+    dump(Path(out)/'rss-window.json',result)
+    if review['blocked'] or review['needs_long_window']:raise RuntimeError('material RSS growth still has no plateau')
+    return result
+
+def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8):
     import torch
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     from utils.ch3_contract import numeric_probe_policy
@@ -552,6 +660,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
     def rss():return next(int(line.split()[1])*1024 for line in Path('/proc/self/status').read_text().splitlines() if line.startswith('VmRSS:'))
     def capture(label):
         if capture_states:torch.save(dict(model=cpu_tree(model.state_dict()),optimizer=cpu_tree(opt.state_dict()),gradients={k:cpu_tree(v.grad) for k,v in model.named_parameters() if v.grad is not None}),out/(label+'.pt'))
+    kernel_replay=FrozenConvReplay(model,backend_name,backend_repetitions) if backend_name else None
     state_digest=ReusableTensorDigest(model.state_dict());full_writer=FullNumericStateWriter(model,opt,out,state_digest,numeric_rule) if numeric_rule and numeric_rule['kind']=='full_float_state' else None
     full_trace=[None]*6 if full_writer else None
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
@@ -582,7 +691,9 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
         if numeric_trace is not None:result['numeric_trace']=numeric_trace
         if full_trace is not None:result['full_numeric_trace']=full_trace
     dump(out/'trajectory.json',result)
-    if result['memory_review']['blocked']:raise RuntimeError('persistent memory growth in measured updates; group blocked pending diagnosis')
+    if kernel_replay:dump(out/'kernel-replay.json',kernel_replay.run())
+    if result['memory_review']['blocked']:raise RuntimeError('material long-window memory growth or GPU allocation growth')
+    if result['memory_review']['needs_long_window']:raise RuntimeError('RSS requires 24-update confirmation; not evidence of a leak')
     return result
 
 def formal_worker(c,task,out,approval,resume=False):

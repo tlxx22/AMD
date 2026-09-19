@@ -4558,8 +4558,8 @@
   },
   "execution": {
     "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python",
-    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-three-scope-numeric-znYE96",
-    "fixture": "/tmp/amd-m5-three-scope-uPKoMn",
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-rss-kernel-t9a2njbt",
+    "fixture": "/tmp/amd-m5-rss-kernel-yuep_3nw",
     "cpu_first_methods": 16,
     "cpu_retry_methods": 16,
     "model_first": {
@@ -4582,48 +4582,16 @@
       "sample_seconds": 0.1,
       "headroom_gib": 8,
       "headroom_fraction": 0.1,
-      "trajectory_rule": "Exact except four pre-registered scopes: TimeMixer/Exchange named tensor atol1e-7; TimeMixer ETTh1/ECL and ModernTCN ETTh1 full floating state atol1e-4; rtol0; finite only; metric atol1e-6 for full-state scopes.",
+      "trajectory_rule": "Exact except seven explicit policies; same-operand CUDA kernel attribution required for four newest scopes. State/metric/loss thresholds per immutable policy.",
       "allow_full_probe_now": false,
       "first_adam_max": 3510,
       "mandatory_blockers": [],
-      "resource_diagnostic_status": "Digest buffer repair accepted on three RSS representatives; TimeMixer ETTh1/ECL and ModernTCN ETTh1 full floating-state bounded-numeric H96 serial/pair/serial-repeat diagnostics passed under pre-registered state atol1e-4, metric atol1e-6; full20 retest not started.",
+      "resource_diagnostic_status": "Material RSS screen plus 24-step plateau confirmation implemented; three long representatives passed. Four conditional kernel/numeric scopes reviewed; actual10 group retest still required.",
       "resource_diagnostic_evidence": {
         "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_/resource-diagnostic-attempt1/result.json",
         "sha256": "bc791666929dcf7e981c3d871de455198bcb428eca616bcf93bb26da8610fbe4"
       },
       "numeric_equivalence": [
-        {
-          "id": "timemixer-exchange-tokenconv-atol1e-7-v1",
-          "kind": "named_tensor",
-          "model": "TimeMixer",
-          "dataset": "Exchange",
-          "horizons": [
-            96,
-            192,
-            336,
-            720
-          ],
-          "parameter": "enc_embedding.value_embedding.tokenConv.weight",
-          "shape": [
-            16,
-            1,
-            3
-          ],
-          "dtype": "torch.float32",
-          "atol": 1e-07,
-          "metric_atol": 1e-07,
-          "rtol": 0.0,
-          "equal_nan": false,
-          "tensor_fields": [
-            "parameter",
-            "gradient",
-            "exp_avg",
-            "exp_avg_sq"
-          ],
-          "initial_identity": "exact",
-          "other_state": "exact",
-          "metrics": "loss and normalized validation errors atol1e-7"
-        },
         {
           "id": "timemixer-etth1-fullfloat-atol1e-4-v1",
           "kind": "full_float_state",
@@ -4680,16 +4648,111 @@
           "floating_state": "all model parameters/buffers, gradients and Adam moments",
           "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
           "capture": "preallocated raw sidecar v1"
+        },
+        {
+          "id": "timemixer-exchange-fullfloat-atol1e-4-kernel-v1",
+          "kind": "full_float_state",
+          "model": "TimeMixer",
+          "dataset": "Exchange",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.0001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1"
+        },
+        {
+          "id": "moderntcn-weather-fullfloat-atol1e-4-kernel-v1",
+          "kind": "full_float_state",
+          "model": "ModernTCN",
+          "dataset": "Weather",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.0001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1"
+        },
+        {
+          "id": "moderntcn-ecl-fullfloat-atol1e-3-loss-scaled-kernel-v1",
+          "kind": "full_float_state",
+          "model": "ModernTCN",
+          "dataset": "ECL",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1",
+          "loss_atol": 1e-06,
+          "loss_rtol": 1e-05
+        },
+        {
+          "id": "timemixer-weather-fullfloat-atol1e-4-loss-scaled-kernel-v1",
+          "kind": "full_float_state",
+          "model": "TimeMixer",
+          "dataset": "Weather",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.0001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1",
+          "loss_atol": 1e-06,
+          "loss_rtol": 1e-05
         }
-      ]
+      ],
+      "rss_policy": {
+        "id": "rss-material-growth-platform-v1",
+        "short_window": 4,
+        "warmup_updates": 6,
+        "long_total_updates": 24,
+        "min_cumulative_bytes": 33554432,
+        "min_average_bytes_per_step": 1048576,
+        "plateau_window": 8,
+        "plateau_range_bytes": 8388608,
+        "plateau_abs_slope_bytes_per_step": 262144
+      },
+      "kernel_admission": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-rss-kernel-t9a2njbt/conditional-kernel-admission.json",
+        "sha256": "64b4e836ca20f57931f8cce714408d8acc09d654895536fd6a831005bbf5bd02"
+      }
     },
     "formal_approval": null,
     "probe_review": null,
     "followup": {
-      "parent_complete": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-numeric-equivalence-80dirugd/probe/complete.json",
-      "parent_sha256": "def4e11ed39b4df9b1cd3aa26f597f2a0e1b5bb0d81b1fa75a986f99c6c0af7f",
-      "parent_first_adam_spent": 2923,
-      "remaining_first_adam": 1296,
+      "parent_complete": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-three-scope-numeric-znYE96/probe/complete.json",
+      "parent_sha256": "4e9ceb09b6631b1086e3502915d88e836510ecd7f59f976be312c652ffaa49f2",
+      "parent_first_adam_spent": 3769,
+      "remaining_first_adam": 594,
       "mechanical_pool": 512,
       "short_diagnostic_max": {
         "adam": 32,
@@ -4702,6 +4765,11 @@
         "AMD-UrbanEV-F3",
         "AMD-UrbanEV-F4",
         "AMD-PJM-MS",
+        "AMD-ETTh1-MS",
+        "AMD-Weather-MS",
+        "AMD-Exchange-MS",
+        "J-UrbanEV-F1",
+        "J-UrbanEV-F2",
         "J-UrbanEV-F3",
         "J-UrbanEV-F4",
         "J-PJM-MS",
@@ -4722,79 +4790,113 @@
         "iTransformer-ETTh1-MS",
         "iTransformer-Weather-MS",
         "iTransformer-Exchange-MS",
+        "TimeMixer-ETTh1-MS",
+        "TimeMixer-ECL-MS",
         "ModernTCN-UrbanEV-F4",
         "ModernTCN-PJM-MS",
+        "ModernTCN-ETTh1-MS",
         "ModernTCN-Exchange-MS",
         "TimeXer-UrbanEV-F4",
         "TimeXer-PJM-MS",
+        "TimeXer-ETTh1-MS",
         "TimeXer-Weather-MS",
+        "TimeXer-ECL-MS",
         "TimeXer-Exchange-MS",
         "N-UrbanEV-F4",
         "S-UrbanEV-F4"
       ],
       "retest_groups": [
-        "AMD-ETTh1-MS",
-        "AMD-Weather-MS",
         "AMD-ECL-MS",
-        "AMD-Exchange-MS",
-        "J-UrbanEV-F1",
-        "J-UrbanEV-F2",
         "J-ETTh1-MS",
         "J-Exchange-MS",
         "PatchTST-Weather-MS",
         "PatchTST-ECL-MS",
         "iTransformer-ECL-MS",
-        "TimeMixer-ETTh1-MS",
         "TimeMixer-Weather-MS",
-        "TimeMixer-ECL-MS",
         "TimeMixer-Exchange-MS",
-        "ModernTCN-ETTh1-MS",
         "ModernTCN-Weather-MS",
-        "ModernTCN-ECL-MS",
-        "TimeXer-ETTh1-MS",
-        "TimeXer-ECL-MS"
+        "ModernTCN-ECL-MS"
       ],
-      "Q": 80,
-      "planned_adam": 1440,
-      "planned_forward": 1920,
-      "planned_backward": 1440,
-      "planned_validation": 480,
-      "additional_first_adam_proposed": 144,
-      "approved_extra_adam": 144,
-      "approval_basis": "User explicitly confirmed the proposed three-scope bounded-numeric policy and additional144 retest Adam allowance.",
-      "mechanical_remaining_before_current": 450,
+      "Q": 40,
+      "planned_adam": 594,
+      "planned_forward": 792,
+      "planned_backward": 594,
+      "planned_validation": 198,
+      "additional_first_adam_proposed": 0,
+      "approved_extra_adam": 0,
+      "approval_basis": "Existing594 balance only. Serial and one admitted candidate per group <=480; optional resource-only q2 fallback consumes residual quota, reserves core for later groups. No numeric masking or extra budget.",
+      "mechanical_remaining_before_current": 288,
       "budget_history": {
         "original_first": 3510,
         "first_spent": 1183,
         "previous_extra_approved": 709,
         "previous_retest_spent": 1740,
-        "remaining": 1296,
-        "new_extra_requested": 144
-      }
+        "remaining": 594,
+        "new_extra_requested": 144,
+        "latest_spent": 846,
+        "latest_extra_approved": 144
+      },
+      "core_adam_max": 480,
+      "scheduling_budget_policy": "fixed-order-capped-resource-fallback-v1"
     },
     "diagnostics": {
       "cpu_methods_first": 16,
       "cpu_methods_retry": 16,
       "total_limits": {
-        "adam": 72,
-        "forward": 96,
-        "backward": 72
+        "adam": 192,
+        "forward": 296,
+        "backward": 256
       },
+      "max_worker_instances": 21,
       "cases": {
-        "tm_etth1_numeric": {
-          "run_id": "TimeMixer-ETTh1-MS-f1-h96-s2024",
+        "rss_amd": {
+          "run_id": "AMD-ECL-MS-f1-h336-s2024",
+          "kind": "rss24",
           "capture_states": false
         },
-        "tm_ecl_numeric": {
-          "run_id": "TimeMixer-ECL-MS-f1-h96-s2024",
+        "rss_j": {
+          "run_id": "J-Exchange-MS-f1-h720-s2024",
+          "kind": "rss24",
           "capture_states": false
         },
-        "moderntcn_etth1_numeric": {
-          "run_id": "ModernTCN-ETTh1-MS-f1-h96-s2024",
+        "rss_itransformer": {
+          "run_id": "iTransformer-ECL-MS-f1-h336-s2024",
+          "kind": "rss24",
           "capture_states": false
+        },
+        "num_tm_exchange": {
+          "run_id": "TimeMixer-Exchange-MS-f1-h96-s2024",
+          "kind": "numeric6",
+          "capture_states": false,
+          "conv_name": "enc_embedding.value_embedding.tokenConv"
+        },
+        "num_modern_weather": {
+          "run_id": "ModernTCN-Weather-MS-f1-h96-s2024",
+          "kind": "numeric6",
+          "capture_states": false,
+          "conv_name": "model.downsample_layers.0.0"
+        },
+        "num_modern_ecl": {
+          "run_id": "ModernTCN-ECL-MS-f1-h96-s2024",
+          "kind": "numeric6",
+          "capture_states": false,
+          "conv_name": "model.downsample_layers.0.0"
+        },
+        "num_tm_weather": {
+          "run_id": "TimeMixer-Weather-MS-f1-h96-s2024",
+          "kind": "numeric6",
+          "capture_states": false,
+          "conv_name": "enc_embedding.value_embedding.tokenConv",
+          "kernel_repetitions": 4
         }
       },
-      "max_worker_instances": 12
+      "actual_cost": {
+        "adam": 180,
+        "forward": 294,
+        "backward": 252,
+        "worker_instances": 21,
+        "mechanical_remaining": 108
+      }
     }
   },
   "tasks": [
@@ -12447,22 +12549,22 @@
   ],
   "acceptance": {
     "cpu_ids": [
-      "test_ch3_formal.ThreeScopeNumericTests.test_policy_scopes_exact",
-      "test_ch3_formal.ThreeScopeNumericTests.test_full_rules_exact_constants",
-      "test_ch3_formal.ThreeScopeNumericTests.test_named_exchange_rule_preserved",
-      "test_ch3_formal.ThreeScopeNumericTests.test_policy_mutation_rejected",
-      "test_ch3_formal.ThreeScopeNumericTests.test_budget_144_accepted",
-      "test_ch3_formal.ThreeScopeNumericTests.test_budget_missing_or_wrong_rejected",
-      "test_ch3_formal.ThreeScopeNumericTests.test_scientific_profiles_unchanged",
-      "test_ch3_formal.ThreeScopeNumericTests.test_followup_partition_34_20",
-      "test_ch3_formal.ThreeScopeNumericTests.test_full_state_below_bound_passes",
-      "test_ch3_formal.ThreeScopeNumericTests.test_full_state_above_bound_rejected",
-      "test_ch3_formal.ThreeScopeNumericTests.test_exact_integer_state_rejected",
-      "test_ch3_formal.ThreeScopeNumericTests.test_metric_bound_separate",
-      "test_ch3_formal.ThreeScopeNumericTests.test_nonfinite_full_state_rejected",
-      "test_ch3_formal.ThreeScopeNumericTests.test_schema_or_identity_change_rejected",
-      "test_ch3_formal.ThreeScopeNumericTests.test_other_scopes_remain_exact",
-      "test_ch3_formal.ThreeScopeNumericTests.test_full_writer_reuses_registered_storage"
+      "test_ch3_formal.RssKernelAdmissionTests.test_profiles_unchanged",
+      "test_ch3_formal.RssKernelAdmissionTests.test_numeric_scope_bounds",
+      "test_ch3_formal.RssKernelAdmissionTests.test_rss_tiny_growth_not_rejected",
+      "test_ch3_formal.RssKernelAdmissionTests.test_large_short_growth_needs_long_not_leak",
+      "test_ch3_formal.RssKernelAdmissionTests.test_sustained_material_long_growth_rejected",
+      "test_ch3_formal.RssKernelAdmissionTests.test_long_plateau_not_rejected",
+      "test_ch3_formal.RssKernelAdmissionTests.test_net_and_average_both_required",
+      "test_ch3_formal.RssKernelAdmissionTests.test_tiny_positive_tail_is_plateau",
+      "test_ch3_formal.RssKernelAdmissionTests.test_gpu_growth_still_rejected",
+      "test_ch3_formal.RssKernelAdmissionTests.test_invalid_memory_rejected",
+      "test_ch3_formal.RssKernelAdmissionTests.test_budget_caps_existing594",
+      "test_ch3_formal.RssKernelAdmissionTests.test_budget_old_approval_rejected",
+      "test_ch3_formal.RssKernelAdmissionTests.test_rss_policy_immutable",
+      "test_ch3_formal.RssKernelAdmissionTests.test_kernel_missing_blocks",
+      "test_ch3_formal.RssKernelAdmissionTests.test_kernel_negative_and_positive_evidence",
+      "test_ch3_formal.RssKernelAdmissionTests.test_no_global_training_determinism_change"
     ],
     "model_cases": {}
   },

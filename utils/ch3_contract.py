@@ -48,7 +48,21 @@ FULL_STATE_NUMERIC_POLICIES = [
         'capture':'preallocated raw sidecar v1',
     },
 ]
-NUMERIC_PROBE_POLICIES = [NAMED_NUMERIC_POLICY] + FULL_STATE_NUMERIC_POLICIES
+# Conditional extensions: production startup stays blocked until kernel and
+# paired numeric evidence is accepted. The older named Exchange policy is historical.
+KERNEL_NUMERIC_POLICIES = [
+    dict(FULL_STATE_NUMERIC_POLICIES[0], id='timemixer-exchange-fullfloat-atol1e-4-kernel-v1', model='TimeMixer', dataset='Exchange'),
+    dict(FULL_STATE_NUMERIC_POLICIES[2], id='moderntcn-weather-fullfloat-atol1e-4-kernel-v1', model='ModernTCN', dataset='Weather'),
+    dict(FULL_STATE_NUMERIC_POLICIES[2], id='moderntcn-ecl-fullfloat-atol1e-3-loss-scaled-kernel-v1', model='ModernTCN', dataset='ECL', state_atol=1e-3, loss_atol=1e-6, loss_rtol=1e-5),
+    dict(FULL_STATE_NUMERIC_POLICIES[0], id='timemixer-weather-fullfloat-atol1e-4-loss-scaled-kernel-v1', model='TimeMixer', dataset='Weather', loss_atol=1e-6, loss_rtol=1e-5),
+]
+NUMERIC_PROBE_POLICIES = FULL_STATE_NUMERIC_POLICIES + KERNEL_NUMERIC_POLICIES
+
+RSS_PROBE_POLICY = dict(id='rss-material-growth-platform-v1', short_window=4,
+    warmup_updates=6, long_total_updates=24, min_cumulative_bytes=32*1024**2,
+    min_average_bytes_per_step=1024**2, plateau_window=8,
+    plateau_range_bytes=8*1024**2, plateau_abs_slope_bytes_per_step=256*1024)
+
 
 
 def numeric_probe_policy(c, task):
@@ -93,7 +107,7 @@ def training_blockers(c, task):
 
 
 def followup_limits(c, approval=None):
-    """Validate exact scope/extra allowance before any output or worker exists."""
+    """Check exact coverage and a pooled hard allowance, before creating output."""
     f=c['execution'].get('followup')
     if not f:return c['execution']['probe']['first_adam_max']
     inherited=f['inherit_groups'];retest=f['retest_groups']
@@ -102,19 +116,26 @@ def followup_limits(c, approval=None):
             or set(inherited)&set(retest) or set(inherited+retest)!=all_ids):
         raise ValueError('follow-up exact partition mismatch')
     groups=[g for g in c['groups'] if g['id'] in retest]
-    factor=sum(g['q']*(1 if g['q']==1 else 3) for g in groups)
-    expected={'Q':sum(g['q'] for g in groups),'planned_adam':6*factor,
-              'planned_forward':8*factor,'planned_backward':6*factor,'planned_validation':2*factor}
-    if any(f.get(k)!=v for k,v in expected.items()):raise ValueError('follow-up budget arithmetic mismatch')
+    q=sum(g['q'] for g in groups)
     for k in ('remaining_first_adam','approved_extra_adam'):
-        if type(f.get(k)) is not int or f[k]<0:raise ValueError('invalid explicit allowance')
+        if type(f.get(k)) is not int or f[k]<0:raise ValueError('invalid allowance')
     maximum=f['remaining_first_adam']+f['approved_extra_adam']
-    if f['planned_adam']>maximum:raise ValueError('follow-up exceeds approved original plus extra budget')
+    if f.get('scheduling_budget_policy')=='fixed-order-capped-resource-fallback-v1':
+        base=sum(6*g['q']*(1 if g['q']==1 else 2) for g in groups)
+        if (f['Q']!=q or f['core_adam_max']!=base or base>maximum
+                or f['planned_adam']!=maximum or f['planned_backward']!=maximum
+                or f['planned_forward']!=maximum//6*8 or f['planned_validation']!=maximum//6*2):
+            raise ValueError('capped follow-up arithmetic mismatch')
+    else:
+        factor=sum(g['q']*(1 if g['q']==1 else 3) for g in groups)
+        expected=dict(Q=q,planned_adam=6*factor,planned_forward=8*factor,
+                      planned_backward=6*factor,planned_validation=2*factor)
+        if any(f.get(k)!=v for k,v in expected.items()) or f['planned_adam']>maximum:
+            raise ValueError('follow-up exceeds approved original plus extra budget')
     if approval is not None and (approval.get('followup_sha')!=digest(f)
             or approval.get('approved_extra_adam')!=f['approved_extra_adam']):
         raise ValueError('exact follow-up scope/extra approval missing')
     return maximum
-
 
 def step_arithmetic(c, task):
     p=profile(c,task);d=c['datasets'][task['dataset']];b=p['training']['batch'];v=p['training']['eval_batch']
@@ -207,6 +228,7 @@ def profile(c, task):
 
 def validate_manifest(c):
     if c['contract']!=CONTRACT: raise ValueError('wrong formal contract')
+    if c['execution']['probe'].get('rss_policy')!=RSS_PROBE_POLICY:raise ValueError('unauthorized RSS rule')
     if c['execution']['probe'].get('numeric_equivalence') is not None:
         for policy in NUMERIC_PROBE_POLICIES:
             numeric_probe_policy(c,dict(model=policy['model'],dataset=policy['dataset'],h=policy['horizons'][0]))

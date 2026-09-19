@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-19当前状态（M5 §23）：按用户本次RSS复合判据及条件性数值授权完成接入。RSS需连续增长且净增>32MiB、平均>1MiB/step，并经24步窗口（前6步warm-up）末8步无平台才作CPU持续增长阻塞；显著短窗增长先标NeedsLongWindow，不冒充泄漏。三组24步代表均平台。四个数值作用域的固定Conv1d输入/权重/上游梯度重放均实测默认梯度非逐位、仅诊断切换cuDNN确定性后重复exact；生产确定性设置未改。TimeMixer/Exchange、ModernTCN/Weather采用全浮点1e-4及指标1e-6；ModernTCN/ECL初始界失败保留，条件证据成立后前瞻性采用state1e-3、validation1e-6、loss abs1e-6+rel1e-5并经新轨迹通过；原RSS阻塞还掩盖TimeMixer/Weather数值差异，已在原10组范围内补2串行验证，state1e-4、validation1e-6、loss abs1e-6+rel1e-5通过，正式并发仍待probe。32次CPU方法通过；21诊断worker实际180 Adam/294前向/252反向，机械余108；原48次隔离grad漏计单列补账、钩子修复，旧记录不改。44组155代表继承核验，10组40代表补测只用594既有余额，核心<=480，资源性候选回退按固定顺序限余额，不增加预算。495/5340、全部正式profile与训练数学不变；尚未启动新probe/J冻结/M5关闭/M6。以下§22及更早为历史时点。
+
 2026-09-19当前状态（M5 §22）：20组补测已完成并审核，54组终态44 Passed/10 Blocked（34继承＋10本轮新通过）。实际846 Adam/1128前向/846反向，低于1440上限，新增144额度未实际动用；0 OOM、0资源归属失败。剩余10组中7组由CPU RSS四点严格递增触发，GPU allocated均稳定；3组为数值准入失败：TimeMixer/Exchange超过原具名单张量1e-7或白名单外exact，ModernTCN/Weather与ModernTCN/ECL仍exact不一致。完整report与当前protocol/code/environment/hardware/许可均匹配。结果review Not passed；J未冻结、M5未Closed、M6未开始。以下§21及更早为历史时点。
 
 2026-09-19当前状态（M5 §21）：用户明确确认三组限定数值等价及额外144次补测Adam。仅TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1四H采用全浮点state/gradient/Adam moment atol=1e-4、rtol=0，loss与归一化validation atol=1e-6；初始身份/RNG/batch、optimizer step、非浮点状态和param-group结构继续exact，非finite拒绝。TimeMixer/Exchange原具名单张量1e-7规则保持。实现使用预分配CPU缓冲区写原始sidecar，正式训练数学/profile不变。CPU首验12 passed/1 error/3 unexecuted，唯一机械清理修复后16/16；三组H96串行参考＋两路并发＋独立串行重复共72 Adam/96前向/72反向均通过，最大state差分别1.91e-6、1.91e-6、4.32e-5，最大指标差2.38e-7，均在预注册界内；机械余额288。34组/115代表继承已核对，20组/80代表补测上限1440=原余额1296+新批144，尚未启动。J未冻结、M5未Closed、M6未开始。以下§20及更早为历史时点。
@@ -2096,7 +2098,7 @@ M1 §12 的六折 train split 长度为 576/1171/1747/2342/2937/3475，T=12，H=
 
 ### 9.6.4 A800 batch / 并发效率预检（有限对照完成、适用边界与后续规划）
 
-**当前补测准备（M5 §21）**：34组Passed证据继承已核对，20组/80代表待补测。三组新数值范围已由用户明确批准为全浮点state/gradient/Adam moment atol=1e-4、metric atol=1e-6、rtol=0，并经H96串行/两路/串行重复现场复验通过；TimeMixer/Exchange原具名单张量1e-7规则保持。补测上限1440已由1296余额＋新批144覆盖；机械余额288单列。closure和实际新review/preflight通过前不启动。
+**当前补测准备（M5 §23）**：44组/155代表继承、10组/40代表待补测，核心串行＋一个可行并发候选至多480 Adam；总硬上限594，额外额度0。四路资源不适合先按原规则两路；若已耗额度不足以完成可选回退并保留后续组核心额度，则只保留已验证单路，不把未测并发写Passed，不以降并发掩盖数值失败。RSS与条件数值规则见唯一M5 §23，原结果不改。新许可必须绑定实际closure/code/protocol/父证据及kernel证据；full probe由用户启动。
 
 **当前数值准入（M5 §19，本次用户明确确认）**：仅TimeMixer/Exchange四H具名tokenConv权重/梯度/Adam两动量采用逐元素atol=1e-7、rtol=0，finite强制；loss/归一化validation同界，初始/RNG/batch/步数与其他状态仍exact，其他模型域不放宽。旧exact失败保留，新六步H192串行/并发对照已通过；44组170代表仍待完整补测。机械余额450，3036补测额度未用，准备review/closure后用户启动，不进入M6。规则与完整证据见唯一M5 §19。
 

@@ -45,7 +45,7 @@ def validate_config(s):
     elif purpose=='ch3_step_diagnostic':
         cases=c['execution'].get('diagnostics',{}).get('cases',{})
         case=cases.get(s.get('case'))
-        if case is None or s.get('task')!=case['run_id'] or s.get('diagnostic')!='current-profile-six-step':
+        if case is None or s.get('task')!=case['run_id'] or s.get('diagnostic')!='current-profile-bounded-diagnostic':
             raise ValueError('exact current-package diagnostic capability required')
         if s['limits']['seconds']!=180:raise ValueError('diagnostic time bound')
         from utils.ch3_contract import training_blockers
@@ -77,6 +77,14 @@ def validate_config(s):
     if s['author_files']!=(source['files'] if source else {}):raise ValueError('purpose/source closure mismatch')
     ceilings={'ch3_cpu':(0,0,0),'ch3_prefix':(0,0,0),'ch3_placeholder':(0,0,0),
               'ch3_model_acceptance':(2,6,2),'ch3_probe':(6,8,6),'ch3_step_diagnostic':(6,8,6),'ch3_resource_diagnostic':(0,0,0)}
+    if purpose=='ch3_step_diagnostic':
+        kind=cases[s['case']]['kind']
+        if kind=='rss24':
+            if s.get('kernel_probe'):raise ValueError('RSS diagnostic has no kernel replay')
+            ceilings[purpose]=(24,26,24)
+        elif kind=='numeric6':ceilings[purpose]=(6,24,22) if s.get('kernel_probe') else (6,8,6)
+        else:raise ValueError('unknown bounded diagnostic kind')
+    elif s.get('kernel_probe'):raise ValueError('kernel replay is diagnostic-only')
     if purpose in ceilings:
         if tuple(s['limits'][k] for k in ('adam','forward','backward'))!=ceilings[purpose]:raise ValueError('exact operation budget mismatch')
     if purpose not in ('ch3_prefix','ch3_formal') and s['prefix_files']:raise ValueError('real prefix forbidden for this purpose')
@@ -132,6 +140,8 @@ def bootstrap(s):
     else:
         instrument_module_calls(torch.nn.Module)
         torch.autograd.backward=counted('backward','backward',torch.autograd.backward)
+        if s['purpose']=='ch3_step_diagnostic' and s.get('kernel_probe'):
+            torch.autograd.grad=counted('backward','frozen_conv_gradient',torch.autograd.grad)
         torch.optim.Adam.step=counted('adam','Adam',torch.optim.Adam.step)
         if s.get('device')=='cuda:0':
             free,total=torch.cuda.mem_get_info(0);reserve=max(8*1024**3,.1*total)
@@ -245,7 +255,7 @@ class ExitObservation:
         return waiting
 
 
-def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=None,resume=False):
+def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=None,resume=False,kernel_probe=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=False)
     src=c['sources'].get(task_by_id(c,task)['model']) if task else None
     prefix={}
@@ -263,12 +273,15 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
     limits=dict(adam=0,backward=0,forward=0,seconds=1200)
     if purpose=='ch3_model_acceptance':limits.update(adam=2,forward=6,backward=2)
     elif purpose=='ch3_probe':limits.update(adam=6,backward=6,forward=8,seconds=1800)
-    elif purpose=='ch3_step_diagnostic':limits.update(adam=6,backward=6,forward=8,seconds=180)
+    elif purpose=='ch3_step_diagnostic':
+        kind=c['execution']['diagnostics']['cases'][case]['kind']
+        limits.update(adam=24 if kind=='rss24' else 6,forward=26 if kind=='rss24' else 24 if kernel_probe else 8,
+                      backward=24 if kind=='rss24' else 22 if kernel_probe else 6,seconds=180)
     elif purpose=='ch3_formal':limits=dict(seconds=None,adam=None,forward=None,backward=None)
     elif purpose=='ch3_resource_diagnostic':limits['seconds']=180
     config=dict(version='restricted-regression-minimal-v3',repo=str(REPO),tool_root=str(TOOL),
                 purpose=purpose,case=case,task=task,ids=ids,protocol_sha=digest(c),
-                diagnostic='current-profile-six-step' if purpose=='ch3_step_diagnostic' else 'owned_cuda_tensor_16mib' if purpose=='ch3_resource_diagnostic' else 'train_validation_connectivity' if purpose=='ch3_prefix' else None,
+                kernel_probe=kernel_probe,diagnostic='current-profile-bounded-diagnostic' if purpose=='ch3_step_diagnostic' else 'owned_cuda_tensor_16mib' if purpose=='ch3_resource_diagnostic' else 'train_validation_connectivity' if purpose=='ch3_prefix' else None,
                 session_root=c['execution']['evidence'],fixture_root=c['execution']['fixture'],
                 audit_log=str(out/'audit.jsonl'),budget_file=str(out/'budget.json'),
                 output=str(out),limits=limits,bound_files=repository_files(),
@@ -448,9 +461,11 @@ def worker():
         dump(out/'prefix-result.json',dict(success=True,metadata=metadata,batches=checks,window_arithmetic=arithmetic,
              test_arithmetic_only=True,models=0,adam=0,forward=0,backward=0,gpu=0))
     elif purpose=='ch3_step_diagnostic':
-        from ch3_runner import probe_worker
+        from ch3_runner import probe_worker,rss_window_worker
         case=c['execution']['diagnostics']['cases'][s['case']]
-        probe_worker(c,task_by_id(c,s['task']),out,capture_states=case['capture_states'])
+        if case['kind']=='rss24':rss_window_worker(c,task_by_id(c,s['task']),out)
+        else:probe_worker(c,task_by_id(c,s['task']),out,capture_states=False,
+                         backend_name=case['conv_name'] if s.get('kernel_probe') else None, backend_repetitions=case.get('kernel_repetitions',8))
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
         probe_worker(c,task_by_id(c,s['task']),out)
@@ -522,8 +537,10 @@ def probe_all(c,approval):
     with GPULock(c):
         root.mkdir(exist_ok=False)
         dump(root/'controller.json',dict(pid=os.getpid(),start_ticks=Path('/proc/self/stat').read_text().split()[21]))
-        for group in groups:
-            group_max=6*group['q']*(1 if group['q']==1 else 3)
+        for group_index,group in enumerate(groups):
+            capped=bool(followup and followup.get('scheduling_budget_policy')=='fixed-order-capped-resource-fallback-v1')
+            future_core=sum(6*g['q']*(1 if g['q']==1 else 2) for g in groups[group_index+1:]) if capped else 0
+            group_max=6*group['q']*(1 if group['q']==1 else 2 if capped else 3)
             if report['steps']+group_max>maximum:raise RuntimeError('insufficient remaining budget before group launch')
             if group['dataset']=='PJM' and c['datasets']['PJM']['endpoints'] is None:
                 report['decisions'][group['id']]=dict(status='Blocked',reason='version endpoints/actual validation tail Not verified',executed_workers=0)
@@ -559,6 +576,10 @@ def probe_all(c,approval):
                     subset_peak=sum(sorted(peaks,reverse=True)[:concurrency])
                     if not resource_assessment(sample,[])['admission'] or sample['free']-subset_peak<headroom:
                         decision[str(concurrency)]='ResourceRejected';continue
+                    if capped and report['steps']+6*group['q']+future_core>maximum:
+                        decision[str(concurrency)]='Not tested: hard allowance reserved for later groups; retain verified serial only'
+                        decision['parallel']='Optional higher concurrency not pursued within hard allowance'
+                        break
                     times=[];observed=[];resource_failure=False
                     for offset in range(0,group['q'],concurrency):
                         runs=group['representatives'][offset:offset+concurrency]

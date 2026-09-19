@@ -1174,3 +1174,95 @@ class ThreeScopeNumericTests(unittest.TestCase):
         o=O();o.param_groups=[{'params':[p],'lr':.01,'betas':(.9,.999)}];o.state={p:{'step':torch.tensor(1.),'exp_avg':torch.zeros(2),'exp_avg_sq':torch.zeros(2)}}
         d=ReusableTensorDigest(M().state_dict());out=Path(tempfile.mkdtemp(prefix='writer-',dir=self.fixture_root));w=FullNumericStateWriter(M(),o,out,d,self.rule);x=w.capture(1);ptr={k:v.data_ptr() for k,v in d.buffers.items()};p.add_(.5);o.state[p]['exp_avg'].add_(.1);y=w.capture(2)
         self.assertEqual(ptr,{k:v.data_ptr() for k,v in d.buffers.items()});self.assertEqual(x['schema_sha'],y['schema_sha']);self.assertEqual(Path(x['data_file']).stat().st_size,Path(y['data_file']).stat().st_size)
+
+
+class RssKernelAdmissionTests(unittest.TestCase):
+    def setUp(self):
+        self.c=read_profiles();self.e=Path(self.c['execution']['evidence']);self.tmp=Path(self.c['execution']['fixture'])
+    def rows(self,values,allocated=None):
+        return [dict(step=i+1,allocated=10 if allocated is None else allocated[i],rss_before_hash=x,rss_after_hash=x) for i,x in enumerate(values)]
+    def test_profiles_unchanged(self):
+        old=json.loads((self.e/'before/configs/ch3_formal_profiles.json').read_text())
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(old,t))
+    def test_numeric_scope_bounds(self):
+        from utils.ch3_contract import numeric_probe_policy
+        scopes=set()
+        for t in self.c['tasks']:
+            rule=numeric_probe_policy(self.c,t)
+            if rule:
+                scopes.add((t['model'],t['dataset']));self.assertEqual((rule['state_atol'],rule['metric_atol'],rule['rtol']),(1e-3 if (t['model'],t['dataset'])==('ModernTCN','ECL') else 1e-4,1e-6,0.0))
+        self.assertEqual(scopes,{('TimeMixer','Exchange'),('TimeMixer','ETTh1'),('TimeMixer','ECL'),('ModernTCN','ETTh1'),('ModernTCN','Weather'),('ModernTCN','ECL'),('TimeMixer','Weather')})
+    def test_rss_tiny_growth_not_rejected(self):
+        from ch3_runner import memory_growth_review
+        r=memory_growth_review(self.rows([900*1024**2+i*4096 for i in range(6)]))
+        self.assertFalse(r['blocked']);self.assertFalse(r['needs_long_window'])
+    def test_large_short_growth_needs_long_not_leak(self):
+        from ch3_runner import memory_growth_review
+        r=memory_growth_review(self.rows([i*16*1024**2 for i in range(6)]))
+        self.assertFalse(r['blocked']);self.assertTrue(r['needs_long_window']);self.assertFalse(r['long_window_observed'])
+    def test_sustained_material_long_growth_rejected(self):
+        from ch3_runner import memory_growth_review
+        r=memory_growth_review(self.rows([i*3*1024**2 for i in range(24)]))
+        self.assertTrue(r['blocked']);self.assertIn('rss_material_long_no_plateau',r['triggers'])
+    def test_long_plateau_not_rejected(self):
+        from ch3_runner import memory_growth_review
+        r=memory_growth_review(self.rows([min(i,15)*4*1024**2 for i in range(24)]))
+        self.assertTrue(r['plateau']);self.assertFalse(r['blocked'])
+    def test_net_and_average_both_required(self):
+        from ch3_runner import memory_growth_review
+        for vals in ([i*1024**2 for i in range(24)],[i*512*1024 for i in range(100)]):
+            with self.subTest(length=len(vals)):self.assertFalse(memory_growth_review(self.rows(vals))['blocked'])
+    def test_tiny_positive_tail_is_plateau(self):
+        from ch3_runner import memory_growth_review
+        vals=[i*4*1024**2 for i in range(16)]+[60*1024**2+(i+1)*128*1024 for i in range(8)]
+        r=memory_growth_review(self.rows(vals));self.assertTrue(r['rss_continuous_recent']);self.assertTrue(r['plateau']);self.assertFalse(r['blocked'])
+    def test_gpu_growth_still_rejected(self):
+        from ch3_runner import memory_growth_review
+        r=memory_growth_review(self.rows([100]*6,list(range(6))))
+        self.assertIn('allocated',r['triggers']);self.assertTrue(r['blocked'])
+    def test_invalid_memory_rejected(self):
+        from ch3_runner import memory_growth_review
+        for val in [float('nan'),float('inf'),-1]:
+            with self.subTest(val=str(val)):
+                with self.assertRaises(ValueError):memory_growth_review(self.rows([val]*6))
+    def test_budget_caps_existing594(self):
+        from utils.ch3_contract import followup_limits
+        f=self.c['execution']['followup'];self.assertEqual(followup_limits(self.c,dict(followup_sha=digest(f),approved_extra_adam=0)),594)
+        self.assertEqual((len(f['inherit_groups']),len(f['retest_groups']),f['Q'],f['core_adam_max']),(44,10,40,480))
+    def test_budget_old_approval_rejected(self):
+        from utils.ch3_contract import followup_limits
+        with self.assertRaises(ValueError):followup_limits(self.c,{'followup_sha':'old','approved_extra_adam':144})
+        c=copy.deepcopy(self.c);c['execution']['followup']['planned_adam']=720
+        with self.assertRaises(ValueError):followup_limits(c)
+    def test_rss_policy_immutable(self):
+        c=copy.deepcopy(self.c);c['execution']['probe']['rss_policy']['min_cumulative_bytes']=100
+        with self.assertRaises(ValueError):validate_manifest(c)
+    def test_kernel_missing_blocks(self):
+        from ch3_runner import kernel_admission_reasons
+        c=copy.deepcopy(self.c);c['execution']['probe'].pop('kernel_admission',None);self.assertTrue(kernel_admission_reasons(c))
+    def test_kernel_negative_and_positive_evidence(self):
+        from ch3_runner import kernel_admission_reasons
+        import tempfile,hashlib
+        p=Path(tempfile.mkdtemp(dir=self.tmp))/'evidence.json';d={'scopes':{k:dict(backend_demonstrated=True,paired_passed=True,flags_restored=True,exact_identity=True) for k in ['TimeMixer/Exchange','ModernTCN/Weather','ModernTCN/ECL','TimeMixer/Weather']}}
+        c=copy.deepcopy(self.c)
+        for bad in [True,False]:
+            d['scopes']['ModernTCN/ECL']['backend_demonstrated']=not bad;p.write_text(json.dumps(d))
+            c['execution']['probe']['kernel_admission']={'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+            with self.subTest(bad=bad):self.assertEqual(bool(kernel_admission_reasons(c)),bad)
+    def test_no_global_training_determinism_change(self):
+        import ast
+        before=ast.parse((self.e/'before/ch3_runner.py').read_text());now=ast.parse((Path(__file__).resolve().parents[1]/'ch3_runner.py').read_text())
+        for name in ['update','evaluate','init_training','formal_worker','save_state','restore_state']:
+            get=lambda t:ast.dump(next(x for x in t.body if isinstance(x,ast.FunctionDef) and x.name==name),include_attributes=False)
+            with self.subTest(name=name):self.assertEqual(get(before),get(now))
+        import resource_budget
+        from types import SimpleNamespace
+        calls=[];fake=SimpleNamespace(sample=lambda t:None,charge=lambda k,d:calls.append((k,d)))
+        with patch.object(resource_budget,'INSTANCE',fake):
+            wrapped=resource_budget.counted('backward','frozen_conv_gradient',lambda x:x+1)
+            self.assertEqual(wrapped(2),3)
+        self.assertEqual(calls,[('backward','frozen_conv_gradient')])
+        # Scaled loss admission is distinct from standardized validation tolerance.
+        self.assertLess(abs(11.00009-11.0),1e-6+1e-5*11.00009)
+        self.assertGreater(abs(11.0003-11.0),1e-6+1e-5*11.0003)
