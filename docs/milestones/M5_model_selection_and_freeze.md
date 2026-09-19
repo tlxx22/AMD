@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §19）：用户明确选择数值等价并继续授权ChatGPT直接执行至工程closure。仅对TimeMixer/Exchange既定四H的enc_embedding.value_embedding.tokenConv.weight及其梯度/Adam两动量，预登记atol=1e-7、rtol=0、NaN/Inf拒绝；训练loss与归一化validation误差同绝对界，初始/随机/批身份、步数及白名单外模型/梯度/optimizer状态继续exact，其他模型/域不放宽。新JSON逐步数值证据与精确残余摘要已接实际probe比较及报告检查。CPU16/16首次通过；H192新六步串行参考、两路各六步及独立串行重复共24 Adam/32前向/24反向，全部在该固定界内，最大梯度差7.450580596923828e-08、动量差1.4901161193847656e-08、参数和loss差0，旧exact Not passed不倒改。机械余额450；3036补测额度未消耗，10组25代表继承已核对，44组170代表仍待用户一次启动。495/5340、全部profile/T/结构/训练/数据/确定性设置不变。技术阻塞已按新合同处理，本轮工程审核closure后可生成实际版本probe许可；不代启补测，不冻结J、不关闭M5、不进入M6。以下§18及更早为历史时点。
+
 2026-09-19当前状态（M5 §18）：用户明确授权ChatGPT接手服务器执行上一轮确认方案及检查工程Git closure。本轮57个来源待决run全部落实，iTransformer/ECL明确采用本模型官方脚本B16；A/J/N/S的274个profile、495任务/5340 run-epochs、54组/195worker及统一T等不变。最终最大optimizer步数算术16,482,750；新增709次补测Adam获批，2327原余额＋709=3036，未消耗。双时点RSS测量保留四点严格增长规则和前序哈希影响说明；CPU16/16首次通过、无复验。限定5worker均正常完成，共30 Adam/40前向/30反向，机械余额474；AMD/ETTh1六步未触发旧增长检查。TimeMixer/Exchange H192初始/RNG/batch及loss一致，但重复串行也有Conv1d权重梯度/Adam微小非逐位差异，exact仍Not passed，不擅调容差或确定性设置。10组25代表继承profile核对通过，44组170代表补测计划保留但全队启动仍Blocked；本轮仅工程版本收口，不生成完整probe许可、不冻结J/关闭M5/进入M6。以下§17及更早为历史时点。
 
 最新状态（§16）：**本次用户明确批准的数据准入已落地；Weather/PJM各一次受限train/validation前缀连通通过，修后精确CPU 16/16通过。** Weather保留作者原记录，允许非唯一但非递减时间；ECL/Exchange以已核验benchmark身份作标准化评价并披露未知解释；PJM锁定TimeXer、n=52416及既定端点，原EPF d−1可得性作为documented source assumption。细分事实/接受范围/限制，未一键改成Passed。495/5340、54组/195worker、模型训练配置与NVML门禁保持；probe端点/尾批技术缺口已收口，dry-run/preflight只剩审核许可、统一closure/clean及用户启动，完整probe尚未执行。首轮CPU7 passed/1 error/8 unexecuted，唯一机械夹具修复后完整16通过，累计24次方法调用；§14额外调用偏差保留。0GPU/模型/Adam/前向/反向/checkpoint，未重哈希原数据。J未冻结、M5未关闭、M6未启动；以下§15及以前均为历史时点。
@@ -1244,3 +1246,56 @@ bash scripts/ch3/start_probe.sh preflight
 # preflight当前应拒绝TimeMixer exact阻塞及缺少新review许可。
 # 不创建review=true，不运行start，不删除/覆盖旧probe结果。
 ```
+
+## 19. 用户确认数值等价：限定TimeMixer/Exchange、现场复验与工程closure
+
+### 19.1 本次授权和预登记标准
+
+用户原话“改成第二种吧. 然后继续直到完成closure”，延续本会话已明确授予ChatGPT的服务器执行权限。本轮只处理此数值准入修订和必要复验/提交，不修改长期职责、模型数学或确定性设置。起点三端commit为`0a446ac7f0b29dc8e7a85c67a529f473e0888fae`，0/0、clean；原canonical SHA=`aa29e877050bf048a5e6223351097edf254bfba55f490e7c027e8deb60a81d15`，原M5 SHA=`fdf954510225ec8934342eb4cea9c7a5851e40f243cdbcb121fc1e4e39674892`。
+
+独立证据根：`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-numeric-equivalence-80dirugd`；fixture=`/tmp/amd-m5-numeric-0ln4445u`。在运行新轨迹前写入`authorization.json`（SHA `495cec7f05357e3c0229fd63631d99c6df76f580c4a91ac6f87365e6f8bfd46c`），固定绝对界，不依据本轮结果调阈值。
+
+规则ID=`timemixer-exchange-tokenconv-atol1e-7-v1`，完整policy digest=`400210ef6c5e1f6104b2e1b90406e75a1d360d63bcf53465a201ffd02ded7d82`。适用范围仅TimeMixer/Exchange、H96/192/336/720、当前锁定source/structure。具名张量为`enc_embedding.value_embedding.tokenConv.weight`，float32、[16,1,3]。仅其权重、梯度、Adam exp_avg和exp_avg_sq逐元素采用`abs(a-b)<=1e-7`，rtol=0、非finite无条件拒绝。不默用torch默认allclose容差。
+
+每步loss和validation MSE/MAE采用同一绝对界；SSE/SAE先用严格相同元素数归一化再比较，验证自身聚合关系不变。原始统计和摘要均保留。初始模型/RNG、输入batch摘要、最终RNG、任务/profile、元素数、步次完全一致；Adam step/param_groups、全部白名单外模型与梯度/optimizer状态仍exact。没有关闭或豁免其他参数，其他模型/数据集仍采用原exact规则。该标准是本次用户选择后的前瞻性工程准入规则，不证明原exact通过或长期误差无害；根本CUDA内核原因仍未唯一确定。
+
+### 19.2 实际接入及验收
+
+`numeric_probe_policy`校验完整固定规则，非法模型/范围/阈值变更拒绝；`numeric_probe_snapshot`每步只输出四组各48个数及形状/dtype，同时保存白名单外精确摘要，按真实optimizer参数映射而非写死state编号。`compare_probe_trajectories`在严格身份后做逐步数值比较，返回最大差与失败字段；新证据字段缺失时拒绝，不能用旧哈希猜差异。完整probe已调用同一比较器，报告标bounded_numeric而非exact，正式报告验证要求对应policy及数值审核摘要。没有新增保存旧checkpoint或改变训练算子。
+
+16个NumericEquivalenceTests首次16 passed、0fail/error/skip/unexecuted、无复验。覆盖1e-7边界、越界拒绝、禁用相对容差、NaN/Inf拒绝、身份/RNG/batch、形状/dtype、非白名单状态/步数、其他模型exact、统计归一化、快照映射和报告许可绑定。test方法不互调，参数化subcase按日志留存；没有重跑旧套件。详细ID在`frozen-execution-order.json`。
+
+新现场只用TimeMixer/Exchange H192既定T96/B512/LR3e-4及固定seed2024合成数据，依次串行参考→两路各六步→独立串行重复。每worker6 Adam/8前向/6反向，4worker合计24/32/24（本轮合并上限32/48/32）。所有workerexit0、finite、监测/退出通过、memory_review未阻塞。没有新增CUDA设置、AMP、seed、batch或LR。
+
+相对于串行参考，三份对照全部在预登记数值界内；本轮max abs：权重0；梯度`7.450580596923828e-08`；exp_avg `1.4901161193847656e-08`；exp_avg_sq `3.637978807091713e-11`；loss和归一化validation差0。初始/RNG/batch和残余状态exact。每份对照检查1152个白名单数值元素，原hash仍可不同且bitwise_equal=false，不能将新数值通过写成逐位通过。
+
+该H192有限正例证明生产比较入口能正确执行新规则；不是四H和四并发全部通过，其他H仍在完整补测中逐项核验。原首轮及§18的exact失败不改。此次无test数值/真实观测读取、无checkpoint读取/反序列化，只读本轮JSON数值证据；没有完整epoch或性能实验。
+
+### 19.3 预算、复用和前置条件
+
+原机械余额474减24=450；§17的8和§18的30消耗、原首验1183及历史失败/额外test调用均保留。原首验剩2327＋已批准709=3036完整补测上限不变，本轮未消耗补测池。CPU16次不挪用或重置历史账。
+
+495任务/5340 run-epochs、54组195代表、全部495个有效profile和274个AMD家族profile与上个closure一致；max_optimizer_steps=16,482,750。`update/evaluate/init_training/save_state/restore_state/formal_worker/memory_growth_review` AST不变，作者源码和结构表不变。10组/25继承代表逐一核对父trajectory的profile摘要和原Passed，未继承TimeMixer；44组/170代表待补测。继承证据见`inheritance-verification.json`，不将旧报告原地升级。
+
+验收后仅将配置中的待验收blocker改为空及更新监测状态说明；预注册policy、阈值、source、预算和计算字节未再变化。该纯状态文本差异见`post-test-binding-delta.json`，不宣称最终全局digest重新跑过16项。本轮整体源代码/配置审核后精确stage/commit/push，实际commit、三端/clean和保护对象写外置`closure-verification.json`，不为记自身commit递归提交。
+
+### 19.4 closure成功后的操作
+
+本轮不启动完整补测。closure成功、三端0/0/clean、文档字节一致后生成只适用于当前版本的外置`probe-review.json`，包含实际commit/code/config/environment/hardware、followup digest、approved_extra_adam=709及numeric policy摘要。不得将structure_frozen/m6_authorized设true；无负载preflight应blocked=[]后才交用户启动。工具和原tmux入口不重建，仍一个补测入口、固定波次、无模型间自动正式启动。
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+export PATH="/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin:$PATH"
+export PYTHONDONTWRITEBYTECODE=1
+E=/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-numeric-equivalence-80dirugd
+bash scripts/ch3/start_probe.sh dry-run --approval "$E/probe-review.json"
+bash scripts/ch3/start_probe.sh preflight --approval "$E/probe-review.json"
+# 仅实际closure/新许可/preflight成功后，由用户一次启动：
+bash scripts/ch3/start_probe.sh start --approval "$E/probe-review.json"
+tail -n 100 -F "$E/probe-controller.log"
+bash scripts/ch3/start_probe.sh status
+bash scripts/ch3/start_probe.sh complete
+bash scripts/ch3/start_probe.sh safe-stop
+```
+
+complete只表示终态覆盖，不等于全部准入通过；若模型/数值/资源仍有失败，保留证据审计，不能再自动放宽容差或重跑。工程closure不等于M5 Closed；J未冻结、M6和正式训练均未启动。数据政策/原论文限制及空间路线不变。

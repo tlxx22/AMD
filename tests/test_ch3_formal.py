@@ -837,3 +837,131 @@ class SourceClosureTests(unittest.TestCase):
         with self.assertRaises(ValueError):obs.classify(dict(sample,uuid='other'),[1],[1])
         reused=copy.deepcopy(sample);reused['owned_pid_metadata']['1']['start_ticks']='43'
         with self.assertRaises(ValueError):obs.classify(reused,[1],[1])
+
+
+class NumericEquivalenceTests(unittest.TestCase):
+    def setUp(self):
+        self.c=read_profiles()
+        self.task=task_by_id(self.c,'TimeMixer-Exchange-MS-f1-h192-s2024')
+        from utils.ch3_contract import numeric_probe_policy
+        self.rule=numeric_probe_policy(self.c,self.task)
+    def fixture(self):
+        packed=lambda:dict(dtype='torch.float32',shape=[16,1,3],values=[0.0]*48)
+        trace=[dict(step=i,parameter_name=self.rule['parameter'],optimizer_parameter_id=60,
+                    tensors={k:packed() for k in self.rule['tensor_fields']},
+                    exact_model='model',exact_optimizer='optimizer-step-'+str(i),exact_gradients='gradients') for i in range(1,7)]
+        return dict(id=self.task['id'],profile_sha=digest(profile(self.c,self.task)),initial='initial',initial_rng='rng',
+                    batch_ids=['batch'+str(i) for i in range(6)],validation_tail=profile(self.c,self.task)['training']['eval_batch'],
+                    steps=6,final_rng='final_rng',finite=True,final='final',
+                    trajectory=[dict(step=i,loss=1.0,state='state',optimizer='optimizer') for i in range(1,7)],
+                    validation=dict(mse=1.,mae=.5,sse=1000.,sae=500.,elements=1000),
+                    numeric_policy_sha=digest(self.rule),numeric_trace=trace)
+    def compare(self,a,b,task=None):
+        from ch3_runner import compare_probe_trajectories
+        return compare_probe_trajectories(self.c,task or self.task,a,b)
+    def test_scope_and_rule_immutable(self):
+        from utils.ch3_contract import numeric_probe_policy
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):
+                self.assertEqual(numeric_probe_policy(self.c,t) is not None,(t['model'],t['dataset'])==('TimeMixer','Exchange'))
+        for change in ({'atol':1e-6},{'rtol':1e-5},{'model':'AMD'},{'horizons':[192]}):
+            with self.subTest(change=change):
+                c=copy.deepcopy(self.c);c['execution']['probe']['numeric_equivalence'].update(change)
+                with self.assertRaises(ValueError):validate_manifest(c)
+    def test_boundary_is_allowed(self):
+        a=self.fixture();b=copy.deepcopy(a)
+        for key in self.rule['tensor_fields']:b['numeric_trace'][0]['tensors'][key]['values'][0]=1e-7
+        out=self.compare(a,b);self.assertTrue(out['passed']);self.assertFalse(out['bitwise_equal']);self.assertEqual(out['compared_elements'],1152)
+    def test_above_bound_rejected(self):
+        for key in self.rule['tensor_fields']:
+            with self.subTest(tensor=key):
+                a=self.fixture();b=copy.deepcopy(a);b['numeric_trace'][2]['tensors'][key]['values'][17]=1.001e-7
+                self.assertFalse(self.compare(a,b)['passed'])
+    def test_relative_tolerance_not_used(self):
+        a=self.fixture();b=copy.deepcopy(a)
+        a['numeric_trace'][0]['tensors']['parameter']['values'][0]=1e6
+        b['numeric_trace'][0]['tensors']['parameter']['values'][0]=1e6+1e-5
+        self.assertFalse(self.compare(a,b)['passed'])
+    def test_nonfinite_rejected_even_equal(self):
+        for value in (float('nan'),float('inf'),-float('inf')):
+            with self.subTest(value=str(value)):
+                a=self.fixture();a['numeric_trace'][0]['tensors']['gradient']['values'][0]=value
+                with self.assertRaises(ValueError):self.compare(a,copy.deepcopy(a))
+    def test_missing_or_legacy_evidence_rejected(self):
+        for key in ('numeric_trace','numeric_policy_sha','trajectory','initial'):
+            with self.subTest(key=key):
+                a=self.fixture();b=copy.deepcopy(a);del b[key]
+                with self.assertRaises(ValueError):self.compare(a,b)
+    def test_identity_rng_batch_stay_exact(self):
+        for key in ('id','profile_sha','initial','initial_rng','batch_ids','validation_tail','steps','final_rng'):
+            with self.subTest(key=key):
+                a=self.fixture();b=copy.deepcopy(a);b[key]='wrong'
+                with self.assertRaises(ValueError):self.compare(a,b)
+    def test_shape_dtype_and_missing_tensor_rejected(self):
+        for change in ({'shape':[48]},{'dtype':'torch.float64'},{'values':[0.0]*47}):
+            with self.subTest(change=str(change)):
+                a=self.fixture();b=copy.deepcopy(a);b['numeric_trace'][0]['tensors']['parameter'].update(change)
+                with self.assertRaises(ValueError):self.compare(a,b)
+        a=self.fixture();b=copy.deepcopy(a);del b['numeric_trace'][0]['tensors']['exp_avg']
+        with self.assertRaises(ValueError):self.compare(a,b)
+    def test_unlisted_state_stays_exact(self):
+        for key in ('exact_model','exact_optimizer','exact_gradients','optimizer_parameter_id'):
+            with self.subTest(key=key):
+                a=self.fixture();b=copy.deepcopy(a);b['numeric_trace'][0][key]='changed'
+                self.assertFalse(self.compare(a,b)['passed'])
+    def test_step_and_tensor_scope_rejected(self):
+        for key,value in (('step',2),('parameter_name','other.weight')):
+            with self.subTest(key=key):
+                a=self.fixture();b=copy.deepcopy(a);b['numeric_trace'][0][key]=value
+                with self.assertRaises(ValueError):self.compare(a,b)
+    def test_other_models_keep_exact(self):
+        t=task_by_id(self.c,'AMD-Exchange-MS-f1-h192-s2024');a=self.fixture()
+        a.update(id=t['id'],profile_sha=digest(profile(self.c,t)));b=copy.deepcopy(a);b['trajectory'][0]['loss']+=1e-9
+        out=self.compare(a,b,t);self.assertEqual(out['mode'],'exact');self.assertFalse(out['passed'])
+    def test_metric_bound_and_elements(self):
+        a=self.fixture();b=copy.deepcopy(a);b['trajectory'][0]['loss']+=5e-8;self.assertTrue(self.compare(a,b)['passed'])
+        b['trajectory'][0]['loss']+=2e-7;self.assertFalse(self.compare(a,b)['passed'])
+        b=copy.deepcopy(a);b['validation']['sse']+=0.0002;b['validation']['mse']=b['validation']['sse']/1000
+        self.assertFalse(self.compare(a,b)['passed'])
+        b=copy.deepcopy(a);b['validation']['elements']=999
+        with self.assertRaises(ValueError):self.compare(a,b)
+    def test_profiles_budget_and_scientific_contract_unchanged(self):
+        from utils.ch3_contract import followup_limits,training_blockers,step_arithmetic
+        old=json.loads((Path(self.c['execution']['evidence'])/'before/configs/ch3_formal_profiles.json').read_text())
+        self.assertEqual(self.c['tasks'],old['tasks']);self.assertEqual(self.c['groups'],old['groups'])
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(old,t));self.assertFalse(training_blockers(self.c,t))
+        self.assertEqual(sum(step_arithmetic(self.c,t)['max_optimizer_steps'] for t in self.c['tasks']),16482750)
+        self.assertEqual(self.c['execution']['followup']['approved_extra_adam'],709)
+    def test_snapshot_captures_only_named_values(self):
+        import torch
+        from ch3_runner import numeric_probe_snapshot
+        param=torch.ones(16,1,3);param.grad=torch.zeros_like(param);other=torch.ones(1);other.grad=torch.ones(1)
+        name=self.rule['parameter']
+        class FakeModel:
+            def named_parameters(self):return iter([(name,param),('other',other)])
+            def state_dict(self):return {name:param,'other':other}
+        class FakeOptimizer:
+            param_groups=[{'params':[param,other]}]
+            def state_dict(self):return {'param_groups':[{'params':[60,61],'lr':.0003}],
+                'state':{60:{'step':torch.tensor(1.),'exp_avg':torch.zeros_like(param),'exp_avg_sq':torch.zeros_like(param)},61:{'step':torch.tensor(1.)}}}
+        a=numeric_probe_snapshot(FakeModel(),FakeOptimizer(),self.rule,1)
+        param.add_(.125);b=numeric_probe_snapshot(FakeModel(),FakeOptimizer(),self.rule,1)
+        self.assertEqual(a['exact_model'],b['exact_model']);self.assertEqual(a['exact_optimizer'],b['exact_optimizer']);self.assertNotEqual(a['tensors'],b['tensors'])
+        other.add_(1);d=numeric_probe_snapshot(FakeModel(),FakeOptimizer(),self.rule,1);self.assertNotEqual(b['exact_model'],d['exact_model'])
+    def test_numeric_report_requires_policy_bound(self):
+        from ch3_runner import validate_probe_report
+        report=dict(protocol_sha=digest(self.c),Q=195,decisions={g['id']:dict(status='Blocked') for g in self.c['groups']})
+        group=next(g for g in self.c['groups']if g['id']=='TimeMixer-Exchange-MS');a=self.fixture();row=self.compare(a,copy.deepcopy(a))
+        decision=dict(status='Passed',concurrency=2,representatives=group['representatives'])
+        report['decisions'][group['id']]=decision
+        with self.assertRaises(ValueError):validate_probe_report(self.c,report)
+        decision['2']={'numerical_comparisons':[copy.deepcopy(row) for _ in range(4)]};validate_probe_report(self.c,report)
+        decision['2']['numerical_comparisons'][0]['policy_sha']='wrong'
+        with self.assertRaises(ValueError):validate_probe_report(self.c,report)
+    def test_old_approval_and_synthetic_capability(self):
+        old=json.loads((Path(self.c['execution']['evidence'])/'before/configs/ch3_formal_profiles.json').read_text())
+        self.assertNotEqual(digest(self.c),digest(old))
+        self.assertEqual(list(self.c['execution']['diagnostics']['cases']),['timemixer_numeric'])
+        self.assertFalse(self.c['execution']['diagnostics']['cases']['timemixer_numeric']['capture_states'])
+        self.assertIsNone(self.c['execution']['probe_review']);self.assertIsNone(self.c['execution']['formal_approval'])

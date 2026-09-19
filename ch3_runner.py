@@ -56,7 +56,22 @@ def validate_probe_report(c, report):
         raise ValueError('probe group coverage mismatch')
     for group in c['groups']:
         decision=report['decisions'][group['id']]
-        if decision.get('status')=='Passed':verified_waves(group,decision)
+        if decision.get('status')=='Passed':
+            verified_waves(group,decision)
+            from utils.ch3_contract import numeric_probe_policy
+            rule=numeric_probe_policy(c,task_by_id(c,group['representatives'][0]))
+            if rule and decision['concurrency']>1:
+                checked=decision.get(str(decision['concurrency']),{}).get('numerical_comparisons',[])
+                if len(checked)!=group['q']:raise ValueError('numeric admission coverage missing')
+                import math
+                for row in checked:
+                    if (row.get('passed') is not True or row.get('mode')!='bounded_numeric'
+                            or row.get('policy_sha')!=digest(rule) or row.get('atol')!=rule['atol']
+                            or row.get('rtol')!=0 or row.get('exact_residual_state') is not True):
+                        raise ValueError('numeric admission policy mismatch')
+                    maxima=list(row.get('tensor_max_abs',{}).values())+[row.get('scalar_normalized_max_abs')]
+                    if len(maxima)!=5 or any(v is None or not math.isfinite(v) or v<0 or v>rule['atol'] for v in maxima):
+                        raise ValueError('numeric admission exceeds bound')
     return report
 
 
@@ -254,6 +269,107 @@ def init_training(c,task,device):
     return p,model,opt,torch.Generator().manual_seed(2024)
 
 
+def numeric_probe_snapshot(model, opt, rule, step):
+    """Small CPU values for one named tensor; all residual state stays exact."""
+    import torch
+    name=rule['parameter'];params=dict(model.named_parameters())
+    if name not in params:raise ValueError('approved numeric parameter missing')
+    parameter=params[name];raw=opt.state_dict();ids=[]
+    for objects,stored in zip(opt.param_groups,raw['param_groups']):
+        if len(objects['params'])!=len(stored['params']):raise ValueError('optimizer mapping mismatch')
+        ids += [sid for obj,sid in zip(objects['params'],stored['params']) if obj is parameter]
+    if len(ids)!=1:raise ValueError('numeric parameter optimizer identity is not unique')
+    sid=ids[0];state=raw['state'].get(sid,{})
+    if set(state)!={'step','exp_avg','exp_avg_sq'}:raise ValueError('unapproved optimizer state schema')
+    def pack(v):
+        if not torch.is_tensor(v) or str(v.dtype)!=rule['dtype'] or list(v.shape)!=rule['shape']:
+            raise ValueError('numeric tensor dtype/shape changed')
+        finite(v)
+        return dict(dtype=str(v.dtype),shape=list(v.shape),values=v.detach().cpu().reshape(-1).tolist())
+    values=dict(parameter=pack(parameter),gradient=pack(parameter.grad),
+                exp_avg=pack(state['exp_avg']),exp_avg_sq=pack(state['exp_avg_sq']))
+    residual=dict(raw);residual['state']=dict(raw['state']);residual['state'][sid]={k:v for k,v in state.items() if k not in ('exp_avg','exp_avg_sq')}
+    return dict(step=step,parameter_name=name,optimizer_parameter_id=sid,
+                tensors=values,
+                exact_model=tensor_digest({k:v for k,v in model.state_dict().items() if k!=name}),
+                exact_optimizer=tensor_digest(residual),
+                exact_gradients=tensor_digest({k:v.grad for k,v in params.items() if k!=name and v.grad is not None}))
+
+
+def compare_probe_trajectories(c, task, reference, actual):
+    """Fail closed on identity; return auditable exact or bounded equivalence."""
+    import math
+    from utils.ch3_contract import numeric_probe_policy
+    rule=numeric_probe_policy(c,task)
+    identity=('id','profile_sha','initial','initial_rng','batch_ids','validation_tail','steps','final_rng')
+    for key in identity:
+        if key not in reference or key not in actual or reference[key]!=actual[key]:
+            raise ValueError('exact identity/RNG/batch mismatch: '+key)
+    if reference['id']!=task['id'] or reference['profile_sha']!=digest(profile(c,task)):
+        raise ValueError('foreign task profile')
+    if reference.get('finite') is not True or actual.get('finite') is not True:
+        raise ValueError('finite flag missing')
+    if reference['steps']!=6 or len(reference['batch_ids'])!=6:raise ValueError('incomplete short trajectory')
+    exact_fields=('trajectory','validation','final')
+    if any(k not in x for x in (reference,actual) for k in exact_fields):raise ValueError('required trajectory evidence missing')
+    if any(len(x['trajectory'])!=6 for x in (reference,actual)):raise ValueError('six-step coverage missing')
+    raw_equal=all(reference[k]==actual[k] for k in exact_fields)
+    if rule is None:
+        return dict(passed=raw_equal,mode='exact',bitwise_equal=raw_equal,
+                    reason=None if raw_equal else 'exact numerical mismatch')
+    if reference.get('numeric_policy_sha')!=digest(rule) or actual.get('numeric_policy_sha')!=digest(rule):
+        raise ValueError('missing or foreign numeric policy evidence')
+    traces=[reference.get('numeric_trace'),actual.get('numeric_trace')]
+    if any(not isinstance(x,list) or len(x)!=6 for x in traces):raise ValueError('numeric trace missing')
+    if any(len(x.get('trajectory',[]))!=6 for x in (reference,actual)):raise ValueError('six steps required')
+    maxima={k:0.0 for k in rule['tensor_fields']};scalar_max=0.;failures=[];count=0
+    def number(v):
+        if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v):
+            raise ValueError('nonfinite or nonnumeric comparison value')
+        return float(v)
+    def compare_number(a,b,label):
+        nonlocal scalar_max
+        delta=abs(number(a)-number(b));scalar_max=max(scalar_max,delta)
+        if delta>rule['atol']:failures.append(label)
+    for step,(a,b) in enumerate(zip(*traces),1):
+        required={'step','parameter_name','optimizer_parameter_id','tensors','exact_model','exact_optimizer','exact_gradients'}
+        if set(a)!=required or set(b)!=required:raise ValueError('numeric evidence schema changed')
+        if a['step']!=step or b['step']!=step or a['parameter_name']!=rule['parameter'] or b['parameter_name']!=rule['parameter']:
+            raise ValueError('numeric step/parameter mismatch')
+        for key in ('optimizer_parameter_id','exact_model','exact_optimizer','exact_gradients'):
+            if a[key]!=b[key]:failures.append('step%d exact %s'%(step,key))
+        if set(a['tensors'])!=set(rule['tensor_fields']) or set(b['tensors'])!=set(rule['tensor_fields']):
+            raise ValueError('numeric tensor coverage mismatch')
+        for key in rule['tensor_fields']:
+            aa,bb=a['tensors'][key],b['tensors'][key]
+            if set(aa)!={'dtype','shape','values'} or set(bb)!={'dtype','shape','values'}:raise ValueError('packed tensor schema')
+            if any(x['dtype']!=rule['dtype'] or x['shape']!=rule['shape'] for x in (aa,bb)):
+                raise ValueError('numeric shape/dtype mismatch')
+            size=math.prod(rule['shape'])
+            if len(aa['values'])!=size or len(bb['values'])!=size:raise ValueError('numeric element count mismatch')
+            delta=max((abs(number(x)-number(y)) for x,y in zip(aa['values'],bb['values'])),default=0.)
+            count+=size;maxima[key]=max(maxima[key],delta)
+            if delta>rule['atol']:failures.append('step%d %s exceeds absolute tolerance'%(step,key))
+        ta,tb=reference['trajectory'][step-1],actual['trajectory'][step-1]
+        if set(ta)!=set(tb) or set(ta)!={'step','loss','state','optimizer'} or ta['step']!=step or tb['step']!=step:
+            raise ValueError('trajectory schema changed')
+        compare_number(ta['loss'],tb['loss'],'step%d loss'%step)
+    a,b=reference['validation'],actual['validation']
+    if set(a)!={'mse','mae','sse','sae','elements'} or set(a)!=set(b):raise ValueError('validation schema changed')
+    if type(a['elements']) is not int or type(b['elements']) is not int or a['elements']<=0 or a['elements']!=b['elements']:
+        raise ValueError('validation element count mismatch')
+    for x in (a,b):
+        for key,total in (('mse','sse'),('mae','sae')):
+            if number(x[key])!=number(x[total])/x['elements']:raise ValueError('validation aggregation inconsistent')
+    for key in ('mse','mae'):compare_number(a[key],b[key],'validation '+key)
+    for key in ('sse','sae'):compare_number(a[key]/a['elements'],b[key]/b['elements'],'normalized validation '+key)
+    return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),
+                atol=rule['atol'],rtol=rule['rtol'],equal_nan=False,
+                bitwise_equal=raw_equal and all(v==0 for v in maxima.values()),
+                tensor_max_abs=maxima,scalar_normalized_max_abs=scalar_max,compared_elements=count,
+                exact_residual_state=not any('exact' in f for f in failures),failures=failures)
+
+
 def memory_growth_review(memory):
     """Keep strict four-point rule; CPU pre-hash still includes prior history."""
     if len(memory)<4:return {'blocked':False,'triggers':[],'scope':'insufficient observations'}
@@ -268,6 +384,8 @@ def memory_growth_review(memory):
 def probe_worker(c,task,out,device='cuda:0',capture_states=False):
     import torch
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
+    from utils.ch3_contract import numeric_probe_policy
+    numeric_rule=numeric_probe_policy(c,task);numeric_trace=[None]*6 if numeric_rule else None
     import random,numpy as np
     def rng():return tensor_digest((random.getstate(),np.random.get_state(),torch.get_rng_state(),
                                    torch.cuda.get_rng_state_all() if torch.cuda.is_initialized() else [],generator.get_state()))
@@ -299,6 +417,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
         trajectory[step]=dict(step=step+1,loss=loss,state=tensor_digest(model.state_dict()),optimizer=tensor_digest(opt.state_dict()))
+        if numeric_rule:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1)
         after=rss()
         if step==1:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y
@@ -314,6 +433,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
                 reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,
                 affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,
                 diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory))
+    if numeric_rule:result.update(numeric_policy_sha=digest(numeric_rule),numeric_trace=numeric_trace)
     dump(out/'trajectory.json',result)
     if result['memory_review']['blocked']:
         raise RuntimeError('persistent memory growth in measured updates; group blocked pending diagnosis')

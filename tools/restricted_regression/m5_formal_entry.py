@@ -556,10 +556,16 @@ def probe_all(c,approval):
                     fields=['id','profile_sha','initial','initial_rng','batch_ids','trajectory','validation','validation_tail','final','final_rng']
                     if len(observed)!=len(references) or any(any(a[k]!=b[k] for k in fields[:5]) for a,b in zip(references,observed)):
                         raise RuntimeError('shared worker identity/initial RNG mismatch; stop all probe')
-                    if any(any(a[k]!=b[k] for k in fields) for a,b in zip(references,observed)):
-                        decision.update(status='Blocked',parallel='identity/numerical mismatch; no lower-concurrency masking');break
+                    from ch3_runner import compare_probe_trajectories
+                    comparisons=[compare_probe_trajectories(c,task_by_id(c,run),a,b)
+                                 for run,a,b in zip(group['representatives'],references,observed)]
+                    dump(gdir/f'q{concurrency}-numerical-comparison.json',comparisons)
+                    if not all(row['passed'] for row in comparisons):
+                        decision.update(status='Blocked',parallel='numerical equivalence failed; no lower-concurrency masking',
+                                        numerical_comparisons=comparisons);break
                     speed=sum(x['elapsed'] for x in serial)/sum(times)
-                    decision[str(concurrency)]=dict(resource='Passed',trajectory='exact',makespan=sum(times),speedup=speed)
+                    decision[str(concurrency)]=dict(resource='Passed',trajectory='bounded_numeric' if any(x['mode']=='bounded_numeric' for x in comparisons) else 'exact',
+                        numerical_comparisons=comparisons,makespan=sum(times),speedup=speed)
                     if speed>1:
                         decision.update(concurrency=concurrency,parallel='Passed on this one short group');break
             report['decisions'][group['id']]=decision

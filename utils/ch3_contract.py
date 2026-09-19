@@ -11,6 +11,28 @@ BASELINES = frozenset(MODELS)-{'AMD','J','N','S'}
 TRAINING_OVERRIDES = frozenset(('batch','eval_batch','lr'))
 
 
+# Approved only for TimeMixer/Exchange six-step resource equivalence.
+NUMERIC_PROBE_POLICY = {
+    'id':'timemixer-exchange-tokenconv-atol1e-7-v1',
+    'model':'TimeMixer', 'dataset':'Exchange', 'horizons':[96,192,336,720],
+    'parameter':'enc_embedding.value_embedding.tokenConv.weight',
+    'shape':[16,1,3], 'dtype':'torch.float32',
+    'atol':1e-7, 'rtol':0.0, 'equal_nan':False,
+    'tensor_fields':['parameter','gradient','exp_avg','exp_avg_sq'],
+    'initial_identity':'exact', 'other_state':'exact',
+    'metrics':'loss and normalized validation errors atol1e-7',
+}
+
+
+def numeric_probe_policy(c, task):
+    policy=c['execution']['probe'].get('numeric_equivalence')
+    if policy is None:return None
+    if policy!=NUMERIC_PROBE_POLICY:raise ValueError('unauthorized numeric equivalence policy')
+    if (task['model'],task['dataset'])!=(policy['model'],policy['dataset']):return None
+    if task['h'] not in policy['horizons']:raise ValueError('numeric equivalence horizon outside scope')
+    return policy
+
+
 def baseline_training(c, task):
     layer=c.get('baseline_training_overrides',{})
     for model,domains in layer.items():
@@ -156,6 +178,8 @@ def profile(c, task):
 
 def validate_manifest(c):
     if c['contract']!=CONTRACT: raise ValueError('wrong formal contract')
+    if c['execution']['probe'].get('numeric_equivalence') is not None:
+        numeric_probe_policy(c,dict(model='TimeMixer',dataset='Exchange',h=96))
     expected=generate_tasks(c)
     if c['tasks']!=expected or c['groups']!=generate_groups(expected):
         raise ValueError('task/group manifest mismatch')

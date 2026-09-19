@@ -4558,8 +4558,8 @@
   },
   "execution": {
     "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python",
-    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-approved-source-direct-veaod729",
-    "fixture": "/tmp/amd-m5-direct-1swdep9l",
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-numeric-equivalence-80dirugd",
+    "fixture": "/tmp/amd-m5-numeric-0ln4445u",
     "cpu_first_methods": 16,
     "cpu_retry_methods": 16,
     "model_first": {
@@ -4582,16 +4582,44 @@
       "sample_seconds": 0.1,
       "headroom_gib": 8,
       "headroom_fraction": 0.1,
-      "trajectory_rule": "exact equality (no widened tolerance)",
+      "trajectory_rule": "Exact except explicitly approved TimeMixer/Exchange tokenConv numeric policy; atol1e-7 rtol0, finite only",
       "allow_full_probe_now": false,
       "first_adam_max": 3510,
-      "mandatory_blockers": [
-        "TimeMixer/Exchange H192 exact trajectory remains Not passed: serial repeat also differs in tokenConv gradient/Adam state; deterministic-execution or tolerance-policy change requires explicit new decision. Do not launch full follow-up."
-      ],
-      "resource_diagnostic_status": "Historical owned-tensor evidence retained; original full probe 13 Passed /22 ResourceNotVerified /19 Blocked; lifecycle repair requires current review.",
+      "mandatory_blockers": [],
+      "resource_diagnostic_status": "Owned PID lifecycle repaired and reviewed; TimeMixer/Exchange named-state numeric rule accepted in current six-step H192 diagnostic. Full44 follow-up has not run.",
       "resource_diagnostic_evidence": {
         "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_/resource-diagnostic-attempt1/result.json",
         "sha256": "bc791666929dcf7e981c3d871de455198bcb428eca616bcf93bb26da8610fbe4"
+      },
+      "numeric_equivalence": {
+        "id": "timemixer-exchange-tokenconv-atol1e-7-v1",
+        "model": "TimeMixer",
+        "dataset": "Exchange",
+        "horizons": [
+          96,
+          192,
+          336,
+          720
+        ],
+        "parameter": "enc_embedding.value_embedding.tokenConv.weight",
+        "shape": [
+          16,
+          1,
+          3
+        ],
+        "dtype": "torch.float32",
+        "atol": 1e-07,
+        "rtol": 0.0,
+        "equal_nan": false,
+        "tensor_fields": [
+          "parameter",
+          "gradient",
+          "exp_avg",
+          "exp_avg_sq"
+        ],
+        "initial_identity": "exact",
+        "other_state": "exact",
+        "metrics": "loss and normalized validation errors atol1e-7"
       }
     },
     "formal_approval": null,
@@ -4673,7 +4701,7 @@
       "additional_first_adam_proposed": 709,
       "approved_extra_adam": 709,
       "approval_basis": "Current user requests direct execution of the explicit 709-step plan",
-      "mechanical_remaining_before_current": 504
+      "mechanical_remaining_before_current": 474
     },
     "diagnostics": {
       "cpu_methods_first": 16,
@@ -4684,16 +4712,12 @@
         "backward": 32
       },
       "cases": {
-        "amd_rss": {
-          "run_id": "AMD-ETTh1-MS-f1-h96-s2024",
-          "capture_states": false
-        },
-        "timemixer_exact": {
+        "timemixer_numeric": {
           "run_id": "TimeMixer-Exchange-MS-f1-h192-s2024",
-          "capture_states": true
+          "capture_states": false
         }
       },
-      "max_worker_instances": 5
+      "max_worker_instances": 4
     }
   },
   "tasks": [
@@ -12346,22 +12370,22 @@
   ],
   "acceptance": {
     "cpu_ids": [
-      "test_ch3_formal.SourceClosureTests.test_counts_and_allowance",
-      "test_ch3_formal.SourceClosureTests.test_family_unchanged",
-      "test_ch3_formal.SourceClosureTests.test_57_source_values",
-      "test_ch3_formal.SourceClosureTests.test_tasks_T_epochs_preserved",
-      "test_ch3_formal.SourceClosureTests.test_unauthorized_overrides_rejected",
-      "test_ch3_formal.SourceClosureTests.test_optimizer_steps_and_tails",
-      "test_ch3_formal.SourceClosureTests.test_pending_and_old_report_rejected",
-      "test_ch3_formal.SourceClosureTests.test_inherited_profiles_unchanged",
-      "test_ch3_formal.SourceClosureTests.test_digest_parity",
-      "test_ch3_formal.SourceClosureTests.test_growth_true_model_rejected",
-      "test_ch3_formal.SourceClosureTests.test_growth_hash_only_not_gpu_leak",
-      "test_ch3_formal.SourceClosureTests.test_previous_hash_carryover_not_exonerated",
-      "test_ch3_formal.SourceClosureTests.test_budget_approval_and_excess_rejected",
-      "test_ch3_formal.SourceClosureTests.test_bad_budget_before_output",
-      "test_ch3_formal.SourceClosureTests.test_diagnostic_capability_not_general_probe",
-      "test_ch3_formal.SourceClosureTests.test_exit_transition_positive_and_negative"
+      "test_ch3_formal.NumericEquivalenceTests.test_scope_and_rule_immutable",
+      "test_ch3_formal.NumericEquivalenceTests.test_boundary_is_allowed",
+      "test_ch3_formal.NumericEquivalenceTests.test_above_bound_rejected",
+      "test_ch3_formal.NumericEquivalenceTests.test_relative_tolerance_not_used",
+      "test_ch3_formal.NumericEquivalenceTests.test_nonfinite_rejected_even_equal",
+      "test_ch3_formal.NumericEquivalenceTests.test_missing_or_legacy_evidence_rejected",
+      "test_ch3_formal.NumericEquivalenceTests.test_identity_rng_batch_stay_exact",
+      "test_ch3_formal.NumericEquivalenceTests.test_shape_dtype_and_missing_tensor_rejected",
+      "test_ch3_formal.NumericEquivalenceTests.test_unlisted_state_stays_exact",
+      "test_ch3_formal.NumericEquivalenceTests.test_step_and_tensor_scope_rejected",
+      "test_ch3_formal.NumericEquivalenceTests.test_other_models_keep_exact",
+      "test_ch3_formal.NumericEquivalenceTests.test_metric_bound_and_elements",
+      "test_ch3_formal.NumericEquivalenceTests.test_profiles_budget_and_scientific_contract_unchanged",
+      "test_ch3_formal.NumericEquivalenceTests.test_snapshot_captures_only_named_values",
+      "test_ch3_formal.NumericEquivalenceTests.test_numeric_report_requires_policy_bound",
+      "test_ch3_formal.NumericEquivalenceTests.test_old_approval_and_synthetic_capability"
     ],
     "model_cases": {}
   },
