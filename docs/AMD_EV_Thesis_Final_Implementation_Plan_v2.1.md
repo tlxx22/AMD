@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-19当前状态（M5 §21）：用户明确确认三组限定数值等价及额外144次补测Adam。仅TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1四H采用全浮点state/gradient/Adam moment atol=1e-4、rtol=0，loss与归一化validation atol=1e-6；初始身份/RNG/batch、optimizer step、非浮点状态和param-group结构继续exact，非finite拒绝。TimeMixer/Exchange原具名单张量1e-7规则保持。实现使用预分配CPU缓冲区写原始sidecar，正式训练数学/profile不变。CPU首验12 passed/1 error/3 unexecuted，唯一机械清理修复后16/16；三组H96串行参考＋两路并发＋独立串行重复共72 Adam/96前向/72反向均通过，最大state差分别1.91e-6、1.91e-6、4.32e-5，最大指标差2.38e-7，均在预注册界内；机械余额288。34组/115代表继承已核对，20组/80代表补测上限1440=原余额1296+新批144，尚未启动。J未冻结、M5未Closed、M6未开始。以下§20及更早为历史时点。
+
 2026-09-19当前状态（M5 §20）：用户授权直接修复并准备补测；已审核第二轮54组终态34 Passed/20 Blocked（10继承＋24新通过），本轮原probe实际1740 Adam/2320前向/1740反向，无已尝试worker OOM或资源归属失败，不外推未执行H。新增固定CPU摘要缓冲区，三个原RSS失败代表复验通过且计算轨迹与原版exact相同；没有删除四点规则或放宽门槛。CPU16+16方法通过；15个合成诊断worker累计90 Adam/120前向/90反向，机械余额360。三组数值诊断初始/RNG/batch相同但串行重复也不exact，最大模型状态差约1.55e-6、7.08e-8、5.25e-5，不能直接套TimeMixer/Exchange单张量1e-7白名单，未新增容差。计划34组继承/20组80代表补测上限1440，原补测剩1296，额外144仅Proposed。工程repair可收口，完整补测仍Blocked；J未冻结，M5未Closed，M6未开始。以下§19及更早为历史时点。
 
 2026-09-19当前状态（M5 §19）：用户明确选择数值等价并继续授权ChatGPT直接执行至工程closure。仅对TimeMixer/Exchange既定四H的enc_embedding.value_embedding.tokenConv.weight及其梯度/Adam两动量，预登记atol=1e-7、rtol=0、NaN/Inf拒绝；训练loss与归一化validation误差同绝对界，初始/随机/批身份、步数及白名单外模型/梯度/optimizer状态继续exact，其他模型/域不放宽。新JSON逐步数值证据与精确残余摘要已接实际probe比较及报告检查。CPU16/16首次通过；H192新六步串行参考、两路各六步及独立串行重复共24 Adam/32前向/24反向，全部在该固定界内，最大梯度差7.450580596923828e-08、动量差1.4901161193847656e-08、参数和loss差0，旧exact Not passed不倒改。机械余额450；3036补测额度未消耗，10组25代表继承已核对，44组170代表仍待用户一次启动。495/5340、全部profile/T/结构/训练/数据/确定性设置不变。技术阻塞已按新合同处理，本轮工程审核closure后可生成实际版本probe许可；不代启补测，不冻结J、不关闭M5、不进入M6。以下§18及更早为历史时点。
@@ -2092,7 +2094,7 @@ M1 §12 的六折 train split 长度为 576/1171/1747/2342/2937/3475，T=12，H=
 
 ### 9.6.4 A800 batch / 并发效率预检（有限对照完成、适用边界与后续规划）
 
-**当前待决（M5 §20）**：第二轮34组Passed/20组Blocked已登记；摘要CPU缓冲区修复三个原RSS代表通过，原四点规则及TimeMixer/Exchange限定1e-7规则均未放宽。三组新的数值差异已实测，超出原白名单，不自动准入。后续34继承/20补测计划1440，现余1296，额外144仅Proposed；机械余360单列。工程closure后仍须前置拒绝，不能复用旧许可重跑44组。
+**当前补测准备（M5 §21）**：34组Passed证据继承已核对，20组/80代表待补测。三组新数值范围已由用户明确批准为全浮点state/gradient/Adam moment atol=1e-4、metric atol=1e-6、rtol=0，并经H96串行/两路/串行重复现场复验通过；TimeMixer/Exchange原具名单张量1e-7规则保持。补测上限1440已由1296余额＋新批144覆盖；机械余额288单列。closure和实际新review/preflight通过前不启动。
 
 **当前数值准入（M5 §19，本次用户明确确认）**：仅TimeMixer/Exchange四H具名tokenConv权重/梯度/Adam两动量采用逐元素atol=1e-7、rtol=0，finite强制；loss/归一化validation同界，初始/RNG/batch/步数与其他状态仍exact，其他模型域不放宽。旧exact失败保留，新六步H192串行/并发对照已通过；44组170代表仍待完整补测。机械余额450，3036补测额度未用，准备review/closure后用户启动，不进入M6。规则与完整证据见唯一M5 §19。
 

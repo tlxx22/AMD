@@ -66,14 +66,22 @@ def validate_probe_report(c, report):
                 import math
                 for row in checked:
                     if (row.get('passed') is not True or row.get('mode')!='bounded_numeric'
-                            or row.get('policy_sha')!=digest(rule) or row.get('atol')!=rule['atol']
-                            or row.get('rtol')!=0 or row.get('exact_residual_state') is not True):
+                            or row.get('policy_sha')!=digest(rule) or row.get('rtol')!=0
+                            or row.get('exact_residual_state') is not True):
                         raise ValueError('numeric admission policy mismatch')
-                    maxima=list(row.get('tensor_max_abs',{}).values())+[row.get('scalar_normalized_max_abs')]
-                    if len(maxima)!=5 or any(v is None or not math.isfinite(v) or v<0 or v>rule['atol'] for v in maxima):
-                        raise ValueError('numeric admission exceeds bound')
+                    if rule['kind']=='named_tensor':
+                        maxima=list(row.get('tensor_max_abs',{}).values())
+                        scalar=row.get('scalar_normalized_max_abs')
+                        if (len(maxima)!=4 or any(v is None or not math.isfinite(v) or v<0 or v>rule['atol'] for v in maxima)
+                                or scalar is None or not math.isfinite(scalar) or scalar<0 or scalar>rule['metric_atol']):
+                            raise ValueError('named numeric admission exceeds bound')
+                    elif rule['kind']=='full_float_state':
+                        state=row.get('state_max_abs');scalar=row.get('scalar_normalized_max_abs')
+                        if (state is None or not math.isfinite(state) or state<0 or state>rule['state_atol']
+                                or scalar is None or not math.isfinite(scalar) or scalar<0 or scalar>rule['metric_atol']):
+                            raise ValueError('full-state numeric admission exceeds bound')
+                    else:raise ValueError('unknown numeric policy kind')
     return report
-
 
 def validate_model_completion(c, model, report):
     expected=[t['id'] for t in c['tasks'] if t['model']==model]
@@ -159,12 +167,7 @@ def tensor_digest(value):
 
 
 class ReusableTensorDigest:
-    """Hash state through fixed CPU storage; never change values or RNG.
-
-    One buffer per dtype holds the largest registered tensor. All shape views
-    and byte views are prepared/touched before training. Unknown tensor schemas
-    fail instead of silently allocating another state-sized CPU object.
-    """
+    """Hash state through fixed CPU storage; never change values or RNG."""
     def __init__(self, template):
         import torch
         schemas={}
@@ -176,9 +179,7 @@ class ReusableTensorDigest:
                 for x in v.values():register(x)
             elif isinstance(v,(tuple,list)):
                 for x in v:register(x)
-        register(template)
-        # Adam's lazily created step is a scalar float32 CPU tensor.
-        schemas[(torch.float32,())]=1
+        register(template);schemas[(torch.float32,())]=1
         sizes={}
         for (dtype,shape),n in schemas.items():sizes[dtype]=max(sizes.get(dtype,0),n)
         self.buffers={dtype:torch.empty(n,dtype=dtype,device='cpu') for dtype,n in sizes.items()}
@@ -186,23 +187,24 @@ class ReusableTensorDigest:
         self.views={};self.bytes={};self.headers={}
         for (dtype,shape),n in schemas.items():
             key=(dtype,shape);v=self.buffers[dtype][:n].view(shape)
-            self.views[key]=v
-            self.bytes[key]=memoryview(v.numpy()).cast('B') if n else None
+            self.views[key]=v;self.bytes[key]=memoryview(v.numpy()).cast('B') if n else None
             self.headers[key]=str((dtype,shape)).encode()
         self.storage_bytes=sum(b.numel()*b.element_size() for b in self.buffers.values())
         self.buffer_allocations=len(self.buffers)
+    def copy_bytes(self,v):
+        import torch
+        if not torch.is_tensor(v):raise TypeError('tensor required')
+        key=(v.dtype,tuple(v.shape))
+        if key not in self.views or v.layout!=torch.strided:raise ValueError('unregistered state tensor schema')
+        if v.numel():self.views[key].copy_(v.detach(),non_blocking=False)
+        return self.bytes[key],self.headers[key]
     def __call__(self, value):
         import torch
         h=hashlib.sha256()
         def add(v):
             if torch.is_tensor(v):
-                key=(v.dtype,tuple(v.shape))
-                if key not in self.views or v.layout!=torch.strided:
-                    raise ValueError('unregistered state tensor schema')
-                h.update(self.headers[key])
-                if v.numel():
-                    self.views[key].copy_(v.detach(),non_blocking=False)
-                    h.update(self.bytes[key])
+                raw,header=self.copy_bytes(v);h.update(header)
+                if raw is not None:h.update(raw)
             elif isinstance(v,dict):
                 for k in sorted(v,key=str):h.update(str(k).encode());add(v[k])
             elif isinstance(v,(list,tuple)):
@@ -210,6 +212,117 @@ class ReusableTensorDigest:
             else:h.update(repr(v).encode())
         add(value);return h.hexdigest()
 
+
+def _numeric_json_safe(v):
+    if v is None or isinstance(v,(str,int,float,bool)):return v
+    if isinstance(v,(list,tuple)):return [_numeric_json_safe(x) for x in v]
+    if isinstance(v,dict):return {str(k):_numeric_json_safe(x) for k,x in sorted(v.items(),key=lambda z:str(z[0]))}
+    return repr(v)
+
+
+class FullNumericStateWriter:
+    """Write full floating state through the same preallocated CPU buffers.
+
+    Floating model parameters/buffers, gradients and Adam moments are bounded;
+    optimizer step, nonfloating tensors and optimizer structure stay exact.
+    """
+    def __init__(self,model,opt,out,digest_state,rule):
+        self.model,self.opt,self.out,self.digest,self.rule=model,opt,Path(out),digest_state,rule
+        self.params=list(model.named_parameters());self.buffers=list(model.named_buffers())
+        self.names={id(v):k for k,v in self.params};self.entries=None;self.schema=None;self.schema_path=self.out/'numeric-full-schema.json';self.schema_sha=None
+    def _group_meta(self):
+        rows=[]
+        for group in self.opt.param_groups:
+            row={}
+            for k,v in group.items():row[k]=[self.names[id(x)] for x in v] if k=='params' else _numeric_json_safe(v)
+            rows.append(row)
+        return rows
+    def _build(self):
+        import torch
+        specs=[];access=[];offset=0;non_tensor={}
+        def add(path,tensor,mode,getter):
+            nonlocal offset
+            if not torch.is_tensor(tensor) or tensor.layout!=torch.strided:raise ValueError('full numeric state requires dense tensor')
+            n=tensor.numel()*tensor.element_size();specs.append(dict(path=path,dtype=str(tensor.dtype),shape=list(tensor.shape),mode=mode,offset=offset,nbytes=n,numel=tensor.numel()))
+            access.append(getter);offset+=n
+        for name,t in self.params:add('model/parameter/'+name,t,'bounded' if t.is_floating_point() else 'exact',lambda t=t:t)
+        for name,t in self.buffers:add('model/buffer/'+name,t,'bounded' if t.is_floating_point() else 'exact',lambda t=t:t)
+        for name,p in self.params:
+            if p.grad is not None:add('gradient/'+name,p.grad,'bounded' if p.grad.is_floating_point() else 'exact',lambda p=p:p.grad)
+        for name,p in self.params:
+            row={}
+            for key,value in sorted(self.opt.state.get(p,{}).items(),key=lambda z:str(z[0])):
+                if torch.is_tensor(value):
+                    mode='exact' if key=='step' or not value.is_floating_point() else 'bounded'
+                    add('optimizer/'+name+'/'+str(key),value,mode,lambda p=p,key=key:self.opt.state[p][key])
+                else:row[str(key)]=_numeric_json_safe(value)
+            if row:non_tensor[name]=row
+        schema=dict(policy_id=self.rule['id'],entries=specs,optimizer_groups=self._group_meta(),optimizer_non_tensor_state=non_tensor,total_bytes=offset)
+        self.entries,self.schema=access,schema
+        dump(self.schema_path,schema);self.schema_sha=hashlib.sha256(self.schema_path.read_bytes()).hexdigest()
+    def _verify_structure(self):
+        import torch
+        expected=self.schema['entries'];actual=[];non_tensor={};offset=0
+        def add(path,tensor,mode):
+            nonlocal offset
+            if not torch.is_tensor(tensor):raise ValueError('full numeric tensor disappeared')
+            n=tensor.numel()*tensor.element_size();actual.append(dict(path=path,dtype=str(tensor.dtype),shape=list(tensor.shape),mode=mode,offset=offset,nbytes=n,numel=tensor.numel()));offset+=n
+        for name,t in self.params:add('model/parameter/'+name,t,'bounded' if t.is_floating_point() else 'exact')
+        for name,t in self.buffers:add('model/buffer/'+name,t,'bounded' if t.is_floating_point() else 'exact')
+        for name,p in self.params:
+            if p.grad is not None:add('gradient/'+name,p.grad,'bounded' if p.grad.is_floating_point() else 'exact')
+        for name,p in self.params:
+            row={}
+            for key,value in sorted(self.opt.state.get(p,{}).items(),key=lambda z:str(z[0])):
+                if torch.is_tensor(value):add('optimizer/'+name+'/'+str(key),value,'exact' if key=='step' or not value.is_floating_point() else 'bounded')
+                else:row[str(key)]=_numeric_json_safe(value)
+            if row:non_tensor[name]=row
+        if actual!=expected or self._group_meta()!=self.schema['optimizer_groups'] or non_tensor!=self.schema['optimizer_non_tensor_state']:
+            raise ValueError('full numeric state structure changed')
+    def capture(self,step):
+        if self.entries is None:self._build()
+        else:self._verify_structure()
+        path=self.out/f'numeric-full-step-{step}.bin';h=hashlib.sha256()
+        with path.open('xb') as f:
+            for getter in self.entries:
+                tensor=getter()
+                if tensor is None:raise ValueError('full numeric state tensor missing')
+                if tensor.is_floating_point():finite(tensor)
+                raw,_=self.digest.copy_bytes(tensor)
+                if raw is not None:f.write(raw);h.update(raw)
+        if path.stat().st_size!=self.schema['total_bytes']:raise ValueError('full numeric sidecar size mismatch')
+        return dict(step=step,schema_file=str(self.schema_path),schema_sha=self.schema_sha,data_file=str(path),data_sha=h.hexdigest(),bytes=path.stat().st_size)
+
+
+def _compare_full_numeric_files(rule,reference,actual):
+    import math,numpy as np
+    if reference.get('schema_sha')!=actual.get('schema_sha'):return dict(passed=False,state_max_abs=float('inf'),exact=False,failures=['schema digest mismatch'],compared_elements=0)
+    for row in (reference,actual):
+        sp=Path(row['schema_file']);dp=Path(row['data_file'])
+        if hashlib.sha256(sp.read_bytes()).hexdigest()!=row['schema_sha'] or hashlib.sha256(dp.read_bytes()).hexdigest()!=row['data_sha']:raise ValueError('numeric sidecar checksum mismatch')
+        if dp.stat().st_size!=row['bytes']:raise ValueError('numeric sidecar length mismatch')
+    sa=json.loads(Path(reference['schema_file']).read_text());sb=json.loads(Path(actual['schema_file']).read_text())
+    if sa!=sb:return dict(passed=False,state_max_abs=float('inf'),exact=False,failures=['schema content mismatch'],compared_elements=0)
+    dtype_map={'torch.float16':np.dtype('<f2'),'torch.float32':np.dtype('<f4'),'torch.float64':np.dtype('<f8')}
+    maxima=0.0;count=0;failures=[];exact=True
+    with Path(reference['data_file']).open('rb') as fa,Path(actual['data_file']).open('rb') as fb:
+        for e in sa['entries']:
+            off,n=e['offset'],e['nbytes'];fa.seek(off);fb.seek(off)
+            if e['mode']=='exact':
+                if hashlib.sha256(fa.read(n)).digest()!=hashlib.sha256(fb.read(n)).digest():exact=False;failures.append('exact '+e['path'])
+                continue
+            if e['mode']!='bounded' or e['dtype'] not in dtype_map:raise ValueError('unsupported bounded numeric dtype/mode')
+            dt=dtype_map[e['dtype']];remaining=e['numel'];local=0.0
+            while remaining:
+                take=min(remaining,65536);aa=np.fromfile(fa,dtype=dt,count=take);bb=np.fromfile(fb,dtype=dt,count=take)
+                if len(aa)!=take or len(bb)!=take:raise ValueError('truncated full numeric sidecar')
+                if not np.isfinite(aa).all() or not np.isfinite(bb).all():raise ValueError('nonfinite full numeric state')
+                d=np.abs(aa.astype(np.float64)-bb.astype(np.float64))
+                if d.size:local=max(local,float(d.max()))
+                remaining-=take
+            maxima=max(maxima,local);count+=e['numel']
+            if local>rule['state_atol']:failures.append(e['path']+' exceeds state tolerance')
+    return dict(passed=not failures,state_max_abs=maxima,exact=exact,failures=failures,compared_elements=count)
 
 def cpu_tree(value):
     import torch
@@ -326,6 +439,7 @@ def numeric_probe_snapshot(model, opt, rule, step, digest_state=None):
     """Small CPU values for one named tensor; all residual state stays exact."""
     import torch
     digest_state=digest_state or tensor_digest
+    if rule.get('kind')!='named_tensor':raise ValueError('named numeric snapshot requires named_tensor policy')
     name=rule['parameter'];params=dict(model.named_parameters())
     if name not in params:raise ValueError('approved numeric parameter missing')
     parameter=params[name];raw=opt.state_dict();ids=[]
@@ -351,78 +465,71 @@ def numeric_probe_snapshot(model, opt, rule, step, digest_state=None):
 
 
 def compare_probe_trajectories(c, task, reference, actual):
-    """Fail closed on identity; return auditable exact or bounded equivalence."""
+    """Fail closed on identity; compare exact, named or full-state bounded paths."""
     import math
     from utils.ch3_contract import numeric_probe_policy
     rule=numeric_probe_policy(c,task)
     identity=('id','profile_sha','initial','initial_rng','batch_ids','validation_tail','steps','final_rng')
     for key in identity:
-        if key not in reference or key not in actual or reference[key]!=actual[key]:
-            raise ValueError('exact identity/RNG/batch mismatch: '+key)
-    if reference['id']!=task['id'] or reference['profile_sha']!=digest(profile(c,task)):
-        raise ValueError('foreign task profile')
-    if reference.get('finite') is not True or actual.get('finite') is not True:
-        raise ValueError('finite flag missing')
+        if key not in reference or key not in actual or reference[key]!=actual[key]:raise ValueError('exact identity/RNG/batch mismatch: '+key)
+    if reference['id']!=task['id'] or reference['profile_sha']!=digest(profile(c,task)):raise ValueError('foreign task profile')
+    if reference.get('finite') is not True or actual.get('finite') is not True:raise ValueError('finite flag missing')
     if reference['steps']!=6 or len(reference['batch_ids'])!=6:raise ValueError('incomplete short trajectory')
     exact_fields=('trajectory','validation','final')
     if any(k not in x for x in (reference,actual) for k in exact_fields):raise ValueError('required trajectory evidence missing')
     if any(len(x['trajectory'])!=6 for x in (reference,actual)):raise ValueError('six-step coverage missing')
     raw_equal=all(reference[k]==actual[k] for k in exact_fields)
-    if rule is None:
-        return dict(passed=raw_equal,mode='exact',bitwise_equal=raw_equal,
-                    reason=None if raw_equal else 'exact numerical mismatch')
-    if reference.get('numeric_policy_sha')!=digest(rule) or actual.get('numeric_policy_sha')!=digest(rule):
-        raise ValueError('missing or foreign numeric policy evidence')
-    traces=[reference.get('numeric_trace'),actual.get('numeric_trace')]
-    if any(not isinstance(x,list) or len(x)!=6 for x in traces):raise ValueError('numeric trace missing')
-    if any(len(x.get('trajectory',[]))!=6 for x in (reference,actual)):raise ValueError('six steps required')
-    maxima={k:0.0 for k in rule['tensor_fields']};scalar_max=0.;failures=[];count=0
+    if rule is None:return dict(passed=raw_equal,mode='exact',bitwise_equal=raw_equal,reason=None if raw_equal else 'exact numerical mismatch')
+    if reference.get('numeric_policy_sha')!=digest(rule) or actual.get('numeric_policy_sha')!=digest(rule):raise ValueError('missing or foreign numeric policy evidence')
+    failures=[];scalar_max=0.0
     def number(v):
-        if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v):
-            raise ValueError('nonfinite or nonnumeric comparison value')
+        if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v):raise ValueError('nonfinite or nonnumeric comparison value')
         return float(v)
-    def compare_number(a,b,label):
+    def compare_number(a,b,label,limit):
         nonlocal scalar_max
         delta=abs(number(a)-number(b));scalar_max=max(scalar_max,delta)
-        if delta>rule['atol']:failures.append(label)
-    for step,(a,b) in enumerate(zip(*traces),1):
-        required={'step','parameter_name','optimizer_parameter_id','tensors','exact_model','exact_optimizer','exact_gradients'}
-        if set(a)!=required or set(b)!=required:raise ValueError('numeric evidence schema changed')
-        if a['step']!=step or b['step']!=step or a['parameter_name']!=rule['parameter'] or b['parameter_name']!=rule['parameter']:
-            raise ValueError('numeric step/parameter mismatch')
-        for key in ('optimizer_parameter_id','exact_model','exact_optimizer','exact_gradients'):
-            if a[key]!=b[key]:failures.append('step%d exact %s'%(step,key))
-        if set(a['tensors'])!=set(rule['tensor_fields']) or set(b['tensors'])!=set(rule['tensor_fields']):
-            raise ValueError('numeric tensor coverage mismatch')
-        for key in rule['tensor_fields']:
-            aa,bb=a['tensors'][key],b['tensors'][key]
-            if set(aa)!={'dtype','shape','values'} or set(bb)!={'dtype','shape','values'}:raise ValueError('packed tensor schema')
-            if any(x['dtype']!=rule['dtype'] or x['shape']!=rule['shape'] for x in (aa,bb)):
-                raise ValueError('numeric shape/dtype mismatch')
-            size=math.prod(rule['shape'])
-            if len(aa['values'])!=size or len(bb['values'])!=size:raise ValueError('numeric element count mismatch')
-            delta=max((abs(number(x)-number(y)) for x,y in zip(aa['values'],bb['values'])),default=0.)
-            count+=size;maxima[key]=max(maxima[key],delta)
-            if delta>rule['atol']:failures.append('step%d %s exceeds absolute tolerance'%(step,key))
-        ta,tb=reference['trajectory'][step-1],actual['trajectory'][step-1]
-        if set(ta)!=set(tb) or set(ta)!={'step','loss','state','optimizer'} or ta['step']!=step or tb['step']!=step:
-            raise ValueError('trajectory schema changed')
-        compare_number(ta['loss'],tb['loss'],'step%d loss'%step)
+        if delta>limit:failures.append(label)
+    metric_limit=rule['metric_atol']
+    for step,(ta,tb) in enumerate(zip(reference['trajectory'],actual['trajectory']),1):
+        if set(ta)!=set(tb) or set(ta)!={'step','loss','state','optimizer'} or ta['step']!=step or tb['step']!=step:raise ValueError('trajectory schema changed')
+        compare_number(ta['loss'],tb['loss'],'step%d loss'%step,metric_limit)
     a,b=reference['validation'],actual['validation']
     if set(a)!={'mse','mae','sse','sae','elements'} or set(a)!=set(b):raise ValueError('validation schema changed')
-    if type(a['elements']) is not int or type(b['elements']) is not int or a['elements']<=0 or a['elements']!=b['elements']:
-        raise ValueError('validation element count mismatch')
+    if type(a['elements']) is not int or type(b['elements']) is not int or a['elements']<=0 or a['elements']!=b['elements']:raise ValueError('validation element count mismatch')
     for x in (a,b):
         for key,total in (('mse','sse'),('mae','sae')):
             if number(x[key])!=number(x[total])/x['elements']:raise ValueError('validation aggregation inconsistent')
-    for key in ('mse','mae'):compare_number(a[key],b[key],'validation '+key)
-    for key in ('sse','sae'):compare_number(a[key]/a['elements'],b[key]/b['elements'],'normalized validation '+key)
-    return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),
-                atol=rule['atol'],rtol=rule['rtol'],equal_nan=False,
-                bitwise_equal=raw_equal and all(v==0 for v in maxima.values()),
-                tensor_max_abs=maxima,scalar_normalized_max_abs=scalar_max,compared_elements=count,
-                exact_residual_state=not any('exact' in f for f in failures),failures=failures)
-
+    for key in ('mse','mae'):compare_number(a[key],b[key],'validation '+key,metric_limit)
+    for key in ('sse','sae'):compare_number(a[key]/a['elements'],b[key]/b['elements'],'normalized validation '+key,metric_limit)
+    if rule['kind']=='named_tensor':
+        traces=[reference.get('numeric_trace'),actual.get('numeric_trace')]
+        if any(not isinstance(x,list) or len(x)!=6 for x in traces):raise ValueError('numeric trace missing')
+        maxima={k:0.0 for k in rule['tensor_fields']};count=0
+        for step,(x,y) in enumerate(zip(*traces),1):
+            required={'step','parameter_name','optimizer_parameter_id','tensors','exact_model','exact_optimizer','exact_gradients'}
+            if set(x)!=required or set(y)!=required:raise ValueError('numeric evidence schema changed')
+            if x['step']!=step or y['step']!=step or x['parameter_name']!=rule['parameter'] or y['parameter_name']!=rule['parameter']:raise ValueError('numeric step/parameter mismatch')
+            for key in ('optimizer_parameter_id','exact_model','exact_optimizer','exact_gradients'):
+                if x[key]!=y[key]:failures.append('step%d exact %s'%(step,key))
+            if set(x['tensors'])!=set(rule['tensor_fields']) or set(y['tensors'])!=set(rule['tensor_fields']):raise ValueError('numeric tensor coverage mismatch')
+            for key in rule['tensor_fields']:
+                aa,bb=x['tensors'][key],y['tensors'][key]
+                if set(aa)!={'dtype','shape','values'} or set(bb)!={'dtype','shape','values'}:raise ValueError('packed tensor schema')
+                if any(z['dtype']!=rule['dtype'] or z['shape']!=rule['shape'] for z in (aa,bb)):raise ValueError('numeric shape/dtype mismatch')
+                size=math.prod(rule['shape'])
+                if len(aa['values'])!=size or len(bb['values'])!=size:raise ValueError('numeric element count mismatch')
+                delta=max((abs(number(u)-number(v)) for u,v in zip(aa['values'],bb['values'])),default=0.);count+=size;maxima[key]=max(maxima[key],delta)
+                if delta>rule['atol']:failures.append('step%d %s exceeds absolute tolerance'%(step,key))
+        return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),atol=rule['atol'],metric_atol=metric_limit,rtol=0.0,equal_nan=False,bitwise_equal=raw_equal and all(v==0 for v in maxima.values()),tensor_max_abs=maxima,scalar_normalized_max_abs=scalar_max,compared_elements=count,exact_residual_state=not any('exact' in f for f in failures),failures=failures)
+    if rule['kind']=='full_float_state':
+        traces=[reference.get('full_numeric_trace'),actual.get('full_numeric_trace')]
+        if any(not isinstance(x,list) or len(x)!=6 for x in traces):raise ValueError('full numeric trace missing')
+        state_max=0.0;count=0;exact=True
+        for step,(x,y) in enumerate(zip(*traces),1):
+            if x.get('step')!=step or y.get('step')!=step:raise ValueError('full numeric step mismatch')
+            row=_compare_full_numeric_files(rule,x,y);state_max=max(state_max,row['state_max_abs']);count+=row['compared_elements'];exact=exact and row['exact'];failures.extend('step%d '%step+f for f in row['failures'])
+        return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),state_atol=rule['state_atol'],metric_atol=metric_limit,rtol=0.0,equal_nan=False,bitwise_equal=raw_equal and state_max==0 and exact,state_max_abs=state_max,scalar_normalized_max_abs=scalar_max,compared_elements=count,exact_residual_state=exact and not any(f.startswith('step') and 'exact ' in f for f in failures),failures=failures)
+    raise ValueError('unknown numeric policy kind')
 
 def memory_growth_review(memory):
     """Keep strict four-point rule; CPU pre-hash still includes prior history."""
@@ -439,65 +546,44 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
     import torch
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     from utils.ch3_contract import numeric_probe_policy
-    numeric_rule=numeric_probe_policy(c,task);numeric_trace=[None]*6 if numeric_rule else None
+    numeric_rule=numeric_probe_policy(c,task);numeric_trace=[None]*6 if numeric_rule and numeric_rule['kind']=='named_tensor' else None
     import random,numpy as np
-    def rng():return tensor_digest((random.getstate(),np.random.get_state(),torch.get_rng_state(),
-                                   torch.cuda.get_rng_state_all() if torch.cuda.is_initialized() else [],generator.get_state()))
-    def rss():
-        return next(int(line.split()[1])*1024 for line in Path('/proc/self/status').read_text().splitlines() if line.startswith('VmRSS:'))
+    def rng():return tensor_digest((random.getstate(),np.random.get_state(),torch.get_rng_state(),torch.cuda.get_rng_state_all() if torch.cuda.is_initialized() else [],generator.get_state()))
+    def rss():return next(int(line.split()[1])*1024 for line in Path('/proc/self/status').read_text().splitlines() if line.startswith('VmRSS:'))
     def capture(label):
-        if capture_states:
-            torch.save(dict(model=cpu_tree(model.state_dict()),optimizer=cpu_tree(opt.state_dict()),
-                            gradients={k:cpu_tree(v.grad) for k,v in model.named_parameters() if v.grad is not None}),out/(label+'.pt'))
-    state_digest=ReusableTensorDigest(model.state_dict())
+        if capture_states:torch.save(dict(model=cpu_tree(model.state_dict()),optimizer=cpu_tree(opt.state_dict()),gradients={k:cpu_tree(v.grad) for k,v in model.named_parameters() if v.grad is not None}),out/(label+'.pt'))
+    state_digest=ReusableTensorDigest(model.state_dict());full_writer=FullNumericStateWriter(model,opt,out,state_digest,numeric_rule) if numeric_rule and numeric_rule['kind']=='full_float_state' else None
+    full_trace=[None]*6 if full_writer else None
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
-    b=p['training']['batch'];v=p['training']['eval_batch']
-    d=c['datasets'][task['dataset']]
-    if task['dataset']=='UrbanEV':
-        a,z,_=c['urban_folds'][task['fold']-1];validation_samples=(z-a-p['T']-task['h']+1)*275
+    b=p['training']['batch'];v=p['training']['eval_batch'];d=c['datasets'][task['dataset']]
+    if task['dataset']=='UrbanEV':a,z,_=c['urban_folds'][task['fold']-1];validation_samples=(z-a-p['T']-task['h']+1)*275
     else:
         if d['endpoints'] is None:raise ValueError('version endpoints required for actual validation tail')
         a,z,_=d['endpoints'];validation_samples=z-a-p['pred_len']+1
     tail=validation_samples%v
-    def batch(size):
-        x=torch.randn(size,p['T'],p['C'],generator=generator)
-        y=torch.randn(size,p['pred_len'],1,generator=generator)
-        return x,y
+    def batch(size):return torch.randn(size,p['T'],p['C'],generator=generator),torch.randn(size,p['pred_len'],1,generator=generator)
     trajectory=[None]*6;batch_ids=[None]*6;memory=[None]*6
     for step in range(6):
-        x,y=batch(b);batch_ids[step]=tensor_digest((x,y))
-        loss=update(model,opt,x,y,p,device)
-        # Measurement is before CPU state hashing; previous steps' hashing can
-        # still affect RSS. Both phases remain visible and no tolerance changes.
+        x,y=batch(b);batch_ids[step]=tensor_digest((x,y));loss=update(model,opt,x,y,p,device)
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
         trajectory[step]=dict(step=step+1,loss=loss,state=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict()))
-        if numeric_rule:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1,state_digest)
+        if numeric_trace is not None:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1,state_digest)
+        if full_writer is not None:full_trace[step]=full_writer.capture(step+1)
         after=rss()
         if step==1:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y
         if str(device).startswith('cuda'):torch.cuda.synchronize()
-        memory[step]=dict(step=step+1,allocated=allocated,
-             reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,
-             rss_before_hash=before,rss_after_hash=after,rss=rss())
+        memory[step]=dict(step=step+1,allocated=allocated,reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,rss_before_hash=before,rss_after_hash=after,rss=rss())
         capture('step-'+str(step+1))
-    result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,
-                batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,
-                final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,
-                allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,
-                reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,
-                affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,
-                diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),
-                state_digest_storage_bytes=state_digest.storage_bytes,
-                state_digest_buffer_allocations=state_digest.buffer_allocations,
-                state_digest_policy="preallocated-per-dtype-v1; original digest byte semantics")
-    if numeric_rule:result.update(numeric_policy_sha=digest(numeric_rule),numeric_trace=numeric_trace)
+    result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),state_digest_storage_bytes=state_digest.storage_bytes,state_digest_buffer_allocations=state_digest.buffer_allocations,state_digest_policy='preallocated-per-dtype-v1; original digest byte semantics')
+    if numeric_rule:
+        result['numeric_policy_sha']=digest(numeric_rule)
+        if numeric_trace is not None:result['numeric_trace']=numeric_trace
+        if full_trace is not None:result['full_numeric_trace']=full_trace
     dump(out/'trajectory.json',result)
-    if result['memory_review']['blocked']:
-        raise RuntimeError('persistent memory growth in measured updates; group blocked pending diagnosis')
+    if result['memory_review']['blocked']:raise RuntimeError('persistent memory growth in measured updates; group blocked pending diagnosis')
     return result
-
-
 
 def formal_worker(c,task,out,approval,resume=False):
     import torch

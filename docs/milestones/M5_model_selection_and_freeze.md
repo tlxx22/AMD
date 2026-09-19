@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §21）：用户明确确认三组限定数值等价及额外144次补测Adam。仅TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1四H采用全浮点state/gradient/Adam moment atol=1e-4、rtol=0，loss与归一化validation atol=1e-6；初始身份/RNG/batch、optimizer step、非浮点状态和param-group结构继续exact，非finite拒绝。TimeMixer/Exchange原具名单张量1e-7规则保持。实现使用预分配CPU缓冲区写原始sidecar，正式训练数学/profile不变。CPU首验12 passed/1 error/3 unexecuted，唯一机械清理修复后16/16；三组H96串行参考＋两路并发＋独立串行重复共72 Adam/96前向/72反向均通过，最大state差分别1.91e-6、1.91e-6、4.32e-5，最大指标差2.38e-7，均在预注册界内；机械余额288。34组/115代表继承已核对，20组/80代表补测上限1440=原余额1296+新批144，尚未启动。J未冻结、M5未Closed、M6未开始。以下§20及更早为历史时点。
+
 2026-09-19当前状态（M5 §20）：用户授权直接修复并准备补测；已审核第二轮54组终态34 Passed/20 Blocked（10继承＋24新通过），本轮原probe实际1740 Adam/2320前向/1740反向，无已尝试worker OOM或资源归属失败，不外推未执行H。新增固定CPU摘要缓冲区，三个原RSS失败代表复验通过且计算轨迹与原版exact相同；没有删除四点规则或放宽门槛。CPU16+16方法通过；15个合成诊断worker累计90 Adam/120前向/90反向，机械余额360。三组数值诊断初始/RNG/batch相同但串行重复也不exact，最大模型状态差约1.55e-6、7.08e-8、5.25e-5，不能直接套TimeMixer/Exchange单张量1e-7白名单，未新增容差。计划34组继承/20组80代表补测上限1440，原补测剩1296，额外144仅Proposed。工程repair可收口，完整补测仍Blocked；J未冻结，M5未Closed，M6未开始。以下§19及更早为历史时点。
 
 2026-09-19当前状态（M5 §19）：用户明确选择数值等价并继续授权ChatGPT直接执行至工程closure。仅对TimeMixer/Exchange既定四H的enc_embedding.value_embedding.tokenConv.weight及其梯度/Adam两动量，预登记atol=1e-7、rtol=0、NaN/Inf拒绝；训练loss与归一化validation误差同绝对界，初始/随机/批身份、步数及白名单外模型/梯度/optimizer状态继续exact，其他模型/域不放宽。新JSON逐步数值证据与精确残余摘要已接实际probe比较及报告检查。CPU16/16首次通过；H192新六步串行参考、两路各六步及独立串行重复共24 Adam/32前向/24反向，全部在该固定界内，最大梯度差7.450580596923828e-08、动量差1.4901161193847656e-08、参数和loss差0，旧exact Not passed不倒改。机械余额450；3036补测额度未消耗，10组25代表继承已核对，44组170代表仍待用户一次启动。495/5340、全部profile/T/结构/训练/数据/确定性设置不变。技术阻塞已按新合同处理，本轮工程审核closure后可生成实际版本probe许可；不代启补测，不冻结J、不关闭M5、不进入M6。以下§18及更早为历史时点。
@@ -1357,3 +1359,25 @@ bash scripts/ch3/start_probe.sh preflight
 ```
 
 准确commit/三端0/0/clean与文件SHA在本轮外置closure-verification.json登记，不为写入文档自身commit递归提交。AGENTS、Closed M4、baseline、作者源码/环境、空间路线保持；J未冻结、M5未Closed、M6未开始。
+
+## 21. 用户确认三组全浮点数值等价、追加144额度与启动前收口
+
+### 21.1 授权与固定准入规则
+
+用户本轮明确回复“确认”，批准§20提出的三组限定数值等价及额外144次补测Adam。新增范围仅为TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1的H96/192/336/720；全部浮点模型参数与buffer、现存梯度、Adam浮点moment逐元素`atol=1e-4, rtol=0`，loss及归一化validation MSE/MAE/SSE/SAE采用`atol=1e-6, rtol=0`。初始模型、RNG、输入batch、optimizer step、非浮点buffer/状态、param-group结构继续exact；NaN/Inf无条件拒绝。TimeMixer/Exchange §19具名单张量`1e-7`规则保持不变，其他模型/域仍exact。阈值在任何本轮CUDA轨迹运行前写入`authorization.json`。
+
+科学合同未改变：495 runs/5340 run-epochs、全部T/batch/LR/epoch/seed/数据与模型结构、max optimizer steps 16,482,750保持。34组/115代表继承profile及祖先trajectory引用重新核对一致；20组/80代表补测上限1440，由原余额1296＋本轮新批144覆盖，尚未消耗。
+
+### 21.2 实现与CPU验收
+
+为避免再次引入state-sized CPU分配，全浮点比较沿§20的`ReusableTensorDigest`固定buffer，在worker内按固定schema逐tensor复用同一CPU storage写raw sidecar；每步只保留路径/dtype/shape/mode/offset及SHA。浮点条目后续分块比较绝对差，optimizer step和非浮点条目按原始字节exact；optimizer group和非tensor结构写入schema并exact。sidecar缺失、SHA/长度/schema变化、未知dtype、非finite均fail closed。训练`update/evaluate/init_training/formal_worker`数学字节未改。
+
+16个新CPU方法首验在第13项按预期注入NaN时暴露比较器清理机械错误：异常路径仍持有mmap导出view，导致预期ValueError被BufferError覆盖；当次为12 passed/1 error/3 unexecuted。唯一机械修复改为有界分块文件读取，不改阈值/模型/判断；第二次同16方法16/16 passed、0fail/error/skip/unexecuted。
+
+### 21.3 三组现场数值复验
+
+本轮仅合成H96，按每组“串行参考→两路并发→独立串行重复”运行，共12 worker、72 Adam/96 forward/72 backward，全部exit0、finite、资源归属通过，未读真实CSV/test或历史checkpoint。相对串行参考，三份对照均通过预注册规则：TimeMixer/ETTh1最大full-state绝对差`1.9073486328125e-06`、最大标量差`2.384185791015625e-07`；TimeMixer/ECL分别`1.9073486328125e-06`与`2.384185791015625e-07`；ModernTCN/ETTh1分别`4.315376281738281e-05`与`1.1920928955078125e-07`。exact残余状态全部通过。该有限正例不证明完整四H或长期训练稳定，只证明生产比较入口按新规则可执行。机械诊断余额360−72=288；补测池1440未消费。
+
+### 21.4 收口与后续启动边界
+
+本节实现/验收通过后仅允许精确stage/commit/push及三端0/0 clean核验；生成的新`probe-review.json`必须绑定实际closure commit、当前protocol/code/environment/hardware、34/20 followup digest、`approved_extra_adam=144`及四条numeric policy摘要。无负载preflight必须`blocked=[]`。本轮不代用户启动20组补测，不冻结J、不关闭M5、不进入M6或正式训练。补测完成后仍须逐组审计，不能把complete=true等同于全Passed。

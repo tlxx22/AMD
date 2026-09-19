@@ -4558,8 +4558,8 @@
   },
   "execution": {
     "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python",
-    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-buffer-repair-zwqjvgf_",
-    "fixture": "/tmp/amd-m5-buffer-grj1mrp3",
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-three-scope-numeric-znYE96",
+    "fixture": "/tmp/amd-m5-three-scope-uPKoMn",
     "cpu_first_methods": 16,
     "cpu_retry_methods": 16,
     "model_first": {
@@ -4582,47 +4582,106 @@
       "sample_seconds": 0.1,
       "headroom_gib": 8,
       "headroom_fraction": 0.1,
-      "trajectory_rule": "Exact except explicitly approved TimeMixer/Exchange tokenConv numeric policy; atol1e-7 rtol0, finite only",
+      "trajectory_rule": "Exact except four pre-registered scopes: TimeMixer/Exchange named tensor atol1e-7; TimeMixer ETTh1/ECL and ModernTCN ETTh1 full floating state atol1e-4; rtol0; finite only; metric atol1e-6 for full-state scopes.",
       "allow_full_probe_now": false,
       "first_adam_max": 3510,
-      "mandatory_blockers": [
-        "Three diagnostic scopes exceed existing exact/1e-7 coverage; numerical-policy or deterministic-execution decision required before full retest. RSS buffer repair has three successful representatives, not all17 groups."
-      ],
-      "resource_diagnostic_status": "Owned PID lifecycle repaired and reviewed; TimeMixer/Exchange named-state numeric rule accepted in current six-step H192 diagnostic. Full44 follow-up has not run.",
+      "mandatory_blockers": [],
+      "resource_diagnostic_status": "Digest buffer repair accepted on three RSS representatives; TimeMixer ETTh1/ECL and ModernTCN ETTh1 full floating-state bounded-numeric H96 serial/pair/serial-repeat diagnostics passed under pre-registered state atol1e-4, metric atol1e-6; full20 retest not started.",
       "resource_diagnostic_evidence": {
         "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_/resource-diagnostic-attempt1/result.json",
         "sha256": "bc791666929dcf7e981c3d871de455198bcb428eca616bcf93bb26da8610fbe4"
       },
-      "numeric_equivalence": {
-        "id": "timemixer-exchange-tokenconv-atol1e-7-v1",
-        "model": "TimeMixer",
-        "dataset": "Exchange",
-        "horizons": [
-          96,
-          192,
-          336,
-          720
-        ],
-        "parameter": "enc_embedding.value_embedding.tokenConv.weight",
-        "shape": [
-          16,
-          1,
-          3
-        ],
-        "dtype": "torch.float32",
-        "atol": 1e-07,
-        "rtol": 0.0,
-        "equal_nan": false,
-        "tensor_fields": [
-          "parameter",
-          "gradient",
-          "exp_avg",
-          "exp_avg_sq"
-        ],
-        "initial_identity": "exact",
-        "other_state": "exact",
-        "metrics": "loss and normalized validation errors atol1e-7"
-      }
+      "numeric_equivalence": [
+        {
+          "id": "timemixer-exchange-tokenconv-atol1e-7-v1",
+          "kind": "named_tensor",
+          "model": "TimeMixer",
+          "dataset": "Exchange",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "parameter": "enc_embedding.value_embedding.tokenConv.weight",
+          "shape": [
+            16,
+            1,
+            3
+          ],
+          "dtype": "torch.float32",
+          "atol": 1e-07,
+          "metric_atol": 1e-07,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "tensor_fields": [
+            "parameter",
+            "gradient",
+            "exp_avg",
+            "exp_avg_sq"
+          ],
+          "initial_identity": "exact",
+          "other_state": "exact",
+          "metrics": "loss and normalized validation errors atol1e-7"
+        },
+        {
+          "id": "timemixer-etth1-fullfloat-atol1e-4-v1",
+          "kind": "full_float_state",
+          "model": "TimeMixer",
+          "dataset": "ETTh1",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.0001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1"
+        },
+        {
+          "id": "timemixer-ecl-fullfloat-atol1e-4-v1",
+          "kind": "full_float_state",
+          "model": "TimeMixer",
+          "dataset": "ECL",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.0001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1"
+        },
+        {
+          "id": "moderntcn-etth1-fullfloat-atol1e-4-v1",
+          "kind": "full_float_state",
+          "model": "ModernTCN",
+          "dataset": "ETTh1",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "state_atol": 0.0001,
+          "metric_atol": 1e-06,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "capture": "preallocated raw sidecar v1"
+        }
+      ]
     },
     "formal_approval": null,
     "probe_review": null,
@@ -4701,8 +4760,8 @@
       "planned_backward": 1440,
       "planned_validation": 480,
       "additional_first_adam_proposed": 144,
-      "approved_extra_adam": 0,
-      "approval_basis": "New 20-group plan needs1440, existing1296 remains; additional144 is proposed only, not approved. No old timings mixed with new digest implementation.",
+      "approved_extra_adam": 144,
+      "approval_basis": "User explicitly confirmed the proposed three-scope bounded-numeric policy and additional144 retest Adam allowance.",
       "mechanical_remaining_before_current": 450,
       "budget_history": {
         "original_first": 3510,
@@ -4717,37 +4776,25 @@
       "cpu_methods_first": 16,
       "cpu_methods_retry": 16,
       "total_limits": {
-        "adam": 96,
-        "forward": 128,
-        "backward": 96
+        "adam": 72,
+        "forward": 96,
+        "backward": 72
       },
       "cases": {
-        "amd_ecl_rss": {
-          "run_id": "AMD-ECL-MS-f1-h192-s2024",
-          "capture_states": false
-        },
-        "patch_ecl_rss": {
-          "run_id": "PatchTST-ECL-MS-f1-h336-s2024",
-          "capture_states": false
-        },
-        "timexer_ecl_rss": {
-          "run_id": "TimeXer-ECL-MS-f1-h96-s2024",
-          "capture_states": false
-        },
         "tm_etth1_numeric": {
           "run_id": "TimeMixer-ETTh1-MS-f1-h96-s2024",
-          "capture_states": true
+          "capture_states": false
         },
         "tm_ecl_numeric": {
           "run_id": "TimeMixer-ECL-MS-f1-h96-s2024",
-          "capture_states": true
+          "capture_states": false
         },
         "moderntcn_etth1_numeric": {
           "run_id": "ModernTCN-ETTh1-MS-f1-h96-s2024",
-          "capture_states": true
+          "capture_states": false
         }
       },
-      "max_worker_instances": 16
+      "max_worker_instances": 12
     }
   },
   "tasks": [
@@ -12400,22 +12447,22 @@
   ],
   "acceptance": {
     "cpu_ids": [
-      "test_ch3_formal.BufferRepairTests.test_digest_parity",
-      "test_ch3_formal.BufferRepairTests.test_buffer_addresses_reused",
-      "test_ch3_formal.BufferRepairTests.test_lazy_adam_scalar_schema",
-      "test_ch3_formal.BufferRepairTests.test_noncontiguous_logical_order",
-      "test_ch3_formal.BufferRepairTests.test_unknown_schema_rejected",
-      "test_ch3_formal.BufferRepairTests.test_rng_unchanged",
-      "test_ch3_formal.BufferRepairTests.test_memory_rule_unchanged",
-      "test_ch3_formal.BufferRepairTests.test_numeric_policy_unchanged",
-      "test_ch3_formal.BufferRepairTests.test_all_profiles_unchanged",
-      "test_ch3_formal.BufferRepairTests.test_54_groups_and_counts",
-      "test_ch3_formal.BufferRepairTests.test_old_full_report_rejected",
-      "test_ch3_formal.BufferRepairTests.test_production_math_AST_unchanged",
-      "test_ch3_formal.BufferRepairTests.test_diagnostic_scope_and_budget",
-      "test_ch3_formal.BufferRepairTests.test_no_probe_pool_reset",
-      "test_ch3_formal.BufferRepairTests.test_storage_is_dtype_max_not_state_sum",
-      "test_ch3_formal.BufferRepairTests.test_nested_order_and_change_detection"
+      "test_ch3_formal.ThreeScopeNumericTests.test_policy_scopes_exact",
+      "test_ch3_formal.ThreeScopeNumericTests.test_full_rules_exact_constants",
+      "test_ch3_formal.ThreeScopeNumericTests.test_named_exchange_rule_preserved",
+      "test_ch3_formal.ThreeScopeNumericTests.test_policy_mutation_rejected",
+      "test_ch3_formal.ThreeScopeNumericTests.test_budget_144_accepted",
+      "test_ch3_formal.ThreeScopeNumericTests.test_budget_missing_or_wrong_rejected",
+      "test_ch3_formal.ThreeScopeNumericTests.test_scientific_profiles_unchanged",
+      "test_ch3_formal.ThreeScopeNumericTests.test_followup_partition_34_20",
+      "test_ch3_formal.ThreeScopeNumericTests.test_full_state_below_bound_passes",
+      "test_ch3_formal.ThreeScopeNumericTests.test_full_state_above_bound_rejected",
+      "test_ch3_formal.ThreeScopeNumericTests.test_exact_integer_state_rejected",
+      "test_ch3_formal.ThreeScopeNumericTests.test_metric_bound_separate",
+      "test_ch3_formal.ThreeScopeNumericTests.test_nonfinite_full_state_rejected",
+      "test_ch3_formal.ThreeScopeNumericTests.test_schema_or_identity_change_rejected",
+      "test_ch3_formal.ThreeScopeNumericTests.test_other_scopes_remain_exact",
+      "test_ch3_formal.ThreeScopeNumericTests.test_full_writer_reuses_registered_storage"
     ],
     "model_cases": {}
   },

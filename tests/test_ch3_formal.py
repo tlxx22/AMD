@@ -1086,3 +1086,91 @@ class BufferRepairTests(unittest.TestCase):
         x={'a':a,'b':(5,'t')};y={'b':(5,'t'),'a':a}
         self.assertEqual(d(x),d(y));before=d(x);a[0]=1
         self.assertNotEqual(before,d(x));self.assertEqual(d(x),tensor_digest(x))
+
+
+class ThreeScopeNumericTests(unittest.TestCase):
+    def setUp(self):
+        self.c=read_profiles();self.e=Path(self.c['execution']['evidence']);self.fixture_root=Path(self.c['execution']['fixture'])
+        self.fixture_root.mkdir(parents=True,exist_ok=True)
+        from utils.ch3_contract import numeric_probe_policy
+        self.task=task_by_id(self.c,'TimeMixer-ETTh1-MS-f1-h96-s2024');self.rule=numeric_probe_policy(self.c,self.task)
+    def full_fixture(self,label,state=0.0,exact=7,loss=1.0,mse=1.0,mae=.5,task=None):
+        import hashlib,struct,tempfile
+        task=task or self.task;root=Path(tempfile.mkdtemp(prefix='full-numeric-',dir=self.fixture_root));schema=dict(policy_id=self.rule['id'],entries=[
+            dict(path='model/parameter/w',dtype='torch.float32',shape=[2],mode='bounded',offset=0,nbytes=8,numel=2),
+            dict(path='model/buffer/count',dtype='torch.int64',shape=[],mode='exact',offset=8,nbytes=8,numel=1)],optimizer_groups=[{'lr':.01,'params':['w']}],optimizer_non_tensor_state={},total_bytes=16)
+        sp=root/'schema.json';sp.write_text(json.dumps(schema,sort_keys=True)+'\n');ss=hashlib.sha256(sp.read_bytes()).hexdigest();trace=[]
+        for step in range(1,7):
+            dp=root/f'step{step}.bin';dp.write_bytes(struct.pack('<ffq',float(state),float(state+.25),int(exact)))
+            trace.append(dict(step=step,schema_file=str(sp),schema_sha=ss,data_file=str(dp),data_sha=hashlib.sha256(dp.read_bytes()).hexdigest(),bytes=16))
+        return dict(id=task['id'],profile_sha=digest(profile(self.c,task)),initial='initial',initial_rng='rng',batch_ids=['b'+str(i) for i in range(6)],validation_tail=profile(self.c,task)['training']['eval_batch'],steps=6,final_rng='frng',finite=True,final=label,
+            trajectory=[dict(step=i,loss=loss,state=label+'s',optimizer=label+'o') for i in range(1,7)],validation=dict(mse=mse,mae=mae,sse=mse*1000,sae=mae*1000,elements=1000),numeric_policy_sha=digest(self.rule),full_numeric_trace=trace)
+    def compare(self,a,b,task=None):
+        from ch3_runner import compare_probe_trajectories
+        return compare_probe_trajectories(self.c,task or self.task,a,b)
+    def test_policy_scopes_exact(self):
+        from utils.ch3_contract import numeric_probe_policy
+        scopes={(t['model'],t['dataset']) for t in self.c['tasks'] if numeric_probe_policy(self.c,t)}
+        self.assertEqual(scopes,{('TimeMixer','Exchange'),('TimeMixer','ETTh1'),('TimeMixer','ECL'),('ModernTCN','ETTh1')})
+    def test_full_rules_exact_constants(self):
+        from utils.ch3_contract import numeric_probe_policy
+        for run in ('TimeMixer-ETTh1-MS-f1-h96-s2024','TimeMixer-ECL-MS-f1-h96-s2024','ModernTCN-ETTh1-MS-f1-h96-s2024'):
+            r=numeric_probe_policy(self.c,task_by_id(self.c,run));self.assertEqual((r['kind'],r['state_atol'],r['metric_atol'],r['rtol'],r['equal_nan']),('full_float_state',1e-4,1e-6,0.0,False))
+    def test_named_exchange_rule_preserved(self):
+        from utils.ch3_contract import numeric_probe_policy
+        r=numeric_probe_policy(self.c,task_by_id(self.c,'TimeMixer-Exchange-MS-f1-h192-s2024'))
+        self.assertEqual((r['kind'],r['atol'],r['metric_atol'],r['rtol']),('named_tensor',1e-7,1e-7,0.0))
+    def test_policy_mutation_rejected(self):
+        for index,key,value in ((1,'state_atol',2e-4),(2,'metric_atol',2e-6),(3,'rtol',1e-5),(0,'atol',2e-7)):
+            with self.subTest(index=index,key=key):
+                c=copy.deepcopy(self.c);c['execution']['probe']['numeric_equivalence'][index][key]=value
+                with self.assertRaises(ValueError):validate_manifest(c)
+    def test_budget_144_accepted(self):
+        from utils.ch3_contract import followup_limits
+        f=self.c['execution']['followup'];a=dict(followup_sha=digest(f),approved_extra_adam=144)
+        self.assertEqual((f['remaining_first_adam'],f['planned_adam'],followup_limits(self.c,a)),(1296,1440,1440))
+    def test_budget_missing_or_wrong_rejected(self):
+        from utils.ch3_contract import followup_limits
+        f=self.c['execution']['followup']
+        for a in ({},dict(followup_sha=digest(f),approved_extra_adam=0),dict(followup_sha='old',approved_extra_adam=144)):
+            with self.subTest(a=a):
+                with self.assertRaises(ValueError):followup_limits(self.c,a)
+    def test_scientific_profiles_unchanged(self):
+        old=json.loads((self.e/'before/configs/ch3_formal_profiles.json').read_text())
+        self.assertEqual((self.c['tasks'],self.c['groups']),(old['tasks'],old['groups']))
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(old,t))
+    def test_followup_partition_34_20(self):
+        f=self.c['execution']['followup'];self.assertEqual((len(f['inherit_groups']),len(f['retest_groups']),f['Q'],f['planned_adam']),(34,20,80,1440));self.assertFalse(set(f['inherit_groups'])&set(f['retest_groups']))
+    def test_full_state_below_bound_passes(self):
+        a=self.full_fixture('a',0.0);b=self.full_fixture('b',9e-5);o=self.compare(a,b);self.assertTrue(o['passed']);self.assertLessEqual(o['state_max_abs'],1e-4);self.assertTrue(o['exact_residual_state'])
+    def test_full_state_above_bound_rejected(self):
+        a=self.full_fixture('a',0.0);b=self.full_fixture('b',2e-4);o=self.compare(a,b);self.assertFalse(o['passed']);self.assertGreater(o['state_max_abs'],1e-4)
+    def test_exact_integer_state_rejected(self):
+        a=self.full_fixture('a',0.0,7);b=self.full_fixture('b',0.0,8);o=self.compare(a,b);self.assertFalse(o['passed']);self.assertFalse(o['exact_residual_state'])
+    def test_metric_bound_separate(self):
+        a=self.full_fixture('a',0.0,loss=1.,mse=1.,mae=.5);b=self.full_fixture('b',0.0,loss=1.+5e-7,mse=1.+5e-7,mae=.5+5e-7);self.assertTrue(self.compare(a,b)['passed'])
+        c=self.full_fixture('c',0.0,loss=1.+2e-6,mse=1.,mae=.5);self.assertFalse(self.compare(a,c)['passed'])
+    def test_nonfinite_full_state_rejected(self):
+        import struct,hashlib
+        a=self.full_fixture('a');b=self.full_fixture('b');p=Path(b['full_numeric_trace'][0]['data_file']);raw=bytearray(p.read_bytes());raw[:4]=struct.pack('<f',float('nan'));p.write_bytes(raw);b['full_numeric_trace'][0]['data_sha']=hashlib.sha256(p.read_bytes()).hexdigest()
+        with self.assertRaises(ValueError):self.compare(a,b)
+    def test_schema_or_identity_change_rejected(self):
+        a=self.full_fixture('a');b=copy.deepcopy(a);b['batch_ids'][0]='wrong'
+        with self.assertRaises(ValueError):self.compare(a,b)
+        a=self.full_fixture('a');b=self.full_fixture('b');b['full_numeric_trace'][0]['schema_sha']='wrong';self.assertFalse(self.compare(a,b)['passed'])
+    def test_other_scopes_remain_exact(self):
+        t=task_by_id(self.c,'AMD-ETTh1-MS-f1-h96-s2024');a=self.full_fixture('a',task=t);a.pop('numeric_policy_sha');a.pop('full_numeric_trace');b=copy.deepcopy(a);b['trajectory'][0]['loss']+=1e-9
+        o=self.compare(a,b,t);self.assertEqual(o['mode'],'exact');self.assertFalse(o['passed'])
+    def test_full_writer_reuses_registered_storage(self):
+        import torch,tempfile
+        from ch3_runner import ReusableTensorDigest,FullNumericStateWriter
+        p=torch.ones(2);p.grad=torch.ones(2);buf=torch.tensor(3,dtype=torch.int64)
+        class M:
+            def named_parameters(self):return iter([('w',p)])
+            def named_buffers(self):return iter([('count',buf)])
+            def state_dict(self):return {'w':p,'count':buf}
+        class O:pass
+        o=O();o.param_groups=[{'params':[p],'lr':.01,'betas':(.9,.999)}];o.state={p:{'step':torch.tensor(1.),'exp_avg':torch.zeros(2),'exp_avg_sq':torch.zeros(2)}}
+        d=ReusableTensorDigest(M().state_dict());out=Path(tempfile.mkdtemp(prefix='writer-',dir=self.fixture_root));w=FullNumericStateWriter(M(),o,out,d,self.rule);x=w.capture(1);ptr={k:v.data_ptr() for k,v in d.buffers.items()};p.add_(.5);o.state[p]['exp_avg'].add_(.1);y=w.capture(2)
+        self.assertEqual(ptr,{k:v.data_ptr() for k,v in d.buffers.items()});self.assertEqual(x['schema_sha'],y['schema_sha']);self.assertEqual(Path(x['data_file']).stat().st_size,Path(y['data_file']).stat().st_size)

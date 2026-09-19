@@ -11,27 +11,56 @@ BASELINES = frozenset(MODELS)-{'AMD','J','N','S'}
 TRAINING_OVERRIDES = frozenset(('batch','eval_batch','lr'))
 
 
-# Approved only for TimeMixer/Exchange six-step resource equivalence.
-NUMERIC_PROBE_POLICY = {
-    'id':'timemixer-exchange-tokenconv-atol1e-7-v1',
-    'model':'TimeMixer', 'dataset':'Exchange', 'horizons':[96,192,336,720],
+# Fixed six-step numerical-equivalence policies. They never change formal training math.
+NAMED_NUMERIC_POLICY = {
+    'id':'timemixer-exchange-tokenconv-atol1e-7-v1','kind':'named_tensor',
+    'model':'TimeMixer','dataset':'Exchange','horizons':[96,192,336,720],
     'parameter':'enc_embedding.value_embedding.tokenConv.weight',
-    'shape':[16,1,3], 'dtype':'torch.float32',
-    'atol':1e-7, 'rtol':0.0, 'equal_nan':False,
+    'shape':[16,1,3],'dtype':'torch.float32',
+    'atol':1e-7,'metric_atol':1e-7,'rtol':0.0,'equal_nan':False,
     'tensor_fields':['parameter','gradient','exp_avg','exp_avg_sq'],
-    'initial_identity':'exact', 'other_state':'exact',
+    'initial_identity':'exact','other_state':'exact',
     'metrics':'loss and normalized validation errors atol1e-7',
 }
+FULL_STATE_NUMERIC_POLICIES = [
+    {
+        'id':'timemixer-etth1-fullfloat-atol1e-4-v1','kind':'full_float_state',
+        'model':'TimeMixer','dataset':'ETTh1','horizons':[96,192,336,720],
+        'state_atol':1e-4,'metric_atol':1e-6,'rtol':0.0,'equal_nan':False,
+        'floating_state':'all model parameters/buffers, gradients and Adam moments',
+        'exact_state':'initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure',
+        'capture':'preallocated raw sidecar v1',
+    },
+    {
+        'id':'timemixer-ecl-fullfloat-atol1e-4-v1','kind':'full_float_state',
+        'model':'TimeMixer','dataset':'ECL','horizons':[96,192,336,720],
+        'state_atol':1e-4,'metric_atol':1e-6,'rtol':0.0,'equal_nan':False,
+        'floating_state':'all model parameters/buffers, gradients and Adam moments',
+        'exact_state':'initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure',
+        'capture':'preallocated raw sidecar v1',
+    },
+    {
+        'id':'moderntcn-etth1-fullfloat-atol1e-4-v1','kind':'full_float_state',
+        'model':'ModernTCN','dataset':'ETTh1','horizons':[96,192,336,720],
+        'state_atol':1e-4,'metric_atol':1e-6,'rtol':0.0,'equal_nan':False,
+        'floating_state':'all model parameters/buffers, gradients and Adam moments',
+        'exact_state':'initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure',
+        'capture':'preallocated raw sidecar v1',
+    },
+]
+NUMERIC_PROBE_POLICIES = [NAMED_NUMERIC_POLICY] + FULL_STATE_NUMERIC_POLICIES
 
 
 def numeric_probe_policy(c, task):
-    policy=c['execution']['probe'].get('numeric_equivalence')
-    if policy is None:return None
-    if policy!=NUMERIC_PROBE_POLICY:raise ValueError('unauthorized numeric equivalence policy')
-    if (task['model'],task['dataset'])!=(policy['model'],policy['dataset']):return None
+    policies=c['execution']['probe'].get('numeric_equivalence')
+    if policies is None:return None
+    if policies!=NUMERIC_PROBE_POLICIES:raise ValueError('unauthorized numeric equivalence policy set')
+    matches=[p for p in policies if (task['model'],task['dataset'])==(p['model'],p['dataset'])]
+    if len(matches)>1:raise ValueError('overlapping numeric equivalence policies')
+    if not matches:return None
+    policy=matches[0]
     if task['h'] not in policy['horizons']:raise ValueError('numeric equivalence horizon outside scope')
     return policy
-
 
 def baseline_training(c, task):
     layer=c.get('baseline_training_overrides',{})
@@ -179,7 +208,8 @@ def profile(c, task):
 def validate_manifest(c):
     if c['contract']!=CONTRACT: raise ValueError('wrong formal contract')
     if c['execution']['probe'].get('numeric_equivalence') is not None:
-        numeric_probe_policy(c,dict(model='TimeMixer',dataset='Exchange',h=96))
+        for policy in NUMERIC_PROBE_POLICIES:
+            numeric_probe_policy(c,dict(model=policy['model'],dataset=policy['dataset'],h=policy['horizons'][0]))
     expected=generate_tasks(c)
     if c['tasks']!=expected or c['groups']!=generate_groups(expected):
         raise ValueError('task/group manifest mismatch')
