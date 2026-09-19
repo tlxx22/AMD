@@ -158,6 +158,59 @@ def tensor_digest(value):
     add(value);return h.hexdigest()
 
 
+class ReusableTensorDigest:
+    """Hash state through fixed CPU storage; never change values or RNG.
+
+    One buffer per dtype holds the largest registered tensor. All shape views
+    and byte views are prepared/touched before training. Unknown tensor schemas
+    fail instead of silently allocating another state-sized CPU object.
+    """
+    def __init__(self, template):
+        import torch
+        schemas={}
+        def register(v):
+            if torch.is_tensor(v):
+                if v.layout!=torch.strided:raise ValueError('digest requires dense tensors')
+                schemas[(v.dtype,tuple(v.shape))]=v.numel()
+            elif isinstance(v,dict):
+                for x in v.values():register(x)
+            elif isinstance(v,(tuple,list)):
+                for x in v:register(x)
+        register(template)
+        # Adam's lazily created step is a scalar float32 CPU tensor.
+        schemas[(torch.float32,())]=1
+        sizes={}
+        for (dtype,shape),n in schemas.items():sizes[dtype]=max(sizes.get(dtype,0),n)
+        self.buffers={dtype:torch.empty(n,dtype=dtype,device='cpu') for dtype,n in sizes.items()}
+        for b in self.buffers.values():b.zero_()
+        self.views={};self.bytes={};self.headers={}
+        for (dtype,shape),n in schemas.items():
+            key=(dtype,shape);v=self.buffers[dtype][:n].view(shape)
+            self.views[key]=v
+            self.bytes[key]=memoryview(v.numpy()).cast('B') if n else None
+            self.headers[key]=str((dtype,shape)).encode()
+        self.storage_bytes=sum(b.numel()*b.element_size() for b in self.buffers.values())
+        self.buffer_allocations=len(self.buffers)
+    def __call__(self, value):
+        import torch
+        h=hashlib.sha256()
+        def add(v):
+            if torch.is_tensor(v):
+                key=(v.dtype,tuple(v.shape))
+                if key not in self.views or v.layout!=torch.strided:
+                    raise ValueError('unregistered state tensor schema')
+                h.update(self.headers[key])
+                if v.numel():
+                    self.views[key].copy_(v.detach(),non_blocking=False)
+                    h.update(self.bytes[key])
+            elif isinstance(v,dict):
+                for k in sorted(v,key=str):h.update(str(k).encode());add(v[k])
+            elif isinstance(v,(list,tuple)):
+                for x in v:add(x)
+            else:h.update(repr(v).encode())
+        add(value);return h.hexdigest()
+
+
 def cpu_tree(value):
     import torch
     if torch.is_tensor(value):return value.detach().cpu().clone()
@@ -269,9 +322,10 @@ def init_training(c,task,device):
     return p,model,opt,torch.Generator().manual_seed(2024)
 
 
-def numeric_probe_snapshot(model, opt, rule, step):
+def numeric_probe_snapshot(model, opt, rule, step, digest_state=None):
     """Small CPU values for one named tensor; all residual state stays exact."""
     import torch
+    digest_state=digest_state or tensor_digest
     name=rule['parameter'];params=dict(model.named_parameters())
     if name not in params:raise ValueError('approved numeric parameter missing')
     parameter=params[name];raw=opt.state_dict();ids=[]
@@ -291,9 +345,9 @@ def numeric_probe_snapshot(model, opt, rule, step):
     residual=dict(raw);residual['state']=dict(raw['state']);residual['state'][sid]={k:v for k,v in state.items() if k not in ('exp_avg','exp_avg_sq')}
     return dict(step=step,parameter_name=name,optimizer_parameter_id=sid,
                 tensors=values,
-                exact_model=tensor_digest({k:v for k,v in model.state_dict().items() if k!=name}),
-                exact_optimizer=tensor_digest(residual),
-                exact_gradients=tensor_digest({k:v.grad for k,v in params.items() if k!=name and v.grad is not None}))
+                exact_model=digest_state({k:v for k,v in model.state_dict().items() if k!=name}),
+                exact_optimizer=digest_state(residual),
+                exact_gradients=digest_state({k:v.grad for k,v in params.items() if k!=name and v.grad is not None}))
 
 
 def compare_probe_trajectories(c, task, reference, actual):
@@ -395,7 +449,8 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
         if capture_states:
             torch.save(dict(model=cpu_tree(model.state_dict()),optimizer=cpu_tree(opt.state_dict()),
                             gradients={k:cpu_tree(v.grad) for k,v in model.named_parameters() if v.grad is not None}),out/(label+'.pt'))
-    initial=tensor_digest(model.state_dict());initial_rng=rng();capture('initial')
+    state_digest=ReusableTensorDigest(model.state_dict())
+    initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
     b=p['training']['batch'];v=p['training']['eval_batch']
     d=c['datasets'][task['dataset']]
     if task['dataset']=='UrbanEV':
@@ -416,8 +471,8 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
         # still affect RSS. Both phases remain visible and no tolerance changes.
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
-        trajectory[step]=dict(step=step+1,loss=loss,state=tensor_digest(model.state_dict()),optimizer=tensor_digest(opt.state_dict()))
-        if numeric_rule:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1)
+        trajectory[step]=dict(step=step+1,loss=loss,state=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict()))
+        if numeric_rule:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1,state_digest)
         after=rss()
         if step==1:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y
@@ -428,11 +483,14 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False):
         capture('step-'+str(step+1))
     result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,
                 batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,
-                final=tensor_digest(model.state_dict()),final_rng=rng(),memory=memory,
+                final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,
                 allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,
                 reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,
                 affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,
-                diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory))
+                diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),
+                state_digest_storage_bytes=state_digest.storage_bytes,
+                state_digest_buffer_allocations=state_digest.buffer_allocations,
+                state_digest_policy="preallocated-per-dtype-v1; original digest byte semantics")
     if numeric_rule:result.update(numeric_policy_sha=digest(numeric_rule),numeric_trace=numeric_trace)
     dump(out/'trajectory.json',result)
     if result['memory_review']['blocked']:

@@ -965,3 +965,124 @@ class NumericEquivalenceTests(unittest.TestCase):
         self.assertEqual(list(self.c['execution']['diagnostics']['cases']),['timemixer_numeric'])
         self.assertFalse(self.c['execution']['diagnostics']['cases']['timemixer_numeric']['capture_states'])
         self.assertIsNone(self.c['execution']['probe_review']);self.assertIsNone(self.c['execution']['formal_approval'])
+
+
+class BufferRepairTests(unittest.TestCase):
+    def setUp(self):
+        self.c=read_profiles();self.e=Path(self.c['execution']['evidence'])
+        self.old=json.loads((self.e/'before/configs/ch3_formal_profiles.json').read_text())
+    def test_digest_parity(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest,tensor_digest
+        vals=[torch.arange(6.).reshape(2,3),torch.arange(6).reshape(3,2).T,
+              torch.zeros(0,2),torch.tensor(1.),torch.tensor([True,False]),
+              torch.tensor([1.,-0.],dtype=torch.float64)]
+        tree={'model':vals,'scalar':3,'metadata':{'a':[None,'x',True]}}
+        d=ReusableTensorDigest(tree);self.assertEqual(d(tree),tensor_digest(tree))
+    def test_buffer_addresses_reused(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest,tensor_digest
+        x=torch.arange(96.).reshape(16,6);d=ReusableTensorDigest(x)
+        ptr={k:v.data_ptr() for k,v in d.buffers.items()};views={k:id(v) for k,v in d.bytes.items()}
+        for i in range(20):
+            with self.subTest(iteration=i):
+                x.add_(1);self.assertEqual(d(x),tensor_digest(x))
+                self.assertEqual(ptr,{k:v.data_ptr() for k,v in d.buffers.items()})
+                self.assertEqual(views,{k:id(v) for k,v in d.bytes.items()})
+    def test_lazy_adam_scalar_schema(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest,tensor_digest
+        x=torch.zeros(2,3);d=ReusableTensorDigest({'w':x})
+        state={'state':{0:{'step':torch.tensor(1.),'exp_avg':x+1,'exp_avg_sq':x+2}},'param_groups':[{'params':[0],'lr':.01}]}
+        self.assertEqual(d(state),tensor_digest(state))
+    def test_noncontiguous_logical_order(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest,tensor_digest
+        a=torch.arange(12.).reshape(3,4).T;d=ReusableTensorDigest(a)
+        self.assertEqual(d(a),tensor_digest(a));self.assertEqual(d(a),d(a.contiguous()))
+    def test_unknown_schema_rejected(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest
+        d=ReusableTensorDigest(torch.zeros(2,3))
+        for a in (torch.zeros(3,2),torch.zeros(2,3,dtype=torch.int64)):
+            with self.subTest(shape=tuple(a.shape),dtype=str(a.dtype)):
+                with self.assertRaises(ValueError):d(a)
+    def test_rng_unchanged(self):
+        import torch,random,numpy as np
+        from ch3_runner import ReusableTensorDigest,tensor_digest
+        before=tensor_digest((torch.get_rng_state(),random.getstate(),np.random.get_state()))
+        d=ReusableTensorDigest(torch.zeros(2,2));d(torch.ones(2,2))
+        self.assertEqual(before,tensor_digest((torch.get_rng_state(),random.getstate(),np.random.get_state())))
+    def test_memory_rule_unchanged(self):
+        from ch3_runner import memory_growth_review
+        rows=[dict(allocated=i,rss_before_hash=10,rss_after_hash=10) for i in range(6)]
+        self.assertTrue(memory_growth_review(rows)['blocked'])
+        for r in rows:r['allocated']=10;r['rss_before_hash']=r['rss_after_hash']=10
+        self.assertFalse(memory_growth_review(rows)['blocked'])
+        for i,r in enumerate(rows):r['rss_before_hash']=i
+        self.assertEqual(memory_growth_review(rows)['triggers'],['rss_before_hash'])
+    def test_numeric_policy_unchanged(self):
+        self.assertEqual(self.c['execution']['probe']['numeric_equivalence'],self.old['execution']['probe']['numeric_equivalence'])
+        from utils.ch3_contract import numeric_probe_policy
+        for model,domain in [('TimeMixer','ETTh1'),('TimeMixer','ECL'),('ModernTCN','ETTh1')]:
+            with self.subTest(model=model,domain=domain):self.assertIsNone(numeric_probe_policy(self.c,dict(model=model,dataset=domain,h=96)))
+    def test_all_profiles_unchanged(self):
+        for t in self.c['tasks']:
+            with self.subTest(run=t['id']):self.assertEqual(profile(self.c,t),profile(self.old,t))
+    def test_54_groups_and_counts(self):
+        c=validate_manifest(self.c)
+        self.assertEqual((len(c['tasks']),len(c['groups']),sum(g['q']for g in c['groups'])),(495,54,195))
+        self.assertEqual(sum(profile(c,t)['training']['epochs']for t in c['tasks']),5340)
+    def test_old_full_report_rejected(self):
+        from ch3_runner import validate_probe_report
+        old=json.loads((self.e/'parent-complete.json').read_text())
+        with self.assertRaises(ValueError):validate_probe_report(self.c,old)
+        import tempfile,hashlib
+        from m5_formal_entry import inherited_trajectory_path
+        root=Path(tempfile.mkdtemp(prefix='ancestor-',dir=self.c['execution']['fixture']))
+        gid='model-data';run='logical-run';p=root/'ancestor'/gid/'serial'/run/'trajectory.json'
+        p.parent.mkdir(parents=True);p.write_text('{}')
+        parent={'decisions':{gid:{'status':'Passed'}},'inheritance':{'groups':{gid:{'references':{run:{'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}}}}}}
+        parent_path=root/'new-parent/complete.json'
+        self.assertEqual(inherited_trajectory_path(self.c,parent_path,parent,gid,run),p)
+        p.write_text('{"changed":true}')
+        with self.assertRaises(ValueError):inherited_trajectory_path(self.c,parent_path,parent,gid,run)
+        parent['decisions'][gid]['status']='Blocked'
+        with self.assertRaises(ValueError):inherited_trajectory_path(self.c,parent_path,parent,gid,run)
+    def test_production_math_AST_unchanged(self):
+        import ast
+        old=ast.parse((self.e/'before/ch3_runner.py').read_text())
+        new=ast.parse((Path(__file__).resolve().parents[1]/'ch3_runner.py').read_text())
+        for name in ('update','evaluate','init_training','formal_worker','save_state','restore_state','memory_growth_review','compare_probe_trajectories'):
+            with self.subTest(function=name):
+                a=next(x for x in old.body if isinstance(x,ast.FunctionDef) and x.name==name)
+                b=next(x for x in new.body if isinstance(x,ast.FunctionDef) and x.name==name)
+                self.assertEqual(ast.dump(a),ast.dump(b))
+    def test_diagnostic_scope_and_budget(self):
+        d=self.c['execution']['diagnostics']
+        self.assertEqual(d['total_limits'],dict(adam=96,forward=128,backward=96))
+        self.assertEqual(len(d['cases']),6);self.assertEqual(d['max_worker_instances'],16)
+        self.assertTrue(self.c['execution']['probe']['mandatory_blockers'])
+    def test_no_probe_pool_reset(self):
+        a=json.loads((self.e/'authorization.json').read_text())
+        self.assertEqual((a['mechanical_pool_before'],a['followup_remaining']),(450,1296))
+        self.assertEqual(a['followup_spent'],1740)
+        from utils.ch3_contract import followup_limits
+        f=self.c['execution']['followup']
+        self.assertEqual((len(f['inherit_groups']),len(f['retest_groups']),f['Q']),(34,20,80))
+        self.assertEqual((f['planned_adam'],f['remaining_first_adam'],f['approved_extra_adam']),(1440,1296,0))
+        with self.assertRaises(ValueError):followup_limits(self.c)
+        trial=copy.deepcopy(self.c);trial['execution']['followup']['approved_extra_adam']=144
+        self.assertEqual(followup_limits(trial),1440)
+    def test_storage_is_dtype_max_not_state_sum(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest
+        d=ReusableTensorDigest([torch.zeros(8,8),torch.zeros(4,8),torch.zeros(8,8),torch.zeros(4,dtype=torch.int64)])
+        self.assertEqual(d.storage_bytes,64*4+4*8);self.assertEqual(d.buffer_allocations,2)
+    def test_nested_order_and_change_detection(self):
+        import torch
+        from ch3_runner import ReusableTensorDigest,tensor_digest
+        a=torch.zeros(3);d=ReusableTensorDigest(a)
+        x={'a':a,'b':(5,'t')};y={'b':(5,'t'),'a':a}
+        self.assertEqual(d(x),d(y));before=d(x);a[0]=1
+        self.assertNotEqual(before,d(x));self.assertEqual(d(x),tensor_digest(x))

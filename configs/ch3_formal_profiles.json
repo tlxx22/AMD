@@ -4558,8 +4558,8 @@
   },
   "execution": {
     "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python",
-    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-numeric-equivalence-80dirugd",
-    "fixture": "/tmp/amd-m5-numeric-0ln4445u",
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-buffer-repair-zwqjvgf_",
+    "fixture": "/tmp/amd-m5-buffer-grj1mrp3",
     "cpu_first_methods": 16,
     "cpu_retry_methods": 16,
     "model_first": {
@@ -4585,7 +4585,9 @@
       "trajectory_rule": "Exact except explicitly approved TimeMixer/Exchange tokenConv numeric policy; atol1e-7 rtol0, finite only",
       "allow_full_probe_now": false,
       "first_adam_max": 3510,
-      "mandatory_blockers": [],
+      "mandatory_blockers": [
+        "Three diagnostic scopes exceed existing exact/1e-7 coverage; numerical-policy or deterministic-execution decision required before full retest. RSS buffer repair has three successful representatives, not all17 groups."
+      ],
       "resource_diagnostic_status": "Owned PID lifecycle repaired and reviewed; TimeMixer/Exchange named-state numeric rule accepted in current six-step H192 diagnostic. Full44 follow-up has not run.",
       "resource_diagnostic_evidence": {
         "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_/resource-diagnostic-attempt1/result.json",
@@ -4625,10 +4627,10 @@
     "formal_approval": null,
     "probe_review": null,
     "followup": {
-      "parent_complete": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-data-admission-ozab6blq/probe/complete.json",
-      "parent_sha256": "bae5e732a1d41d8b3cba53c11e55fdd75b6809ee4b36db8828addd46d85993ef",
-      "parent_first_adam_spent": 1183,
-      "remaining_first_adam": 2327,
+      "parent_complete": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-numeric-equivalence-80dirugd/probe/complete.json",
+      "parent_sha256": "def4e11ed39b4df9b1cd3aa26f597f2a0e1b5bb0d81b1fa75a986f99c6c0af7f",
+      "parent_first_adam_spent": 2923,
+      "remaining_first_adam": 1296,
       "mechanical_pool": 512,
       "short_diagnostic_max": {
         "adam": 32,
@@ -4636,47 +4638,53 @@
         "backward": 32
       },
       "inherit_groups": [
+        "AMD-UrbanEV-F1",
         "AMD-UrbanEV-F2",
+        "AMD-UrbanEV-F3",
+        "AMD-UrbanEV-F4",
         "AMD-PJM-MS",
+        "J-UrbanEV-F3",
         "J-UrbanEV-F4",
         "J-PJM-MS",
+        "J-Weather-MS",
+        "J-ECL-MS",
+        "DLinear-UrbanEV-F4",
         "DLinear-PJM-MS",
+        "DLinear-ETTh1-MS",
+        "DLinear-Weather-MS",
+        "DLinear-ECL-MS",
+        "DLinear-Exchange-MS",
+        "PatchTST-UrbanEV-F4",
         "PatchTST-PJM-MS",
+        "PatchTST-ETTh1-MS",
         "PatchTST-Exchange-MS",
+        "iTransformer-UrbanEV-F4",
+        "iTransformer-PJM-MS",
+        "iTransformer-ETTh1-MS",
+        "iTransformer-Weather-MS",
+        "iTransformer-Exchange-MS",
         "ModernTCN-UrbanEV-F4",
         "ModernTCN-PJM-MS",
+        "ModernTCN-Exchange-MS",
+        "TimeXer-UrbanEV-F4",
+        "TimeXer-PJM-MS",
+        "TimeXer-Weather-MS",
+        "TimeXer-Exchange-MS",
+        "N-UrbanEV-F4",
         "S-UrbanEV-F4"
       ],
       "retest_groups": [
-        "AMD-UrbanEV-F1",
-        "AMD-UrbanEV-F3",
-        "AMD-UrbanEV-F4",
         "AMD-ETTh1-MS",
         "AMD-Weather-MS",
         "AMD-ECL-MS",
         "AMD-Exchange-MS",
         "J-UrbanEV-F1",
         "J-UrbanEV-F2",
-        "J-UrbanEV-F3",
         "J-ETTh1-MS",
-        "J-Weather-MS",
-        "J-ECL-MS",
         "J-Exchange-MS",
-        "DLinear-UrbanEV-F4",
-        "DLinear-ETTh1-MS",
-        "DLinear-Weather-MS",
-        "DLinear-ECL-MS",
-        "DLinear-Exchange-MS",
-        "PatchTST-UrbanEV-F4",
-        "PatchTST-ETTh1-MS",
         "PatchTST-Weather-MS",
         "PatchTST-ECL-MS",
-        "iTransformer-UrbanEV-F4",
-        "iTransformer-PJM-MS",
-        "iTransformer-ETTh1-MS",
-        "iTransformer-Weather-MS",
         "iTransformer-ECL-MS",
-        "iTransformer-Exchange-MS",
         "TimeMixer-ETTh1-MS",
         "TimeMixer-Weather-MS",
         "TimeMixer-ECL-MS",
@@ -4684,40 +4692,62 @@
         "ModernTCN-ETTh1-MS",
         "ModernTCN-Weather-MS",
         "ModernTCN-ECL-MS",
-        "ModernTCN-Exchange-MS",
-        "TimeXer-UrbanEV-F4",
-        "TimeXer-PJM-MS",
         "TimeXer-ETTh1-MS",
-        "TimeXer-Weather-MS",
-        "TimeXer-ECL-MS",
-        "TimeXer-Exchange-MS",
-        "N-UrbanEV-F4"
+        "TimeXer-ECL-MS"
       ],
-      "Q": 170,
-      "planned_adam": 3036,
-      "planned_forward": 4048,
-      "planned_backward": 3036,
-      "planned_validation": 1012,
-      "additional_first_adam_proposed": 709,
-      "approved_extra_adam": 709,
-      "approval_basis": "Current user requests direct execution of the explicit 709-step plan",
-      "mechanical_remaining_before_current": 474
+      "Q": 80,
+      "planned_adam": 1440,
+      "planned_forward": 1920,
+      "planned_backward": 1440,
+      "planned_validation": 480,
+      "additional_first_adam_proposed": 144,
+      "approved_extra_adam": 0,
+      "approval_basis": "New 20-group plan needs1440, existing1296 remains; additional144 is proposed only, not approved. No old timings mixed with new digest implementation.",
+      "mechanical_remaining_before_current": 450,
+      "budget_history": {
+        "original_first": 3510,
+        "first_spent": 1183,
+        "previous_extra_approved": 709,
+        "previous_retest_spent": 1740,
+        "remaining": 1296,
+        "new_extra_requested": 144
+      }
     },
     "diagnostics": {
       "cpu_methods_first": 16,
       "cpu_methods_retry": 16,
       "total_limits": {
-        "adam": 32,
-        "forward": 48,
-        "backward": 32
+        "adam": 96,
+        "forward": 128,
+        "backward": 96
       },
       "cases": {
-        "timemixer_numeric": {
-          "run_id": "TimeMixer-Exchange-MS-f1-h192-s2024",
+        "amd_ecl_rss": {
+          "run_id": "AMD-ECL-MS-f1-h192-s2024",
           "capture_states": false
+        },
+        "patch_ecl_rss": {
+          "run_id": "PatchTST-ECL-MS-f1-h336-s2024",
+          "capture_states": false
+        },
+        "timexer_ecl_rss": {
+          "run_id": "TimeXer-ECL-MS-f1-h96-s2024",
+          "capture_states": false
+        },
+        "tm_etth1_numeric": {
+          "run_id": "TimeMixer-ETTh1-MS-f1-h96-s2024",
+          "capture_states": true
+        },
+        "tm_ecl_numeric": {
+          "run_id": "TimeMixer-ECL-MS-f1-h96-s2024",
+          "capture_states": true
+        },
+        "moderntcn_etth1_numeric": {
+          "run_id": "ModernTCN-ETTh1-MS-f1-h96-s2024",
+          "capture_states": true
         }
       },
-      "max_worker_instances": 4
+      "max_worker_instances": 16
     }
   },
   "tasks": [
@@ -12370,22 +12400,22 @@
   ],
   "acceptance": {
     "cpu_ids": [
-      "test_ch3_formal.NumericEquivalenceTests.test_scope_and_rule_immutable",
-      "test_ch3_formal.NumericEquivalenceTests.test_boundary_is_allowed",
-      "test_ch3_formal.NumericEquivalenceTests.test_above_bound_rejected",
-      "test_ch3_formal.NumericEquivalenceTests.test_relative_tolerance_not_used",
-      "test_ch3_formal.NumericEquivalenceTests.test_nonfinite_rejected_even_equal",
-      "test_ch3_formal.NumericEquivalenceTests.test_missing_or_legacy_evidence_rejected",
-      "test_ch3_formal.NumericEquivalenceTests.test_identity_rng_batch_stay_exact",
-      "test_ch3_formal.NumericEquivalenceTests.test_shape_dtype_and_missing_tensor_rejected",
-      "test_ch3_formal.NumericEquivalenceTests.test_unlisted_state_stays_exact",
-      "test_ch3_formal.NumericEquivalenceTests.test_step_and_tensor_scope_rejected",
-      "test_ch3_formal.NumericEquivalenceTests.test_other_models_keep_exact",
-      "test_ch3_formal.NumericEquivalenceTests.test_metric_bound_and_elements",
-      "test_ch3_formal.NumericEquivalenceTests.test_profiles_budget_and_scientific_contract_unchanged",
-      "test_ch3_formal.NumericEquivalenceTests.test_snapshot_captures_only_named_values",
-      "test_ch3_formal.NumericEquivalenceTests.test_numeric_report_requires_policy_bound",
-      "test_ch3_formal.NumericEquivalenceTests.test_old_approval_and_synthetic_capability"
+      "test_ch3_formal.BufferRepairTests.test_digest_parity",
+      "test_ch3_formal.BufferRepairTests.test_buffer_addresses_reused",
+      "test_ch3_formal.BufferRepairTests.test_lazy_adam_scalar_schema",
+      "test_ch3_formal.BufferRepairTests.test_noncontiguous_logical_order",
+      "test_ch3_formal.BufferRepairTests.test_unknown_schema_rejected",
+      "test_ch3_formal.BufferRepairTests.test_rng_unchanged",
+      "test_ch3_formal.BufferRepairTests.test_memory_rule_unchanged",
+      "test_ch3_formal.BufferRepairTests.test_numeric_policy_unchanged",
+      "test_ch3_formal.BufferRepairTests.test_all_profiles_unchanged",
+      "test_ch3_formal.BufferRepairTests.test_54_groups_and_counts",
+      "test_ch3_formal.BufferRepairTests.test_old_full_report_rejected",
+      "test_ch3_formal.BufferRepairTests.test_production_math_AST_unchanged",
+      "test_ch3_formal.BufferRepairTests.test_diagnostic_scope_and_budget",
+      "test_ch3_formal.BufferRepairTests.test_no_probe_pool_reset",
+      "test_ch3_formal.BufferRepairTests.test_storage_is_dtype_max_not_state_sum",
+      "test_ch3_formal.BufferRepairTests.test_nested_order_and_change_detection"
     ],
     "model_cases": {}
   },

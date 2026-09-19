@@ -471,6 +471,24 @@ def worker():
         dump(out/'result.json',dict(success=True,normal_lifecycle=True,second_lock_refused=True,stop_prevents_next_wave=True))
 
 
+def inherited_trajectory_path(c,parent_path,parent,gid,run):
+    """Resolve a reviewed group's direct or already hash-bound ancestor JSON."""
+    if parent['decisions'][gid]['status']!='Passed':raise ValueError('failed parent cannot be inherited')
+    direct=Path(parent_path).parent/gid/'serial'/run/'trajectory.json'
+    if direct.exists():return direct
+    record=parent.get('inheritance',{}).get('groups',{}).get(gid,{})
+    if not isinstance(record,dict):raise ValueError('ancestor reference is missing')
+    ref=record.get('references',{}).get(run)
+    if not isinstance(ref,dict):raise ValueError('ancestor run reference is missing')
+    path=Path(ref['path']).resolve()
+    roots=(REPO.parent/'amd-execution-evidence/m5',Path(c['execution']['fixture']))
+    if (path.name!='trajectory.json' or path.parent.name!=run or gid not in path.parts
+            or not any(inside(str(path),str(root.resolve()))for root in roots)):
+        raise ValueError('ancestor reference outside exact evidence scope')
+    if sha(path)!=ref.get('sha256'):raise ValueError('ancestor trajectory changed')
+    return path
+
+
 def probe_all(c,approval):
     reasons=preflight(c,None,approval,probe=True)
     if reasons:raise RuntimeError('; '.join(reasons))
@@ -488,7 +506,7 @@ def probe_all(c,approval):
             if decision['status']!='Passed':raise ValueError('cannot inherit failed parent decision')
             group=next(g for g in c['groups'] if g['id']==gid);checks={}
             for run in group['representatives']:
-                path=parent_path.parent/gid/'serial'/run/'trajectory.json'
+                path=inherited_trajectory_path(c,parent_path,parent,gid,run)
                 trajectory=read(path)
                 if trajectory['profile_sha']!=digest(profile(c,task_by_id(c,run))):
                     raise ValueError('inherited effective profile differs: '+run)

@@ -1,5 +1,7 @@
 # M5：模型筛选与结构冻结
 
+2026-09-19当前状态（M5 §20）：用户授权直接修复并准备补测；已审核第二轮54组终态34 Passed/20 Blocked（10继承＋24新通过），本轮原probe实际1740 Adam/2320前向/1740反向，无已尝试worker OOM或资源归属失败，不外推未执行H。新增固定CPU摘要缓冲区，三个原RSS失败代表复验通过且计算轨迹与原版exact相同；没有删除四点规则或放宽门槛。CPU16+16方法通过；15个合成诊断worker累计90 Adam/120前向/90反向，机械余额360。三组数值诊断初始/RNG/batch相同但串行重复也不exact，最大模型状态差约1.55e-6、7.08e-8、5.25e-5，不能直接套TimeMixer/Exchange单张量1e-7白名单，未新增容差。计划34组继承/20组80代表补测上限1440，原补测剩1296，额外144仅Proposed。工程repair可收口，完整补测仍Blocked；J未冻结，M5未Closed，M6未开始。以下§19及更早为历史时点。
+
 2026-09-19当前状态（M5 §19）：用户明确选择数值等价并继续授权ChatGPT直接执行至工程closure。仅对TimeMixer/Exchange既定四H的enc_embedding.value_embedding.tokenConv.weight及其梯度/Adam两动量，预登记atol=1e-7、rtol=0、NaN/Inf拒绝；训练loss与归一化validation误差同绝对界，初始/随机/批身份、步数及白名单外模型/梯度/optimizer状态继续exact，其他模型/域不放宽。新JSON逐步数值证据与精确残余摘要已接实际probe比较及报告检查。CPU16/16首次通过；H192新六步串行参考、两路各六步及独立串行重复共24 Adam/32前向/24反向，全部在该固定界内，最大梯度差7.450580596923828e-08、动量差1.4901161193847656e-08、参数和loss差0，旧exact Not passed不倒改。机械余额450；3036补测额度未消耗，10组25代表继承已核对，44组170代表仍待用户一次启动。495/5340、全部profile/T/结构/训练/数据/确定性设置不变。技术阻塞已按新合同处理，本轮工程审核closure后可生成实际版本probe许可；不代启补测，不冻结J、不关闭M5、不进入M6。以下§18及更早为历史时点。
 
 2026-09-19当前状态（M5 §18）：用户明确授权ChatGPT接手服务器执行上一轮确认方案及检查工程Git closure。本轮57个来源待决run全部落实，iTransformer/ECL明确采用本模型官方脚本B16；A/J/N/S的274个profile、495任务/5340 run-epochs、54组/195worker及统一T等不变。最终最大optimizer步数算术16,482,750；新增709次补测Adam获批，2327原余额＋709=3036，未消耗。双时点RSS测量保留四点严格增长规则和前序哈希影响说明；CPU16/16首次通过、无复验。限定5worker均正常完成，共30 Adam/40前向/30反向，机械余额474；AMD/ETTh1六步未触发旧增长检查。TimeMixer/Exchange H192初始/RNG/batch及loss一致，但重复串行也有Conv1d权重梯度/Adam微小非逐位差异，exact仍Not passed，不擅调容差或确定性设置。10组25代表继承profile核对通过，44组170代表补测计划保留但全队启动仍Blocked；本轮仅工程版本收口，不生成完整probe许可、不冻结J/关闭M5/进入M6。以下§17及更早为历史时点。
@@ -1299,3 +1301,59 @@ bash scripts/ch3/start_probe.sh safe-stop
 ```
 
 complete只表示终态覆盖，不等于全部准入通过；若模型/数值/资源仍有失败，保留证据审计，不能再自动放宽容差或重跑。工程closure不等于M5 Closed；J未冻结、M6和正式训练均未启动。数据政策/原论文限制及空间路线不变。
+
+
+## 20. 第二轮补测审计、复用CPU摘要缓冲区及三组数值诊断
+
+### 20.1 授权、现场与第二轮结果
+
+用户本轮“修复然后给出补测指令”承接已授权的ChatGPT服务器执行。本轮不自动扩大容差、改变确定性或科学配置。起点三端`6805a910d1ed7fcfb2b0726155bca3c3cd1cca22`、0/0、clean。证据根`/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-buffer-repair-zwqjvgf_`；fixture=`/tmp/amd-m5-buffer-grj1mrp3`。开始前授权清单SHA=`241552d9c367e3e79d4d2a27b911f706553ae33a826dc05b6c94d63977dd3711`。
+
+第二轮parent为`m5-numeric-equivalence-80dirugd/probe/complete.json`，SHA=`def4e11ed39b4df9b1cd3aa26f597f2a0e1b5bb0d81b1fa75a986f99c6c0af7f`。54组完整终态：34 Passed（10继承＋24新通过）、20 Blocked；Passed中27组四路、7组单路。290个worker实例共1740 Adam/2320 forward/1740 backward；17组因RSS增长检查、3组因exact数值差异阻塞。本次已尝试负载没有OOM和NVML不准入，不等于未执行H或正式长训练也已验证。旧complete/trajectory/log和失败事实不改，结果登记可接受与总体资源gate未通过分开。
+
+### 20.2 摘要机械修复与实际复验
+
+`ReusableTensorDigest`为每个dtype一次分配可容纳最大已登记state张量的CPU缓冲区，构造期预触页并缓存各shape和字节视图。每次hash使用同步copy_复用，不再对每个GPU参数/Adam状态调用.cpu()分配临时CPU tensor。未知dtype/shape拒绝，不静默扩容；包含Adam懒建立的float32 step标量。保留原递归排序、dtype/shape头和字节语义、原RNG/训练/指标/保存恢复函数。GPU state不修改；不设置empty_cache或新CUDA选项。TimeMixer/Exchange原白名单残余摘要也使用同一复用接口，规则本身不变。
+
+三个专用、无状态捕获的原RSS失败代表：AMD/ECL/H192、PatchTST/ECL/H336、TimeXer/ECL/H96，各6更新＋2validation，通过原四点检查；与原trajectory的initial/RNG/batch/逐步参数及optimizer hash/loss/validation/final全部一致。CPU摘要缓冲区分别4,194,312 /11,010,056 /10,240,000 bytes。其结果仅证明这三条修复路径，不把原17组批量追改Passed、不保证长期无泄漏。详见`rss-repair-verification.json`。
+
+### 20.3 限定数值诊断：不是均在1e-7内
+
+针对TimeMixer/ETTh1、TimeMixer/ECL、ModernTCN/ETTh1，均取当前H96正式profile；每组串行参考、两路各一份、独立串行重复，每worker六步。参数/梯度/Adam状态只保存于本轮自产合成文件。初始state、RNG和batch身份均exact，三组独立串行重复也不exact；没有证据把差异只归于并发。首个可见梯度差异分别在TimeMixer tokenConv和ModernTCN downsample卷积路径，未唯一定位底层kernel。
+
+| 诊断组 | 模型state最大绝对差 | 梯度最大绝对差 | Adam state最大绝对差 | validation MSE最大绝对差 |
+|---|---:|---:|---:|---:|
+| TimeMixer/ETTh1/H96 | 1.5497207641601562e-6 | 1.9073486328125e-6 | 2.384185791015625e-7 | 6.763589599501074e-8 |
+| TimeMixer/ECL/H96 | 7.078051567077637e-8 | 9.5367431640625e-7 | 1.1920928955078125e-7 | 0 |
+| ModernTCN/ETTh1/H96 | 5.246791988611221e-5 | 2.824526745826006e-8 | 3.958120942115784e-9 | 2.5322343333300523e-8 |
+
+ModernTCN最大差位于第6步`model.downsample_layers.0.0.bias`，独立串行差达到上述最大值；差异并非仅单张量或统一1e-8量级。不能据合成指标很接近推断长期无害，也不将原exact改为Passed。`new-numeric-state-comparison.json`逐步给出实际路径、差异元素、绝对/相对幅度；本輪共读取84份自产状态，不读任何历史/正式checkpoint。候选的三组浮点state atol1e-4、loss/归一化指标atol1e-6、rtol0方案仅列于`pending-decision.json`，是诊断后的工程政策提案，未经用户确认，不实施、不追认旧结果。
+
+TimeMixer/ECL四个带状态捕获的诊断中3个在完成六步和状态保存后仍触发RSS判据、exit1；监测均通过，无OOM。逐步torch.save/cpu_tree额外分配是诊断流程事实，但本轮没有做去掉捕获的配对归因，不宣称已证明所有增长来源。捕获诊断不是资源准入通过；原失败与完整成本保留。
+
+### 20.4 验收与实际计账
+
+BufferRepairTests首验16/16通过。收口检查发现新父报告中10个祖先继承组没有直接serial目录，最小修复`inherited_trajectory_path`：只解析父报告已绑定path/SHA的JSON引用，范围/文件名/身份/摘要不符拒绝，不搜索其他artifact。随后同16个方法完整复验通过并增加相关子case；不存在首验失败被隐藏或test方法互调。方法合计32，子case按同SHA源码与日志登记。未重跑作者smoke、旧loader或其他回归。
+
+15个诊断worker合计90 Adam/120 forward/90 backward，在预先固定96/128/96、最多16实例内，无额外模型复验。12 exit0、3 exit1（上述capture诊断RSS），所有六步操作已计费；不可将driver exit0解释成所有worker Passed。机械池450−90=360，补测池不混用。一条离线汇总命令最初缺tools模块路径，导入前退出；补充固定sys.path后成功，模型/测试调用为0，见`audit-command-errors.json`。
+
+495个effective profile和274个AMD家族profile与起点完全一致，预算仍5340 run-epochs、最大16,482,750 optimizer步骤。所有T/batch/LR/结构/数据/seed与原numeric policy均不改变。未读取真实观测或test内容，无完整补测/正式训练。
+
+### 20.5 精确后续计划与停止点
+
+父报告34组/115代表profile与直接或祖先引用SHA逐一核对；仍为原Passed，不冒称修后重跑。其余20组/80代表保留，最多80串行＋80四路＋80两路回退worker，即1440 Adam/1920 forward/1440 backward/480 validation。上包3036−1740=1296剩余，新缺144仅Proposed；不得从机械360借用，不清零历史成本。
+
+曾检查50条个别成功serial的参考复用方案，但未执行；旧serial耗时含旧临时分配，不能直接与新buffer并发耗时计算同实现加速比。因此未启用该执行捷径，保留仅同profile的34个既有完整组继承，其余组从匹配实现建立新对照。详见`serial-reuse-proposal-not-executed.json`与正式`followup-plan.json`。
+
+当前只提交本轮机械修复、证据和未通过事实；工程closure不代表M5结束。三组数值准入扩展及144额度未获批准，完整队列preflight必须拒绝，不生成reviewed=true许可或启动start。下一步用户集中裁决后才能落实新数值验收、确认有效预算、必要复验并生成实际新版本许可。其他34组不重跑，不恢复54组整包。
+
+```bash
+cd /public/home/yueweiting/大论文/AMD
+export PATH="/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin:$PATH"
+export PYTHONDONTWRITEBYTECODE=1
+bash scripts/ch3/start_probe.sh dry-run
+bash scripts/ch3/start_probe.sh preflight
+# 当前应拒绝三组数值政策、额度和缺少新许可；不要运行start。
+```
+
+准确commit/三端0/0/clean与文件SHA在本轮外置closure-verification.json登记，不为写入文档自身commit递归提交。AGENTS、Closed M4、baseline、作者源码/环境、空间路线保持；J未冻结、M5未Closed、M6未开始。
