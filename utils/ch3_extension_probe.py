@@ -32,6 +32,9 @@ def specification(c):
 
 def scope_module(a):
     scope=(a or {}).get('probe_scope')
+    if scope=='urban-numeric-diagnostic-v1':
+        from utils import ch3_urban_diagnostic
+        return ch3_urban_diagnostic
     if scope=='timemixer-revision-numeric-v1':
         from utils import ch3_revision_probe
         return ch3_revision_probe

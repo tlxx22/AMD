@@ -40,6 +40,8 @@ def code_binding():
                   'utils/ch3_result_index.py','tests/test_m6_closeout.py','tests/test_m6_boundaries.py',
                   'utils/ch3_revision.py','m6_revision_entry.py','scripts/ch3/start_timemixer_revision.sh','tests/test_m6_revision.py',
                   'utils/ch3_revision_probe.py','m6_revision_probe_entry.py','scripts/ch3/start_revision_probe.sh','tests/test_m6_revision_probe.py']
+    files += ['utils/ch3_urban_diagnostic.py','utils/ch3_urban_capture.py','m6_urban_diagnostic_entry.py',
+              'scripts/ch3/start_urban_diagnostic.sh','tests/test_m6_urban_diagnostic.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
@@ -666,7 +668,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
     if review['blocked'] or review['needs_long_window']:raise RuntimeError('material RSS growth still has no plateau')
     return result
 
-def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8):
+def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False):
     import torch
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     from utils.ch3_contract import numeric_probe_policy
@@ -680,6 +682,11 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     state_digest=ReusableTensorDigest(model.state_dict());full_writer=FullNumericStateWriter(model,opt,out,state_digest,numeric_rule) if numeric_rule and numeric_rule['kind']=='full_float_state' else None
     full_trace=[None]*6 if full_writer else None
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
+    diagnostic=None
+    if urban_diagnostic:
+        from utils.ch3_urban_capture import DiagnosticCapture
+        diagnostic=DiagnosticCapture(model,opt,out,state_digest,generator)
+        diagnostic.capture(0)
     b=p['training']['batch'];v=p['training']['eval_batch'];d=c['datasets'][task['dataset']]
     if task['dataset']=='UrbanEV':a,z,_=c['urban_folds'][task['fold']-1];validation_samples=(z-a-p['T']-task['h']+1)*275
     else:
@@ -701,7 +708,9 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         memory[step]=dict(step=step+1,allocated=allocated,reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,rss_before_hash=before,rss_after_hash=after,rss=rss())
         capture('step-'+str(step+1))
+        if diagnostic is not None:diagnostic.capture(step+1)
     result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),state_digest_storage_bytes=state_digest.storage_bytes,state_digest_buffer_allocations=state_digest.buffer_allocations,state_digest_policy='preallocated-per-dtype-v1; original digest byte semantics')
+    if diagnostic is not None:result['urban_diagnostic_trace']=diagnostic.rows
     if numeric_rule:
         result['numeric_policy_sha']=digest(numeric_rule)
         if numeric_trace is not None:result['numeric_trace']=numeric_trace

@@ -278,7 +278,7 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
         scope=scope_module(approval)
         if not out.resolve().is_relative_to(scope.ROOT) or task not in (approval or {}).get('authorized_task_ids',[]):
             raise PermissionError('exact probe output/task before directory creation')
-        if getattr(scope,'SCOPE',None)=='timemixer-revision-numeric-v1':
+        if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1'):
             scope.worker_path(c,task,out)
             reasons=scope.authorization_reasons(c,approval)
             if not reasons:reasons=preflight(c,'TimeMixer',approval,probe=True)
@@ -358,7 +358,7 @@ def run_configs(configs,out,monitor=False):
         from utils.ch3_extension_probe import scope_module
         scope=scope_module(configs[0].get('approval'))
         if any(scope_module(s.get('approval')) is not scope or s['session_root']!=str(scope.ROOT) for s in configs):raise ValueError('mixed probe scopes')
-        if getattr(scope,'SCOPE',None)=='timemixer-revision-numeric-v1':stop_file=scope.validate_wave(read_profiles(),configs,out)
+        if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1'):stop_file=scope.validate_wave(read_profiles(),configs,out)
         else:stop_file=scope.ROOT/'STOP'
         if stop_file.exists():raise InterruptedError('probe STOP before monitor/worker launch')
     aggregate=dict(process_peaks={},cpu_peaks={},whole_peak=None,last_time=None,min_interval=None,max_interval=None,settled_count=0,all_admitted=True,count=0)
@@ -540,7 +540,8 @@ def worker():
                          backend_name=case['conv_name'] if s.get('kernel_probe') else None, backend_repetitions=case.get('kernel_repetitions',8))
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
-        probe_worker(c,task_by_id(c,s['task']),out)
+        probe_worker(c,task_by_id(c,s['task']),out,
+                     urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1')
     elif purpose=='ch3_formal_bindings':
         from utils.ch3_m6 import build_data_bindings
         build_data_bindings(c,out)
