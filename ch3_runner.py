@@ -42,6 +42,8 @@ def code_binding():
                   'utils/ch3_revision_probe.py','m6_revision_probe_entry.py','scripts/ch3/start_revision_probe.sh','tests/test_m6_revision_probe.py']
     files += ['utils/ch3_urban_diagnostic.py','utils/ch3_urban_capture.py','m6_urban_diagnostic_entry.py',
               'scripts/ch3/start_urban_diagnostic.sh','tests/test_m6_urban_diagnostic.py']
+    files += ['utils/ch3_urban_confirmation.py','utils/ch3_admission_merge.py','m6_urban_confirmation_entry.py',
+              'scripts/ch3/start_urban_confirmation.sh','tests/test_m6_urban_confirmation.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
@@ -58,6 +60,9 @@ def hardware_binding():
 
 
 def validate_probe_report(c, report):
+    if report.get('purpose')=='m6_merged_resource_admission_v1':
+        from utils.ch3_admission_merge import validate_merged
+        return validate_merged(c,report)
     if report.get('protocol_sha')!=digest(c) or report.get('Q')!=sum(g['q'] for g in c['groups']):
         raise ValueError('probe configuration/worker coverage mismatch')
     if set(report.get('decisions',{}))!={g['id'] for g in c['groups']}:
@@ -668,7 +673,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
     if review['blocked'] or review['needs_long_window']:raise RuntimeError('material RSS growth still has no plateau')
     return result
 
-def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False):
+def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False):
     import torch
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     from utils.ch3_contract import numeric_probe_policy
@@ -683,7 +688,10 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     full_trace=[None]*6 if full_writer else None
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
     diagnostic=None
-    if urban_diagnostic:
+    if urban_confirmation:
+        from utils.ch3_urban_confirmation import policy
+        if policy(c,task) is None:raise ValueError('foreign confirmation task')
+    if urban_diagnostic or urban_confirmation:
         from utils.ch3_urban_capture import DiagnosticCapture
         diagnostic=DiagnosticCapture(model,opt,out,state_digest,generator)
         diagnostic.capture(0)
@@ -703,7 +711,12 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         if numeric_trace is not None:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1,state_digest)
         if full_writer is not None:full_trace[step]=full_writer.capture(step+1)
         after=rss()
-        if step==1:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
+        if step==1:
+            if urban_confirmation:
+                validation_batches=[batch(v),batch(tail or v)]
+                validation_batch_ids=[tensor_digest(pair)for pair in validation_batches]
+                validation=evaluate(model,validation_batches,p,device)
+            else:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         memory[step]=dict(step=step+1,allocated=allocated,reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,rss_before_hash=before,rss_after_hash=after,rss=rss())
@@ -711,6 +724,17 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         if diagnostic is not None:diagnostic.capture(step+1)
     result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),state_digest_storage_bytes=state_digest.storage_bytes,state_digest_buffer_allocations=state_digest.buffer_allocations,state_digest_policy='preallocated-per-dtype-v1; original digest byte semantics')
     if diagnostic is not None:result['urban_diagnostic_trace']=diagnostic.rows
+    if urban_confirmation:
+        from utils.ch3_urban_confirmation import cached_endpoint,POLICY
+        target=dict(index=p['target_idx'],pred_len=p['pred_len'],C=p['C'],metric_space='train-standardized target-only')
+        endpoint=cached_endpoint(model,validation_batches,lambda bs:evaluate(model,bs,p,device),
+            lambda:dict(rng=rng(),model=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict())),tensor_digest)
+        endpoint['target']=target
+        result['urban_confirmation']=dict(policy_sha=digest(POLICY),evaluations={'2':dict(metrics=validation,batch_ids=validation_batch_ids,target=target),'6':endpoint})
+        if str(device).startswith('cuda'):torch.cuda.synchronize()
+        result['endpoint_resources']=dict(allocated=torch.cuda.memory_allocated()if str(device).startswith('cuda')else 0,rss=rss())
+        result['allocated']=torch.cuda.max_memory_allocated()if str(device).startswith('cuda')else 0
+        result['reserved']=torch.cuda.max_memory_reserved()if str(device).startswith('cuda')else 0
     if numeric_rule:
         result['numeric_policy_sha']=digest(numeric_rule)
         if numeric_trace is not None:result['numeric_trace']=numeric_trace

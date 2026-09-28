@@ -31,6 +31,9 @@ def specification(c):
       representatives={g['id']:g['representatives']for g in extra},profile_sha={r:digest(profile(c,task_by_id(c,r)))for g in extra for r in g['representatives']},parent_report_sha=plan['parent_report_sha256'],root=str(ROOT),caps=CAPS,already_charged=PREPARATION,worker=dict(adam=6,forward=8,backward=6,validation=2),fallbacks=[4,2,1])
 
 def scope_module(a):
+    if (a or {}).get('probe_scope')=='urban-numeric-confirmation-v1':
+        from utils import ch3_urban_confirmation
+        return ch3_urban_confirmation
     scope=(a or {}).get('probe_scope')
     if scope=='urban-numeric-diagnostic-v1':
         from utils import ch3_urban_diagnostic

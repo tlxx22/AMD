@@ -178,3 +178,18 @@ finally路径在原pane按缓存Node22.16.0和0.2.50入口恢复：remote PID193
 本轮15个精确CPU方法、25个子case全部Passed，正常unittest生命周期，源码SHA/完整ID在fixture前限制；低优先级单进程单线程、CUDA不可见，模型/optimizer/autograd/GPU入口被禁止。覆盖scope互斥、自报告依赖消除、跨许可/旧profile/错误源码/路径拒绝、STOP、固定波次、预算不退款、报告待审及Exchange合并、正式队列和267项来源索引不变。未重跑旧19＋7＋3、计量、删除、前缀或任何模型测试。14项shell语法/CLI检查符合预期：两入口dry-run/status/logs成功，preflight/start因模板未获准返回2，complete因未执行返回2；两技术输出根仍不存在。累计前向18/512、剩494，本轮模型/前向/反向/Adam/GPU均0。
 
 全部科学profile、552目标任务/6240目标run-epochs、568尝试/6440尝试上限、16与41入口顺序及其他16追加任务保持。新三组必须先获预算批准、修后审核/统一closure和匹配许可，执行结果再审核；扩展probe消费该报告，正式16重跑和41补做的独立门禁继续有效。本轮未stage/commit/push、未GPU probe/训练。完整命令、不可执行模板、增量diff、前后SHA及精确账本见同包`revision-numeric-wiring-v1/`，不声称ChatGPT已审核本段新字节。
+
+
+### 5.13 TimeMixer/UrbanEV限定数值确认与88组准入合并接线（本轮A；待字节审核）
+
+本次用户批准限定政策与一次48 Adam/80完整前向/48反向预算；不直接授权尚未生成字节的commit或GPU执行。已接受诊断：`urban-numeric-diagnostic-v1/execution/complete.json` SHA `771eccd79de30375f8e07923262ac858db8639abe2260df00131d2edbe589207`；量化汇总 SHA `de2640b26c25cc34c5d0c3f68727a587aa5cd0892faf47187fb854add744fd3d`。接受诊断不等于准入，原 `admission_granted=false` 和不带捕获的UrbanEV q4 exact失败均保留。
+
+新scope `urban-numeric-confirmation-v1` 仅作用于TimeMixer/UrbanEV/F4、h3/6/9/12、冻结T12/pred_len1/C11/B128/eval128/LR0.001/seed2024及既有结构/线程/精度/硬件。初始化、任务/profile、RNG、batch与形状精确；浮点参数/buffer、梯度、Adam moments最大绝对差≤1e-4；Adam step、非浮点、非张量状态及参数组精确。逐步loss绝对差≤1e-6；第2与第6步MSE/MAE、同元素数归一SSE/SAE差≤1e-6；全部rtol=0。finite、RSS、显存余量、归属和同任务并发收益原规则不变。该政策是用户批准的项目范围决定，不是作者配置、唯一算子根因或全局宽松容差。
+
+四H各一次串行，然后一次q4：8 worker、**5次实际派发**。指令“6波”与固定顺序算术不符，按明确的4串行＋1并发执行，不增加波次/worker。每worker6/10/6：第2步按原顺序生成并评价两个合成CPU batch，缓存并记摘要；六步训练及原状态/RNG记录结束后，eval/no_grad复用这两个batch新增两次前向，核对RNG、持久模型/optimizer及batch不变并恢复模式。其他scope保持6/8/6。局部无重试、无q2/q1回退、无额外smoke。扩展总额360/512/360，起点144/210/144，完整执行后192/290/192、余额168/222/168；三个改LR组的独立144/192/144已经耗尽，不可借用。
+
+准入来源拆分为51原不变＋26已接受q1转移＋7已接受q1＋3已接受改LR＝87；第88个UrbanEV必须来自本scope实际测量。新 `merged-admission.json` 逐组保留来源路径/SHA、真实旧commit/protocol/code和转移证明，不改旧失败目录，不要求旧extension complete变成功。新报告由实际状态/计量/监测重放生成，保持reviewed=false/admission_granted=false；正式消费必须另有对原未审核总报告SHA的明确审核登记。代码继承证明逐文件绑定本轮after字节，全部552科学profile、原政策及生产训练函数保持；仅新增scope启用终点评价，未启用时六步计算路径保留。
+
+新入口为 `scripts/ch3/start_urban_confirmation.sh`，支持dry-run/preflight/start/logs/status/complete/safe-stop，使用原tmux方式和受限worker。不可执行模板及固定计划位于既有P的 `urban-numeric-confirmation-v1/`。A仅定向无模型验收；实际测试账、diff和完整前后SHA见该目录，不倒写旧证据。B须ChatGPT实际字节审核、精确closure、clean且三端一致以及匹配的新许可；本轮不stage/commit/push、不GPU、不正式开训。
+
+确认通过并经结果审核后，才准备TimeMixer原四域16-run正式许可；仍由用户启动。41-run补做总队列必须等16-run完成审计后由用户另启，不自动跨接；267项已接受正式结果、552任务、6240目标run-epochs和568/6440尝试上限不变。带捕获/额外评价的短包耗时不冒称正式训练加速比。

@@ -38,6 +38,9 @@ def cli(argv=None):
         from ch3_runner import validate_probe_report,code_binding,environment_binding,hardware_binding
         report=json.loads(Path(a.probe_report).read_text())
         validate_probe_report(c,report)
+        if report.get('purpose')=='m6_merged_resource_admission_v1':
+            from utils.ch3_admission_merge import validate_merged
+            validate_merged(c,report,require_review=True)
         if report.get('code')!=code_binding() or report.get('environment')!=environment_binding() or report.get('hardware')!=hardware_binding():reasons.append('resource source/environment/hardware mismatch')
         if not approval or hashlib.sha256(Path(a.probe_report).read_bytes()).hexdigest()!=approval.get('probe_report_sha'):reasons.append('resource report not bound by approval')
     else:reasons.append('reviewed extension/carry-forward resource report missing')

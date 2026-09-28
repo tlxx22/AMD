@@ -101,6 +101,7 @@ def validate_config(s):
         elif kind=='numeric6':ceilings[purpose]=(6,24,22) if s.get('kernel_probe') else (6,8,6)
         else:raise ValueError('unknown bounded diagnostic kind')
     elif s.get('kernel_probe'):raise ValueError('kernel replay is diagnostic-only')
+    if purpose=='ch3_probe' and s.get('probe_scope')=='urban-numeric-confirmation-v1':ceilings[purpose]=(6,10,6)
     if purpose in ceilings:
         if tuple(s['limits'][k] for k in ('adam','forward','backward'))!=ceilings[purpose]:raise ValueError('exact operation budget mismatch')
     if purpose not in ('ch3_prefix','ch3_formal','ch3_formal_bindings') and s['prefix_files']:raise ValueError('real prefix forbidden for this purpose')
@@ -278,7 +279,7 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
         scope=scope_module(approval)
         if not out.resolve().is_relative_to(scope.ROOT) or task not in (approval or {}).get('authorized_task_ids',[]):
             raise PermissionError('exact probe output/task before directory creation')
-        if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1'):
+        if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1','urban-numeric-confirmation-v1'):
             scope.worker_path(c,task,out)
             reasons=scope.authorization_reasons(c,approval)
             if not reasons:reasons=preflight(c,'TimeMixer',approval,probe=True)
@@ -307,7 +308,8 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
          [task] if task else ['ch3.resource_diagnostic' if purpose=='ch3_resource_diagnostic' else 'ch3.prefix.'+case+'.train_validation' if purpose=='ch3_prefix' else 'ch3.placeholder'])
     limits=dict(adam=0,backward=0,forward=0,seconds=1200)
     if purpose=='ch3_model_acceptance':limits.update(adam=2,forward=6,backward=2)
-    elif purpose=='ch3_probe':limits.update(adam=6,backward=6,forward=8,seconds=1800)
+    elif purpose=='ch3_probe':
+        limits.update(adam=6,backward=6,forward=10 if (approval or {}).get('probe_scope')=='urban-numeric-confirmation-v1' else 8,seconds=1800)
     elif purpose=='ch3_step_diagnostic':
         kind=c['execution']['diagnostics']['cases'][case]['kind']
         limits.update(adam=24 if kind=='rss24' else 6,forward=26 if kind=='rss24' else 24 if kernel_probe else 8,
@@ -358,7 +360,7 @@ def run_configs(configs,out,monitor=False):
         from utils.ch3_extension_probe import scope_module
         scope=scope_module(configs[0].get('approval'))
         if any(scope_module(s.get('approval')) is not scope or s['session_root']!=str(scope.ROOT) for s in configs):raise ValueError('mixed probe scopes')
-        if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1'):stop_file=scope.validate_wave(read_profiles(),configs,out)
+        if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1','urban-numeric-confirmation-v1'):stop_file=scope.validate_wave(read_profiles(),configs,out)
         else:stop_file=scope.ROOT/'STOP'
         if stop_file.exists():raise InterruptedError('probe STOP before monitor/worker launch')
     aggregate=dict(process_peaks={},cpu_peaks={},whole_peak=None,last_time=None,min_interval=None,max_interval=None,settled_count=0,all_admitted=True,count=0)
@@ -541,7 +543,8 @@ def worker():
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
         probe_worker(c,task_by_id(c,s['task']),out,
-                     urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1')
+                     urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1',
+                     urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1')
     elif purpose=='ch3_formal_bindings':
         from utils.ch3_m6 import build_data_bindings
         build_data_bindings(c,out)

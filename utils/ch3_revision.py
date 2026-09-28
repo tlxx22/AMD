@@ -73,6 +73,9 @@ def revision_report_reasons(c,ref,approval=None):
  if not ref or not ref.get('path')or not Path(ref['path']).is_file():return ['fixed-LR revision numerical/resource admission not completed']
  if sha(ref['path'])!=ref.get('sha256'):return ['revision resource SHA mismatch']
  d=read(ref['path']);r=c['timemixer_revision']
+ if d.get('purpose')=='m6_merged_resource_admission_v1':
+  from utils.ch3_admission_merge import formal_report_reasons
+  return formal_report_reasons(c,d,approval)
  if d.get('purpose')=='revision_numeric_report':
   from utils.ch3_revision_probe import validate_completion
   try:validate_completion(c,d)

@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+**M6当前增量（用户本次批准，工作区待字节审核）**：TimeMixer/UrbanEV/F4的h3/6/9/12采用独立确认政策：初始化、RNG、batch、结构及非浮点/Adam step/参数组精确一致；六步浮点参数、buffer、梯度、Adam moments绝对差≤1e-4；逐步loss与第2/6步MSE、MAE、同元素数归一SSE/SAE差≤1e-6，均rtol=0。仅命中当前冻结T12/pred_len1/C11/B128/LR0.001/seed2024及既有线程/硬件；其他域和旧exact失败不改。四H串行后q4共8 worker，局部48 Adam/80前向/48反向；第6步后复用第2步两个CPU评价batch额外评价，不改变六步训练/RNG。A阶段零模型负载，B须实现字节审核和精确closure后另签实际许可；本轮不提交或执行。完整条款、87＋1来源合并与正式队列边界见唯一M6 §5.13。
+
 2026-09-27 M6增量覆盖授权（外置候选，生产未切换）：用户在已见原正式结果后明确增加NP/BE/FR/DE四市场的八主表模型及TimeMixer的PJM/UrbanEV F4。原495个科学profile保持，新增57个run/最多900 run-epochs；扩展总数552/最多6240，TiDE继续Deferred。新增41个补做任务允许固定AMD→J→PatchTST→TimeMixer跨模型自动衔接，另外16个任务分别追加DLinear/iTransformer/ModernTCN/TimeXer原组尾；原模型组之间仍不自动衔接。此前TimeMixer仅四标准域及495总数是原批次事实，不限制本次获批新增批次；不得倒写新任务为原注册范围。新增EPF保持T168/H24、单fit、70/10/20取整、历史输入、train-only scaler及目标标准化指标，模型数学与原495任务不变。TimeMixer新增域参数按本次明确授权固定，不能迁移回原四域。详见唯一M6 §5。
 
 2026-09-28 当前工程接入：用户授权将同包累计22文件候选精确接入AMD工作区，并补齐作用域与完成审计绑定。运行代码与code_binding来自R，不再由P/candidate执行；P保留数据、来源、计划、收据与历史候选证据。工作区尚未stage/commit/push，不是已发布版本。旧TimeMixer退役回执和目标缺失已轻量核验；不再读取已删旧complete/manifest/checkpoint，不补造完整性Passed，也未再维护Desktop Commander。
