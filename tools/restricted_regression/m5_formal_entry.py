@@ -32,7 +32,10 @@ def validate_config(s):
     from run_restricted import verify_bundle,ensure_unique_exact
     verify_bundle();c=validate_manifest(read_profiles())
     if s['protocol_sha']!=digest(c) or s['bound_files']!=repository_files():raise ValueError('CH3 code/config binding mismatch')
-    if s['session_root']!=c['execution']['evidence'] or s['fixture_root']!=c['execution']['fixture']:
+    if 'extension' in c and s['purpose']=='ch3_probe':
+        from utils.ch3_extension_probe import scope_module
+        scope_module(s.get('approval')).validate_worker(c,s)
+    elif s['session_root']!=c['execution']['evidence'] or s['fixture_root']!=c['execution']['fixture']:
         raise ValueError('CH3 execution/fixture binding')
     if os.environ.get('TMPDIR')!=s['fixture_root'] or not Path(s['fixture_root']).is_dir():raise ValueError('fixture environment mismatch')
     purpose=s['purpose']
@@ -63,6 +66,9 @@ def validate_config(s):
         expected=['ch3.diagnostic.'+s['case']]
     elif purpose in ('ch3_probe','ch3_formal'):
         t=task_by_id(c,s['task']);expected=[t['id']]
+        if purpose=='ch3_formal':
+            from utils.ch3_revision import validate_spawn
+            validate_spawn(c,t['id'],s['output'],s.get('artifact_root',s['output']),s.get('approval'),s.get('resume',False))
         if purpose=='ch3_probe' and t['id'] not in [x for g in c['groups'] for x in g['representatives']]:raise ValueError('not a representative worker')
         reasons=preflight(c,t['model'],s.get('approval'),probe=purpose=='ch3_probe')
         if reasons:raise PermissionError('startup prerequisites: '+'; '.join(reasons))
@@ -266,7 +272,21 @@ class ExitObservation:
 
 
 def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=None,resume=False,kernel_probe=False):
-    out=Path(out);out.mkdir(parents=True,exist_ok=False)
+    out=Path(out)
+    if 'extension' in c and purpose=='ch3_probe':
+        from utils.ch3_extension_probe import scope_module
+        scope=scope_module(approval)
+        if not out.resolve().is_relative_to(scope.ROOT) or task not in (approval or {}).get('authorized_task_ids',[]):
+            raise PermissionError('exact probe output/task before directory creation')
+        if getattr(scope,'SCOPE',None)=='timemixer-revision-numeric-v1':
+            scope.worker_path(c,task,out)
+            reasons=scope.authorization_reasons(c,approval)
+            if not reasons:reasons=preflight(c,'TimeMixer',approval,probe=True)
+            if reasons:raise PermissionError('; '.join(reasons))
+    if purpose=='ch3_formal':
+        from utils.ch3_revision import validate_spawn
+        validate_spawn(c,task,str(out),str(artifact_root or out),approval,resume)
+    out.mkdir(parents=True,exist_ok=False)
     src=c['sources'].get(task_by_id(c,task)['model']) if task else None
     prefix={}
     if purpose=='ch3_formal_bindings':
@@ -304,6 +324,12 @@ def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=
                 author_files=src['files'] if src else {},prefix_files=prefix,forbidden_roots=[],
                 device='cuda:0' if purpose in ('ch3_probe','ch3_model_acceptance','ch3_step_diagnostic','ch3_formal','ch3_resource_diagnostic') else 'cpu',approval=approval,
                 artifact_root=str(artifact_root or out),resume=resume)
+    if 'extension' in c and purpose=='ch3_probe':
+        from utils.ch3_extension_probe import scope_module
+        scope=scope_module(approval)
+        config['probe_scope']=(approval or {}).get('probe_scope','extension-probe-v1')
+        config['session_root'],config['fixture_root']=scope.locations()
+        scope.validate_worker(c,config)
     for dirname in ('cache/torch/kernels','mpl','cuda-cache'):(out/dirname).mkdir(parents=True,exist_ok=True)
     dump(out/'config.json',config)
     from resource_budget import initialize
@@ -328,6 +354,13 @@ def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
     formal=all(c['purpose']=='ch3_formal' for c in configs)
     stop_file=Path(configs[0]['artifact_root']).parent/'STOP' if formal else Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
+    if not formal and configs and configs[0]['purpose']=='ch3_probe' and 'extension' in read_profiles():
+        from utils.ch3_extension_probe import scope_module
+        scope=scope_module(configs[0].get('approval'))
+        if any(scope_module(s.get('approval')) is not scope or s['session_root']!=str(scope.ROOT) for s in configs):raise ValueError('mixed probe scopes')
+        if getattr(scope,'SCOPE',None)=='timemixer-revision-numeric-v1':stop_file=scope.validate_wave(read_profiles(),configs,out)
+        else:stop_file=scope.ROOT/'STOP'
+        if stop_file.exists():raise InterruptedError('probe STOP before monitor/worker launch')
     aggregate=dict(process_peaks={},cpu_peaks={},whole_peak=None,last_time=None,min_interval=None,max_interval=None,settled_count=0,all_admitted=True,count=0)
     def terminate_owned(sig,frame):raise InterruptedError('safe-stop own process tree')
     previous=signal.signal(signal.SIGTERM,terminate_owned);exit_observation=None
@@ -550,6 +583,7 @@ def inherited_trajectory_path(c,parent_path,parent,gid,run):
 
 
 def probe_all(c,approval):
+    if 'extension' in c:raise PermissionError('use the exact M6 extension probe entry; old root/scope forbidden')
     reasons=preflight(c,None,approval,probe=True)
     if reasons:raise RuntimeError('; '.join(reasons))
     from utils.ch3_contract import followup_limits

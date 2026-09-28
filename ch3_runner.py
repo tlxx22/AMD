@@ -34,6 +34,12 @@ def code_binding():
     files += ['tests/test_ch3_formal.py','scripts/ch3/start_model.sh','scripts/ch3/start_probe.sh',
               'tools/restricted_regression/m5_formal_entry.py','tools/restricted_regression/restricted_io_guard.py',
               'tools/restricted_regression/sitecustomize.py','tools/restricted_regression/bundle.sha256']
+    if (ROOT/'utils/ch3_extension.py').exists():
+        files += ['utils/ch3_extension.py','m6_extension_entry.py','tests/test_m6_extension.py','scripts/ch3/start_supplement.sh',
+                  'utils/ch3_extension_probe.py','m6_probe_entry.py','scripts/ch3/start_extension_probe.sh',
+                  'utils/ch3_result_index.py','tests/test_m6_closeout.py','tests/test_m6_boundaries.py',
+                  'utils/ch3_revision.py','m6_revision_entry.py','scripts/ch3/start_timemixer_revision.sh','tests/test_m6_revision.py',
+                  'utils/ch3_revision_probe.py','m6_revision_probe_entry.py','scripts/ch3/start_revision_probe.sh','tests/test_m6_revision_probe.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
@@ -133,9 +139,16 @@ def preflight(c,model,approval=None,probe=False):
     if probe:
         reasons.extend(kernel_admission_reasons(c))
         reasons.extend(c['execution']['probe'].get('mandatory_blockers',[]))
-        from utils.ch3_contract import followup_limits
-        try:followup_limits(c,approval)
-        except (ValueError,KeyError,TypeError) as exc:reasons.append('follow-up: '+str(exc))
+        if 'extension' in c:
+            from utils.ch3_extension_probe import scope_module
+            reasons.extend(scope_module(approval).authorization_reasons(c,approval))
+        else:
+            from utils.ch3_contract import followup_limits
+            try:followup_limits(c,approval)
+            except (ValueError,KeyError,TypeError) as exc:reasons.append('follow-up: '+str(exc))
+    if not probe and c.get('timemixer_revision') and model=='TimeMixer' and not (approval and approval.get('extension_batch')==c.get('extension',{}).get('id')):
+        from utils.ch3_revision import authorization_reasons as revision_authorization_reasons
+        reasons+=revision_authorization_reasons(c,approval)
     if git('status','--porcelain','--untracked-files=all'):reasons.append('reviewed clean closure required')
     if approval is None:reasons.append('explicit review/closure authorization missing')
     else:
@@ -149,7 +162,8 @@ def preflight(c,model,approval=None,probe=False):
         else:
             if approval.get('purpose')!='ch3_formal' or approval.get('structure_frozen') is not True or approval.get('m6_authorized') is not True:
                 reasons.append('structure freeze and M6 authorization required')
-            for domain in {t['dataset'] for t in c['tasks'] if t['model']==model}:
+            from utils.ch3_m6 import scoped_model_tasks
+            for domain in {t['dataset'] for t in scoped_model_tasks(c,model,approval)}:
                 unresolved=c['datasets'][domain]['mandatory_blockers']
                 if unresolved:reasons.append(domain+': '+','.join(unresolved))
                 if domain not in approval.get('data_bindings',{}):reasons.append(domain+': reviewed data prefix binding missing')
@@ -383,7 +397,7 @@ def formal_identity(c, task, metadata, approval):
     p=profile(c,task)
     return dict(purpose='ch3_formal',run_id=task['id'],input_variant=task['input_variant'],
                 protocol_sha=digest(c),profile_sha=digest(p),data_sha=digest(metadata),
-                source=code_binding(),commit=approval['commit'])
+                source=code_binding(),commit=approval['commit'],**(__import__('utils.ch3_revision',fromlist=['identity_fields']).identity_fields(c,task,approval)))
 
 
 def audit_resume(out,approval,run):
@@ -770,6 +784,12 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--model');parser.add_argument('action',choices=['preflight','dry-run','start','status','logs','complete','safe-stop','worker'],nargs='?',default='preflight')
     parser.add_argument('--approval');parser.add_argument('--probe-report');parser.add_argument('--output');parser.add_argument('--run-id');parser.add_argument('--resume',action='store_true')
     args=parser.parse_args();c=validate_manifest(read_profiles());out=Path(args.output or (Path(c['execution']['evidence'])/('formal-'+str(args.model))))
+    if c.get('timemixer_revision') and args.model=='TimeMixer' and args.action!='worker':
+        from m6_revision_entry import cli
+        return cli()
+    if 'extension' in c and args.model in ('DLinear','iTransformer','ModernTCN','TimeXer') and args.action!='worker':
+        from m6_extension_entry import cli
+        return cli()
     if args.action in ['status','logs','complete','safe-stop']:
         if args.action=='safe-stop':
             state=json.loads((out/'controller.json').read_text());pid=state['pid']

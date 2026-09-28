@@ -162,6 +162,9 @@ def read_profiles(path=PROFILE_FILE):
 
 
 def generate_tasks(c):
+    if 'extension' in c:
+        from utils.ch3_extension import expected_tasks
+        return expected_tasks(c)
     tasks = []
     for model in MODELS:
         domains = ['UrbanEV'] if model in ('N','S') else (
@@ -232,6 +235,9 @@ def validate_manifest(c):
     if c['execution']['probe'].get('numeric_equivalence') is not None:
         for policy in NUMERIC_PROBE_POLICIES:
             numeric_probe_policy(c,dict(model=policy['model'],dataset=policy['dataset'],h=policy['horizons'][0]))
+    if 'extension' in c:
+        from utils.ch3_extension import validate_extension
+        return validate_extension(c)
     expected=generate_tasks(c)
     if c['tasks']!=expected or c['groups']!=generate_groups(expected):
         raise ValueError('task/group manifest mismatch')
@@ -252,9 +258,9 @@ def validate_amd_declaration(declaration, *, input_shape, pred_len, patch, layer
     p=declaration
     if p['model'] in ('J','S') and (not p['aux_idx'] or p.get('input_variant')=='F0'):
         raise ValueError('J/S require nonempty ordered aux; never disable S2 implicitly')
-    if p['model'] not in ('AMD','N','S','J') or p['dataset'] not in ('UrbanEV','PJM','ETTh1','Weather','ECL','Exchange'):
+    if p['model'] not in ('AMD','N','S','J') or p['dataset'] not in ('UrbanEV','PJM','ETTh1','Weather','ECL','Exchange','NP','BE','FR','DE'):
         raise ValueError('formal domain/arm')
-    expected_patch={'UrbanEV':12,'PJM':24,'ETTh1':16,'Weather':16,'ECL':16,'Exchange':4}
+    expected_patch={'NP':24,'BE':24,'FR':24,'DE':24,'UrbanEV':12,'PJM':24,'ETTh1':16,'Weather':16,'ECL':16,'Exchange':4}
     if (tuple(input_shape)!=(p['T'],p['C']) or pred_len!=p['pred_len']
             or patch!=expected_patch[p['dataset']] or layernorm!=(p['dataset']!='ECL')
             or target_idx!=p['target_idx'] or tuple(aux_idx)!=tuple(p['aux_idx'])

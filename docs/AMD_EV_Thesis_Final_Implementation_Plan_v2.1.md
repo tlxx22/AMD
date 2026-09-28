@@ -48,6 +48,17 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-27 M6增量覆盖授权（外置候选，生产未切换）：用户在已见原正式结果后明确增加NP/BE/FR/DE四市场的八主表模型及TimeMixer的PJM/UrbanEV F4。原495个科学profile保持，新增57个run/最多900 run-epochs；扩展总数552/最多6240，TiDE继续Deferred。新增41个补做任务允许固定AMD→J→PatchTST→TimeMixer跨模型自动衔接，另外16个任务分别追加DLinear/iTransformer/ModernTCN/TimeXer原组尾；原模型组之间仍不自动衔接。此前TimeMixer仅四标准域及495总数是原批次事实，不限制本次获批新增批次；不得倒写新任务为原注册范围。新增EPF保持T168/H24、单fit、70/10/20取整、历史输入、train-only scaler及目标标准化指标，模型数学与原495任务不变。TimeMixer新增域参数按本次明确授权固定，不能迁移回原四域。详见唯一M6 §5。
+
+2026-09-28 当前工程接入：用户授权将同包累计22文件候选精确接入AMD工作区，并补齐作用域与完成审计绑定。运行代码与code_binding来自R，不再由P/candidate执行；P保留数据、来源、计划、收据与历史候选证据。工作区尚未stage/commit/push，不是已发布版本。旧TimeMixer退役回执和目标缺失已轻量核验；不再读取已删旧complete/manifest/checkpoint，不补造完整性Passed，也未再维护Desktop Commander。
+
+后续顺序固定为：共用工程审核/closure和必要准入→用户单独启动timemixer-fixedlr-v2/attempt2原四域16-run→完成并通过必要完成审计→用户另行启动41-run补做入口；两个入口不自动衔接。41入口内部才允许AMD→J→PatchTST→TimeMixer的既定跨模型顺序。DLinear/iTransformer/ModernTCN/TimeXer各4新增市场仍在各自原组尾部，共16追加，和41任务互斥。覆盖552/6240、含重复计划568/6440不变；12个原profile仅LR变化，其余483原profile及57新增配置保持。准入分区51不变原组＋26已接受q1转移依据＋8待新测＋3改LR待复验，完整88组且互斥；原扩展计量18/512、剩494保持，改LR三域144Adam/192前向/144反向仍为单列待审提案。
+
+本次29次精确无模型方法调用全部通过（19＋7＋3），一次CLI发现待重跑索引缺少计划revision/attempt字段，已修复并保留首次失败。267项已接受行及来源完全保持；重跑16行明确attempt2/not-run，无旧指标回填；删除前Blocked仅保留历史。不可执行模板start均在硬件查询/业务前拒绝，源码/环境/硬件、PLAN SHA、退役回执和未来probe报告必须逐项绑定，未来41入口还需当前修订版16项完成审计及实际JSON来源SHA。0模型/前向/反向/Adam/GPU，未运行probe/训练或创建有效许可。详见唯一M6 §5.11与同包workspace-integration-v1；ChatGPT未被声称已审核这些新字节。
+
+以下为此前外置候选时点的记录，当前来源与顺序以本段为准：
+本次M6增量仍只修改外置准备包`../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/candidate`，生产未部署。用户明确授权退役删除旧TimeMixer整组且不备份，并批准原16任务固定LR整组fresh重跑：ETTh1/Weather/ECL=0.001，Exchange=0.0003（T96保持），其余训练/模型/数据/指标合同不变。旧训练确已执行且已见test；这是post-hoc LR修订，不是首次盲测，旧消耗不退款。此前SSH权限和Desktop Commander目标句柄导致dry-run停止的事实保留。此次按新增服务维护授权，从独立Codex终端在desktop/%0发送一次C-c，原服务链及同管道tee退出后，未改删除脚本持项目锁完成精确删除198文件/1,009,496,210字节及103目录，三目标均不存在；随后原pane以缓存0.2.50入口恢复一个remote和一个MCP，本地连接日志已确认。回执为user_authorized_retirement/deletion_completed，不是checkpoint_integrity_passed；无备份、未退款旧成本。PID64747权限局限仍如实保留。新目录为原结果根下`revisions/timemixer-fixedlr-v2/formal-TimeMixer`，attempt2，16次fresh/最多200epoch；覆盖552/6240不变，计划尝试累计568/6440。只改变12个profile的LR，483原profile及57新增profile不变；TimeMixer新增UrbanEV=0.001、EPF/PJM=0.0001不变。统一索引保留其他267已接受身份，新16显示not-run且不从旧结果回填。三个改LR组排除旧数值继承，新数值准入仅提案、未获技术预算，不挪用57任务包剩494前向。26组q1转移依据已接受；计量累计18仍有效。此前23项工程和17项删除专项验收均保留，本次不重跑测试，0模型/前向/反向/Adam/GPU；仅服务维护和已授权退役完成，候选审核/部署closure、新许可及数值准入仍未完成，不自动训练。
+
 2026-09-19当前有效阶段：用户明确授权将J冻结为第三章最终EL-AMD（AMD＋Sonnet/MVCA S2 target residual＋THLS），结构身份`el-amd-s2-thls-v1`；M5阶段结束并随本轮closure封存，当前唯一milestone转为`docs/milestones/M6_formal_experiments.md`。M6已有495个fresh正式run/最多5340 run-epochs获本次授权，按十个模型组各自用户启动，组内按既定dataset/input_variant/H/fold波次自动执行；不自动启动下一模型。源/形状不变的54/54 probe证据沿M5 §24继承，并发只在已验证范围使用。M4原18项总gate Not passed和H192 J/N +1.542951806%风险保持；结构冻结不等于模块正式效果已获证。正式模型数学、T/epoch、AMD家族batch/LR及外部baseline来源batch/LR均未变，std=N/A。此前带日期或§编号的状态是历史快照，不重新开放已经裁决的阶段/参数事项。
 
 2026-09-19当前状态（M5 §24）：RSS复合判据与后端条件数值准入后的10组补测已完成并审核，54/54组技术准入全部Passed（44继承＋10本轮新通过）。本轮实际480 Adam/640前向/480反向，低于594硬上限；80条worker轨迹均finite、0 OOM、0资源归属失败、0受限审计deny。Passed并发为q4 44组、q2 3组、q1 7组。报告与当前protocol/code/environment/hardware/许可、kernel admission均匹配。该结论仅为资源/并发/短轨迹数值技术gate Passed，不是效果gate，不冻结J；M5仍未Closed，M6未开始。以下§23及更早为历史时点。

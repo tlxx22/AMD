@@ -65,13 +65,29 @@ def build_data_bindings(c,out):
     return result
 
 
+def scoped_model_tasks(c,model,approval=None):
+    tasks=[t for t in c['tasks'] if t['model']==model]
+    if not approval:return tasks
+    revision=c.get('timemixer_revision',{})
+    if model=='TimeMixer' and approval.get('execution_revision')==revision.get('id') and revision:
+        return [t for t in tasks if t['id'] in revision['task_ids']]
+    extension=c.get('extension',{})
+    if extension and approval.get('extension_batch')==extension['id']:
+        from utils.ch3_extension import queue_ids,APPEND
+        allowed=set(queue_ids(c)) if model not in APPEND else set(queue_ids(c,model))
+        selected=set(approval.get('authorized_task_ids',[]))
+        return [t for t in tasks if t['id'] in allowed and t['id'] in selected]
+    return tasks
+
+
 def approval_reasons(c,model,approval):
     if approval is None:return []
     reasons=[]
     freeze=c.get('structure_freeze',{})
     if freeze.get('id')!=FREEZE_ID or freeze.get('variant')!='J':reasons.append('frozen EL-AMD identity missing')
     if approval.get('freeze_id')!=FREEZE_ID:reasons.append('formal approval freeze identity mismatch')
-    tasks=[t for t in c['tasks'] if t['model']==model]
+    tasks=scoped_model_tasks(c,model,approval)
+    if not tasks:reasons.append('empty or unauthorized model task scope')
     if model not in approval.get('models',[]):reasons.append('model outside formal authorization')
     for t in tasks:
         h=approval.get('data_bindings',{}).get(t['dataset'],{}).get(t['id'])
