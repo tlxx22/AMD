@@ -44,6 +44,7 @@ def code_binding():
               'scripts/ch3/start_urban_diagnostic.sh','tests/test_m6_urban_diagnostic.py']
     files += ['utils/ch3_urban_confirmation.py','utils/ch3_admission_merge.py','m6_urban_confirmation_entry.py',
               'scripts/ch3/start_urban_confirmation.sh','tests/test_m6_urban_confirmation.py']
+    files += ['utils/ch3_remaining.py','m6_remaining_entry.py','scripts/ch3/start_remaining_models.sh','tests/test_m6_remaining.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
@@ -60,6 +61,9 @@ def hardware_binding():
 
 
 def validate_probe_report(c, report):
+    if report.get('purpose')=='m6_remaining_resource_carry_forward_v1':
+        from utils.ch3_remaining import validate_resources
+        return validate_resources(c,report)
     if report.get('purpose')=='m6_merged_resource_admission_v1':
         from utils.ch3_admission_merge import validate_merged
         return validate_merged(c,report)
@@ -131,6 +135,9 @@ def preflight(c,model,approval=None,probe=False):
     validate_manifest(c)
     if model is not None and model not in {t['model'] for t in c['tasks']}:raise ValueError('model group not registered')
     reasons=[]
+    if approval and approval.get('queue_id')=='m6-remaining-models-v1':
+        from utils.ch3_remaining import child_reasons
+        reasons.extend(child_reasons(c,model,approval))
     from utils.ch3_contract import training_blockers
     for task in c['tasks']:
         if model is None or task['model']==model:

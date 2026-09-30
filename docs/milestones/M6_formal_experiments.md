@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 267项AMD/J/PatchTST已接受结果来源保持；本次共用工程已接入未提交工作区，TimeMixer修订16-run及补做41-run均未运行。当前状态见§5.11。**
+**In Progress — 原267项及TimeMixer修订16项已接受来源保持；41-run补做已完成，本轮旧绑定版本完整性审计通过、结果待ChatGPT审核。剩余六模型228任务总队列为未提交待审核实现，未启动。当前决定与边界见§5.14。**
 
 原开篇“尚未运行任何正式训练或正式test评价”属于初次启动准备时的历史快照，不代表当前实际进度。
 
@@ -37,7 +37,7 @@ AMD/J各自包含六域主表和UrbanEV F1–F4输入消融，F4 run直接被主
 | N | 24 | 240 | UrbanEV四路 |
 | S | 24 | 240 | UrbanEV四路 |
 
-用户每次只启动一个模型；该模型内部按dataset→input_variant→固定H/fold波次自动完成，不跨组补位，不自动进入下一模型。已验证并发无需再次申请；硬件/shape/batch/线程/workers或资源条件改变时不外推。长训练异常保留全部文件，先只读审计后才能给合法resume，不自动fresh重跑。正式test只在每run训练完成后对validation-selected best执行一次；不得逐epoch看test或用test选模型。
+原独立启动规则：用户每次只启动一个模型；该模型内部按dataset→input_variant→固定H/fold波次自动完成，不跨组补位，不自动进入下一模型。该规则对§5.14本次明确授权的剩余六组由一次总启动、自动技术交接取代，不倒写此前历史。已验证并发无需再次申请；硬件/shape/batch/线程/workers或资源条件改变时不外推。长训练异常保留全部文件，先只读审计后才能给合法resume，不自动fresh重跑。正式test只在每run训练完成后对validation-selected best执行一次；不得逐epoch看test或用test选模型。
 
 ## 4. 版本、许可与启动材料
 
@@ -193,3 +193,19 @@ finally路径在原pane按缓存Node22.16.0和0.2.50入口恢复：remote PID193
 新入口为 `scripts/ch3/start_urban_confirmation.sh`，支持dry-run/preflight/start/logs/status/complete/safe-stop，使用原tmux方式和受限worker。不可执行模板及固定计划位于既有P的 `urban-numeric-confirmation-v1/`。A仅定向无模型验收；实际测试账、diff和完整前后SHA见该目录，不倒写旧证据。B须ChatGPT实际字节审核、精确closure、clean且三端一致以及匹配的新许可；本轮不stage/commit/push、不GPU、不正式开训。
 
 确认通过并经结果审核后，才准备TimeMixer原四域16-run正式许可；仍由用户启动。41-run补做总队列必须等16-run完成审计后由用户另启，不自动跨接；267项已接受正式结果、552任务、6240目标run-epochs和568/6440尝试上限不变。带捕获/额外评价的短包耗时不冒称正式训练加速比。
+
+### 5.14 2026-09-30：41-run完成审计与剩余六组顺序总队列（未提交、未启动）
+
+用户本次批准跨模型一次启动，未缩减训练：DLinear→iTransformer→ModernTCN→TimeXer→N→S，45/45/45/45/24/24＝228唯一任务，最多2640 run-epochs、7,438,600 optimizer steps。按已接受88组decisions复算波数15/15/16/15/6/6＝73；前四模型的NP/BE/FR/DE在原六域41任务后追加，N/S仍仅UrbanEV F4。PJM及四市场单路；ModernTCN ECL q2两波，其余已接受q4。不跨模型/域补位，不提高并发、不按效果跳任务或改参数。全矩阵552/6240及含TimeMixer重复尝试上限568/6440不变。
+
+已接受正文范围同步合入：UrbanEV/PJM/Weather/Exchange；UrbanEV为核心EV充电需求，PJM为price↔OT/index2电价预测，Weather/Exchange考察跨领域适用性。ETTh1/ECL/NP/BE/FR/DE不进入正文主结果表，但实验及结果保留，不缩减到180。不同域不求总平均；域内fold/H汇总、UrbanEV F1–F4及F4 A/N/S/J保持。无F0或新增消融，Informer/Autoformer未接入，J冻结与第四章路线不变。“每章不超过四个”未核实，不登记硬性校规；这是当前正文决定，不倒写原全部评测范围。
+
+41-run在旧commit `22b968e741bf45e02c1f7c8ba96a8a91d53e7fb7` 下审计后才开始工作区修改。41任务、23波，实际541 run-epochs/1,128,675 Adam与反向/1,276,641前向；history按末条累计steps核账，validation严格best与early-stop、一次final test的计量/冻结源码/guard日志证据一致。controller与记录worker已退出，23波资源/退出摘要通过；未重扫高频遥测。82份本组best/last逐份受限CPU反序列化，检查SHA、ZIP/pickle允许类型、实际身份、epoch/steps、finite、optimizer映射/RNG、best/last状态结构一致性及同epoch关系；Python/system摘要一致。没有构造模型或重新评价test，未解析CSV。检查不等于完整constructor schema重建或完整系统调用审计。
+
+审计脚本两次机械失败保留：metadata使用不存在的BestState.stop，修正为stopped；首份权重检查将DDI BN计数误设为steps，依据common.py循环修正为steps×(T/patch−1)，未放宽阈值。实际CPU反序列化83次、82份唯一权重，复验RSS峰值364,515,328 bytes，模型/前向/反向/Adam/GPU均0。新审计来源、收据、边界与失败日志见P/catchup41-completed-review-v1；工程Passed，结果及新审计仍待ChatGPT审核，不改原complete的Pending。
+
+新增窄总入口start_remaining_models.sh和Python控制器，只同步调用现有m6_extension_entry --model（前四组）及ch3_runner --model（N/S），不调用裸worker、不启动六个独立tmux后立即返回。一个总tmux，子组真实退出后进行JSON技术交接：精确任务/身份/实际许可、finite、history/计量/早停/best、波次资源与进程退出、源码/环境/数据stat。通过后写technical-complete/result-review-pending并自动进入下一组；完整权重及科学结果统一在总队列结束后审计，不冒称逐组ChatGPT审核。
+
+总运行元数据限定E/queues/remaining-models-v1；原任务仍E/formal-MODEL，四市场仍原supplements路径。独立队列锁与既有GPU组锁不嵌套同锁，冲突拒绝。STOP先持久记录，dispatch前后和交接前后检查，再按PID/start_ticks通知自有子controller，复用原受限波次清理worker；未知失败停止后缀，保留现场，不自动fresh重试/退款。活动、失败、完成、staging或已有任务输出均拒绝重复start。
+
+许可分总许可与六个精确子许可；N/S不带extension_batch，不能混入catchup-41。新88组carry-forward保留原报告/lineage/真实旧commit/code/SHA，以552同profile、限定路由diff及原计算函数AST不变证明连接新版本；需要本轮实现实际字节审核，不重做88组probe，不改数值政策或预算。原扩展累计192/290/192、剩168/222/168保持。模板均不可执行、未来commit留空；必须完成41审计结果审核、修后closure和真实许可后，用户才可一次启动。当前实现与所有证据位于P/remaining-models-v1；精确测试账、tmux合成生命周期、patch与逐文件SHA见该目录。本轮不stage/commit/push、不真实start、不后台等待。

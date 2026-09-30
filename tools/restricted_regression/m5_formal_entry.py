@@ -67,6 +67,8 @@ def validate_config(s):
     elif purpose in ('ch3_probe','ch3_formal'):
         t=task_by_id(c,s['task']);expected=[t['id']]
         if purpose=='ch3_formal':
+            from utils.ch3_remaining import worker_scope
+            worker_scope(c,s)
             from utils.ch3_revision import validate_spawn
             validate_spawn(c,t['id'],s['output'],s.get('artifact_root',s['output']),s.get('approval'),s.get('resume',False))
         if purpose=='ch3_probe' and t['id'] not in [x for g in c['groups'] for x in g['representatives']]:raise ValueError('not a representative worker')

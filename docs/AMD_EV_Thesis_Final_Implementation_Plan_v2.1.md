@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-09-30最新M6执行决定：正文主实验集为UrbanEV/PJM/Weather/Exchange，完整552任务矩阵及既有结果保留；剩余228任务以DLinear→iTransformer→ModernTCN→TimeXer→N→S六组总队列一次用户启动、组间自动技术交接。此为跨模型启动方式修订，不改变baseline、科学profile、消融或第四章路线。41-run在原绑定版本下本轮审计通过、结果待ChatGPT审核；总队列为未提交待审核工作区，尚未获实际启动许可。正文范围及启动例外详见§9.6与唯一M6 §5.14，旧时点快照不倒写。
+
 **M6当前增量（用户本次批准，工作区待字节审核）**：TimeMixer/UrbanEV/F4的h3/6/9/12采用独立确认政策：初始化、RNG、batch、结构及非浮点/Adam step/参数组精确一致；六步浮点参数、buffer、梯度、Adam moments绝对差≤1e-4；逐步loss与第2/6步MSE、MAE、同元素数归一SSE/SAE差≤1e-6，均rtol=0。仅命中当前冻结T12/pred_len1/C11/B128/LR0.001/seed2024及既有线程/硬件；其他域和旧exact失败不改。四H串行后q4共8 worker，局部48 Adam/80前向/48反向；第6步后复用第2步两个CPU评价batch额外评价，不改变六步训练/RNG。A阶段零模型负载，B须实现字节审核和精确closure后另签实际许可；本轮不提交或执行。完整条款、87＋1来源合并与正式队列边界见唯一M6 §5.13。
 
 2026-09-27 M6增量覆盖授权（外置候选，生产未切换）：用户在已见原正式结果后明确增加NP/BE/FR/DE四市场的八主表模型及TimeMixer的PJM/UrbanEV F4。原495个科学profile保持，新增57个run/最多900 run-epochs；扩展总数552/最多6240，TiDE继续Deferred。新增41个补做任务允许固定AMD→J→PatchTST→TimeMixer跨模型自动衔接，另外16个任务分别追加DLinear/iTransformer/ModernTCN/TimeXer原组尾；原模型组之间仍不自动衔接。此前TimeMixer仅四标准域及495总数是原批次事实，不限制本次获批新增批次；不得倒写新任务为原注册范围。新增EPF保持T168/H24、单fit、70/10/20取整、历史输入、train-only scaler及目标标准化指标，模型数学与原495任务不变。TimeMixer新增域参数按本次明确授权固定，不能迁移回原四域。详见唯一M6 §5。
@@ -2055,7 +2057,11 @@ formal seed=[2024]、std=N/A、随机初始化稳定性Not evaluated保持；fol
 
 当前独立核算：六域主表303＋UrbanEV N/S额外48＋A/J F1–F3额外144＝495；UrbanEV360×10、PJM7×最多20、ETTh1/Weather/Exchange各32×10、ECL32×20＝最多5340 run-epochs。TiDE25/最多260 Deferred，含暂缓完整规划520/最多5600。当前含TiDE的520集合与§11旧520不同，不凭相同计数接受旧计划/许可。§12曾撤下97计划，本次仅恢复AMD/F1–F3的72个；F0的24个及PJM TargetOnly 1个不恢复。447/4860包含非法J/F0，是错误建议，不能登记为用户曾批准。历史产物/失败日志不删。
 
-用户每次启动一个模型组，组内按dataset→UrbanEV input_variant→固定H/fold波次执行，不跨数据集/输入方案补位、不自动启动下一模型；项目GPU互斥锁禁止两个模型入口同时占同一GPU。A/J主表run直接被消融引用。全部后续模型/消融的结构、训练和评价规则须在首次正式test出现前锁定；分模型执行不重新开放结果驱动调参。训练表、信息集、seed2024/0搜索及正式test冻结边界原样保持。
+原规则为用户每次启动一个模型组，组内按dataset→UrbanEV input_variant→固定H/fold波次执行，不跨数据集/输入方案补位、不自动启动下一模型。2026-09-30用户明确授权仅对剩余DLinear→iTransformer→ModernTCN→TimeXer→N→S六组，由用户一次启动总队列，按原波次顺序执行并在每组真实退出、技术核验通过后自动衔接下一组；不等待逐组人工结果审核。任一技术失败或STOP停止后续，不自动重试。项目GPU互斥锁禁止两个模型入口同时占同一GPU，总队列锁与GPU组锁分开持有。原独立启动历史保留；本次总队列不改变科学合同或允许结果驱动调参。A/J主表run直接被消融引用；训练表、信息集、seed2024/0搜索及正式test冻结边界保持。
+
+**第三章正文范围及完整工程矩阵（2026-09-30用户决定）**：正文主要数据集介绍、主结果表与分析围绕UrbanEV、PJM、Weather、Exchange。UrbanEV是核心EV充电需求预测；PJM是电力市场电价预测，目标price↔OT/index2，不称负荷预测；Weather/Exchange用于不同领域时间序列预测适用性。ETTh1/ECL/NP/BE/FR/DE不进入正文主结果表，但已有结果及全部已批准训练任务保留，不调整参数或执行顺序，不缩减为180任务。此为当前正文呈现范围，不倒写为最初全部评测范围；“学校每章不超过四个”尚未核实，不作为硬性校规。不同数据集不求总平均，域内fold/H汇总沿原合同；UrbanEV输入消融F1–F4、F4上的A/N/S/J模块消融保持，无F0或新增消融，J冻结身份和第四章路线保持。Informer/Autoformer未获批准替换或新增。
+
+完整矩阵仍为552目标任务/6240目标run-epochs，含TimeMixer已批准重复尝试上限568/6440。剩余六组228任务/最多2640 run-epochs、7,438,600 optimizer steps、73波：前四模型各45/540，N/S各24/240；四市场追加在前四模型原组末尾。DLinear/iTransformer/TimeXer为15波，ModernTCN为16波（ECL q2两波），N/S各6波q4；PJM及四EPF市场均q1，其余已接受q4。总控制器不计作训练run。每组技术完成标记与结果审核分离，完整权重/科学结果审核在总队列结束后统一办理；实际启动仍须修后字节审核、统一closure及匹配总许可/六子许可。实施与41-run审计范围见唯一M6 §5.14。
 
 ### 9.6.2 第四章条件性计数与覆盖缺口
 
