@@ -45,6 +45,9 @@ def code_binding():
     files += ['utils/ch3_urban_confirmation.py','utils/ch3_admission_merge.py','m6_urban_confirmation_entry.py',
               'scripts/ch3/start_urban_confirmation.sh','tests/test_m6_urban_confirmation.py']
     files += ['utils/ch3_remaining.py','m6_remaining_entry.py','scripts/ch3/start_remaining_models.sh','tests/test_m6_remaining.py']
+    if (ROOT/'utils/ch3_m_tasks.py').exists():
+        files += ['tools/restricted_regression/m6_m_cpu_entry.py','utils/ch3_m_tasks.py','utils/ch3_m_execution.py','utils/ch3_m_summary.py','m6_m_entry.py','scripts/ch3/start_m_baselines.sh','scripts/ch3/start_m_probe.sh','tests/test_m6_m_tasks.py']
+        files += ['utils/ch3_m_launch.py','utils/ch3_m_handoff.py','m6_m_handoff_entry.py','scripts/ch3/start_m_handoff.sh','tests/test_m6_m_handoff.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
@@ -133,6 +136,9 @@ def kernel_admission_reasons(c):
 
 def preflight(c,model,approval=None,probe=False):
     validate_manifest(c)
+    if 'm_experiment' in c:
+        from utils.ch3_m_execution import authorization_reasons
+        return authorization_reasons(c,approval,probe=probe)
     if model is not None and model not in {t['model'] for t in c['tasks']}:raise ValueError('model group not registered')
     reasons=[]
     if approval and approval.get('queue_id')=='m6-remaining-models-v1':
@@ -193,7 +199,7 @@ def preflight(c,model,approval=None,probe=False):
 
 
 class GPULock:
-    def __init__(self,c):self.path=Path(c['execution']['evidence'])/'project-gpu0.lock';self.handle=None
+    def __init__(self,c):self.path=Path(c['m_experiment']['project_lock']) if 'm_experiment'in c else Path(c['execution']['evidence'])/'project-gpu0.lock';self.handle=None
     def __enter__(self):
         self.handle=self.path.open('a+')
         try:fcntl.flock(self.handle,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -451,6 +457,7 @@ def update(model,opt,x,y,p,device):
     from models.ch3_adapter import target_prediction
     model.train();opt.zero_grad(set_to_none=True)
     pred,aux=target_prediction(model,x.to(device),p);target=y.to(device)
+    if tuple(pred.shape)!=tuple(target.shape):raise ValueError('supervision shape mismatch; broadcasting forbidden')
     finite(pred);loss=torch.nn.functional.mse_loss(pred,target)
     if aux is not None:finite(aux);loss=loss+aux
     finite(loss);loss.backward()
@@ -466,6 +473,9 @@ def update(model,opt,x,y,p,device):
 
 
 def evaluate(model,batches,p,device):
+    if p.get('task')=='M':
+        from utils.ch3_m_tasks import evaluate_all
+        return evaluate_all(model,batches,p,device)
     import torch
     from models.ch3_adapter import target_prediction
     model.eval();sse=sae=0.;count=0
@@ -550,6 +560,8 @@ def compare_probe_trajectories(c, task, reference, actual):
         compare_number(la,lb,'step%d loss'%step,allowance)
     scalar_max=0.0
     a,b=reference['validation'],actual['validation']
+    if 'm_experiment'in c:
+        a={k:a[k]for k in ('mse','mae','sse','sae','elements')};b={k:b[k]for k in ('mse','mae','sse','sae','elements')}
     if set(a)!={'mse','mae','sse','sae','elements'} or set(a)!=set(b):raise ValueError('validation schema changed')
     if type(a['elements']) is not int or type(b['elements']) is not int or a['elements']<=0 or a['elements']!=b['elements']:raise ValueError('validation element count mismatch')
     for x in (a,b):
@@ -682,7 +694,9 @@ def rss_window_worker(c,task,out,device='cuda:0'):
 
 def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False):
     import torch
+    m_clock=time.monotonic()if task.get('task')=='M'else None
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
+    m_timing=dict(initialization_seconds=time.monotonic()-m_clock,update_seconds=[],validation_seconds=None,includes_synthetic_batch_and_digest=True)if m_clock is not None else None
     from utils.ch3_contract import numeric_probe_policy
     numeric_rule=numeric_probe_policy(c,task);numeric_trace=[None]*6 if numeric_rule and numeric_rule['kind']=='named_tensor' else None
     import random,numpy as np
@@ -693,6 +707,9 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     kernel_replay=FrozenConvReplay(model,backend_name,backend_repetitions) if backend_name else None
     state_digest=ReusableTensorDigest(model.state_dict());full_writer=FullNumericStateWriter(model,opt,out,state_digest,numeric_rule) if numeric_rule and numeric_rule['kind']=='full_float_state' else None
     full_trace=[None]*6 if full_writer else None
+    M_full_writer=None;M_full_trace=[]
+    if p.get('task')=='M' and full_writer is None:
+        M_full_writer=FullNumericStateWriter(model,opt,out,state_digest,dict(id=task['group']+'-exact-full-state'))
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
     diagnostic=None
     if urban_confirmation:
@@ -708,17 +725,21 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         if d['endpoints'] is None:raise ValueError('version endpoints required for actual validation tail')
         a,z,_=d['endpoints'];validation_samples=z-a-p['pred_len']+1
     tail=validation_samples%v
-    def batch(size):return torch.randn(size,p['T'],p['C'],generator=generator),torch.randn(size,p['pred_len'],1,generator=generator)
+    def batch(size):return torch.randn(size,p['T'],p['C'],generator=generator),torch.randn(size,p['pred_len'],p['C'] if p.get('task')=='M' else 1,generator=generator)
     trajectory=[None]*6;batch_ids=[None]*6;memory=[None]*6
     for step in range(6):
+        if m_timing is not None:m_update_start=time.monotonic()
         x,y=batch(b);batch_ids[step]=tensor_digest((x,y));loss=update(model,opt,x,y,p,device)
         if str(device).startswith('cuda'):torch.cuda.synchronize()
+        if m_timing is not None:m_timing['update_seconds'].append(time.monotonic()-m_update_start)
         before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
         trajectory[step]=dict(step=step+1,loss=loss,state=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict()))
         if numeric_trace is not None:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1,state_digest)
         if full_writer is not None:full_trace[step]=full_writer.capture(step+1)
+        if M_full_writer is not None:M_full_trace.append(M_full_writer.capture(step+1))
         after=rss()
         if step==1:
+            if m_timing is not None:m_validation_start=time.monotonic()
             if urban_confirmation:
                 validation_batches=[batch(v),batch(tail or v)]
                 validation_batch_ids=[tensor_digest(pair)for pair in validation_batches]
@@ -726,6 +747,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
             else:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y
         if str(device).startswith('cuda'):torch.cuda.synchronize()
+        if step==1 and m_timing is not None:m_timing['validation_seconds']=time.monotonic()-m_validation_start
         memory[step]=dict(step=step+1,allocated=allocated,reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,rss_before_hash=before,rss_after_hash=after,rss=rss())
         capture('step-'+str(step+1))
         if diagnostic is not None:diagnostic.capture(step+1)
@@ -742,6 +764,9 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         result['endpoint_resources']=dict(allocated=torch.cuda.memory_allocated()if str(device).startswith('cuda')else 0,rss=rss())
         result['allocated']=torch.cuda.max_memory_allocated()if str(device).startswith('cuda')else 0
         result['reserved']=torch.cuda.max_memory_reserved()if str(device).startswith('cuda')else 0
+    if p.get('task')=='M':
+        result['M_full_state_trace']=full_trace if full_trace else M_full_trace
+        result['M_timing']=m_timing
     if numeric_rule:
         result['numeric_policy_sha']=digest(numeric_rule)
         if numeric_trace is not None:result['numeric_trace']=numeric_trace
@@ -760,6 +785,7 @@ def formal_worker(c,task,out,approval,resume=False):
     binding=approval['data_bindings'][task['dataset']]
     if binding.get(task['id'])!=digest(metadata):raise ValueError('data prefix/scaler/task binding mismatch')
     identity=formal_identity(c,task,metadata,approval)
+    if p.get('task')=='M':identity.update(task='M',metric_scope='all_channels',parent_MS_profile=p['parent_MS_profile'],from_scratch=True)
     if (out/'result.json').exists():raise FileExistsError('completed run cannot restart')
     p,model,opt,generator=init_training(c,task,'cuda:0');best=BestState(p['training']['patience']);epoch=steps=0
     if resume:
@@ -785,6 +811,8 @@ def formal_worker(c,task,out,approval,resume=False):
     result=evaluate(model,batches(datasets['test'],p,'test'),p,'cuda:0')
     result.update(id=task['id'],input_variant=task['input_variant'],purpose='ch3_formal',protocol_sha=digest(c),best_epoch=best.epoch,
                   seed=2024,std=None,metric_space='train-standardized',stability='Not evaluated')
+    if p.get('task')=='M':
+        result.update(task='M',metric_scope='all_channels',profile_sha=digest(p),data_sha=digest(metadata),commit=approval['commit'],parent_MS_profile=p['parent_MS_profile'],from_scratch=True,final_test=dict(calls=1,selected='best.pt',sha256=hashlib.sha256((out/'best.pt').read_bytes()).hexdigest(),epoch=best.epoch))
     dump(out/'result.json',result)
 
 

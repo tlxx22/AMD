@@ -146,7 +146,7 @@ def load(c,task,*,test_capability=None,path_override=None):
         info['inherited_source_state_checked']=inherited_state is not None
         selected=[d['features'].index(n) for n in p['features']];v=values[:,selected]
         from sklearn.preprocessing import StandardScaler
-        scaler=StandardScaler().fit(v[:train_end]);x=scaler.transform(v).astype('float32');y=x[:,p['target_idx']:p['target_idx']+1]
+        scaler=StandardScaler().fit(v[:train_end]);x=scaler.transform(v).astype('float32');y=x if p.get('task')=='M' else x[:,p['target_idx']:p['target_idx']+1]
         splits={'train':Windows(x,y,0,train_end,p['T'],p['pred_len']),
                 'validation':Windows(x,y,train_end-p['T'],val_end,p['T'],p['pred_len'])}
         if final:splits['test']=Windows(x,y,val_end-p['T'],test_end,p['T'],p['pred_len'])
@@ -157,6 +157,7 @@ def load(c,task,*,test_capability=None,path_override=None):
                 test_observations_accessed=final,window_counts={k:len(v) for k,v in splits.items()},
                 cpu_array_bytes=x.nbytes+y.nbytes,time_first=str(times[0]),time_last_read=str(times[-1]),
                 interval_counts={str(k):int(v) for k,v in pd.Series(times[1:]-times[:-1]).value_counts().items()})
+    if p.get('task')=='M':info.update(task='M',metric_scope='all_channels',supervised_features=p['features'])
     return splits,info
 
 

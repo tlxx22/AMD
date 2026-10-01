@@ -66,6 +66,9 @@ RSS_PROBE_POLICY = dict(id='rss-material-growth-platform-v1', short_window=4,
 
 
 def numeric_probe_policy(c, task):
+    if 'm_experiment' in c:
+        from utils.ch3_m_tasks import numeric_policy
+        return numeric_policy(c,task)
     policies=c['execution']['probe'].get('numeric_equivalence')
     if policies is None:return None
     if policies!=NUMERIC_PROBE_POLICIES:raise ValueError('unauthorized numeric equivalence policy set')
@@ -162,6 +165,9 @@ def read_profiles(path=PROFILE_FILE):
 
 
 def generate_tasks(c):
+    if "m_experiment" in c:
+        from utils.ch3_m_tasks import tasks
+        return tasks()
     if 'extension' in c:
         from utils.ch3_extension import expected_tasks
         return expected_tasks(c)
@@ -205,6 +211,9 @@ def task_by_id(c, run_id):
 
 
 def profile(c, task):
+    if "m_experiment" in c:
+        from utils.ch3_m_tasks import resolved
+        return resolved(c,task)
     d = c['datasets'][task['dataset']]
     input_variant = task['input_variant']
     names = c['urban_input_variants'][input_variant] if task['dataset']=='UrbanEV' else (
@@ -230,6 +239,9 @@ def profile(c, task):
 
 
 def validate_manifest(c):
+    if "m_experiment" in c:
+        from utils.ch3_m_tasks import validate
+        return validate(c)
     if c['contract']!=CONTRACT: raise ValueError('wrong formal contract')
     if c['execution']['probe'].get('rss_policy')!=RSS_PROBE_POLICY:raise ValueError('unauthorized RSS rule')
     if c['execution']['probe'].get('numeric_equivalence') is not None:
@@ -253,6 +265,13 @@ def validate_manifest(c):
 
 def validate_amd_declaration(declaration, *, input_shape, pred_len, patch, layernorm,
                              target_idx, aux_idx, norm, task_mode, s2, thls):
+    if isinstance(declaration,dict) and declaration.get('task')=='M':
+        p=declaration
+        if (p['model']!='AMD' or p['dataset']not in ('ETTh1','Weather','Exchange') or
+            tuple(input_shape)!=(p['T'],p['C'])or pred_len!=p['pred_len']or patch!=p['structure']['patch']or
+            layernorm!=p['structure']['layernorm']or target_idx!=p['target_idx']or tuple(aux_idx) or
+            not norm or task_mode!='parallel_multivariate'or s2 or thls):raise ValueError('M AMD native all-channel identity')
+        return
     if not isinstance(declaration,dict) or declaration.get('contract')!=CONTRACT:
         raise ValueError('explicit new formal declaration required')
     p=declaration

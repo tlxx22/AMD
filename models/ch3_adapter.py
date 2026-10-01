@@ -11,7 +11,7 @@ from utils.ch3_contract import digest, profile
 def native_options(p):
     options=dict(p['structure'],task_name='long_term_forecast',seq_len=p['T'],pred_len=p['pred_len'],
                  enc_in=p['C'],dec_in=p['C'],c_out=p['C'],label_len=0,
-                 features='MS' if p['model']=='TimeXer' else 'M')
+                 features='MS' if p['model']=='TimeXer' and p.get('task')!='M' else 'M')
     if p['model']=='iTransformer':
         # Author run.py --output_attention is store_true (default False).
         options.setdefault('output_attention',False)
@@ -27,7 +27,7 @@ def build(c, task):
         s2=name in ('J','S'); thls=name in ('J','N')
         return AMDEnhanced((p['T'],p['C']),p['pred_len'],s['n_block'],s['dropout'],
             s['patch'],s['k'],s['c'],s['alpha'],None,norm=True,layernorm=s['layernorm'],
-            target_idx=p['target_idx'],teb_context_dim=32,task_mode='target_exogenous',aux_idx=p['aux_idx'],
+            target_idx=p['target_idx'],teb_context_dim=32,task_mode='parallel_multivariate' if p.get('task')=='M' else 'target_exogenous',aux_idx=p['aux_idx'],
             ch3_contract=p,use_sonnet_mvca=s2,
             sonnet_feature_schema=p['features'] if s2 else None,
             sonnet_schema_fingerprint=digest(p['features']) if s2 else None,
@@ -65,17 +65,18 @@ def build(c, task):
 
 def target_prediction(model, x, p):
     name=p['model']
-    if name=='TimeXer':
+    if name=='TimeXer' and p.get('task')!='M':
         order=p['aux_idx']+[p['target_idx']]
         x=x[:,:,order]
         output=model(x,None,None,None)
-    elif name in ('iTransformer','TimeMixer'):output=model(x,None,None,None)
+    elif name in ('iTransformer','TimeMixer','TimeXer'):output=model(x,None,None,None)
     else:output=model(x)
     aux=output[1] if isinstance(output,tuple) and name in ('AMD','J','N','S') else None
     prediction=output[0] if isinstance(output,tuple) else output
-    if name not in ('AMD','J','N','S','TimeXer'):
+    if p.get('task')!='M' and name not in ('AMD','J','N','S','TimeXer'):
         prediction=prediction[:,:,p['target_idx']:p['target_idx']+1]
-    if tuple(prediction.shape)!=(x.shape[0],p['pred_len'],1):raise ValueError('target output shape mismatch')
+    channels=p['C'] if p.get('task')=='M' else 1
+    if tuple(prediction.shape)!=(x.shape[0],p['pred_len'],channels):raise ValueError('prediction output shape mismatch')
     return prediction,aux
 
 

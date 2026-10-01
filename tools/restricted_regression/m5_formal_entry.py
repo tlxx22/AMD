@@ -31,6 +31,10 @@ def repository_files():
 def validate_config(s):
     from run_restricted import verify_bundle,ensure_unique_exact
     verify_bundle();c=validate_manifest(read_profiles())
+    if 'm_experiment'in c:
+        from utils.ch3_m_execution import validate_worker,validate_cpu
+        (validate_cpu if s['purpose']=='ch3_m_cpu_shapes'else validate_worker)(c,s)
+        return
     if s['protocol_sha']!=digest(c) or s['bound_files']!=repository_files():raise ValueError('CH3 code/config binding mismatch')
     if 'extension' in c and s['purpose']=='ch3_probe':
         from utils.ch3_extension_probe import scope_module
@@ -114,6 +118,9 @@ def validate_config(s):
 
 
 def check_access(real,writing,s,deny,permitted_prefix):
+    if s.get('m_scope') and real in s.get('metadata_files',{}) and not writing:
+        if sha(real)!=s['metadata_files'][real]:deny('read',real,'M metadata identity changed')
+        return True
     execution=inside(real,s['session_root']) or inside(real,s['fixture_root'])
     if real in s.get('prefix_files',{}) and not writing:
         if permitted_prefix!=real:deny('read',real,'prefix parser capability missing')
@@ -145,7 +152,8 @@ def bootstrap(s):
     sys.meta_path.insert(0,BoundFinder(modules))
     if s['purpose']=='ch3_placeholder':return
     import torch
-    torch.set_num_threads(4)
+    torch.set_num_threads(1 if s['purpose']=='ch3_m_cpu_shapes'else 4)
+    if s['purpose']=='ch3_m_cpu_shapes':torch.set_num_interop_threads(1)
     from resource_budget import install,counted,instrument_module_calls
     install(s)
     if s['purpose'] in ('ch3_cpu','ch3_prefix','ch3_formal_bindings'):
@@ -157,6 +165,9 @@ def bootstrap(s):
         torch.autograd.backward=forbidden;torch.autograd.grad=forbidden
         # The sole SHA-bound worker below allocates exactly one tensor, no model.
     else:
+        if s['purpose']=='ch3_m_cpu_shapes':
+            def forbidden(*a,**k):raise PermissionError('M CPU shapes forbids optimizer/autograd/GPU')
+            torch.optim.Optimizer.__init__=forbidden;torch.cuda._lazy_init=forbidden;torch.autograd.grad=forbidden
         instrument_module_calls(torch.nn.Module)
         torch.autograd.backward=counted('backward','backward',torch.autograd.backward)
         if s['purpose']=='ch3_step_diagnostic' and s.get('kernel_probe'):
@@ -275,6 +286,9 @@ class ExitObservation:
 
 
 def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=None,resume=False,kernel_probe=False):
+    if 'm_experiment'in c:
+        from utils.ch3_m_execution import make_config as make_m_config
+        return make_m_config(c,purpose,out,task=task,approval=approval,artifact_root=artifact_root,resume=resume)
     out=Path(out)
     if 'extension' in c and purpose=='ch3_probe':
         from utils.ch3_extension_probe import scope_module
@@ -347,7 +361,8 @@ def spawn(config):
        TMPDIR=config['fixture_root'],OMP_NUM_THREADS='4',MKL_NUM_THREADS='4',
        XDG_CACHE_HOME=str(out/'cache'),MPLCONFIGDIR=str(out/'mpl'),CUDA_CACHE_PATH=str(out/'cuda-cache'))
     if config['device']=='cpu':env['CUDA_VISIBLE_DEVICES']=''
-    c=read_profiles();command=[c['execution']['python'],str(Path(__file__).resolve()),'worker']
+    if config['purpose']=='ch3_m_cpu_shapes':env.update(OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',NUMEXPR_NUM_THREADS='1')
+    c=read_profiles();command=[c['execution']['python']]+(['-B']if config['purpose']=='ch3_m_cpu_shapes'else[])+[str(Path(__file__).resolve()),'worker']
     dump(out/'command.json',dict(argv=command,env={k:v for k,v in env.items() if os.environ.get(k)!=v},config_sha=sha(out/'config.json')))
     handle=(out/'worker.log').open('x',encoding='utf-8')
     process=subprocess.Popen(command,env=env,cwd=out,stdout=handle,stderr=subprocess.STDOUT)
@@ -358,6 +373,10 @@ def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
     formal=all(c['purpose']=='ch3_formal' for c in configs)
     stop_file=Path(configs[0]['artifact_root']).parent/'STOP' if formal else Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
+    if configs and 'm_experiment'in read_profiles():
+        from utils.ch3_m_execution import validate_wave
+        stop_file=validate_wave(read_profiles(),configs,out)
+        if stop_file.exists():raise InterruptedError('M STOP before launch')
     if not formal and configs and configs[0]['purpose']=='ch3_probe' and 'extension' in read_profiles():
         from utils.ch3_extension_probe import scope_module
         scope=scope_module(configs[0].get('approval'))
@@ -373,7 +392,10 @@ def run_configs(configs,out,monitor=False):
             baseline=gpu_sample([])
             if not resource_assessment(baseline,[])['admission']:raise MemoryError('whole-card admission unavailable before launch')
             exit_observation=ExitObservation(baseline)
-        children=[spawn(c) for c in configs]
+        if 'm_experiment'in read_profiles():
+            # Retain each own child immediately, including a later spawn failure.
+            for config in configs:children.append(spawn(config))
+        else:children=[spawn(c) for c in configs]
         with (out/'memory.jsonl').open('x',encoding='utf-8') as log:
             while any(p.poll() is None for p,_ in children) or (monitor and exit_observation.pending):
                 if stop_file.exists():raise InterruptedError('safe-stop; own workers only')
@@ -490,7 +512,7 @@ def audit_prefixes(c,out):
 def worker():
     from restricted_io_guard import require_installed
     s=require_installed();c=read_profiles();out=Path(s['output']);purpose=s['purpose']
-    if purpose in ('ch3_cpu','ch3_model_acceptance'):
+    if purpose in ('ch3_cpu','ch3_model_acceptance','ch3_m_cpu_shapes'):
         import unittest
         from run_restricted import execute_cases,flatten
         tests=list(flatten(unittest.defaultTestLoader.loadTestsFromNames(s['ids'])))

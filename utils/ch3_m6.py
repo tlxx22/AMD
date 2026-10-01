@@ -108,7 +108,7 @@ def verify_result(c,run,result):
     for k in ('mse','mae','sse','sae'):
         if not isinstance(result.get(k),(int,float)) or not math.isfinite(result[k]) or result[k]<0:
             raise ValueError('invalid formal metric')
-    expected=arith['test_windows_arithmetic_only']*p['pred_len']
+    expected=arith['test_windows_arithmetic_only']*p['pred_len']*(p['C'] if p.get('task')=='M' else 1)
     if type(result.get('elements')) is not int or result['elements']!=expected:raise ValueError('formal full test element count mismatch')
     if result['mse']!=result['sse']/result['elements'] or result['mae']!=result['sae']/result['elements']:
         raise ValueError('formal metric aggregation mismatch')

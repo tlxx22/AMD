@@ -43,7 +43,7 @@ def command(g,child,report):
     script='m6_extension_entry.py' if g['model']in scope.MODELS[:4] else 'ch3_runner.py'
     return [scope.PYTHON,'-B',str(scope.ROOT/script),'start','--model',g['model'],'--approval',child,'--probe-report',report]
 
-def sequence(p,root,commands,before,check,*,popen=subprocess.Popen):
+def sequence(p,root,commands,before,check,*,popen=subprocess.Popen,queue_id=None):
     """No successor until real child exit AND technical gate. Fixture-testable."""
     completed=[];child=None;owned=None;active=None
     def stop(sig,frame):
@@ -85,7 +85,7 @@ def sequence(p,root,commands,before,check,*,popen=subprocess.Popen):
                 dump(root/'progress.json',dict(current_model=None,completed_models=completed.copy(),pending_models=[x['model']for x in p['groups']if x['model']not in completed],phase='handoff-complete'))
         with lock(root/'dispatch.lock'):
             if (root/'STOP').exists():raise InterruptedError('STOP before final complete')
-            dump(root/'complete.json',dict(queue_id=scope.QUEUE,status='technical-complete',result_review='pending',task_ids=p['task_ids'],groups=completed,plan=scope.digest(p),handoffs={m:scope.ref(root/(m+'-handoff.json'))for m in completed}))
+            dump(root/'complete.json',dict(queue_id=queue_id or scope.QUEUE,status='technical-complete',result_review='pending',task_ids=p['task_ids'],groups=completed,plan=scope.digest(p),handoffs={m:scope.ref(root/(m+'-handoff.json'))for m in completed}))
     except BaseException as exc:
         if child is not None and child.poll()is None:
             signal_owned(owned)

@@ -209,3 +209,29 @@ finally路径在原pane按缓存Node22.16.0和0.2.50入口恢复：remote PID193
 总运行元数据限定E/queues/remaining-models-v1；原任务仍E/formal-MODEL，四市场仍原supplements路径。独立队列锁与既有GPU组锁不嵌套同锁，冲突拒绝。STOP先持久记录，dispatch前后和交接前后检查，再按PID/start_ticks通知自有子controller，复用原受限波次清理worker；未知失败停止后缀，保留现场，不自动fresh重试/退款。活动、失败、完成、staging或已有任务输出均拒绝重复start。
 
 许可分总许可与六个精确子许可；N/S不带extension_batch，不能混入catchup-41。新88组carry-forward保留原报告/lineage/真实旧commit/code/SHA，以552同profile、限定路由diff及原计算函数AST不变证明连接新版本；需要本轮实现实际字节审核，不重做88组probe，不改数值政策或预算。原扩展累计192/290/192、剩168/222/168保持。模板均不可执行、未来commit留空；必须完成41审计结果审核、修后closure和真实许可后，用户才可一次启动。当前实现与所有证据位于P/remaining-models-v1；精确测试账、tmux合成生命周期、patch与逐文件SHA见该目录。本轮不stage/commit/push、不真实start、不后台等待。
+
+### 5.15 2026-10-01：隔离七baseline M批次准备（ECL暂缓仅限本批）
+
+本次用户决定新增独立`m-baselines-v1`批次，父生产commit为`5341fbcb7c9f4f97658728d79b1af5487f7d38c3`。本节只存在于独立分支`m6/m-baselines-v1`及worktree `AMD-m-baselines-v1`的待审字节，未合入生产分支；生产MS队列、原552目标与历史执行账保持。ECL仅在本次M批次暂缓，不取消原ECL任务或删除结果。
+
+模型顺序为AMD→DLinear→PatchTST→iTransformer→TimeMixer→ModernTCN→TimeXer；每模型ETTh1→Weather→Exchange，每域H96/192/336/720、单fit/seed2024，共84个fresh run、最多840 run-epochs。无J/N/S、UrbanEV、PJM、NP/BE/FR/DE、ECL，也不新增Informer/Autoformer/TiDE、J-M-anchor或J-M-parallel。M与MS分别标识，不去重、不合并排名。
+
+每个M profile从该父版本实际resolved MS profile派生，T、batch/eval_batch、固定LR、epoch、optimizer及其他训练/结构参数逐项保持。TimeMixer三域LR为0.001/0.001/0.0003；无scheduler/warmup。ETTh1 T512/C7/端点8640,11520,14400；Weather T512/C21/36887,42157,52696；Exchange T96/C8/5311,6071,7588。使用已接受前缀元数据和train-only scaler来源，不重新下载/解析真实观测；Weather重复记录政策不变。这是现有配置下的M对照，不是论文最佳M recipe或超参数搜索。
+
+输入[B,T,C]，标签/输出[B,H,C]，全部C通道参与训练及validation。MSE/MAE在train-standardized空间累计全样本/H/C误差和元素数后归一；按全变量validation MSE选择best，相等保留更早epoch，结束后仅best一次test。同次test遍历记录逐变量与旧MS目标诊断：ETTh1 OT/index6、Weather T (degC)/index1、Exchange OT/index7；诊断不用于另选checkpoint。保留原始列顺序和逐通道归一化，不提供未来真实输入。
+
+AMD使用既有MDM→DDI→AMS全通道路径，关闭全部增强、保留aux定义/系数；其余模型使用自己的锁定作者全通道输出，不复制目标充当C通道。TimeXer使用commit `76011909357972bd55a27adba2e1be994d81b327`、TimeXer.py SHA `b334d7869544d0a5de7a35501d0342d7bd0be4ebda06ccc045855a42819728c0`的原生features=M/forecast_multi、n_vars=C及C个global tokens，保留全输入cross embedding，不使用MS目标末列重排或自制parallel结构。
+
+结果根为原E下`m-tasks/m-baselines-v1/formal-<MODEL>/<MODEL>-<DATASET>-M-f1-h<H>-s2024/`；总控制器位于其`queues/m-baselines-v1`。一个tmux内同步等待每模型真实退出与技术交接，再启动下一模型；STOP/技术失败停止后续，不自动fresh重试、不依效果跳过模型。组内q须来自新M准入，不能继承MS Passed。重复启动及已有失败/staging/输出冲突拒绝。
+
+新M probe真实生产路径为preflight→精确scope/config→已有受限worker/监测→6步完整状态/梯度/Adam比较→来源绑定报告。21组，每组四H串行参考再q4，名义168 worker、1008 Adam/1344前向/1008反向。仅明确resource失败允许一次q2两波，最坏额外84 worker、504/672/504；总GPU技术计划上限1512/2016/1512，独立待审核，不挪旧余额。q2资源失败仅可使用同条件已通过的串行q1；数值/身份/guard/业务/未知失败立即停止，无机械GPU重试。21份数值政策逐模型/域注册为Proposed，按同scope父依据限定拟用规则，不全局扩大旧容差，不能将MS规则或证据当作M通过。
+
+隔离CPU准备已完成54次合成完整前向（上限64），Adam/反向/GPU初始化均0；七模型各独立作者进程，AMD和TimeXer覆盖所有H，其他模型H96/720。无模型验收及专用合成tmux生命周期证据、失败与局部复验账在现有P的唯一`m-baselines-v1`准备包内。没有真实数据/test解析、正式权重加载或新正式run；不能从CPU输出检查推定M资源/并发Passed。
+
+GPU执行须经本轮实际字节审核、独立分支clean closure、排他许可绑定及旧总队列TimeXer/N/S全部结束的技术边界核验。旧结果科学审核仍待审时如实保留，M批次不豁免旧统一完成审计。当前不后台等待、不GPU执行、不部署、不stage/commit/push。正式长训练最终由用户一次启动，原作者源码、环境、AGENTS、Closed M0–M5、baseline tag均保持。
+
+汇总按各域四H主表/宏平均、逐通道及旧MS目标诊断分别输出；不跨域平均绝对误差，不把M/MS混排，没有J时不声称验证J竞争力。父72份MS runtime是估时参照，TimeXer当前运行中的结果不读；M总工期及最终q在M准入后修正，六步包不整体除6作整批实测。完成后按精确84任务/168 best-last权重CPU检查、history/budget/best/final-test证据和源数据状态统一审计，不重评test；technical-complete与result-review-pending分开。
+
+本次审核repair仅修launcher身份、报告逐H参数表和新增handoff调度；84份科学profile、数值规则及独立预算保持。wrapper以noclobber创建日志，绑定本次scope、许可SHA、log inode/owner及一次性launch token；真正start只豁免已核验的本次日志/本次tmux pane，旧日志、错token、串scope、旧controller/result/session及重复claim仍拒绝。直接裸Python start没有对应launch身份时拒绝。
+
+新增start_m_handoff.sh仅Prepared、未启动。后续审核及独立closure后，用户可一次启动独立handoff tmux：WAIT_OLD_QUEUE→OLD_BOUNDARY_SEALED→WAIT_PROBE_APPROVAL→PROBE_RUNNING→WAIT_FORMAL_REVIEW→FORMAL_RUNNING→COMPLETE。旧全队运行时仅60秒控制器身份/完成/failure/STOP轮询；异常消失或身份/完成范围不符即停。边界排他seal且科学review仍pending；等待实际probe-review后同步执行新M probe，等待ChatGPT真实probe审核和formal-review后才同步84-run。不自行签发许可、不改reviewed、不跳过probe审核；等待期间不占GPU。STOP只通知本handoff当前自有child的PID/start_ticks，不操作旧MS/其他进程。本轮无等待器、模型或GPU执行，修后字节仍待审核。
