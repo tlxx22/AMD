@@ -1,14 +1,15 @@
-"""M-only handoff: waits for explicit permits; never signs or edits them."""
+"""M-only handoff: fixed preauthorization, saved-evidence audit, technical gates."""
 import hashlib,json,os,signal,subprocess,time
 from pathlib import Path
 from utils import ch3_m_tasks as s
 from utils import ch3_m_execution as e
 from utils import ch3_m_launch as launch
+from utils import ch3_m_auto as auto
 from utils.ch3_contract import digest
 from ch3_runner import code_binding,environment_binding,git,dump
 from m6_remaining_entry import identity,same,lock,stop_marker
 ROOT=s.PACKAGE/'handoff-execution-v1'
-STATES=('WAIT_OLD_QUEUE','OLD_BOUNDARY_SEALED','WAIT_PROBE_APPROVAL','PROBE_RUNNING','WAIT_FORMAL_REVIEW','FORMAL_RUNNING','COMPLETE')
+STATES=('WAIT_OLD_QUEUE','OLD_BOUNDARY_SEALED','PROBE_RUNNING','AUTO_PROBE_AUDIT','FORMAL_RUNNING','COMPLETE')
 POLL_SECONDS=60
 OLD_QUEUE_START_ANCHOR={
  'path':'/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/production-start.json',
@@ -50,11 +51,15 @@ def static_binding(c):
 def static_reasons(c):
  reasons=[]
  if git('branch','--show-current')!='m6/m-baselines-v1'or git('status','--porcelain','--untracked-files=all')or git('rev-parse','HEAD')==s.BASE:reasons.append('independent reviewed clean M closure required before handoff')
+ try:auto.binding(c)
+ except(OSError,ValueError,KeyError,subprocess.CalledProcessError)as exc:reasons.append(str(exc))
  return reasons
 
 def preflight(c,*,starting=False,token=None):
  reasons=static_reasons(c);x=launch.spec('handoff');record=None
  if ROOT.exists()or ROOT.is_symlink()or launch.claim_path('handoff').exists():reasons.append('retained handoff controller/complete/failure; fresh repeat forbidden')
+ for p in (auto.permit_path(True),auto.permit_path(False),auto.admission_path()):
+  if p.exists()or p.is_symlink():reasons.append('retained M automatic permit/admission; fresh repeat forbidden')
  if starting:
   try:record=launch.verify(c,'handoff',token)
   except(OSError,ValueError,PermissionError)as exc:reasons.append(str(exc))
@@ -137,7 +142,7 @@ def run(c,root=ROOT,*,sleep=time.sleep,interval=POLL_SECONDS):
  base=static_binding(c);state='WAIT_OLD_QUEUE';receipts={};boundary=None
  def update(next_state):
   nonlocal state
-  state=next_state;dump(root/'progress.json',dict(state=state,receipts=receipts,boundary=boundary,result_review='pending',permit_generation=False))
+  state=next_state;dump(root/'progress.json',dict(state=state,receipts=receipts,boundary=boundary,result_review='pending',permit_generation='preauthorized_machine_gate',manual_review=False))
   with(root/'states.jsonl').open('a')as f:f.write(json.dumps(dict(state=state),ensure_ascii=False)+'\n')
  def interrupted(sig,frame):
   stop_marker(root)
@@ -151,16 +156,22 @@ def run(c,root=ROOT,*,sleep=time.sleep,interval=POLL_SECONDS):
    if static_binding(c)!=base:raise ValueError('handoff source/config/commit/environment changed')
    if state=='WAIT_OLD_QUEUE':
     if old_queue_state(c)=='wait':sleep(interval);continue
-    boundary=seal_boundary(c);update('OLD_BOUNDARY_SEALED');update('WAIT_PROBE_APPROVAL')
-   elif state in ('WAIT_PROBE_APPROVAL','WAIT_FORMAL_REVIEW'):
-    probe=state=='WAIT_PROBE_APPROVAL';a=permit(c,probe)
-    if a is None:sleep(interval);continue
-    update('PROBE_RUNNING'if probe else'FORMAL_RUNNING')
-    receipt=run_owned(c,root,probe,a);receipts['probe'if probe else'formal']=receipt
-    launch.exclusive_json(root/('probe-handoff.json'if probe else'formal-handoff.json'),receipt)
-    update('WAIT_FORMAL_REVIEW'if probe else'COMPLETE')
+    boundary=seal_boundary(c);update('OLD_BOUNDARY_SEALED')
+   elif state=='OLD_BOUNDARY_SEALED':
+    a=auto.create_permit(c,True,boundary,root);receipts['probe_permit']=dict(path=a['path'],sha256=a['sha256']);update('PROBE_RUNNING')
+   elif state=='PROBE_RUNNING':
+    a=dict(receipts['probe_permit'],value=s.bound(receipts['probe_permit']))
+    receipt=run_owned(c,root,True,a);receipts['probe']=receipt
+    launch.exclusive_json(root/'probe-handoff.json',receipt);update('AUTO_PROBE_AUDIT')
+   elif state=='AUTO_PROBE_AUDIT':
+    admission=auto.audit_probe(c,root,receipts['probe_permit']);receipts['technical_admission']=admission
+    a=auto.create_permit(c,False,boundary,root,admission);receipts['formal_permit']=dict(path=a['path'],sha256=a['sha256']);update('FORMAL_RUNNING')
+   elif state=='FORMAL_RUNNING':
+    a=dict(receipts['formal_permit'],value=s.bound(receipts['formal_permit']))
+    receipt=run_owned(c,root,False,a);receipts['formal']=receipt
+    launch.exclusive_json(root/'formal-handoff.json',receipt);update('COMPLETE')
    else:raise ValueError('unrecognized handoff state')
-  dump(root/'complete.json',dict(scope=s.ID+'-handoff',task_ids=[t['id']for t in c['tasks']],technical_complete=True,result_review='pending',receipts=receipts,boundary=boundary,**base))
+  dump(root/'complete.json',dict(scope=s.ID+'-handoff',task_ids=[t['id']for t in c['tasks']],technical_complete=True,probe_technical_admission='Passed',review_mode=auto.MODE,manual_review=False,result_review='pending',receipts=receipts,boundary=boundary,**base))
  except BaseException as exc:
   dump(root/'failure.json',dict(state=state,error=type(exc).__name__+': '+str(exc),receipts=receipts,boundary=boundary,automatic_retry=False,result_review='pending'));raise
  finally:signal.signal(signal.SIGTERM,previous)

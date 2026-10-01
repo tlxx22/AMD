@@ -48,6 +48,7 @@ def code_binding():
     if (ROOT/'utils/ch3_m_tasks.py').exists():
         files += ['tools/restricted_regression/m6_m_cpu_entry.py','utils/ch3_m_tasks.py','utils/ch3_m_execution.py','utils/ch3_m_summary.py','m6_m_entry.py','scripts/ch3/start_m_baselines.sh','scripts/ch3/start_m_probe.sh','tests/test_m6_m_tasks.py']
         files += ['utils/ch3_m_launch.py','utils/ch3_m_handoff.py','m6_m_handoff_entry.py','scripts/ch3/start_m_handoff.sh','tests/test_m6_m_handoff.py']
+        files += ['utils/ch3_m_auto.py','tests/test_m6_m_auto.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 

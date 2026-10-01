@@ -1,4 +1,4 @@
-"""The one M waiting supervisor CLI; no model/optimizer/GPU imports."""
+"""M preauthorized supervisor CLI; no model/optimizer/GPU imports."""
 import argparse,json,os
 from utils.ch3_contract import read_profiles,validate_manifest
 from utils import ch3_m_handoff as handoff
@@ -7,7 +7,7 @@ from utils import ch3_m_launch as launch
 def cli():
  p=argparse.ArgumentParser();p.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','status','logs','complete','safe-stop'));p.add_argument('--wrapper-pid',type=int);a=p.parse_args();c=validate_manifest(read_profiles())
  if a.action in ('dry-run','preflight'):
-  reasons=handoff.preflight(c);print(json.dumps(dict(scope='m-baselines-v1-handoff',states=handoff.STATES,poll_seconds=60,blocked=reasons,permit_generation=False),ensure_ascii=False,indent=2));return 2 if a.action=='preflight'and reasons else 0
+  reasons=handoff.preflight(c);print(json.dumps(dict(scope='m-baselines-v1-handoff',states=handoff.STATES,poll_seconds=60,blocked=reasons,permit_generation='preauthorized_machine_gate',manual_review=False),ensure_ascii=False,indent=2));return 2 if a.action=='preflight'and reasons else 0
  if a.action=='prepare-launch':print(launch.prepare(c,'handoff',a.wrapper_pid));return 0
  if a.action=='start':handoff.start(c,os.environ.get(launch.TOKEN_ENV));return 0
  if a.action=='safe-stop':print(json.dumps(handoff.safe_stop()));return 0
@@ -21,6 +21,8 @@ def cli():
   from utils import ch3_m_tasks as scope
   for kind,probe in [('probe',True),('formal',False)]:
    receipt=value['receipts'][kind];permit=scope.bound(receipt['permit']);verify_completion(c,execution.PROBE_ROOT if probe else execution.CONTROL,permit,probe)
+  from utils.ch3_m_auto import check_admission
+  check_admission(c,scope.bound(value['receipts']['technical_admission']))
   print(json.dumps(dict(technical_complete=True,result_review='pending')));return 0
  value=handoff.status()
  if a.action=='logs':value['logs']=[str(launch.spec('handoff')['log']),str(launch.spec('probe')['log']),str(launch.spec('formal')['log'])]

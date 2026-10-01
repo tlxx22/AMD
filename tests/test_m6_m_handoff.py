@@ -122,19 +122,19 @@ class MRepairTests(unittest.TestCase):
    with patch('m6_m_entry.readiness',return_value=['bad scope']),self.assertRaises(PermissionError):h.permit(self.c,True)
  def run_fixture(self,permits,*,stop_after=None):
   root=self.root/'supervisor';root.mkdir();events=[];sleep_calls=[]
-  def read(c,probe):
-   events.append(('permit',probe));return dict(path='synthetic-probe'if probe else'synthetic-formal',sha256='fixture',value={})if permits[probe]else None
+  def read(c,probe,boundary,root,admission=None):
+   events.append(('permit',probe));return dict(path='synthetic-probe'if probe else'synthetic-formal',sha256='fixture',value={})
   def owned(c,r,probe,a):events.append(('child',probe));return dict(technical_complete=True,reviewed=False,kind='probe'if probe else'formal',synthetic_fixture=True)
   def wait(n):
    sleep_calls.append(n)
    if stop_after is not None and len(sleep_calls)>=stop_after:(root/'STOP').write_text('fixture stop')
-  with patch.object(h,'static_binding',return_value=dict(commit='fixture')),patch.object(h,'old_queue_state',return_value='complete'),patch.object(h,'seal_boundary',return_value=dict(path='fixture-boundary',sha256='fixture')),patch.object(h,'permit',side_effect=read),patch.object(h,'run_owned',side_effect=owned):
+  with patch.object(h,'static_binding',return_value=dict(commit='fixture')),patch.object(h,'old_queue_state',return_value='complete'),patch.object(h,'seal_boundary',return_value=dict(path='fixture-boundary',sha256='fixture')),patch.object(h.auto,'create_permit',side_effect=read),patch.object(h.auto,'audit_probe',return_value=dict(path='synthetic-audit',sha256='fixture')),patch.object(s,'bound',return_value={}),patch.object(h,'run_owned',side_effect=owned):
    try:h.run(self.c,root,sleep=wait,interval=.01)
    except InterruptedError:pass
   return root,events,sleep_calls
- def test_probe_completes_but_missing_formal_review_waits(self):
+ def test_probe_completes_without_manual_formal_review(self):
   root,events,waits=self.run_fixture({True:True,False:False},stop_after=1)
-  self.assertEqual([x for x in events if x[0]=='child'],[('child',True)]);self.assertFalse((root/'complete.json').exists());self.assertTrue((root/'failure.json').exists());self.assertEqual(json.loads((root/'progress.json').read_text())['state'],'WAIT_FORMAL_REVIEW')
+  self.assertEqual([x for x in events if x[0]=='child'],[('child',True),('child',False)]);self.assertTrue((root/'complete.json').exists());self.assertFalse((root/'failure.json').exists());self.assertEqual(json.loads((root/'progress.json').read_text())['state'],'COMPLETE')
  def test_valid_fixed_state_chain_only_expected_children(self):
   root,events,waits=self.run_fixture({True:True,False:True});self.assertEqual([x for x in events if x[0]=='child'],[('child',True),('child',False)]);self.assertEqual(waits,[]);self.assertEqual([json.loads(x)['state']for x in(root/'states.jsonl').read_text().splitlines()],list(h.STATES));self.assertEqual(json.loads((root/'complete.json').read_text())['result_review'],'pending')
  def test_STOP_in_old_wait_does_not_signal_old_queue(self):
@@ -142,11 +142,13 @@ class MRepairTests(unittest.TestCase):
   def wait(n):(root/'STOP').write_text('fixture stop')
   with patch.object(h,'static_binding',return_value={}),patch.object(h,'old_queue_state',return_value='wait'),patch.object(h,'signal_child')as signal,patch.object(h,'run_owned')as child,self.assertRaises(InterruptedError):h.run(self.c,root,sleep=wait,interval=.01)
   signal.assert_not_called();child.assert_not_called()
- def test_STOP_in_approval_wait_does_not_generate_permits(self):
-  root,events,waits=self.run_fixture({True:False,False:False},stop_after=1);self.assertFalse(any(x[0]=='child'for x in events));self.assertFalse((self.root/'probe-review.json').exists());self.assertTrue((root/'STOP').exists())
+ def test_STOP_before_auto_permit_does_not_dispatch(self):
+  root=self.root/'supervisor';root.mkdir();(root/'STOP').write_text('fixture stop')
+  with patch.object(h,'static_binding',return_value={}),patch.object(h.auto,'create_permit')as create,patch.object(h,'run_owned')as child,self.assertRaises(InterruptedError):h.run(self.c,root)
+  create.assert_not_called();child.assert_not_called()
  def test_child_failure_prevents_formal(self):
   root=self.root/'supervisor';root.mkdir();calls=[]
-  with patch.object(h,'static_binding',return_value={}),patch.object(h,'old_queue_state',return_value='complete'),patch.object(h,'seal_boundary',return_value={}),patch.object(h,'permit',return_value=dict(path='fixture',sha256='fixture',value={})),patch.object(h,'run_owned',side_effect=RuntimeError('synthetic worker failed'))as child,self.assertRaises(RuntimeError):h.run(self.c,root)
+  with patch.object(h,'static_binding',return_value={}),patch.object(h,'old_queue_state',return_value='complete'),patch.object(h,'seal_boundary',return_value={}),patch.object(h.auto,'create_permit',return_value=dict(path='fixture',sha256='fixture',value={})),patch.object(s,'bound',return_value={}),patch.object(h,'run_owned',side_effect=RuntimeError('synthetic worker failed'))as child,self.assertRaises(RuntimeError):h.run(self.c,root)
   self.assertEqual(child.call_count,1);self.assertEqual(json.loads((root/'failure.json').read_text())['state'],'PROBE_RUNNING');self.assertFalse((root/'complete.json').exists())
  def test_duplicate_handoff_preflight_retained_root(self):
   root=self.root/'handoff';root.mkdir()
@@ -210,5 +212,5 @@ class MRepairTests(unittest.TestCase):
  def test_STOP_at_probe_handoff_prevents_formal_dispatch(self):
   root=self.root/'supervisor';root.mkdir();children=[]
   def complete(c,path,probe,a):children.append(probe);(root/'STOP').write_text('synthetic handoff stop');return dict(synthetic_fixture=True,reviewed=False)
-  with patch.object(h,'static_binding',return_value={}),patch.object(h,'old_queue_state',return_value='complete'),patch.object(h,'seal_boundary',return_value={}),patch.object(h,'permit',return_value=dict(value={})),patch.object(h,'run_owned',side_effect=complete),self.assertRaises(InterruptedError):h.run(self.c,root)
+  with patch.object(h,'static_binding',return_value={}),patch.object(h,'old_queue_state',return_value='complete'),patch.object(h,'seal_boundary',return_value={}),patch.object(h.auto,'create_permit',return_value=dict(path='fixture',sha256='fixture',value={})),patch.object(s,'bound',return_value={}),patch.object(h,'run_owned',side_effect=complete),self.assertRaises(InterruptedError):h.run(self.c,root)
   self.assertEqual(children,[True]);self.assertFalse((root/'complete.json').exists())

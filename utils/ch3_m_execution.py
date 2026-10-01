@@ -57,12 +57,19 @@ def authorization_reasons(c,a,probe=False,worker=False):
  reasons=[]
  expected=scope.PROBE if probe else scope.ID
  if not a:return ['matching M reviewed authorization absent']
+ machine=a.get('review_mode')=='preauthorized_machine_gate'
+ if not machine and a.get('review_mode')is not None:reasons.append('unknown M review mode; exact manual or machine authorization required')
+ if machine:
+  try:
+   from utils.ch3_m_auto import validate_permit
+   validate_permit(c,a,probe,worker=worker)
+  except(OSError,KeyError,ValueError,TypeError,subprocess.CalledProcessError)as exc:reasons.append(str(exc))
  reasons+=gpu_environment_reasons()
  if not a.get('plan'):reasons.append('bound exact M plan required')
  if not a.get('old_boundary'):reasons.append('old MS queue including TimeXer/N/S completion boundary required')
  if not probe and not a.get('resource_report'):reasons.append('reviewed new M probe report required before formal training')
  if not probe and(a.get('structure_frozen')is not True or a.get('m6_authorized')is not True):reasons.append('existing M6 structure/stage authorization required')
- for ok,why in [(a.get('m_scope')==expected,'M scope mismatch'),(a.get('purpose')==('ch3_resource_probe'if probe else'ch3_formal'),'M purpose'),(a.get('reviewed')is True and a.get('execution_permitted')is True,'M template not executable'),(a.get('budget_authorized')is True,'M independent budget approval'),(a.get('synthetic_fixture')is False,'fixture permission forbidden'),(a.get('from_scratch')is True,'M fresh-only'),(a.get('task')=='M'and a.get('metric_scope')=='all_channels','M supervision identity')]:
+ for ok,why in [(a.get('m_scope')==expected,'M scope mismatch'),(a.get('purpose')==('ch3_resource_probe'if probe else'ch3_formal'),'M purpose'),((a.get('reviewed')is True or machine)and a.get('execution_permitted')is True,'M template not executable'),(a.get('budget_authorized')is True,'M independent budget approval'),(a.get('synthetic_fixture')is False,'fixture permission forbidden'),(a.get('from_scratch')is True,'M fresh-only'),(a.get('task')=='M'and a.get('metric_scope')=='all_channels','M supervision identity')]:
   if not ok:reasons.append(why)
  if git('branch','--show-current')!='m6/m-baselines-v1'or git('status','--porcelain','--untracked-files=all')or a.get('commit')!=git('rev-parse','HEAD')or a.get('commit')==scope.BASE:reasons.append('independent reviewed clean M closure required')
  for k,v in dict(code=code_binding(),protocol_sha=digest(c),environment=environment_binding(),hardware=hardware_binding(),authorized_task_ids=[t['id']for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t))for t in c['tasks']},parent_MS_profiles={t['id']:profile(c,t)['parent_MS_profile']for t in c['tasks']},data_binding_artifact=c['m_experiment']['data_binding_artifact'],run_budget=dict(runs=84,run_epochs=840),max_optimizer_steps=plan(c)['max_optimizer_steps'],seed_list=[2024],additional_search=0).items():
@@ -87,7 +94,10 @@ def authorization_reasons(c,a,probe=False,worker=False):
   else:
    if not a.get('resource_report'):raise ValueError('reviewed new M probe report required before formal training')
    report=scope.bound(a['resource_report'])
-   if worker:
+   if machine:
+    from utils.ch3_m_auto import check_admission
+    check_admission(c,report,worker=worker)
+   elif worker:
     if report.get('reviewed')is not True or report.get('purpose')!='M_resource_admission'or report.get('protocol_sha')!=digest(c)or report.get('code')!=a['code']:raise ValueError('M worker reviewed resource binding')
    else:validate_probe_report(c,report)
  except (OSError,KeyError,ValueError,TypeError)as e:reasons.append(str(e))
@@ -97,6 +107,9 @@ def authorization_reasons(c,a,probe=False,worker=False):
  return list(dict.fromkeys(reasons))
 
 def validate_probe_report(c,r):
+ if r.get('purpose')=='M_pre_authorized_technical_admission_v1':
+  from utils.ch3_m_auto import check_admission
+  return check_admission(c,r)
  if r.get('purpose')!='M_resource_admission'or r.get('reviewed')is not True:raise ValueError('reviewed new M probe report required')
  raw=scope.bound(r['review']['original_report'])
  if {k:v for k,v in r.items()if k not in ('reviewed','review')}!={k:v for k,v in raw.items()if k!='reviewed'}or not r['review'].get('source'):raise ValueError('M report review source')
@@ -133,7 +146,13 @@ def metadata_files(c,a):
  refs=[a.get('plan'),a.get('old_boundary'),a.get('resource_report'),c['m_experiment']['data_binding_artifact']]
  result={r['path']:r['sha256']for r in refs if r}
  if a.get('resource_report'):
-  r=scope.bound(a['resource_report']);refs2=[r['review']['original_report']]+list(r.get('evidence',{}).values());result.update({r['path']:r['sha256']for r in refs2})
+  r=scope.bound(a['resource_report'])
+  refs2=[r['original_report'],r['probe_permit']]if a.get('review_mode')=='preauthorized_machine_gate'else[r['review']['original_report']]+list(r.get('evidence',{}).values())
+  if a.get('review_mode')=='preauthorized_machine_gate':refs2.append(scope.bound(r['original_report'])['approval'])
+  result.update({r['path']:r['sha256']for r in refs2})
+ if a.get('review_mode')=='preauthorized_machine_gate':
+  from utils.ch3_m_auto import SOURCES
+  result.update({r['path']:r['sha256']for r in SOURCES.values()})
  return result
 
 def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False):
@@ -217,7 +236,7 @@ def run_probe(c,a,root=PROBE_ROOT):
     m=wave(g['id'],'serial',[r],n);serial.append(m)
     if not wave_passed(m):raise RuntimeError('M serial reference/resource failed; no fallback')
     traces['serial',r]=json.loads((root/g['id']/'serial'/r/'trajectory.json').read_text())
-   chosen=None;parallel=[];comparisons=[]
+   chosen=None;parallel=[];comparisons=[];attempts=[]
    for phase,q in [('q4',4),('q2',2)]:
     parallel=[];comparisons=[];res_failure=False
     for n,ids in enumerate(wave_ids(g['task_ids'],q)):
@@ -228,6 +247,7 @@ def run_probe(c,a,root=PROBE_ROOT):
      for r in ids:
       traces[phase,r]=json.loads((root/g['id']/phase/r/'trajectory.json').read_text());row=compare(c,task_by_id(c,r),traces['serial',r],traces[phase,r]);comparisons.append(row)
       if not row['passed']:raise ValueError('M numeric comparison failed; no concurrency fallback')
+    attempts.append(dict(phase=phase,waves=parallel,resource_failed=res_failure))
     if res_failure:
      if q==2:chosen=1
      continue
@@ -237,7 +257,7 @@ def run_probe(c,a,root=PROBE_ROOT):
      raise ValueError('M short-package benefit failed; no nonresource concurrency fallback')
     chosen=q;break
    if chosen is None:raise RuntimeError('M concurrency unresolved')
-   decisions[g['id']]=dict(status='Passed',concurrency=chosen,serial=serial,parallel=parallel,numerical_comparisons=comparisons,policy_sha=digest(c['m_experiment']['numeric_policies'][g['id']]),makespan_scope='captured six-step synthetic technical package',q1_only_if_serial_valid=True)
+   decisions[g['id']]=dict(status='Passed',concurrency=chosen,serial=serial,parallel=parallel,numerical_comparisons=comparisons,attempts=attempts,policy_sha=digest(c['m_experiment']['numeric_policies'][g['id']]),makespan_scope='captured six-step synthetic technical package',q1_only_if_serial_valid=True)
    dump(root/'progress.json',dict(decisions=decisions,budget=budget))
   artifacts={}
   for key in evidence:
@@ -246,6 +266,13 @@ def run_probe(c,a,root=PROBE_ROOT):
     d=root/group/phase/run
     for name in ('config.json','budget.json','trajectory.json','audit.jsonl','runtime.json'):
      p=d/name;artifacts[str(p)]=scope.ref(p)if p.exists()else None
+    if(d/'trajectory.json').exists():
+     tr=json.loads((d/'trajectory.json').read_text())
+     for point in tr.get('M_full_state_trace',[]):
+      for key in ('schema_file','data_file'):
+       p=Path(point[key])
+       if not p.resolve().is_relative_to(d)or p.is_symlink():raise ValueError('M payload outside its exact worker')
+       artifacts[str(p)]=scope.ref(p)
    p=root/group/phase/('wave-'+n)/'memory.jsonl';artifacts[str(p)]=scope.ref(p)if p.exists()else None
   report=dict(purpose='M_resource_admission',m_scope=scope.PROBE,reviewed=False,admission_granted=False,protocol_sha=digest(c),commit=a['commit'],code=a['code'],environment=a['environment'],hardware=a['hardware'],approval=scope.ref(root/'approval.json'),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,execution_complete=True)
   validate_probe_completion(c,report);dump(root/'complete.json',report);return report
@@ -253,11 +280,34 @@ def run_probe(c,a,root=PROBE_ROOT):
   dump(root/'failure.json',dict(error=repr(exc),decisions=decisions,budget=budget,reviewed=False));raise
 
 def validate_probe_completion(c,r):
- from ch3_runner import code_binding,environment_binding,hardware_binding
+ from ch3_runner import code_binding,environment_binding,hardware_binding,git,_compare_full_numeric_files
  if r.get('m_scope')!=scope.PROBE or r.get('protocol_sha')!=digest(c)or set(r.get('decisions',{}))!={g['id']for g in c['groups']}or r.get('execution_complete')is not True:raise ValueError('M probe complete exact 21 scope')
  if r.get('code')!=code_binding()or r.get('environment')!=environment_binding()or r.get('hardware')!=hardware_binding():raise ValueError('M probe source/environment/hardware')
+ if r.get('commit')!=git('rev-parse','HEAD')or r.get('purpose')!='M_resource_admission':raise ValueError('M probe closure/purpose')
  root=PROBE_ROOT
  if(root/'STOP').exists()or(root/'failure.json').exists():raise ValueError('M retained STOP/failure cannot be admission complete')
+ if r.get('approval',{}).get('path')!=str(root/'approval.json'):raise ValueError('M actual probe approval path')
+ approval=scope.bound(r['approval'])
+ for k in ('code','commit','protocol_sha','environment','hardware'):
+  if approval.get(k)!=r.get(k):raise ValueError('M probe approval/source mismatch')
+ if json.loads((root/'budget.json').read_text())!=r['budget']or r['budget'].get('caps')!=scope.CAPS:raise ValueError('M actual probe budget/caps')
+ expected_keys=set()
+ for g in c['groups']:
+  d=r['decisions'][g['id']];q=d['concurrency'];attempts=d.get('attempts',[])
+  if d['status']!='Passed'or type(q)is not int or q not in (1,2,4):raise ValueError('M resource decision')
+  if [a['phase']for a in attempts]!=(['q4']if q==4 else['q4','q2']):raise ValueError('M resource-only fallback history missing/order')
+  expected_keys.update(g['id']+'/serial/'+str(n)for n in range(4))
+  for attempt in attempts:
+   phase=attempt['phase'];waves=attempt['waves'];width=int(phase[1:])
+   if not waves or len(waves)>4//width:raise ValueError('M fallback wave count')
+   failed=not wave_passed(waves[-1])
+   if type(attempt['resource_failed'])is not bool or attempt['resource_failed']!=failed or not all(wave_passed(v)for v in waves[:-1]):raise ValueError('M fallback wave/failed classification')
+   if failed and not resource_fallback(waves[-1]):raise ValueError('M nonresource failure cannot fallback')
+   if not failed and len(waves)!=4//width:raise ValueError('M incomplete successful parallel attempt')
+   if (phase=='q4'and q!=4 and not failed)or(phase=='q2'and (q==1)!=failed):raise ValueError('M fallback chosen q inconsistent')
+   expected_keys.update(g['id']+'/'+phase+'/'+str(n)for n in range(len(waves)))
+  if d['parallel']!=attempts[-1]['waves']:raise ValueError('M final attempt measurement mismatch')
+ if set(r['evidence'])!=expected_keys:raise ValueError('M exact attempted evidence coverage')
  for path,ref in r['artifacts'].items():
   p=Path(path)
   if not p.resolve().is_relative_to(root)or p.is_symlink()or(ref is None and p.exists())or(ref is not None and ref!=scope.ref(p)):raise ValueError('M worker artifact binding changed')
@@ -270,7 +320,21 @@ def validate_probe_completion(c,r):
   if v.get('failure_kind')not in (None,'resource')or(not wave_passed(v)and not resource_fallback(v)):raise ValueError('M unknown/nonresource failure')
   for run in ids:
    d=root/group/phase/run;cfg=json.loads((d/'config.json').read_text());b=json.loads((d/'budget.json').read_text())
-   if cfg['task']!=run or cfg['m_phase']!=phase or cfg['protocol_sha']!=digest(c):raise ValueError('M process/task identity')
+   if set(b.get('counts',{}))!={'adam','forward','backward'}or any(type(b['counts'][k])is not int or not 0<=b['counts'][k]<=cap for k,cap in dict(adam=6,forward=8,backward=6).items()):raise ValueError('M worker actual counter type/range')
+   if cfg['task']!=run or cfg['m_phase']!=phase or cfg['protocol_sha']!=digest(c)or cfg['approval']!=approval or cfg['m_scope']!=scope.PROBE or cfg['output']!=str(d)or cfg['prefix_files']or cfg['limits']!=dict(adam=6,forward=8,backward=6,seconds=1800):raise ValueError('M process/task/permit identity')
+   for name in ('config.json','budget.json'):
+    if r['artifacts'].get(str(d/name))!=scope.ref(d/name):raise ValueError('M required worker binding missing')
+   if wave_passed(v):
+    if b['counts']!=dict(adam=6,forward=8,backward=6):raise ValueError('M exact successful six-step costs')
+    for name in ('trajectory.json','audit.jsonl','runtime.json'):
+     if r['artifacts'].get(str(d/name))!=scope.ref(d/name):raise ValueError('M successful worker artifact missing')
+    tr=json.loads((d/'trajectory.json').read_text());t=task_by_id(c,run)
+    if not compare(c,t,tr,tr)['passed']:raise ValueError('M self state/finite/identity check')
+    for point in tr['M_full_state_trace']:
+     for key in ('schema_file','data_file'):
+      p=Path(point[key])
+      if not p.resolve().is_relative_to(d)or p.is_symlink()or r['artifacts'].get(str(p))!=scope.ref(p):raise ValueError('M full state payload binding')
+     if not _compare_full_numeric_files(dict(state_atol=0),point,point)['passed']:raise ValueError('M full state finite self check')
    for k in reserved:reserved[k]+=dict(adam=6,forward=8,backward=6)[k];actual[k]+=b['counts'][k]
  if r['budget']['actual']!=actual or r['budget']['reserved']!=reserved or r['budget']['refund']is not False:raise ValueError('M replay actual/precharged accounting')
  for g in c['groups']:
@@ -281,6 +345,19 @@ def validate_probe_completion(c,r):
   if d['concurrency']>1:
    phase='q'+str(d['concurrency']);parallel=[scope.bound(r['evidence'][g['id']+'/'+phase+'/'+str(n)])for n in range(4//d['concurrency'])]
    if d['parallel']!=parallel or not all(wave_passed(v)for v in parallel)or sum(v['elapsed']for v in parallel)>=sum(v['elapsed']for v in serial):raise ValueError('M chosen concurrency process/benefit mismatch')
+  final_comparisons=[]
+  for attempt in d['attempts']:
+   phase=attempt['phase'];width=int(phase[1:]);comparisons=[]
+   replay=[scope.bound(r['evidence'][g['id']+'/'+phase+'/'+str(n)])for n in range(len(attempt['waves']))]
+   if replay!=attempt['waves']:raise ValueError('M fallback process measurements changed')
+   for n,v in enumerate(replay):
+    if not wave_passed(v):continue
+    for run in wave_ids(g['task_ids'],width)[n]:
+     x=json.loads((root/g['id']/'serial'/run/'trajectory.json').read_text());y=json.loads((root/g['id']/phase/run/'trajectory.json').read_text());row=compare(c,task_by_id(c,run),x,y)
+     if not row['passed']:raise ValueError('M failed numeric gate in fallback history')
+     comparisons.append(row)
+   final_comparisons=comparisons
+  if d['numerical_comparisons']!=final_comparisons:raise ValueError('M numeric summary not reproducible')
   for run in g['task_ids']:
    t=task_by_id(c,run);sp=root/g['id']/'serial'/run;tr=json.loads((sp/'trajectory.json').read_text());b=json.loads((sp/'budget.json').read_text())
    if b['counts']!=dict(adam=6,forward=8,backward=6)or tr['profile_sha']!=digest(profile(c,t))or not tr['finite']:raise ValueError('M serial evidence/counter')
@@ -291,7 +368,7 @@ def validate_probe_completion(c,r):
   v=scope.bound(ref)
   # Failed resource attempts remain evidence and cannot become successful updates.
   if v.get('failure_kind')not in (None,'resource'):raise ValueError('M business failure in evidence')
- if any(r['budget']['reserved'][k]>scope.CAPS[k]or r['budget']['actual'][k]>r['budget']['reserved'][k]for k in scope.CAPS):raise ValueError('M actual/reserved/cap')
+ if any(type(r['budget'][field][k])is not int or r['budget'][field][k]<0 for field in ('actual','reserved')for k in scope.CAPS)or any(r['budget']['reserved'][k]>scope.CAPS[k]or r['budget']['actual'][k]>r['budget']['reserved'][k]for k in scope.CAPS):raise ValueError('M actual/reserved/cap')
  return r
 
 CPU_ROOT=scope.PACKAGE/'cpu-shapes-v1'

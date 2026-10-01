@@ -235,3 +235,14 @@ GPU执行须经本轮实际字节审核、独立分支clean closure、排他许�
 本次审核repair仅修launcher身份、报告逐H参数表和新增handoff调度；84份科学profile、数值规则及独立预算保持。wrapper以noclobber创建日志，绑定本次scope、许可SHA、log inode/owner及一次性launch token；真正start只豁免已核验的本次日志/本次tmux pane，旧日志、错token、串scope、旧controller/result/session及重复claim仍拒绝。直接裸Python start没有对应launch身份时拒绝。
 
 新增start_m_handoff.sh仅Prepared、未启动。后续审核及独立closure后，用户可一次启动独立handoff tmux：WAIT_OLD_QUEUE→OLD_BOUNDARY_SEALED→WAIT_PROBE_APPROVAL→PROBE_RUNNING→WAIT_FORMAL_REVIEW→FORMAL_RUNNING→COMPLETE。旧全队运行时仅60秒控制器身份/完成/failure/STOP轮询；异常消失或身份/完成范围不符即停。边界排他seal且科学review仍pending；等待实际probe-review后同步执行新M probe，等待ChatGPT真实probe审核和formal-review后才同步84-run。不自行签发许可、不改reviewed、不跳过probe审核；等待期间不占GPU。STOP只通知本handoff当前自有child的PID/start_ticks，不操作旧MS/其他进程。本轮无等待器、模型或GPU执行，修后字节仍待审核。
+
+
+### M批次后续执行政策：预授权自动技术准入（2026-10-01）
+
+用户最新决定只改变本批执行准入方式，取代上述等待probe-review/formal-review的handoff运行快照；旧段落保留其当时事实。未来用户一次启动handoff：WAIT_OLD_QUEUE→OLD_BOUNDARY_SEALED→PROBE_RUNNING→AUTO_PROBE_AUDIT→FORMAL_RUNNING→COMPLETE。旧生产启动锚点、PID/start_ticks、failure/STOP和完整旧队列技术边界保持。仅在本次后续实现实际字节获审、独立分支clean closure、固定计划/来源/环境/硬件及资源条件匹配后，程序排他生成仅限M probe的预授权许可。
+
+probe结束后从实际21组、串行/并行状态与监测、原预登记数值规则、finite/初始化/RNG/batch、资源/RSS/收益、全部SHA和实际预扣/消耗账重新复核。全部gate自动Passed，才可基于实际probe complete SHA、21项decision及最终q，排他生成formal execution permit并在同一handoff同步继续84-run；正常成功路径无需用户、ChatGPT或Codex再次运行时签发许可。自动许可明确review_mode=preauthorized_machine_gate、manual_review=false、reviewed=false，不冒称ChatGPT人工审核probe或预测效果Passed。原probe报告及科学result_review保持pending。
+
+任一工程gate失败、STOP、未知失败或需要改变合同/预算/容差/参数时停止人工裁决；不自动retry、删证据、搜索或择优。仅明确resource失败可沿原q4→q2→合法串行q1规则处理，预算不退款。84任务/840 run-epochs/294790更新、7模型与三域四H、seed2024、全部profile/模型数学/M监督与指标/test合同、ECL仅本批暂缓、独立probe上限1512/2016/1512及原numeric policies均不变。正式组同步等待真实退出及技术交接后进入下一模型；全队COMPLETE只表示technical complete，result_review=pending，用户随后报告“训练好了”再统一结果审计。
+
+STOP只通知本handoff拥有的probe/formal PID/start_ticks链；旧队列等待期只停止等待器，自动审计期不持有GPU且STOP禁止formal签发/派发。该政策仅在独立W分支实现，未合入生产R；本轮不GPU、不probe、不训练、不启动handoff、不stage/commit/push。新字节仍待ChatGPT审核。
