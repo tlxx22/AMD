@@ -50,6 +50,10 @@ def code_binding():
         files += ['utils/ch3_m_launch.py','utils/ch3_m_handoff.py','m6_m_handoff_entry.py','scripts/ch3/start_m_handoff.sh','tests/test_m6_m_handoff.py']
         files += ['utils/ch3_m_auto.py','tests/test_m6_m_auto.py']
     files += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'models/modules').glob('*.py'))]
+    if (ROOT/'utils/ch3_native_chain.py').exists():
+        files += ['utils/ch3_time_marks.py','utils/ch3_native_tasks.py','utils/ch3_native_execution.py',
+                  'utils/ch3_native_chain.py','m6_native_chain_entry.py','scripts/ch3/start_native_time_mark_chain.sh',
+                  'configs/ch3_native_time_mark_profiles.json','tests/test_m6_native_time_marks.py','tests/test_m6_native_chain.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -416,9 +420,16 @@ def restore_state(path,model,opt,identity,generator):
 
 def formal_identity(c, task, metadata, approval):
     p=profile(c,task)
-    return dict(purpose='ch3_formal',run_id=task['id'],input_variant=task['input_variant'],
+    result=dict(purpose='ch3_formal',run_id=task['id'],input_variant=task['input_variant'],
                 protocol_sha=digest(c),profile_sha=digest(p),data_sha=digest(metadata),
                 source=code_binding(),commit=approval['commit'],**(__import__('utils.ch3_revision',fromlist=['identity_fields']).identity_fields(c,task,approval)))
+    if c.get('native_time_mark'):
+        result.update(time_mark=p.get('time_mark'),time_mark_protocol=c['native_time_mark']['id'])
+        if p.get('time_mark'):
+            result.update(time_mark_mode=p['time_mark']['mode'],time_mark_freq=p['time_mark']['freq'],time_mark_features=p['time_mark']['features'],time_mark_source=p['time_mark']['source'])
+        if task.get('parent_run_id'):
+            result.update(parent_run_id=task['parent_run_id'],revision='native-time-mark-v1',parent_profile_sha=p['parent_profile_sha'],new_profile_sha=digest(p))
+    return result
 
 
 def audit_resume(out,approval,run):
@@ -453,11 +464,12 @@ def finite(t):
     if not bool(torch.isfinite(t).all()):raise FloatingPointError('nonfinite tensor')
 
 
-def update(model,opt,x,y,p,device):
+def update(model,opt,x,y,p,device,x_mark_enc=None):
     import torch
     from models.ch3_adapter import target_prediction
     model.train();opt.zero_grad(set_to_none=True)
-    pred,aux=target_prediction(model,x.to(device),p);target=y.to(device)
+    if x_mark_enc is not None:finite(x_mark_enc)
+    pred,aux=target_prediction(model,x.to(device),p,x_mark_enc.to(device) if x_mark_enc is not None else None);target=y.to(device)
     if tuple(pred.shape)!=tuple(target.shape):raise ValueError('supervision shape mismatch; broadcasting forbidden')
     finite(pred);loss=torch.nn.functional.mse_loss(pred,target)
     if aux is not None:finite(aux);loss=loss+aux
@@ -481,8 +493,10 @@ def evaluate(model,batches,p,device):
     from models.ch3_adapter import target_prediction
     model.eval();sse=sae=0.;count=0
     with torch.no_grad():
-        for x,y in batches:
-            pred,_=target_prediction(model,x.to(device),p);err=pred-y.to(device);finite(err)
+        from utils.ch3_time_marks import batch_parts
+        for batch in batches:
+            x,y,mark=batch_parts(batch)
+            pred,_=target_prediction(model,x.to(device),p,mark.to(device) if mark is not None else None);err=pred-y.to(device);finite(err)
             sse+=float(err.double().square().sum());sae+=float(err.double().abs().sum());count+=err.numel()
     if count==0:raise ValueError('empty evaluation')
     return dict(mse=sse/count,mae=sae/count,sse=sse,sae=sae,elements=count)
@@ -695,7 +709,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
 
 def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False):
     import torch
-    m_clock=time.monotonic()if task.get('task')=='M'else None
+    m_clock=time.monotonic()if task.get('task')=='M' or c.get('native_time_mark') else None
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     m_timing=dict(initialization_seconds=time.monotonic()-m_clock,update_seconds=[],validation_seconds=None,includes_synthetic_batch_and_digest=True)if m_clock is not None else None
     from utils.ch3_contract import numeric_probe_policy
@@ -709,7 +723,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     state_digest=ReusableTensorDigest(model.state_dict());full_writer=FullNumericStateWriter(model,opt,out,state_digest,numeric_rule) if numeric_rule and numeric_rule['kind']=='full_float_state' else None
     full_trace=[None]*6 if full_writer else None
     M_full_writer=None;M_full_trace=[]
-    if p.get('task')=='M' and full_writer is None:
+    if (p.get('task')=='M' or p.get('time_mark')) and full_writer is None:
         M_full_writer=FullNumericStateWriter(model,opt,out,state_digest,dict(id=task['group']+'-exact-full-state'))
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
     diagnostic=None
@@ -726,11 +740,16 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         if d['endpoints'] is None:raise ValueError('version endpoints required for actual validation tail')
         a,z,_=d['endpoints'];validation_samples=z-a-p['pred_len']+1
     tail=validation_samples%v
-    def batch(size):return torch.randn(size,p['T'],p['C'],generator=generator),torch.randn(size,p['pred_len'],p['C'] if p.get('task')=='M' else 1,generator=generator)
+    def batch(size):
+        from utils.ch3_time_marks import synthetic
+        pair=(torch.randn(size,p['T'],p['C'],generator=generator),torch.randn(size,p['pred_len'],p['C'] if p.get('task')=='M' else 1,generator=generator))
+        mark=synthetic(p,size)
+        return pair+(mark,) if mark is not None else pair
     trajectory=[None]*6;batch_ids=[None]*6;memory=[None]*6
     for step in range(6):
         if m_timing is not None:m_update_start=time.monotonic()
-        x,y=batch(b);batch_ids[step]=tensor_digest((x,y));loss=update(model,opt,x,y,p,device)
+        from utils.ch3_time_marks import batch_parts
+        current_batch=batch(b);x,y,mark=batch_parts(current_batch);batch_ids[step]=tensor_digest(current_batch);loss=update(model,opt,x,y,p,device,mark)
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         if m_timing is not None:m_timing['update_seconds'].append(time.monotonic()-m_update_start)
         before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
@@ -746,7 +765,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
                 validation_batch_ids=[tensor_digest(pair)for pair in validation_batches]
                 validation=evaluate(model,validation_batches,p,device)
             else:validation=evaluate(model,[batch(v),batch(tail or v)],p,device)
-        del x,y
+        del x,y,mark,current_batch
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         if step==1 and m_timing is not None:m_timing['validation_seconds']=time.monotonic()-m_validation_start
         memory[step]=dict(step=step+1,allocated=allocated,reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,rss_before_hash=before,rss_after_hash=after,rss=rss())
@@ -765,9 +784,10 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         result['endpoint_resources']=dict(allocated=torch.cuda.memory_allocated()if str(device).startswith('cuda')else 0,rss=rss())
         result['allocated']=torch.cuda.max_memory_allocated()if str(device).startswith('cuda')else 0
         result['reserved']=torch.cuda.max_memory_reserved()if str(device).startswith('cuda')else 0
-    if p.get('task')=='M':
+    if p.get('task')=='M' or p.get('time_mark'):
         result['M_full_state_trace']=full_trace if full_trace else M_full_trace
         result['M_timing']=m_timing
+        result['time_mark']=p.get('time_mark')
     if numeric_rule:
         result['numeric_policy_sha']=digest(numeric_rule)
         if numeric_trace is not None:result['numeric_trace']=numeric_trace
@@ -798,7 +818,9 @@ def formal_worker(c,task,out,approval,resume=False):
     train=batches(datasets['train'],p,'train',generator);val=batches(datasets['validation'],p,'validation')
     for epoch_index in range(epoch+1,p['training']['epochs']+1):
         if best.stopped:break
-        for x,y in train:update(model,opt,x,y,p,'cuda:0');steps+=1
+        from utils.ch3_time_marks import batch_parts
+        for batch in train:
+            x,y,mark=batch_parts(batch);update(model,opt,x,y,p,'cuda:0',mark);steps+=1
         metrics=evaluate(model,val,p,'cuda:0')
         if best.update(metrics['mse'],epoch_index):save_state(out/'best.pt',model,opt,identity,best,epoch_index,steps,generator)
         save_state(out/'last.pt',model,opt,identity,best,epoch_index,steps,generator)
@@ -812,8 +834,10 @@ def formal_worker(c,task,out,approval,resume=False):
     result=evaluate(model,batches(datasets['test'],p,'test'),p,'cuda:0')
     result.update(id=task['id'],input_variant=task['input_variant'],purpose='ch3_formal',protocol_sha=digest(c),best_epoch=best.epoch,
                   seed=2024,std=None,metric_space='train-standardized',stability='Not evaluated')
-    if p.get('task')=='M':
-        result.update(task='M',metric_scope='all_channels',profile_sha=digest(p),data_sha=digest(metadata),commit=approval['commit'],parent_MS_profile=p['parent_MS_profile'],from_scratch=True,final_test=dict(calls=1,selected='best.pt',sha256=hashlib.sha256((out/'best.pt').read_bytes()).hexdigest(),epoch=best.epoch))
+    if p.get('task')=='M' or p.get('time_mark'):
+        result.update(task=p.get('task','MS'),metric_scope='all_channels' if p.get('task')=='M' else 'target_only',profile_sha=digest(p),data_sha=digest(metadata),commit=approval['commit'],from_scratch=True,final_test=dict(calls=1,selected='best.pt',sha256=hashlib.sha256((out/'best.pt').read_bytes()).hexdigest(),epoch=best.epoch))
+        if p.get('task')=='M':result['parent_MS_profile']=p['parent_MS_profile']
+        if task.get('parent_run_id'):result.update(parent_run_id=task['parent_run_id'],revision='native-time-mark-v1',time_mark=p['time_mark'],parent_profile_sha=p['parent_profile_sha'])
     dump(out/'result.json',result)
 
 

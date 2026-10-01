@@ -66,6 +66,9 @@ RSS_PROBE_POLICY = dict(id='rss-material-growth-platform-v1', short_window=4,
 
 
 def numeric_probe_policy(c, task):
+    if 'native_replacement' in c:
+        from utils.ch3_native_tasks import numeric_policy
+        return numeric_policy(c,task)
     if 'm_experiment' in c:
         from utils.ch3_m_tasks import numeric_policy
         return numeric_policy(c,task)
@@ -165,6 +168,9 @@ def read_profiles(path=PROFILE_FILE):
 
 
 def generate_tasks(c):
+    if 'native_replacement' in c:
+        from utils.ch3_native_tasks import tasks
+        return tasks()
     if "m_experiment" in c:
         from utils.ch3_m_tasks import tasks
         return tasks()
@@ -211,6 +217,9 @@ def task_by_id(c, run_id):
 
 
 def profile(c, task):
+    if 'native_replacement' in c:
+        from utils.ch3_native_tasks import resolved
+        return resolved(c,task)
     if "m_experiment" in c:
         from utils.ch3_m_tasks import resolved
         return resolved(c,task)
@@ -239,6 +248,9 @@ def profile(c, task):
 
 
 def validate_manifest(c):
+    if 'native_replacement' in c:
+        from utils.ch3_native_tasks import validate
+        return validate(c)
     if "m_experiment" in c:
         from utils.ch3_m_tasks import validate
         return validate(c)

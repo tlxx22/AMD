@@ -23,6 +23,13 @@ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def inside(path,root):return path==root or path.startswith(root+os.sep)
 
 
+def execution_profiles(s):
+    if s.get('successor_scope'):
+        from utils.ch3_native_execution import read_config
+        return read_config(s)
+    return read_profiles()
+
+
 def repository_files():
     paths=set(code_binding())|{'configs/ch3_formal_profiles.json','tests/test_ch3_formal.py','models/__init__.py','utils/__init__.py'}
     return {str(REPO/p):sha(REPO/p) for p in paths}
@@ -30,7 +37,10 @@ def repository_files():
 
 def validate_config(s):
     from run_restricted import verify_bundle,ensure_unique_exact
-    verify_bundle();c=validate_manifest(read_profiles())
+    verify_bundle();c=validate_manifest(execution_profiles(s))
+    if s.get('successor_scope'):
+        from utils.ch3_native_execution import validate_worker
+        validate_worker(c,s);return
     if 'm_experiment'in c:
         from utils.ch3_m_execution import validate_worker,validate_cpu
         (validate_cpu if s['purpose']=='ch3_m_cpu_shapes'else validate_worker)(c,s)
@@ -118,7 +128,7 @@ def validate_config(s):
 
 
 def check_access(real,writing,s,deny,permitted_prefix):
-    if s.get('m_scope') and real in s.get('metadata_files',{}) and not writing:
+    if (s.get('m_scope') or s.get('successor_scope')) and real in s.get('metadata_files',{}) and not writing:
         if sha(real)!=s['metadata_files'][real]:deny('read',real,'M metadata identity changed')
         return True
     execution=inside(real,s['session_root']) or inside(real,s['fixture_root'])
@@ -145,7 +155,7 @@ def bootstrap(s):
             if name.endswith('.__init__'):name=name[:-9]
             if name.startswith('tests.'):name=name[6:]
             modules[name]=str(p)
-    c=read_profiles()
+    c=execution_profiles(s)
     if s.get('task'):
         task=task_by_id(c,s['task'])
         if task['model'] in c['sources']:modules.update(c['sources'][task['model']]['modules'])
@@ -286,6 +296,9 @@ class ExitObservation:
 
 
 def make_config(c,purpose,out,*,task=None,case=None,approval=None,artifact_root=None,resume=False,kernel_probe=False):
+    if c.get('native_time_mark') and approval and approval.get('successor_scope'):
+        from utils.ch3_native_execution import make_config as make_successor_config
+        return make_successor_config(c,purpose,out,task=task,approval=approval,artifact_root=artifact_root,resume=resume)
     if 'm_experiment'in c:
         from utils.ch3_m_execution import make_config as make_m_config
         return make_m_config(c,purpose,out,task=task,approval=approval,artifact_root=artifact_root,resume=resume)
@@ -362,7 +375,7 @@ def spawn(config):
        XDG_CACHE_HOME=str(out/'cache'),MPLCONFIGDIR=str(out/'mpl'),CUDA_CACHE_PATH=str(out/'cuda-cache'))
     if config['device']=='cpu':env['CUDA_VISIBLE_DEVICES']=''
     if config['purpose']=='ch3_m_cpu_shapes':env.update(OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',NUMEXPR_NUM_THREADS='1')
-    c=read_profiles();command=[c['execution']['python']]+(['-B']if config['purpose']=='ch3_m_cpu_shapes'else[])+[str(Path(__file__).resolve()),'worker']
+    c=execution_profiles(config);command=[c['execution']['python'],'-B']+[str(Path(__file__).resolve()),'worker']
     dump(out/'command.json',dict(argv=command,env={k:v for k,v in env.items() if os.environ.get(k)!=v},config_sha=sha(out/'config.json')))
     handle=(out/'worker.log').open('x',encoding='utf-8')
     process=subprocess.Popen(command,env=env,cwd=out,stdout=handle,stderr=subprocess.STDOUT)
@@ -373,7 +386,11 @@ def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
     formal=all(c['purpose']=='ch3_formal' for c in configs)
     stop_file=Path(configs[0]['artifact_root']).parent/'STOP' if formal else Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
-    if configs and 'm_experiment'in read_profiles():
+    if configs and configs[0].get('successor_scope'):
+        from utils.ch3_native_execution import validate_wave
+        stop_file=validate_wave(execution_profiles(configs[0]),configs,out)
+        if stop_file.exists():raise InterruptedError('successor STOP before launch')
+    elif configs and 'm_experiment'in read_profiles():
         from utils.ch3_m_execution import validate_wave
         stop_file=validate_wave(read_profiles(),configs,out)
         if stop_file.exists():raise InterruptedError('M STOP before launch')
@@ -392,7 +409,7 @@ def run_configs(configs,out,monitor=False):
             baseline=gpu_sample([])
             if not resource_assessment(baseline,[])['admission']:raise MemoryError('whole-card admission unavailable before launch')
             exit_observation=ExitObservation(baseline)
-        if 'm_experiment'in read_profiles():
+        if 'm_experiment'in read_profiles() or (configs and configs[0].get('successor_scope')):
             # Retain each own child immediately, including a later spawn failure.
             for config in configs:children.append(spawn(config))
         else:children=[spawn(c) for c in configs]
@@ -511,7 +528,7 @@ def audit_prefixes(c,out):
 
 def worker():
     from restricted_io_guard import require_installed
-    s=require_installed();c=read_profiles();out=Path(s['output']);purpose=s['purpose']
+    s=require_installed();c=execution_profiles(s);out=Path(s['output']);purpose=s['purpose']
     if purpose in ('ch3_cpu','ch3_model_acceptance','ch3_m_cpu_shapes'):
         import unittest
         from run_restricted import execute_cases,flatten
@@ -566,9 +583,14 @@ def worker():
                          backend_name=case['conv_name'] if s.get('kernel_probe') else None, backend_repetitions=case.get('kernel_repetitions',8))
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
-        probe_worker(c,task_by_id(c,s['task']),out,
-                     urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1',
-                     urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1')
+        began=time.time();error=None
+        try:
+            probe_worker(c,task_by_id(c,s['task']),out,
+                         urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1',
+                         urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1' or (s.get('successor_scope')=='m6-native-tmark-chain-v1-tmark-probe' and task_by_id(c,s['task'])['model']=='TimeMixer' and task_by_id(c,s['task'])['dataset']=='UrbanEV'))
+        except BaseException as exc:error=repr(exc);raise
+        finally:
+            if s.get('successor_scope'):dump(out/'runtime.json',dict(task=s['task'],pid=os.getpid(),started=began,finished=time.time(),elapsed=time.time()-began,error=error))
     elif purpose=='ch3_formal_bindings':
         from utils.ch3_m6 import build_data_bindings
         build_data_bindings(c,out)

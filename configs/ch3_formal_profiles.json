@@ -16667,5 +16667,22 @@
       "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/data-bindings.json",
       "sha256": "4f975637feef6834aeed085c305305dffe4747b0ccc4f75c1c391a68c1b62ac8"
     }
+  },
+  "native_time_mark": {
+    "id": "native_time_mark_v1",
+    "models": [
+      "iTransformer",
+      "TimeMixer",
+      "TimeXer"
+    ],
+    "source": "bound historical timestamp window only",
+    "future": false,
+    "business_C_unchanged": true,
+    "mark_scaler": false,
+    "freq_policy": "preserve frozen author/profile freq; all scoped profiles h",
+    "data_binding_artifact": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/m-data-bindings.json",
+      "sha256": "1e4e8aa4d3e4ecb64b4f846a610559244fc557185206d483fac6c2cb836f19c7"
+    }
   }
 }

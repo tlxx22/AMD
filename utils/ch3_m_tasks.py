@@ -31,6 +31,10 @@ def resolved(c,t):
     output_order=list(p['features']),from_scratch=True)
  if t['model']=='AMD':p['aux_idx']=[];p['native_task_mode']='parallel_multivariate'
  if t['model']=='TimeXer':p['native_features']='M';p['native_n_vars']=p['C']
+ if c.get('native_time_mark'):
+  from utils.ch3_time_marks import policy
+  mark=policy(p)
+  if mark:p['time_mark']=mark
  return p
 
 def validate(c):
@@ -98,8 +102,10 @@ def evaluate_all(model,batches,p,device):
  from ch3_runner import finite
  model.eval();sse=torch.zeros(p['C'],dtype=torch.float64);sae=sse.clone();n=0
  with torch.no_grad():
-  for x,y in batches:
-   pred,_=target_prediction(model,x.to(device),p)
+  from utils.ch3_time_marks import batch_parts
+  for batch in batches:
+   x,y,mark=batch_parts(batch)
+   pred,_=target_prediction(model,x.to(device),p,mark.to(device) if mark is not None else None)
    if tuple(y.shape)!=tuple(pred.shape):raise ValueError('M label/output shape mismatch; no broadcasting')
    e=pred-y.to(device);finite(e);sse+=e.double().square().sum((0,1)).cpu();sae+=e.double().abs().sum((0,1)).cpu();n+=e.shape[0]*e.shape[1]
  if not n:raise ValueError('empty evaluation')

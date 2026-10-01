@@ -2785,3 +2785,18 @@ probe结束后从实际21组、串行/并行状态与监测、原预登记数值
 任一工程gate失败、STOP、未知失败或需要改变合同/预算/容差/参数时停止人工裁决；不自动retry、删证据、搜索或择优。仅明确resource失败可沿原q4→q2→合法串行q1规则处理，预算不退款。84任务/840 run-epochs/294790更新、7模型与三域四H、seed2024、全部profile/模型数学/M监督与指标/test合同、ECL仅本批暂缓、独立probe上限1512/2016/1512及原numeric policies均不变。正式组同步等待真实退出及技术交接后进入下一模型；全队COMPLETE只表示technical complete，result_review=pending，用户随后报告“训练好了”再统一结果审计。
 
 STOP只通知本handoff拥有的probe/formal PID/start_ticks链；旧队列等待期只停止等待器，自动审计期不持有GPU且STOP禁止formal签发/派发。该政策仅在独立W分支实现，未合入生产R；本轮不GPU、不probe、不训练、不启动handoff、不stage/commit/push。新字节仍待ChatGPT审核。
+
+
+### 用户最新执行决定：native_time_mark_v1 与统一 successor chain（2026-10-01，隔离分支待审）
+
+本节取代此前“旧 MS 直接接续 M handoff”的运行快照，保留此前记录的历史事实。原仅等待的 M supervisor 已按用户授权正常 safe-stop；其日志、STOP/failure 与执行目录保留，此次退休为协议替代而非科学失败。生产分支和旧 MS 总队列不改动。
+
+只有 iTransformer、TimeMixer、TimeXer 恢复作者原生 historical x_mark_enc 接口。mark 使用已绑定 timestamp 的同一历史输入窗口，hourly timeF 的 HourOfDay/DayOfWeek/DayOfMonth/DayOfYear；不使用未来业务变量/target，不增加业务通道 C，不对 mark 拟合 scaler。UrbanEV F4 的 11 个业务输入（含五个既有日历列）全部保留。其余模型调用不变，TimeMixer 的 use_future_temporal_feature 不变且为 0，不新增 x_mark_dec。
+
+三个模型的 UrbanEV F4 六 fold×四 H 加 PJM/NP/BE/FR/DE 各一项，共 87 fresh replacement：最多 1020 run-epochs、3,687,530 optimizer updates。新 revision/run ID 与结果根独立，旧 common-input/x_mark=None artifact 保留。新协议完整执行后这 87 格固定采用 native-time-mark-v1，不依效果择优。旧 ETTh1/Weather/ECL/Exchange-MS 不新增 replacement；通用 benchmark 后续比较采用 M。
+
+M 仍为七 baseline×ETTh1/Weather/Exchange×四 H＝84 fresh runs、840 run-epochs、294,790 updates。仅上述三模型增加 historical x_mark；所有 frozen profile 的 freq 保持原值（包括 Weather/Exchange 当前 h），结构、T/H、batch、LR、seed、监督、metric/test 合同不变，ECL 本批仍暂缓。M protocol 重新绑定，旧许可不复用。
+
+新独立 scope 为 m6-native-tmark-chain-v1。未来用户一次启动：old MS 全部 technical complete → 自动 seal → native mark probe/落盘技术审核 → 87 replacement → replacement technical boundary → 新 21-group M probe/落盘技术审核 → 84 M formal → COMPLETE。M 同时绑定 old MS 与 87 replacement 两条边界。机器许可 manual_review=false、reviewed=false、review_mode=preauthorized_machine_gate，正常成功路径无需中途人工许可；任一 gate 失败则停止、保留成本/现场，不改容差/参数/科学合同，不自动 retry。COMPLETE 仅为技术完成，scientific result_review=pending，科学结果审计在用户最终回复“训练好了”后进行。
+
+原 M probe 上限 1512 Adam/2016 forward/1512 backward 不变且尚未执行。native mark probe 单列待审计划：16 个计算身份、7 个调度组、28 worker 名义；仅 resource q4 失败允许一次 q2，两档资源失败且串行有效才能采用 q1。TimeMixer/UrbanEV 保留已批准两点评价和阈值，单 worker 为 6/10/6；其余为 6/8/6。最大 40 worker、240 Adam/392 forward/240 backward。本轮不执行 GPU，也不启动新 handoff；实际字节审核、独立分支 closure 与匹配新许可是未来执行前条件。新代码/文档尚未合并生产 R。

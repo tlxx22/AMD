@@ -52,8 +52,10 @@ def adjacent_timestamps(path, start=19041, stop=19048):
 
 
 class Windows:
-    def __init__(self,x,y,start,end,T,H,*,urban=False,label_horizon=None):
+    def __init__(self,x,y,start,end,T,H,*,urban=False,label_horizon=None,marks=None):
         self.x,self.y=x,y;self.start=start;self.end=end;self.T=T;self.H=H
+        self.marks=marks
+        if marks is not None and (marks.shape!=(x.shape[0],4) or end>len(marks)):raise ValueError('historical mark clock/shape alignment')
         self.urban=urban;self.label_horizon=label_horizon
         self.nodes=x.shape[1] if urban else 1
         self.count=end-start-T-(label_horizon if urban else H)+1
@@ -67,7 +69,8 @@ class Windows:
             x=self.x[i:i+self.T,node,:]
             y=self.y[i+self.T+self.label_horizon-1,node:node+1].reshape(1,1)
         else:x=self.x[i:i+self.T];y=self.y[i+self.T:i+self.T+self.H]
-        return torch.from_numpy(x),torch.from_numpy(y)
+        pair=(torch.from_numpy(x),torch.from_numpy(y))
+        return pair+(torch.from_numpy(self.marks[i:i+self.T]),) if self.marks is not None else pair
 
 
 def verify_source_state(d, path=None):
@@ -158,6 +161,11 @@ def load(c,task,*,test_capability=None,path_override=None):
                 cpu_array_bytes=x.nbytes+y.nbytes,time_first=str(times[0]),time_last_read=str(times[-1]),
                 interval_counts={str(k):int(v) for k,v in pd.Series(times[1:]-times[:-1]).value_counts().items()})
     if p.get('task')=='M':info.update(task='M',metric_scope='all_channels',supervised_features=p['features'])
+    if p.get('time_mark'):
+        from utils.ch3_time_marks import marks,metadata
+        historical=marks(times,p['time_mark']['freq'])
+        for split in splits.values():split.marks=historical
+        info.update(metadata(p))
     return splits,info
 
 

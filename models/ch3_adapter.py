@@ -63,13 +63,18 @@ def build(c, task):
     return model
 
 
-def target_prediction(model, x, p):
+def target_prediction(model, x, p, x_mark_enc=None):
     name=p['model']
+    if p.get('time_mark'):
+        from utils.ch3_time_marks import policy
+        if p['time_mark']!=policy(p) or x_mark_enc is None or tuple(x_mark_enc.shape)!=(x.shape[0],p['T'],4):
+            raise ValueError('exact historical native mark required')
+    elif x_mark_enc is not None:raise ValueError('mark outside registered native protocol')
     if name=='TimeXer' and p.get('task')!='M':
         order=p['aux_idx']+[p['target_idx']]
         x=x[:,:,order]
-        output=model(x,None,None,None)
-    elif name in ('iTransformer','TimeMixer','TimeXer'):output=model(x,None,None,None)
+        output=model(x,x_mark_enc,None,None)
+    elif name in ('iTransformer','TimeMixer','TimeXer'):output=model(x,x_mark_enc,None,None)
     else:output=model(x)
     aux=output[1] if isinstance(output,tuple) and name in ('AMD','J','N','S') else None
     prediction=output[0] if isinstance(output,tuple) else output
