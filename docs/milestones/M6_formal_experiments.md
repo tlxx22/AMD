@@ -308,3 +308,15 @@ v4从头重新生成全部七组独立 serial reference，再运行原实际并�
 87 replacement（1020 run-epochs / 3,687,530 updates）与84 M（840 run-epochs / 294,790 updates）、seed2024、科学profile、结构、LR/batch、数据/time-mark、监督及test合同全部不变。configs/ch3_formal_profiles.json保持原字节，M protocol仍831163583475c86604286db561cc309b10b31a6d4df10f3b57c0a52f6c74b3fa，M 21-group probe caps1512/2016/1512不变。
 
 正常成功链仍为精确N/S retirement boundary→v4七组probe/落盘机器audit→87 replacement/boundary→原21组M probe/机器audit→84 M→COMPLETE，无中途人工许可；机器准入manual_review=false/reviewed=false，COMPLETE仅技术完成、result_review=pending。本轮只在W实现与无GPU验收，不stage/commit/push/start，不修改生产R；新字节待ChatGPT实际审核及精确closure，不能宣称当前Ready。
+
+### 用户授权：v4执行修复与recovery1（2026-10-03，待审核/预算阻塞）
+
+v4 probe已Passed，formal职责耦合导致重复full audit；这是工程执行问题，不是模型/效果失败。用户授权既有safe-stop，原7个chain/stage/group/worker实例全部退出，原8项完整结果88个文件未改写。停时实际为iTransformer UrbanEV fold3四H，完整checkpoint/history到epoch7；87 inventory为A8/B4/C0/D75/E0。停止原因user_authorized_execution_repair_stop，全部旧STOP/failure/staging/history/checkpoint/budget保留，result_review=pending，scientific_failure=false、budget_refund=false。test状态仅按现有guard、预算、checkpoint/结果证据核验，不声称逐次kernel访问审计。
+
+四项B committed steps依H3/H6/H9/H12为26061/26012/25970/25921。实际Adam为28051/28211/27824/28285；checkpoint后Adam为1990/2199/1854/2364，合计8407，backward合计8408，forward合计8410。这些partial消耗不退款；恢复从epoch8开始，未保存partial需要重复时计入future成本中的说明项，不再次加总。历史实际Adam/backward/forward=259281/259282/288464；future worst=3436656/3436656/3898201；total worst=3695937/3695938/4186665。原optimizer授权3687530，Adam缺口8407；forward上界4178255为算术推导，不冒称独立原授权。目前preflight应明确additional execution budget authorization required，不能签发可执行恢复许可。
+
+新package native-time-mark-chain-v4-recovery1与旧v4隔离，执行scope m6-native-tmark-chain-v4-recovery1，session ch3-native-tmark-chain-v4-recovery1；replacement/M新输出根分别revisions/native-time-mark-v4-recovery1、m-tasks/m-baselines-native-time-mark-v4-recovery1。science baseline仍0734f3e91f15854f75907c30d10d43e942f69267，controller/worker真实版本后续closure取得；A真实旧版本不改，B旧前缀+新后缀，C/D真实新版本，不能声称新fresh任务在0734实际执行。
+
+原probe四个固定SHA引用保持，manifest由原complete expected SHA确定性投影，admission-summary紧凑且来源绑定。formal supervisor启动一次全量SHA scan，跨进程runtime-admission绑定实际owner PID/start_ticks及启动链认证；permit/config用refs，不复制巨大probe报告，formal worker不允许raw probe sidecar。87完成后一次完整closeout/seal，未成功seal允许合法重试；M permit/group/wave/task轻量消费sealed87边界。M probe即时gate保持，最终AUTO_AUDIT一次；M formal启动scan一次，此后raw replay=0。generic full_float_state按payload只比较一次，None仍全状态exact，未知policy拒绝，TM UrbanEV额外endpoint gate保留。
+
+A不train/test，B不改旧artifact、严格恢复model/optimizer/RNG/best并read-old/write-new，C须0/0/0、旧staging保留，D fresh。若某任务无法确认正式test是否已经访问，或其执行身份无法确认，则该任务必须标记为E类；不得自动恢复，也不得再次执行正式test，必须停止该任务的自动恢复流程并返回后续明确处理。按原wave过滤A，不补位；effective-result-map固定科学格来源、不按效果选旧新。drain-stop等待当前wave落盘/技术清算再停，resume_eligible只表示候选，不能绕过后续门禁；safe-stop只停本scope owned tree。科学87/1020/3687530与M84/840/294790、M21组原policy/caps1512/2016/1512及所有模型/数据数学保持；本轮GPU/模型构造/forward/backward/Adam=0，checkpoint仅受限CPU审核，不重跑原probe或完整结果，不恢复、不commit/push。生产R不变，工作区新字节与外置回执待ChatGPT实际审核。

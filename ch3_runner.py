@@ -55,6 +55,9 @@ def code_binding():
                   'utils/ch3_native_chain.py','m6_native_chain_entry.py','scripts/ch3/start_native_time_mark_chain.sh',
                   'configs/ch3_native_time_mark_profiles.json','tests/test_m6_native_time_marks.py','tests/test_m6_native_chain.py',
                   'utils/ch3_ms_retirement.py','tests/test_m6_native_retirement.py','tests/test_m6_native_v3.py','tests/test_m6_native_v4.py']
+    if (ROOT/'utils/ch3_native_recovery.py').exists():
+        files += ['utils/ch3_native_recovery.py','utils/ch3_native_recovery_records.py','utils/ch3_native_recovery_execution.py',
+                  'm6_native_recovery_entry.py','scripts/ch3/start_native_time_mark_recovery.sh','tests/test_m6_native_recovery.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -430,6 +433,9 @@ def formal_identity(c, task, metadata, approval):
             result.update(time_mark_mode=p['time_mark']['mode'],time_mark_freq=p['time_mark']['freq'],time_mark_features=p['time_mark']['features'],time_mark_source=p['time_mark']['source'])
         if task.get('parent_run_id'):
             result.update(parent_run_id=task['parent_run_id'],revision='native-time-mark-v1',parent_profile_sha=p['parent_profile_sha'],new_profile_sha=digest(p))
+    if approval.get('recovery_scope'):
+        result.update(**{k:approval[k] for k in ('science_baseline_commit','controller_execution_commit','worker_execution_commit','science_computation_fingerprint')},
+                      recovery_scope=approval['recovery_scope'])
     return result
 
 
@@ -810,7 +816,12 @@ def formal_worker(c,task,out,approval,resume=False):
     if p.get('task')=='M':identity.update(task='M',metric_scope='all_channels',parent_MS_profile=p['parent_MS_profile'],from_scratch=True)
     if (out/'result.json').exists():raise FileExistsError('completed run cannot restart')
     p,model,opt,generator=init_training(c,task,'cuda:0');best=BestState(p['training']['patience']);epoch=steps=0
-    if resume:
+    if resume and approval.get('recovery_scope'):
+        from utils.ch3_native_recovery_execution import resume_before_training
+        best,epoch,steps=resume_before_training(c,task,out,approval,model,opt,generator)
+        dump(out/'manifest.json',dict(identity=identity,task=task,profile=p,metadata=metadata,
+             resume_source_ref=__import__('utils.ch3_native_recovery_records',fromlist=['ref']).ref(out/'resume-source.json')))
+    elif resume:
         audit_resume(out,approval,task['id'])
         if json.loads((out/'manifest.json').read_text())['identity']!=identity:raise ValueError('manifest identity mismatch before checkpoint load')
         best,epoch,steps=restore_state(out/'last.pt',model,opt,identity,generator)
@@ -828,7 +839,11 @@ def formal_worker(c,task,out,approval,resume=False):
         with (out/'history.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps(dict(epoch=epoch_index,steps=steps,validation=metrics,best_epoch=best.epoch))+'\n')
     del train,val,datasets,opt
     saved=torch.load(out/'best.pt',map_location='cpu')
-    if saved['identity']!=identity:raise ValueError('best identity mismatch')
+    expected_best_identity=identity
+    if approval.get('recovery_scope') and resume:
+        from utils.ch3_native_recovery_execution import best_identity
+        expected_best_identity=best_identity(c,task,out,approval,identity)
+    if saved['identity']!=expected_best_identity:raise ValueError('best identity mismatch')
     model.load_state_dict(saved['model'],strict=True);del saved
     # Only the separately approved formal worker can enter this final test path.
     datasets,test_metadata=load(c,task,test_capability={'purpose':'ch3_formal_test','protocol_sha':digest(c),'run_id':task['id']})
@@ -839,6 +854,10 @@ def formal_worker(c,task,out,approval,resume=False):
         result.update(task=p.get('task','MS'),metric_scope='all_channels' if p.get('task')=='M' else 'target_only',profile_sha=digest(p),data_sha=digest(metadata),commit=approval['commit'],from_scratch=True,final_test=dict(calls=1,selected='best.pt',sha256=hashlib.sha256((out/'best.pt').read_bytes()).hexdigest(),epoch=best.epoch))
         if p.get('task')=='M':result['parent_MS_profile']=p['parent_MS_profile']
         if task.get('parent_run_id'):result.update(parent_run_id=task['parent_run_id'],revision='native-time-mark-v1',time_mark=p['time_mark'],parent_profile_sha=p['parent_profile_sha'])
+    if approval.get('recovery_scope'):
+        result.update(**{k:approval[k] for k in ('science_baseline_commit','controller_execution_commit','worker_execution_commit','science_computation_fingerprint')},
+                      recovery_scope=approval['recovery_scope'],from_scratch=not resume)
+        if resume:result['resume_source_ref']=__import__('utils.ch3_native_recovery_records',fromlist=['ref']).ref(out/'resume-source.json')
     dump(out/'result.json',result)
 
 

@@ -12,6 +12,9 @@ from utils.ch3_m_execution import wave_ids,wave_passed,resource_fallback,gpu_env
 
 
 def read_config(s):
+    if s.get('recovery_scope'):
+        from utils.ch3_native_recovery_execution import read_config
+        return read_config(s)
     from utils.ch3_contract import read_profiles,validate_manifest
     allowed={str(scope.PROFILE_FILE),str(ROOT/'configs/ch3_formal_profiles.json')}
     path=s.get('protocol_file')
@@ -60,6 +63,12 @@ def exact_path(c,t,probe,phase,out):
 
 
 def authorization_reasons(c,a,probe=False,worker=False):
+    if a and a.get('recovery_scope'):
+        from utils.ch3_native_recovery import validate_permit_light
+        reasons=gpu_environment_reasons()
+        try:validate_permit_light(c,a,probe,worker)
+        except (OSError,ValueError,KeyError,TypeError,PermissionError) as exc:reasons.append(str(exc))
+        return list(dict.fromkeys(reasons))
     from utils.ch3_native_chain import validate_permit
     reasons=gpu_environment_reasons()
     try:validate_permit(c,a,probe,worker=worker)
@@ -68,6 +77,9 @@ def authorization_reasons(c,a,probe=False,worker=False):
 
 
 def metadata_files(c,a):
+    if a.get('recovery_scope'):
+        from utils.ch3_native_recovery import metadata_files
+        return metadata_files(c,a)
     from utils.ch3_native_chain import PREPARATION
     result={r['path']:r['sha256'] for r in PREPARATION.values()}
     from utils.ch3_ms_retirement import RECEIPT
@@ -86,6 +98,9 @@ def metadata_files(c,a):
 
 
 def validate_worker(c,s):
+    if s.get('recovery_scope'):
+        from utils.ch3_native_recovery_execution import validate_worker
+        return validate_worker(c,s)
     from m5_formal_entry import repository_files
     probe=s.get('purpose')=='ch3_probe';ctx=scope.context(c);t=task_by_id(c,s['task'])
     if s.get('purpose')not in ('ch3_probe','ch3_formal') or s.get('resume')is not False or s.get('kernel_probe')is not False or s.get('device')!='cuda:0':raise PermissionError('successor fresh guarded GPU worker only')
@@ -104,6 +119,8 @@ def validate_worker(c,s):
 
 
 def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False):
+    if purpose=='ch3_formal' and approval and approval.get('recovery_scope'):
+        raise PermissionError('recovery formal config requires explicit runtime admission reference')
     from ch3_runner import dump
     from m5_formal_entry import repository_files
     probe=purpose=='ch3_probe';t=task_by_id(c,task);ctx=scope.context(c);out=Path(out);phase=out.parent.name if probe else None
@@ -116,7 +133,12 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False):
         prefix={str(Path(d['path'])/f):c['urban_folds'][t['fold']-1][2] for f in ('volume.csv','e_price.csv','s_price.csv','weather_central.csv')} if t['dataset']=='UrbanEV' else {d['path']:d['endpoints'][2]}
     limits=dict(**scope.worker_counts(c,t),seconds=1800) if probe else dict(adam=None,forward=None,backward=None,seconds=None)
     out.mkdir(parents=True,exist_ok=False)
-    s=dict(version='restricted-regression-minimal-v3',repo=str(ROOT),tool_root=str(ROOT/'tools/restricted_regression'),purpose=purpose,task=task,case=None,ids=[task],protocol_file=str(ctx['protocol_file']),protocol_sha=digest(c),successor_scope=ctx['probe_scope'] if probe else ctx['formal_scope'],successor_phase=phase,session_root=str(ctx['probe_root'] if probe else ctx['result_root']),fixture_root=str(scope.PACKAGE/'fixtures'),audit_log=str(out/'audit.jsonl'),budget_file=str(out/'budget.json'),output=str(out),limits=limits,bound_files=repository_files(),author_roots=[v['repository'] for v in c['sources'].values()],author_files=c['sources'].get(t['model'],{}).get('files',{}),prefix_files=prefix,metadata_files=metadata_files(c,approval),forbidden_roots=[],device='cuda:0',approval=approval,artifact_root=str(out),resume=False,kernel_probe=False)
+    s=dict(version='restricted-regression-minimal-v3',repo=str(ROOT),tool_root=str(ROOT/'tools/restricted_regression'),purpose=purpose,task=task,case=None,ids=[task],protocol_file=str(ctx['protocol_file']),protocol_sha=digest(c),successor_scope=ctx['probe_scope'] if probe else ctx['formal_scope'],successor_phase=phase,session_root=str(ctx['probe_root'] if probe else ctx['result_root']),fixture_root=str(ctx.get('fixture',scope.PACKAGE/'fixtures')),audit_log=str(out/'audit.jsonl'),budget_file=str(out/'budget.json'),output=str(out),limits=limits,bound_files=repository_files(),author_roots=[v['repository'] for v in c['sources'].values()],author_files=c['sources'].get(t['model'],{}).get('files',{}),prefix_files=prefix,metadata_files=metadata_files(c,approval),forbidden_roots=[],device='cuda:0',approval=approval,artifact_root=str(out),resume=False,kernel_probe=False)
+    if approval.get('recovery_scope'):
+        s['recovery_scope']=approval['recovery_scope']
+        from utils.ch3_native_recovery import PACKAGE
+        s['probe_permit_ref']=source.ref(PACKAGE/'m-probe-permit.json')
+        s['metadata_files'][s['probe_permit_ref']['path']]=s['probe_permit_ref']['sha256']
     for name in ('cache/torch/kernels','mpl','cuda-cache'):(out/name).mkdir(parents=True,exist_ok=True)
     dump(out/'config.json',s)
     from resource_budget import initialize
@@ -125,6 +147,9 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False):
 
 
 def validate_wave(c,configs,out):
+    if configs and configs[0].get('recovery_scope'):
+        from utils.ch3_native_recovery_execution import validate_wave
+        return validate_wave(c,configs,out)
     if not configs:raise ValueError('empty successor wave')
     probe=configs[0]['purpose']=='ch3_probe';ids=[s['task'] for s in configs];ctx=scope.context(c)
     if any(s['approval']!=configs[0]['approval'] or s['successor_scope']!=configs[0]['successor_scope'] for s in configs) or len(set(ids))!=len(ids):raise ValueError('mixed successor scopes/permits')
@@ -144,12 +169,17 @@ def compare(c,t,x,y):
     if any(len(v.get('M_full_state_trace',[]))!=6 for v in (x,y)):raise ValueError('six full state/gradient/Adam snapshots')
     from utils.ch3_contract import numeric_probe_policy
     rule=numeric_probe_policy(c,t)
+    generic_full=rule is not None and rule.get('kind')=='full_float_state'
+    if generic_full and any(v.get('full_numeric_trace')!=v['M_full_state_trace'] for v in (x,y)):
+        raise ValueError('generic and M full-state payload identities differ')
+    if rule is not None and rule.get('kind') not in ('full_float_state','named_tensor'):
+        raise ValueError('unsupported numerical policy branch')
     for left,right in zip(x['M_full_state_trace'],y['M_full_state_trace']):
         for point in (left,right):
             for key in ('schema_file','data_file'):
                 p=Path(point[key])
                 if p.is_symlink() or not p.resolve().is_relative_to(scope.context(c)['probe_root']):raise ValueError('successor full state payload namespace')
-        if not _compare_full_numeric_files(rule or dict(state_atol=0),left,right)['passed']:row['passed']=False
+        if not generic_full and not _compare_full_numeric_files(rule or dict(state_atol=0),left,right)['passed']:row['passed']=False
     if 'native_replacement' in c and t['model']=='TimeMixer' and t['dataset']=='UrbanEV':
         from utils.ch3_urban_capture import compare_traces
         from utils.ch3_urban_confirmation import compare_measured
@@ -164,6 +194,9 @@ def run_probe(c,a):
     ctx=scope.context(c);root=ctx['probe_root'];zero=dict(adam=0,forward=0,backward=0)
     budget=dict(caps=ctx['caps'],reserved=dict(zero),actual=dict(zero),refund=False);decisions={};evidence={};artifacts={}
     def wave(g,phase,ids,n):
+        if a.get('recovery_scope'):
+            from utils.ch3_native_recovery import stop_check
+            stop_check(drain=True)
         if (root/'STOP').exists():raise InterruptedError('successor probe STOP')
         request={k:sum(scope.worker_counts(c,task_by_id(c,r))[k] for r in ids) for k in zero}
         if any(budget['reserved'][k]+request[k]>ctx['caps'][k] for k in zero):raise ValueError('probe budget before dispatch')
@@ -221,8 +254,17 @@ def run_probe(c,a):
             decisions[g['id']]=dict(status='Passed',concurrency=q,serial=serial,parallel=parallel,attempts=attempts,numerical_comparisons=comparisons,coverage=g.get('coverage'),makespan_scope='captured synthetic short package; not formal training speedup')
             dump(root/'progress.json',dict(decisions=decisions,budget=budget))
         report=dict(purpose='native_successor_probe_complete_v1',execution_complete=True,reviewed=False,manual_review=False,admission_granted=False,scope=ctx['probe_scope'],plan=scope.plan(c),approval=source.ref(root/'approval.json'),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,**{k:a[k] for k in ('commit','protocol_sha','code','environment','hardware')})
-        validate_probe_completion(c,report);dump(root/'complete.json',report);return report
-    except BaseException as exc:dump(root/'failure.json',dict(error=repr(exc),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,automatic_retry=False));raise
+        # New recovery M retains immediate group gates; final saved-evidence
+        # replay belongs only to M_AUTO_AUDIT. Legacy scopes retain old behavior.
+        if not a.get('recovery_scope'):validate_probe_completion(c,report)
+        dump(root/'complete.json',report);return report
+    except BaseException as exc:
+        if a.get('recovery_scope'):
+            from utils.ch3_native_recovery import DrainStop
+            if isinstance(exc,DrainStop):
+                dump(root/'drain-boundary.json',dict(decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,
+                    technical_failure=False,resume_eligible=True,unconditional_resume=False));raise
+        dump(root/'failure.json',dict(error=repr(exc),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,automatic_retry=False));raise
 
 
 def validate_probe_completion(c,r):

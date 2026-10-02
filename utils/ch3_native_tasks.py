@@ -104,6 +104,10 @@ def validate(c):
 
 
 def context(c):
+    from utils.ch3_native_recovery import active_context
+    recovery = active_context(c)
+    if recovery is not None:
+        return recovery
     replacement = 'native_replacement' in c
     stage = 'tmark' if replacement else 'm'
     return dict(stage=stage, probe_scope=ID + '-' + stage + '-probe', formal_scope=ID + '-' + stage + '-formal',
@@ -212,7 +216,7 @@ def plan(c):
     maximum_cost={k:nominal_cost[k]+sum(costs[r][k] for g in groups if g['planned_q']==4 for r in g['representatives']) for k in nominal_cost}
     if any(maximum_cost[k]>ctx['caps'][k] for k in maximum_cost) or ('native_replacement' in c and maximum_cost!=ctx['caps']):raise ValueError('probe caps must cover exact maximum worker dispatch arithmetic')
     planned_report=dict(decisions={g['id']:dict(concurrency=g['planned_q']) for g in groups})
-    return dict(id=ID, stage=ctx['stage'], protocol_sha=digest(c),
+    return dict(id=ctx.get('id',ID), stage=ctx['stage'], protocol_sha=digest(c),
                 task_ids=[t['id'] for t in c['tasks']], profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},
                 order=list(ctx['models']), run_budget=dict(runs=ctx['runs'],run_epochs=ctx['epochs']),
                 max_optimizer_steps=sum(step_arithmetic(c,t)['max_optimizer_steps'] for t in c['tasks']),

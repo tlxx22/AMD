@@ -411,7 +411,13 @@ def run_configs(configs,out,monitor=False):
             exit_observation=ExitObservation(baseline)
         if 'm_experiment'in read_profiles() or (configs and configs[0].get('successor_scope')):
             # Retain each own child immediately, including a later spawn failure.
-            for config in configs:children.append(spawn(config))
+            import contextlib
+            guard=contextlib.nullcontext()
+            if configs and configs[0].get('recovery_scope'):
+                from utils.ch3_native_recovery import dispatch_guard
+                guard=dispatch_guard()
+            with guard:
+                for config in configs:children.append(spawn(config))
         else:children=[spawn(c) for c in configs]
         with (out/'memory.jsonl').open('x',encoding='utf-8') as log:
             while any(p.poll() is None for p,_ in children) or (monitor and exit_observation.pending):
@@ -586,9 +592,15 @@ def worker():
         from utils.ch3_native_execution import confirmation_endpoint
         began=time.time();error=None
         try:
-            probe_worker(c,task_by_id(c,s['task']),out,
-                         urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1',
-                         urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1' or confirmation_endpoint(c,s))
+            import contextlib
+            context=contextlib.nullcontext()
+            if s.get('recovery_scope'):
+                from utils.ch3_native_recovery import activate
+                context=activate('m')
+            with context:
+                probe_worker(c,task_by_id(c,s['task']),out,
+                             urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1',
+                             urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1' or confirmation_endpoint(c,s))
         except BaseException as exc:error=repr(exc);raise
         finally:
             if s.get('successor_scope'):dump(out/'runtime.json',dict(task=s['task'],pid=os.getpid(),started=began,finished=time.time(),elapsed=time.time()-began,error=error))
@@ -598,7 +610,12 @@ def worker():
     elif purpose=='ch3_formal':
         from ch3_runner import formal_worker
         began=time.time();error=None
-        try:formal_worker(c,task_by_id(c,s['task']),Path(s['artifact_root']),s['approval'],s['resume'])
+        try:
+            approval=s['approval']
+            if s.get('recovery_scope'):
+                from utils.ch3_native_recovery import worker_permit
+                approval=worker_permit(s)
+            formal_worker(c,task_by_id(c,s['task']),Path(s['artifact_root']),approval,s['resume'])
         except BaseException as exc:error=repr(exc);raise
         finally:dump(out/'runtime.json',dict(task=s['task'],pid=os.getpid(),started=began,finished=time.time(),elapsed=time.time()-began,error=error))
     elif purpose=='ch3_placeholder':

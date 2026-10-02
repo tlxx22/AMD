@@ -2847,3 +2847,17 @@ v4从头重新生成全部七组独立 serial reference，再运行原实际并�
 87 replacement（1020 run-epochs / 3,687,530 updates）与84 M（840 run-epochs / 294,790 updates）、seed2024、科学profile、结构、LR/batch、数据/time-mark、监督及test合同全部不变。configs/ch3_formal_profiles.json保持原字节，M protocol仍831163583475c86604286db561cc309b10b31a6d4df10f3b57c0a52f6c74b3fa，M 21-group probe caps1512/2016/1512不变。
 
 正常成功链仍为精确N/S retirement boundary→v4七组probe/落盘机器audit→87 replacement/boundary→原21组M probe/机器audit→84 M→COMPLETE，无中途人工许可；机器准入manual_review=false/reviewed=false，COMPLETE仅技术完成、result_review=pending。本轮只在W实现与无GPU验收，不stage/commit/push/start，不修改生产R；新字节待ChatGPT实际审核及精确closure，不能宣称当前Ready。
+
+### 用户授权：v4 formal admission / recovery execution repair（2026-10-03，隔离字节待审）
+
+v4七组replacement probe已技术通过，formal已开始；现场发现formal准入链反复回放已通过的probe完整数值证据，属于执行效率和职责耦合问题，不是科学结果失败。用户授权调用既有safe-stop中断自有v4链。实际中断在iTransformer第三个UrbanEV wave：8个完整结果保持原字节，4个fold3任务保有epoch7的last/best/history，75个任务未启动；87项分类A/B/C/D/E=8/4/0/75/0。所有STOP/failure、partial、staging、checkpoint和日志保留，原因登记user_authorized_execution_repair_stop，scientific_failure=false、budget_refund=false、result_review=pending。
+
+科学持久化进度与实际成本分账。4项B在checkpoint后已消耗8407 Adam、8408 backward、8410 forward，未保存partial work不退款、不视作已保存epoch。历史实际259281 Adam/259282 backward/288464 forward；从合法checkpoint继续的未来最坏成本3436656/3436656/3898201，已包含必要重复工作，不再次相加。总最坏3695937 Adam/3695938 backward/4186665 forward；相对原optimizer上限3687530，Adam缺口8407。forward的原4178255仅为冻结算术派生上界，不冒称原许可独立授予该forward cap。当前恢复不可执行，必须另有精确额外执行预算授权；不能用可能early stop解释通过。
+
+恢复scope为m6-native-tmark-chain-v4-recovery1，是execution identity，不是新科学variant。science_baseline_commit=0734f3e91f15854f75907c30d10d43e942f69267；原A保持真实旧执行commit，B记录旧checkpoint前缀与新worker执行版本，C/D记录新closure的实际worker版本。controller_execution_commit和worker_execution_commit在后续实际closure后取得，本轮不预填。science computation fingerprint绑定未变模型/作者源码、adapter、数据/time-mark、profile、更新/评价/optimizer/BestState和训练epoch循环。
+
+原固定v4 probe complete是派生artifact manifest的信任根：先验原报告SHA，再提取其expected artifact SHA、校验当前文件并登记size；紧凑admission-summary由固定原报告确定性投影，不能现场自签Passed。准备投影核验与未来每个formal监督器生命周期一次SHA完整性scan分别记账；formal group/wave/task/worker只消费紧凑许可与跨进程、当前自有启动链认证的runtime-admission，不回放probe数值或读取raw sidecar。M仍保留各组即时gate，M_AUTO_AUDIT完整审计一次，M formal新生命周期扫描其manifest一次；M的16项None政策仍完整exact检查，5项full_float_state不再对相同generic payload重复比较，TimeMixer UrbanEV专属endpoint gate保留。
+
+A只读继承、不train/test；B严格read-old/write-new，恢复model/optimizer/RNG/generator/BestState，从最后完整epoch+1继续，历史是不可变prefix与新suffix，旧best仍胜出时使用其精确字节来源；C必须精确0模型工作并保留旧准备材料，新路径fresh；D新路径fresh。若某任务无法确认正式test是否已经访问，或其执行身份无法确认，则该任务必须标记为E类；不得自动恢复，也不得再次执行正式test，必须停止该任务的自动恢复流程并返回后续明确处理。有效87格来源按inventory固定，不按效果选择；只在原wave内跳过A，不跨wave补位、不提高q。87成功closeout/seal只做一次，未成功seal的中断校验可在后续合法生命周期重做；进入M后只轻量消费sealed boundary。
+
+drain-stop持久写DRAIN_STOP，不signal当前wave；当前wave技术完成后停止下一wave/group，登记DRAINED、technical_failure=false、resume_eligible=true，恢复仍需inventory/预算/版本/来源/资源/STOP核验。emergency safe-stop保持owned PID/start_ticks清理。原87/1020/3687530科学合同与84/840/294790 M合同、21组M probe/caps1512/2016/1512、各数值政策完全不变。本轮只完成repair、受限CPU checkpoint审查和无模型fixture验收，没有重跑v4 probe、没有恢复训练、没有修改生产R或stage/commit/push；新字节尚待ChatGPT实际审核。
