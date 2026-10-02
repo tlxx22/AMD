@@ -20,6 +20,9 @@ def policy(c,t):
  if (t['model'],t['dataset'],t['input_variant'],t['h'])!=('TimeMixer','UrbanEV','F4',t['h']) or t['h']not in POLICY['horizons']:return None
  p=profile(c,t)
  if (p['T'],p['pred_len'],p['C'],p['training']['batch'],p['training']['eval_batch'],p['training']['lr'])!=(12,1,11,128,128,.001):raise ValueError('policy requires frozen UrbanEV computation')
+ if 'native_replacement' in c:
+  from utils.ch3_native_tasks import numeric_policy
+  return numeric_policy(c,t)
  # Complete structure/seed/precision identity is also bound by PLAN/profile SHA.
  return POLICY
 
@@ -38,7 +41,8 @@ def cached_endpoint(model,batches,evaluator,snapshot,batch_digest):
 def compare_measured(c,t,x,y,detail):
  """Decision over source-verified full-state measurements; no tolerance inferred from data."""
  import math
- if policy(c,t)!=POLICY:raise ValueError('foreign numeric policy task')
+ rule=policy(c,t)
+ if rule is None:raise ValueError('foreign numeric policy task')
  for k in ('id','profile_sha','initial','initial_rng','batch_ids','steps','final_rng','validation_tail','threads','affinity'):
   if x.get(k)!=y.get(k):raise ValueError('exact identity/RNG/shape mismatch: '+k)
  if x.get('id')!=t['id']or x.get('profile_sha')!=digest(profile(c,t))or x.get('steps')!=6 or x.get('finite')is not True or y.get('finite')is not True:raise ValueError('task/profile/finite')
@@ -55,7 +59,7 @@ def compare_measured(c,t,x,y,detail):
    state_max=max(state_max,diff)
    if row['exact_required']:
     if not row['byte_equal']:errors.append('exact state '+row['name'])
-   elif diff>POLICY['state_atol']:errors.append('float state '+row['name'])
+   elif diff>rule['state_atol']:errors.append('float state '+row['name'])
  loss_diffs=[]
  if len(x['trajectory'])!=6 or len(y['trajectory'])!=6:raise ValueError('six loss records')
  for i,(a,b)in enumerate(zip(x['trajectory'],y['trajectory']),1):
@@ -64,7 +68,7 @@ def compare_measured(c,t,x,y,detail):
  metric_diffs={}
  for side in (x,y):
   obs=side.get('urban_confirmation',{})
-  if obs.get('policy_sha')!=digest(POLICY)or set(obs.get('evaluations',{}))!={'2','6'}:raise ValueError('two evaluation checkpoints/policy required')
+  if obs.get('policy_sha')!=digest(rule)or set(obs.get('evaluations',{}))!={'2','6'}:raise ValueError('two evaluation checkpoints/policy required')
   e2,e6=obs['evaluations']['2'],obs['evaluations']['6']
   if e2['batch_ids']!=e6['batch_ids']or len(e2['batch_ids'])!=2 or e6['before']!=e6['after']or e6.get('mode_restored')is not True:raise ValueError('cached batches or endpoint preservation')
   if e6['before']['rng']!=side['final_rng']or e6['before']['model']!=side['final']or e6['before']['optimizer']!=side['trajectory'][-1]['optimizer']:raise ValueError('endpoint not after original six-step state/RNG')
@@ -79,9 +83,9 @@ def compare_measured(c,t,x,y,detail):
   if not all(math.isfinite(w[k])for w in (u,v)for k in ('mse','mae','sse','sae')):raise ValueError('evaluation finite')
   metric_diffs[step]={k:abs(u[k]-v[k])for k in ('mse','mae')}
   metric_diffs[step].update(normalized_sse=abs(u['sse']-v['sse'])/n,normalized_sae=abs(u['sae']-v['sae'])/n)
- if max(loss_diffs)>POLICY['loss_atol']:errors.append('training loss bound')
- if any(v>POLICY['metric_atol']for row in metric_diffs.values()for v in row.values()):errors.append('evaluation bound')
- return dict(passed=not errors,policy_sha=digest(POLICY),rtol=0,mode='urban_scoped_full_state',state_max_abs=state_max,loss_max_abs=max(loss_diffs),evaluation_diffs=metric_diffs,failures=errors,full_state=detail)
+ if max(loss_diffs)>rule['loss_atol']:errors.append('training loss bound')
+ if any(v>rule['metric_atol']for row in metric_diffs.values()for v in row.values()):errors.append('evaluation bound')
+ return dict(passed=not errors,policy_sha=digest(rule),rtol=0,mode='urban_scoped_full_state',state_max_abs=state_max,loss_max_abs=max(loss_diffs),evaluation_diffs=metric_diffs,failures=errors,full_state=detail)
 
 def compare_confirmation(c,t,x,y):
  from utils.ch3_urban_capture import compare_traces

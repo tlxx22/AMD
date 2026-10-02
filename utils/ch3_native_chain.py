@@ -20,14 +20,14 @@ from ch3_runner import git,code_binding,environment_binding,hardware_binding,dum
 
 BASE=scope.BASE
 ROOT_CONTROL=scope.PACKAGE/'chain-execution-v1'
-SESSION='ch3-native-time-mark-chain-v2'
+SESSION='ch3-native-time-mark-chain-v3'
 LOG=scope.PACKAGE/'native-chain-launcher.log'
 TOKEN_ENV='CH3_NATIVE_CHAIN_TOKEN'
 STATES=('WAIT_OLD_MS_RETIREMENT','OLD_MS_RETIREMENT_BOUNDARY_SEALED','TMARK_PROBE_RUNNING','TMARK_AUTO_AUDIT','TMARK_FORMAL_RUNNING','TMARK_BOUNDARY_SEALED','M_PROBE_RUNNING','M_AUTO_PROBE_AUDIT','M_FORMAL_RUNNING','COMPLETE')
 MODE='preauthorized_machine_gate'
 # Fixed preparation references are filled from the reviewed plan, never self-signed at runtime.
-PREPARATION={'data_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/replacement-data-bindings.json', 'sha256': '3eaca493d25a258fa3dc85104cf497f1c88affa3c593bb79cf46347011950ef4'}, 'data_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/m-data-bindings.json', 'sha256': '1e4e8aa4d3e4ecb64b4f846a610559244fc557185206d483fac6c2cb836f19c7'}, 'author_marks': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/author-timefeatures.json', 'sha256': '41609472a02806db3ab0691b4a129e010e52ad06021d9d262db3ed5ef87acadb'}, 'profile_diff': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/parent-profile-diff.json', 'sha256': '52132cc12851952ca9c099bdd05343976202e91810bfef21203a69c5d4d9b1e6'}, 'environment_source': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/source-provenance.json', 'sha256': '3687b21224123fc3383029f3f4bfbfff46a5fa2fd292a7f8f4232e6345ceda18'}, 'retirement': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/retirement/receipt.json', 'sha256': '973898058035a04ddd0bae72ab6df2df6842cc924b3fbc83e79d420fa8d1f1a1'}, 'plan_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/replacement-plan.json', 'sha256': '58ccdbcb37e228dfc7f202e2e2c6d278cc291779ef721907c289011939b1aea3'}, 'plan_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/m-plan.json', 'sha256': '66afd98c0338c7db78683efcb9184ab21dba1b50722460bbd3fea7a94445e3af'}}
-PREPARATION['source_proof']={'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/source-inheritance.json', 'sha256': 'd5f12a827f56e47f582b71484e31c2300e2cd57533339ba57d61150ff31c268c'}
+PREPARATION={'data_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/replacement-data-bindings.json', 'sha256': '3eaca493d25a258fa3dc85104cf497f1c88affa3c593bb79cf46347011950ef4'}, 'data_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/m-data-bindings.json', 'sha256': '1e4e8aa4d3e4ecb64b4f846a610559244fc557185206d483fac6c2cb836f19c7'}, 'author_marks': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/author-timefeatures.json', 'sha256': '41609472a02806db3ab0691b4a129e010e52ad06021d9d262db3ed5ef87acadb'}, 'profile_diff': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/parent-profile-diff.json', 'sha256': '52132cc12851952ca9c099bdd05343976202e91810bfef21203a69c5d4d9b1e6'}, 'environment_source': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/source-provenance.json', 'sha256': '3687b21224123fc3383029f3f4bfbfff46a5fa2fd292a7f8f4232e6345ceda18'}, 'retirement': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/retirement/receipt.json', 'sha256': '973898058035a04ddd0bae72ab6df2df6842cc924b3fbc83e79d420fa8d1f1a1'}, 'plan_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v3/replacement-plan.json', 'sha256': '74bc5ff0708c373cb78ddf64aa791654b353b8b53dc0a06d3cb5a84e687f6b54'}, 'plan_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v3/m-plan.json', 'sha256': '40ea02936a11447e17a4604bb8406adc8db19529c5e76b023dd27ab01ac3b2b6'}, 'prior_execution': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v3/prior-v2-execution.json', 'sha256': 'c53c03de4def84d9ed0c971ffde866627be4ce3f9a7e7b2a54e126f4efc3e42d'}}
+PREPARATION['source_proof']={'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v3/source-inheritance.json', 'sha256': '394d434743229953208a7ed95da8006123572c3b8ef0b9aae3836e3c71a4082f'}
 
 
 def configs():
@@ -86,11 +86,17 @@ def binding(c,worker=False):
 
 def policy(c):
     ctx=scope.context(c)
-    return dict(version=scope.ID,base_commit=BASE,stage=ctx['stage'],protocol_sha=digest(c),
+    value=dict(version=scope.ID,base_commit=BASE,stage=ctx['stage'],protocol_sha=digest(c),
                 task_ids=[t['id'] for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},
                 probe_caps=ctx['caps'],run_budget=dict(runs=ctx['runs'],run_epochs=ctx['epochs']),
                 max_optimizer_steps=ctx['optimizer_steps'],additional_search=0,review_mode=MODE,manual_review=False,
                 old_boundary_kind='old_MS_user_authorized_retirement_boundary_v1',original_old_batch_technical_complete=False)
+    if ctx['stage']=='tmark':
+        value['replacement_budget_lineage']=dict(prior_failed_execution=PREPARATION['prior_execution'],
+            v2_consumed=dict(adam=192,forward=272,backward=192),budget_refund=False,
+            v3_starting_debit=dict(adam=0,forward=0,backward=0),v3_caps=ctx['caps'],
+            historical_actual_plus_v3_max=dict(adam=630,forward=880,backward=630))
+    return value
 
 
 def approval_template(c,probe):

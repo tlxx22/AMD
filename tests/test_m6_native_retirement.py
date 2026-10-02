@@ -84,9 +84,9 @@ class RetirementTests(unittest.TestCase):
         with patch.object(chain,'old_path',return_value=p),patch.object(chain,'retirement_boundary',return_value=retire.boundary(worker=True)):
             with self.assertRaises(ValueError):chain.check_boundary(self.cs['m'],source.ref(p))
 
-    def test_v2_namespace_ignores_retired_v1_without_overwriting(self):
-        self.assertEqual(scope.ID,'m6-native-tmark-chain-v2');self.assertNotIn('chain-v1',str(chain.ROOT_CONTROL))
-        self.assertNotIn('chain-v1',str(chain.LOG));self.assertEqual(chain.SESSION,'ch3-native-time-mark-chain-v2')
+    def test_v3_namespace_ignores_v1_v2_without_overwriting(self):
+        self.assertEqual(scope.ID,'m6-native-tmark-chain-v3');self.assertNotIn('chain-v1',str(chain.ROOT_CONTROL));self.assertNotIn('chain-v2',str(chain.ROOT_CONTROL))
+        self.assertNotIn('chain-v1',str(chain.LOG));self.assertNotIn('chain-v2',str(chain.LOG));self.assertEqual(chain.SESSION,'ch3-native-time-mark-chain-v3')
         with patch.object(chain,'configs',return_value=self.cs),patch.object(chain,'binding',return_value={}),patch.object(chain,'retirement_boundary',return_value={}),patch.object(chain.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
             self.assertEqual(chain.preflight(),[])
         for c in self.cs.values():
@@ -94,10 +94,13 @@ class RetirementTests(unittest.TestCase):
             with patch.object(chain,'binding',return_value={}):
                 with self.assertRaises(ValueError):chain.validate_permit(c,a,True)
 
-    def test_87_and_M_profiles_math_numeric_bytes_unchanged(self):
-        for path in ('configs/ch3_formal_profiles.json','configs/ch3_native_time_mark_profiles.json','models/ch3_adapter.py','utils/ch3_time_marks.py','utils/ch3_m_tasks.py'):
+    def test_87_and_M_science_and_M_numeric_unchanged(self):
+        for path in ('configs/ch3_formal_profiles.json','models/ch3_adapter.py','utils/ch3_time_marks.py','utils/ch3_m_tasks.py'):
             old=subprocess.check_output(['git','show',scope.BASE+':'+path],cwd=scope.ROOT)
             self.assertEqual(old,(scope.ROOT/path).read_bytes())
+        old=json.loads(subprocess.check_output(['git','show',scope.BASE+':configs/ch3_native_time_mark_profiles.json'],cwd=scope.ROOT))
+        current=copy.deepcopy(self.cs['tmark']);old['native_replacement'].pop('numeric_policies');current['native_replacement'].pop('numeric_policies')
+        self.assertEqual(old,current)
         self.assertEqual(len(self.cs['tmark']['tasks']),87);self.assertEqual(len(self.cs['m']['tasks']),84)
 
     def test_actual_concurrent_combo_coverage_and_exact_costs(self):

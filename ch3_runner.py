@@ -54,7 +54,7 @@ def code_binding():
         files += ['utils/ch3_time_marks.py','utils/ch3_native_tasks.py','utils/ch3_native_execution.py',
                   'utils/ch3_native_chain.py','m6_native_chain_entry.py','scripts/ch3/start_native_time_mark_chain.sh',
                   'configs/ch3_native_time_mark_profiles.json','tests/test_m6_native_time_marks.py','tests/test_m6_native_chain.py',
-                  'utils/ch3_ms_retirement.py','tests/test_m6_native_retirement.py']
+                  'utils/ch3_ms_retirement.py','tests/test_m6_native_retirement.py','tests/test_m6_native_v3.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -775,12 +775,12 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),state_digest_storage_bytes=state_digest.storage_bytes,state_digest_buffer_allocations=state_digest.buffer_allocations,state_digest_policy='preallocated-per-dtype-v1; original digest byte semantics')
     if diagnostic is not None:result['urban_diagnostic_trace']=diagnostic.rows
     if urban_confirmation:
-        from utils.ch3_urban_confirmation import cached_endpoint,POLICY
+        from utils.ch3_urban_confirmation import cached_endpoint,policy
         target=dict(index=p['target_idx'],pred_len=p['pred_len'],C=p['C'],metric_space='train-standardized target-only')
         endpoint=cached_endpoint(model,validation_batches,lambda bs:evaluate(model,bs,p,device),
             lambda:dict(rng=rng(),model=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict())),tensor_digest)
         endpoint['target']=target
-        result['urban_confirmation']=dict(policy_sha=digest(POLICY),evaluations={'2':dict(metrics=validation,batch_ids=validation_batch_ids,target=target),'6':endpoint})
+        result['urban_confirmation']=dict(policy_sha=digest(policy(c,task)),evaluations={'2':dict(metrics=validation,batch_ids=validation_batch_ids,target=target),'6':endpoint})
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         result['endpoint_resources']=dict(allocated=torch.cuda.memory_allocated()if str(device).startswith('cuda')else 0,rss=rss())
         result['allocated']=torch.cuda.max_memory_allocated()if str(device).startswith('cuda')else 0

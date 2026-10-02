@@ -9595,117 +9595,364 @@
     },
     "numeric_policies": {
       "iTransformer-UrbanEV": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "iTransformer-PJM": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "iTransformer-NP": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "iTransformer-BE": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "iTransformer-FR": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "iTransformer-DE": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeMixer-UrbanEV": {
         "rule": {
-          "id": "native-tmark-timemixer-urban-inherited-tolerances-v1",
-          "model": "TimeMixer",
-          "dataset": "UrbanEV",
-          "input_variant": "F4",
-          "horizons": [
-            3,
-            6,
-            9,
-            12
-          ],
-          "state_atol": 0.0001,
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
-          "rtol": 0,
-          "evaluation_steps": [
-            2,
-            6
-          ],
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
           "nonfloating_and_step": "exact",
           "initialization_rng_batches": "exact",
-          "kind": "full_float_state",
-          "equal_nan": false
+          "capture": "preallocated raw sidecar v1"
         },
-        "basis": "approved same-scope thresholds; new input path requires new measurements",
-        "status": "Prepared"
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeMixer-PJM": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeMixer-NP": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeMixer-BE": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeMixer-FR": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeMixer-DE": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeXer-UrbanEV": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeXer-PJM": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeXer-NP": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeXer-BE": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeXer-FR": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       },
       "TimeXer-DE": {
-        "rule": null,
-        "basis": "existing same-scope exact numerical rule; no tolerance expansion",
-        "status": "Prepared"
+        "rule": {
+          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "kind": "full_float_state",
+          "state_atol": 1e-05,
+          "loss_atol": 1e-06,
+          "metric_atol": 1e-06,
+          "loss_rtol": 0.0,
+          "rtol": 0.0,
+          "equal_nan": false,
+          "floating_state": "all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq",
+          "exact_state": "initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data",
+          "nonfloating_and_step": "exact",
+          "initialization_rng_batches": "exact",
+          "capture": "preallocated raw sidecar v1"
+        },
+        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "status": "Prepared",
+        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
       }
     }
   }

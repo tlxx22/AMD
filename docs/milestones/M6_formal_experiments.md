@@ -278,3 +278,17 @@ replacement增量probe只覆盖实际计划并发：三模型UrbanEV各fold1四H
 真实计算身份由旧16收敛为7种、实际并发组合7个（不是沿用旧7组单路EPF方案）。为保留每个并发成员自己的串行数值与同任务耗时基线，需25个代表任务、50个名义worker，300 Adam/416 forward/300 backward；六个q4容量组最多各一次q2 resource复验，共最多73个worker、438/608/438。初始两任务q2组资源失败时仅可采用已测合法q1，不重复同一并发。旧16/7/240-392-240方案保留为历史；由于现在覆盖此前未测的跨市场并发，此待审上限高于旧方案，不能称为计算额度减少、挪用旧probe余额或自动启用。numeric/finite/identity/data/guard/未知失败立即停止，不作为resource降级。
 
 87 fresh replacement（1020 run-epochs、3687530 updates）与84 fresh M（840 run-epochs、294790 updates）全部科学profile、数据、seed、模型数学、time-mark、M监督、metric/test及数值阈值不变，不加入N/S；M21组probe及1512/2016/1512独立上限不变。已完成N/J等旧来源保留，论文是否使用N/S留给最终审计。本轮只做退休、隔离实现与无GPU验收，不启动v2/probe/formal，不stage/commit/push；新字节待ChatGPT审核，尚未合入生产canonical。
+
+### 用户最新决定：replacement v3 统一有限绝对阈值（2026-10-02，候选待审）
+
+v2 实际在 TMARK_PROBE_RUNNING 因 TimeMixer-EPF-combination-0 的 serial/parallel 数值差异停止；iTransformer-UrbanEV-native、iTransformer-EPF-combination-0、TimeMixer-UrbanEV-native 三组已通过原 gate。失败组 worker exit0、finite=true、resource admission=true，不能据资源通过替代数值通过。原 v2 failure、permit、trajectory、budget 与所有现场永久保留，不能改为 Passed、覆盖或用于授权 v3。v2 已消耗 192 Adam / 272 forward / 192 backward，budget_refund=false。
+
+已有落盘合成状态的只读量化：iTransformer 两组 state_max_abs=0；TimeMixer UrbanEV 最大 2.60770320892334e-6，TimeMixer EPF 最大 2.2735408720109263e-6；EPF loss_max_abs=1.1920928955078125e-7，归一 validation metric 最大 3.409995175118752e-9。这是已观察的 GPU 并发浮点扰动，不能据此断言唯一算子根因或正式效果。用户批准针对 replacement 的窄绝对上界，不是作者论文标准，不按结果效果择优。
+
+v3 全部 18 个 replacement model/domain（iTransformer、TimeMixer、TimeXer × UrbanEV/PJM/NP/BE/FR/DE）统一 kind=full_float_state，state_atol=1e-5、loss_atol=1e-6、metric_atol=1e-6、loss_rtol=rtol=0、equal_nan=false。完整浮点参数、buffer、梯度、Adam exp_avg/exp_avg_sq 使用该界；初始化/RNG/合成 batch/order、step、非浮点/非张量 optimizer/model 状态、param groups、shape/dtype 与任务/profile/source/data 身份继续 exact。finite 必须通过。此前 replacement TimeMixer/UrbanEV 的 1e-4 在 v3 收紧到 1e-5；历史 1e-4 政策与证据保留，不修改旧报告。第2/6步评价及原 6/10/6 计算顺序保持，其他 replacement worker 仍 6/8/6。
+
+新 scope m6-native-tmark-chain-v3 使用独立 package/session/log/permit/probe 与 revisions/native-time-mark-v3、m-tasks/m-baselines-native-time-mark-v3；科学输入协议仍 native_time_mark_v1。必须从头独立运行全部七组，各代表先重新 serial reference，再实际 parallel：三模型 UrbanEV fold1四H q4；iTransformer/TimeMixer 各四兼容市场 q4、第五同身份市场 formal 后续单路；TimeXer PJM/BE/FR batch16 实际三并发、NP/DE batch4 q2。共7计算身份、25代表、50名义/73最大 worker，名义 300/416/300，本次独立 caps 438/608/438、起始 debit=0；与已消费 v2 合计历史 actual+v3 worst cap=630/880/630。不得退款、搬用 v2 余额或从第四组续跑。
+
+任何 state/loss/normalized metric 超差、finite、身份、数据、guard、业务或未知失败立即停止，不能 resource fallback 或运行时改阈值。仅明确 resource failure 允许 q4→一次 q2→合法已测 serial q1；TimeXer planned q2 资源失败只能采用合法 serial q1。成功链仍为精确用户 N/S retirement boundary → 七组 replacement probe/落盘自动 audit →87 replacement → replacement boundary →21-group M probe/落盘自动 audit →84 M →COMPLETE，无中途人工许可。机器许可 reviewed=false/manual_review=false，COMPLETE 仅技术完成，result_review=pending。
+
+87/1020/3687530 与84/840/294790科学任务、训练参数、seed、数据/time-mark/M监督/test合同全部不变。M 的21项原数值政策及1512/2016/1512预算保持原字节，不将 replacement 阈值扩到 M。此轮仅 W 实现与无模型验收，模型构造/forward/backward/Adam/GPU均0；不 commit/push/start。新字节待 ChatGPT 实际审核及精确 closure，生产 R 未修改。
