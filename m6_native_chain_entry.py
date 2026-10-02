@@ -39,6 +39,8 @@ def cli():
         if value['running'] or value['STOP'] or 'failure'in value or report['scope']!=scope.ID or report['result_review']!='pending' or report['technical_complete']is not True:raise ValueError('successor total completion identity')
         for stage,c in cs.items():
             for probe in (True,False):chain.verify_stage(c,source.bound(report['receipts'][stage+('_probe_permit' if probe else '_formal_permit')]),probe)
+        chain.check_boundary(cs['m'],report['old_boundary'])
+        if report.get('original_old_batch_technical_complete')is not False or report.get('old_retirement_accepted')is not True:raise ValueError('retirement must not become old technical complete')
         chain.replacement_boundary(cs['m'],report['replacement_boundary'])
         print(json.dumps(dict(technical_complete=True,result_review='pending',manual_review=False)));return 0
     if a.action=='logs':value['logs']=[str(chain.launch_paths(k)['log']) for k in ('handoff','tmark-probe','tmark-formal','m-probe','m-formal')]

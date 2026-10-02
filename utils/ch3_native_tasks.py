@@ -8,12 +8,12 @@ from utils.ch3_contract import ROOT, digest, profile, step_arithmetic, generate_
 from utils import ch3_m_tasks as m
 from utils.ch3_time_marks import MODE, MODELS, policy
 
-BASE = 'be347d8f1990e20893883fd1203e21ab21897c78'
-ID = 'm6-native-tmark-chain-v1'
-PACKAGE = m.PACKAGE / 'native-time-mark-chain-v1'
+BASE = 'e434cdc17dbae98c9d8b2730d0c744ad633976b7'
+ID = 'm6-native-tmark-chain-v2'
+PACKAGE = m.PACKAGE / 'native-time-mark-chain-v2'
 EVIDENCE = ROOT.parent / 'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'
-REPLACEMENT = EVIDENCE / 'revisions/native-time-mark-v1'
-M_RESULT = EVIDENCE / 'm-tasks/m-baselines-native-time-mark-v1'
+REPLACEMENT = EVIDENCE / 'revisions/native-time-mark-v2'
+M_RESULT = EVIDENCE / 'm-tasks/m-baselines-native-time-mark-v2'
 PROFILE_FILE = ROOT / 'configs/ch3_native_time_mark_profiles.json'
 DOMAINS = ('UrbanEV', 'PJM', 'NP', 'BE', 'FR', 'DE')
 
@@ -90,7 +90,7 @@ def context(c):
                 control=(REPLACEMENT if replacement else M_RESULT) / 'queues' / ID,
                 models=MODELS if replacement else m.MODELS,
                 protocol_file=PROFILE_FILE if replacement else ROOT / 'configs/ch3_formal_profiles.json',
-                caps=dict(adam=240, forward=392, backward=240) if replacement else m.CAPS,
+                caps=dict(adam=438, forward=608, backward=438) if replacement else m.CAPS,
                 runs=87 if replacement else 84, epochs=1020 if replacement else 840,
                 optimizer_steps=3687530 if replacement else 294790)
 
@@ -104,9 +104,10 @@ def result_path(c, t):
 
 def computational_identity(c, t):
     p = profile(c, t)
-    # Raw label H is kept separate even UrbanEV's network output has pred_len=1.
+    # Label offset/fold remains task-bound. UrbanEV's network output is one
+    # step for all four offsets: it is not four different computational shapes.
     train = {k: v for k, v in p['training'].items() if k not in ('epochs', 'patience')}
-    return dict(model=t['model'], T=p['T'], label_H=t['h'], prediction_H=p['pred_len'], C=p['C'],
+    return dict(model=t['model'], T=p['T'], prediction_H=p['pred_len'], C=p['C'],
                 training=train, structure=p['structure'], mark_shape=[p['T'], 4],
                 mark_mode=p['time_mark'], output_shape=[p['pred_len'], 1],
                 numeric_rule=numeric_policy(c, t))
@@ -115,28 +116,64 @@ def computational_identity(c, t):
 def probe_groups(c):
     if 'native_replacement' not in c:
         return [dict(g, representatives=g['task_ids'], planned_q=4) for g in c['groups']]
-    bank = {}
-    for t in c['tasks']:
-        key = digest(computational_identity(c, t))
-        bank.setdefault(key, []).append(t)
     result = []
     for model in MODELS:
-        urban = [rows for rows in bank.values() if rows[0]['model'] == model and rows[0]['dataset'] == 'UrbanEV']
-        reps = [rows[0]['id'] for rows in urban]
+        urban = [t for t in c['tasks'] if t['model']==model and t['dataset']=='UrbanEV']
+        reps = [t['id'] for t in urban if t['fold']==1]
         result.append(dict(id=model + '-UrbanEV-native', model=model, representatives=reps, planned_q=4,
-                           identities={rows[0]['id']:digest(computational_identity(c, rows[0])) for rows in urban},
-                           coverage={rows[0]['id']:[t['id'] for t in rows] for rows in urban},
-                           equivalence='same network shape/H/batch/structure/mark; fold statistics and counts remain loader-bound; full eval batch bounds tail resource shape'))
-        for rows in bank.values():
-            if rows[0]['model'] != model or rows[0]['dataset'] == 'UrbanEV':
-                continue
-            representative = rows[0]
-            result.append(dict(id=model + '-EPF-native-' + str(len(result)), model=model,
-                               representatives=[representative['id']], planned_q=1,
-                               identities={representative['id']:digest(computational_identity(c, representative))},
-                               coverage={representative['id']:[t['id'] for t in rows]},
-                               equivalence='same T/H/C/batch/optimizer/structure/hourly native interface; dataset names/ordered business names differ only'))
+                           identities={r:digest(computational_identity(c,next(t for t in urban if t['id']==r))) for r in reps},
+                           coverage={r:[t['id'] for t in urban if t['h']==next(x for x in urban if x['id']==r)['h']] for r in reps},
+                           equivalence='fold1 actual four-H serial/parallel; other folds retain exact label/profile/data bindings and identical computational shape'))
+        bank = {}
+        for t in c['tasks']:
+            if t['model']==model and t['dataset']!='UrbanEV':
+                bank.setdefault(digest(computational_identity(c,t)),[]).append(t)
+        for n,(key,rows) in enumerate(bank.items()):
+            if len(rows)<2:raise ValueError('EPF singleton has no new parallel combination')
+            # Test the actual concurrent set. The fifth compatible market is
+            # a fixed singleton wave, covered by the same input/compute identity.
+            selected=rows[:4];reps=[t['id'] for t in selected]
+            result.append(dict(id=model+'-EPF-combination-'+str(n),model=model,
+                               representatives=reps,planned_q=4 if len(reps)>2 else 2,
+                               identities={r:key for r in reps},
+                               coverage={r:[r] for r in reps[:-1]}|{reps[-1]:[t['id'] for t in rows[len(reps)-1:]]},
+                               equivalence='actual cross-market concurrent workers; same frozen T/H/C/batch/optimizer/structure/mark/numeric rule; remaining singleton inherits only this exact compute identity'))
     return result
+
+
+def formal_waves(c,report,model):
+    """Fixed registered combinations, clipped only by a measured resource fallback."""
+    from utils.ch3_m_execution import wave_ids
+    if 'native_replacement' not in c:
+        return [wave for g in c['groups'] if g['model']==model
+                for wave in wave_ids(g['task_ids'],report['decisions'][g['id']]['concurrency'])]
+    waves=[]
+    positions={t['id']:i for i,t in enumerate(c['tasks'])}
+    for g in sorted(probe_groups(c),key=lambda g:min(positions[r] for r in g['representatives'])):
+        if g['model']!=model:continue
+        q=report['decisions'][g['id']]['concurrency']
+        if type(q)is not int or q not in (1,2,4) or q>g['planned_q']:raise ValueError('unmeasured formal concurrency')
+        reps=g['representatives']
+        if task_by_run(c,reps[0])['dataset']=='UrbanEV':
+            for fold in range(1,7):
+                ids=[t['id'] for t in c['tasks'] if t['model']==model and t['dataset']=='UrbanEV' and t['fold']==fold]
+                waves+=wave_ids(ids,q)
+        else:
+            covered={r for ids in g['coverage'].values() for r in ids}
+            ids=[t['id'] for t in c['tasks'] if t['id'] in covered]
+            waves+=wave_ids(ids,q)
+    flat=[r for wave in waves for r in wave]
+    expected=[t['id'] for t in c['tasks'] if t['model']==model]
+    if len(flat)!=len(set(flat)) or set(flat)!=set(expected):raise ValueError('exact formal combination coverage')
+    return waves
+
+
+def task_by_run(c,run):
+    return next(t for t in c['tasks'] if t['id']==run)
+
+
+def attempt_widths(g):
+    return (4,2) if g['planned_q']==4 else (2,) if g['planned_q']==2 else ()
 
 
 def plan(c):
@@ -144,15 +181,23 @@ def plan(c):
     groups = probe_groups(c)
     representatives = sum(len(g['representatives']) for g in groups)
     nominal = sum(len(g['representatives']) * (2 if g['planned_q'] > 1 else 1) for g in groups)
-    maximum = nominal + sum(len(g['representatives']) for g in groups if g['planned_q'] > 1)
-    if 'native_replacement' in c and (representatives, nominal, maximum) != (16, 28, 40):
+    maximum = nominal + sum(len(g['representatives']) for g in groups if g['planned_q'] == 4)
+    identities={v for g in groups for v in g.get('identities',{}).values()}
+    if 'native_replacement' in c and (len(identities),representatives, nominal, maximum) != (7,25,50,73):
         raise ValueError('native distinct computational coverage drift')
+    costs={r:worker_counts(c,task_by_run(c,r)) for g in groups for r in g['representatives']}
+    nominal_cost={k:sum(costs[r][k]*2 for g in groups for r in g['representatives']) for k in ('adam','forward','backward')}
+    maximum_cost={k:nominal_cost[k]+sum(costs[r][k] for g in groups if g['planned_q']==4 for r in g['representatives']) for k in nominal_cost}
+    if any(maximum_cost[k]>ctx['caps'][k] for k in maximum_cost) or ('native_replacement' in c and maximum_cost!=ctx['caps']):raise ValueError('probe caps must cover exact maximum worker dispatch arithmetic')
+    planned_report=dict(decisions={g['id']:dict(concurrency=g['planned_q']) for g in groups})
     return dict(id=ID, stage=ctx['stage'], protocol_sha=digest(c),
                 task_ids=[t['id'] for t in c['tasks']], profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},
                 order=list(ctx['models']), run_budget=dict(runs=ctx['runs'],run_epochs=ctx['epochs']),
                 max_optimizer_steps=sum(step_arithmetic(c,t)['max_optimizer_steps'] for t in c['tasks']),
-                groups=groups, nominal_workers=nominal, max_workers=maximum,
-                caps=ctx['caps'], per_worker={r:worker_counts(c,next(t for t in c['tasks'] if t['id']==r)) for g in groups for r in g['representatives']},
+                groups=groups, computational_identities=len(identities) if identities else representatives,
+                representative_tasks=representatives,nominal_workers=nominal, max_workers=maximum,
+                nominal_cost=nominal_cost,caps=ctx['caps'], per_worker=costs,
+                planned_formal_waves={model:formal_waves(c,planned_report,model) for model in ctx['models']},
                 fallback='resource-only q4 -> once q2 -> legal measured serial q1; no other retries',
                 status='Prepared; actual-byte review and new clean closure required')
 

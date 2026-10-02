@@ -583,11 +583,12 @@ def worker():
                          backend_name=case['conv_name'] if s.get('kernel_probe') else None, backend_repetitions=case.get('kernel_repetitions',8))
     elif purpose=='ch3_probe':
         from ch3_runner import probe_worker
+        from utils.ch3_native_execution import confirmation_endpoint
         began=time.time();error=None
         try:
             probe_worker(c,task_by_id(c,s['task']),out,
                          urban_diagnostic=s.get('probe_scope')=='urban-numeric-diagnostic-v1',
-                         urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1' or (s.get('successor_scope')=='m6-native-tmark-chain-v1-tmark-probe' and task_by_id(c,s['task'])['model']=='TimeMixer' and task_by_id(c,s['task'])['dataset']=='UrbanEV'))
+                         urban_confirmation=s.get('probe_scope')=='urban-numeric-confirmation-v1' or confirmation_endpoint(c,s))
         except BaseException as exc:error=repr(exc);raise
         finally:
             if s.get('successor_scope'):dump(out/'runtime.json',dict(task=s['task'],pid=os.getpid(),started=began,finished=time.time(),elapsed=time.time()-began,error=error))

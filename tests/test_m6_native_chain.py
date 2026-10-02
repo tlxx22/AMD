@@ -33,7 +33,7 @@ class NativeChainTests(unittest.TestCase):
             if stage=='m':self.assertIsNotNone(replacement)
             permits.append(name);return dict(path=str(self.root/(name+'.json')),sha256='synthetic')
         with ExitStack() as stack:
-            for target,value in [('ROOT_CONTROL',root),('configs',lambda:self.cs),('binding',lambda c:dict(protocol_sha=digest(c))),('old_queue_state',lambda c:'complete'),('old_boundary',lambda c:dict(kind='old_MS_queue_technical_complete',result_review='pending')),('seal',lambda p,v:dict(path=str(p),sha256='synthetic')),('old_path',lambda:self.root/'old.json'),('replacement_path',lambda:self.root/'replacement.json'),('build_replacement_boundary',lambda c:dict(technical_complete=True,result_review='pending')),('create_permit',permit),('run_owned',child),('audit_probe',lambda c,p:dict(path='synthetic-admission',sha256='synthetic'))]:stack.enter_context(patch.object(chain,target,value))
+            for target,value in [('ROOT_CONTROL',root),('configs',lambda:self.cs),('binding',lambda c:dict(protocol_sha=digest(c))),('retirement_boundary',lambda:dict(kind='old_MS_user_authorized_retirement_boundary_v1',technical_complete=False,retirement_accepted=True,result_review='pending')),('seal',lambda p,v:dict(path=str(p),sha256='synthetic')),('old_path',lambda:self.root/'old.json'),('replacement_path',lambda:self.root/'replacement.json'),('build_replacement_boundary',lambda c:dict(technical_complete=True,result_review='pending')),('create_permit',permit),('run_owned',child),('audit_probe',lambda c,p:dict(path='synthetic-admission',sha256='synthetic'))]:stack.enter_context(patch.object(chain,target,value))
             if fail or stop_at:
                 with self.assertRaises((ValueError,InterruptedError)):chain.run(root,sleep=lambda _:None,interval=0)
             else:chain.run(root,sleep=lambda _:None,interval=0)
@@ -44,6 +44,7 @@ class NativeChainTests(unittest.TestCase):
         self.assertEqual(calls,['tmark-probe','tmark-formal','m-probe','m-formal']);self.assertEqual(permits,calls)
         complete=json.loads((root/'complete.json').read_text());self.assertTrue(complete['technical_complete']);self.assertEqual(complete['result_review'],'pending');self.assertFalse(complete['manual_review'])
         self.assertEqual([json.loads(x)['state'] for x in (root/'states.jsonl').read_text().splitlines()],list(chain.STATES))
+        self.assertFalse(complete['original_old_batch_technical_complete']);self.assertTrue(complete['old_retirement_accepted'])
 
     def test_tmark_failure_cannot_dispatch_replacement(self):
         root,calls,permits=self.state_fixture(fail='tmark-probe');self.assertEqual(calls,['tmark-probe']);self.assertEqual(permits,['tmark-probe']);self.assertFalse((root/'complete.json').exists());self.assertTrue((root/'failure.json').exists())
@@ -62,15 +63,15 @@ class NativeChainTests(unittest.TestCase):
 
     def test_wait_old_scope_does_not_query_GPU_or_signal(self):
         root=self.root/'control';root.mkdir();events=[]
-        def sleep(_):events.append('wait');(root/'STOP').touch()
-        with patch.object(chain,'ROOT_CONTROL',root),patch.object(chain,'configs',return_value=self.cs),patch.object(chain,'binding',side_effect=lambda c:dict(protocol_sha=digest(c))),patch.object(chain,'old_queue_state',return_value='wait'),patch.object(chain,'create_permit')as grant,patch.object(chain,'GPULock')as gpu,patch.object(chain.os,'kill')as kill:
-            with self.assertRaises(InterruptedError):chain.run(root,sleep=sleep,interval=0)
+        def missing():events.append('receipt-refused');raise ValueError('ordinary STOP without user retirement receipt')
+        with patch.object(chain,'ROOT_CONTROL',root),patch.object(chain,'configs',return_value=self.cs),patch.object(chain,'binding',side_effect=lambda c:dict(protocol_sha=digest(c))),patch.object(chain,'retirement_boundary',side_effect=missing),patch.object(chain,'create_permit')as grant,patch.object(chain,'GPULock')as gpu,patch.object(chain.os,'kill')as kill:
+            with self.assertRaises(ValueError):chain.run(root,interval=0)
             grant.assert_not_called();gpu.assert_not_called();kill.assert_not_called()
-        self.assertEqual(events,['wait'])
+        self.assertEqual(events,['receipt-refused'])
 
     def test_old_failure_or_identity_change_stops(self):
         root=self.root/'control';root.mkdir()
-        with patch.object(chain,'ROOT_CONTROL',root),patch.object(chain,'configs',return_value=self.cs),patch.object(chain,'binding',return_value={}),patch.object(chain,'old_queue_state',side_effect=ValueError('old SHA/STOP/failure')),patch.object(chain,'create_permit')as grant:
+        with patch.object(chain,'ROOT_CONTROL',root),patch.object(chain,'configs',return_value=self.cs),patch.object(chain,'binding',return_value={}),patch.object(chain,'retirement_boundary',side_effect=ValueError('wrong retirement SHA/identity')),patch.object(chain,'create_permit')as grant:
             with self.assertRaises(ValueError):chain.run(root)
             grant.assert_not_called()
 
@@ -175,7 +176,7 @@ class NativeChainTests(unittest.TestCase):
         text=Path(chain.__file__).read_text();p=self.root/'policy.py';p.write_text(text);expected=chain.policy_code_sha256(p)
         proof_sha=chain.PREPARATION['source_proof']['sha256'];p.write_text(text.replace(proof_sha,'0'*64))
         self.assertEqual(chain.policy_code_sha256(p),expected)
-        p.write_text(text.replace("'WAIT_OLD_MS'","'OTHER_OLD_MS'"));self.assertNotEqual(chain.policy_code_sha256(p),expected)
+        p.write_text(text.replace("'WAIT_OLD_MS_RETIREMENT'","'OTHER_OLD_MS'"));self.assertNotEqual(chain.policy_code_sha256(p),expected)
         p.write_text(text.replace('source-inheritance.json','unreviewed-source.json'));self.assertNotEqual(chain.policy_code_sha256(p),expected)
 
     def owned_fixture(self,stop=False):
@@ -298,6 +299,15 @@ class SavedProbeTests(unittest.TestCase):
         with stack:
             with self.assertRaises(ValueError):execution.run_probe(self.c,self.a)
             self.assertNotIn('q2',attempts);self.assertTrue((self.ctx['probe_root']/'failure.json').exists())
+
+    def test_actual_q4_numeric_failure_keeps_cost_and_never_fallbacks(self):
+        stack,attempts=self.engine()
+        with stack,patch.object(execution,'compare',side_effect=lambda c,t,x,y:dict(passed=x is y)):
+            with self.assertRaises(ValueError):execution.run_probe(self.c,self.a)
+            self.assertIn('q4',attempts);self.assertNotIn('q2',attempts)
+            failed=json.loads((self.ctx['probe_root']/'failure.json').read_text())
+            self.assertEqual(failed['budget']['actual'],dict(adam=48,forward=64,backward=48));self.assertFalse(failed['budget']['refund'])
+            self.assertFalse((self.ctx['probe_root']/'complete.json').exists())
 
     def test_finite_failure_cannot_be_complete(self):
         stack,_=self.engine(finite=False)

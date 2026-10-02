@@ -98,20 +98,20 @@ class NativeTimeMarkTests(unittest.TestCase):
         import subprocess
         before=json.loads(subprocess.check_output(['git','show',scope.BASE+':configs/ch3_formal_profiles.json']))
         self.assertEqual(len(self.mc['tasks']),84);self.assertEqual(sum(step_arithmetic(self.mc,t)['max_optimizer_steps'] for t in self.mc['tasks']),294790)
-        self.assertNotEqual(digest(before),digest(self.mc))
+        self.assertEqual(digest(before),digest(self.mc))
         for t in self.mc['tasks']:
             old=m.resolved(before,t);new=profile(self.mc,t)
-            self.assertEqual({k:v for k,v in new.items() if k!='time_mark'},old)
+            self.assertEqual(new,old)
             if new.get('time_mark'):self.assertEqual(new['time_mark']['freq'],old['structure']['freq'])
 
     def test_computational_identity_minimal_coverage_and_caps(self):
-        gs=scope.probe_groups(self.c);self.assertEqual(len(gs),7);self.assertEqual(sum(len(g['representatives']) for g in gs),16)
+        gs=scope.probe_groups(self.c);self.assertEqual(len(gs),7);self.assertEqual(sum(len(g['representatives']) for g in gs),25)
         covered=[r for g in gs for ids in g['coverage'].values() for r in ids];self.assertEqual(len(covered),87);self.assertEqual(set(covered),{t['id'] for t in self.c['tasks']})
         for g in gs:
             for rep,ids in g['coverage'].items():
                 identity=scope.computational_identity(self.c,next(t for t in self.c['tasks'] if t['id']==rep))
                 for r in ids:self.assertEqual(identity,scope.computational_identity(self.c,next(t for t in self.c['tasks'] if t['id']==r)))
-        self.assertEqual(scope.plan(self.c)['nominal_workers'],28);self.assertEqual(scope.context(self.c)['caps'],dict(adam=240,forward=392,backward=240))
+        self.assertEqual(scope.plan(self.c)['nominal_workers'],50);self.assertEqual(scope.context(self.c)['caps'],dict(adam=438,forward=608,backward=438))
         self.assertEqual(scope.plan(self.mc)['max_workers'],252);self.assertEqual(scope.context(self.mc)['caps'],m.CAPS)
 
     def test_fixed_result_map_no_performance_choice_or_legacy_write(self):

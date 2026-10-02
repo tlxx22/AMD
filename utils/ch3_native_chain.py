@@ -14,24 +14,20 @@ from utils import ch3_m_tasks as source
 from utils import ch3_native_tasks as scope
 from utils import ch3_native_execution as execution
 from utils.ch3_m_launch import exclusive_json,file_identity,ancestors,command_has,tmux_view
-from utils.ch3_m_handoff import old_queue_state
-from utils.ch3_m_execution import old_boundary
+from utils.ch3_ms_retirement import boundary as retirement_boundary
 from m6_remaining_entry import identity,same,lock,stop_marker,signal_owned,sequence
 from ch3_runner import git,code_binding,environment_binding,hardware_binding,dump,GPULock
 
 BASE=scope.BASE
 ROOT_CONTROL=scope.PACKAGE/'chain-execution-v1'
-SESSION='ch3-native-time-mark-chain-v1'
+SESSION='ch3-native-time-mark-chain-v2'
 LOG=scope.PACKAGE/'native-chain-launcher.log'
 TOKEN_ENV='CH3_NATIVE_CHAIN_TOKEN'
-STATES=('WAIT_OLD_MS','OLD_MS_BOUNDARY_SEALED','TMARK_PROBE_RUNNING','TMARK_AUTO_AUDIT','TMARK_FORMAL_RUNNING','TMARK_BOUNDARY_SEALED','M_PROBE_RUNNING','M_AUTO_PROBE_AUDIT','M_FORMAL_RUNNING','COMPLETE')
+STATES=('WAIT_OLD_MS_RETIREMENT','OLD_MS_RETIREMENT_BOUNDARY_SEALED','TMARK_PROBE_RUNNING','TMARK_AUTO_AUDIT','TMARK_FORMAL_RUNNING','TMARK_BOUNDARY_SEALED','M_PROBE_RUNNING','M_AUTO_PROBE_AUDIT','M_FORMAL_RUNNING','COMPLETE')
 MODE='preauthorized_machine_gate'
 # Fixed preparation references are filled from the reviewed plan, never self-signed at runtime.
-PREPARATION={'plan_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/replacement-plan.json', 'sha256': '7b51a9afc908297b149a9ef1c2b838d404421b400057c6d2171692ba31d063ee'}, 'plan_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/m-plan.json', 'sha256': '2f0d1a9a13d467e1937ca1b4dbd4fe4401745b14dea0369347dd2c081ea6f19e'}, 'data_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/replacement-data-bindings.json', 'sha256': '3eaca493d25a258fa3dc85104cf497f1c88affa3c593bb79cf46347011950ef4'}, 'data_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/m-data-bindings.json', 'sha256': '1e4e8aa4d3e4ecb64b4f846a610559244fc557185206d483fac6c2cb836f19c7'}, 'author_marks': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/author-timefeatures.json', 'sha256': '41609472a02806db3ab0691b4a129e010e52ad06021d9d262db3ed5ef87acadb'}, 'profile_diff': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/parent-profile-diff.json', 'sha256': '52132cc12851952ca9c099bdd05343976202e91810bfef21203a69c5d4d9b1e6'}, 'retirement': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/retirement/receipt.json', 'sha256': 'c309d1e5d128299057ca7b1d81634050e961fa0e90f22dfd3c9cfbb4f094f3b4'}, 'environment_source': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/source-provenance.json', 'sha256': '3687b21224123fc3383029f3f4bfbfff46a5fa2fd292a7f8f4232e6345ceda18'}}
-PREPARATION['source_proof']={
-    'path':'/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/source-inheritance.json',
-    'sha256':'7ff9ce378c135a0450366826d2537097da9e8e27e7239192df1009ddcc6cd829',
-}
+PREPARATION={'data_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/replacement-data-bindings.json', 'sha256': '3eaca493d25a258fa3dc85104cf497f1c88affa3c593bb79cf46347011950ef4'}, 'data_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/m-data-bindings.json', 'sha256': '1e4e8aa4d3e4ecb64b4f846a610559244fc557185206d483fac6c2cb836f19c7'}, 'author_marks': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/author-timefeatures.json', 'sha256': '41609472a02806db3ab0691b4a129e010e52ad06021d9d262db3ed5ef87acadb'}, 'profile_diff': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v1/parent-profile-diff.json', 'sha256': '52132cc12851952ca9c099bdd05343976202e91810bfef21203a69c5d4d9b1e6'}, 'environment_source': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/source-provenance.json', 'sha256': '3687b21224123fc3383029f3f4bfbfff46a5fa2fd292a7f8f4232e6345ceda18'}, 'retirement': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/retirement/receipt.json', 'sha256': '973898058035a04ddd0bae72ab6df2df6842cc924b3fbc83e79d420fa8d1f1a1'}, 'plan_tmark': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/replacement-plan.json', 'sha256': '58ccdbcb37e228dfc7f202e2e2c6d278cc291779ef721907c289011939b1aea3'}, 'plan_m': {'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/m-plan.json', 'sha256': '66afd98c0338c7db78683efcb9184ab21dba1b50722460bbd3fea7a94445e3af'}}
+PREPARATION['source_proof']={'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/native-time-mark-chain-v2/source-inheritance.json', 'sha256': 'd5f12a827f56e47f582b71484e31c2300e2cd57533339ba57d61150ff31c268c'}
 
 
 def configs():
@@ -93,7 +89,8 @@ def policy(c):
     return dict(version=scope.ID,base_commit=BASE,stage=ctx['stage'],protocol_sha=digest(c),
                 task_ids=[t['id'] for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},
                 probe_caps=ctx['caps'],run_budget=dict(runs=ctx['runs'],run_epochs=ctx['epochs']),
-                max_optimizer_steps=ctx['optimizer_steps'],additional_search=0,review_mode=MODE,manual_review=False)
+                max_optimizer_steps=ctx['optimizer_steps'],additional_search=0,review_mode=MODE,manual_review=False,
+                old_boundary_kind='old_MS_user_authorized_retirement_boundary_v1',original_old_batch_technical_complete=False)
 
 
 def approval_template(c,probe):
@@ -104,15 +101,14 @@ def approval_template(c,probe):
 
 def permit_path(c,probe):return scope.PACKAGE/(scope.context(c)['stage']+('-probe-permit.json' if probe else '-formal-permit.json'))
 def admission_path(c):return scope.PACKAGE/(scope.context(c)['stage']+'-technical-admission.json')
-def old_path():return scope.PACKAGE/'old-ms-technical-boundary.json'
+def old_path():return scope.PACKAGE/'old-ms-retirement-boundary.json'
 def replacement_path():return scope.PACKAGE/'native-time-mark-replacement-boundary.json'
 
 
 def check_boundary(c,ref,worker=False):
     if ref is None or ref.get('path')!=str(old_path()):raise ValueError('exact old MS boundary required')
     raw=source.bound(ref)
-    if raw.get('kind')!='old_MS_queue_technical_complete' or raw.get('result_review')!='pending':raise ValueError('old boundary technical scope')
-    if not worker and raw!=old_boundary(configs()['m']):raise ValueError('old MS boundary changed')
+    if raw!=retirement_boundary(worker=worker):raise ValueError('exact user-authorized retirement boundary changed')
 
 
 def replacement_boundary(c,ref,worker=False):
@@ -150,7 +146,7 @@ def validate_permit(c,a,probe,worker=False):
                metric_scope='target_only' if ctx['stage']=='tmark' else 'all_channels')
     for k,v in {**bound,**exact}.items():
         if a.get(k)!=v or (type(v)is bool and type(a.get(k))is not bool):raise ValueError('successor permit '+k+' mismatch')
-    if a.get('authorization_basis')!='user preauthorized successor iff all preregistered technical gates pass':raise ValueError('exact successor authorization basis')
+    if a.get('authorization_basis')!='user preauthorized successor from exact N/S retirement boundary iff all preregistered technical gates pass':raise ValueError('exact successor authorization basis')
     check_boundary(c,a.get('old_boundary'),worker)
     if ctx['stage']=='m':
         b=replacement_boundary(c,a.get('replacement_boundary'),worker)
@@ -184,7 +180,7 @@ def create_permit(c,probe,boundary,replacement=None,admission=None):
     stop_check();path=permit_path(c,probe)
     if path.exists() or path.is_symlink():raise FileExistsError('one-shot successor permit retained')
     ctx=scope.context(c)
-    a=dict(**binding(c),purpose='ch3_resource_probe' if probe else 'ch3_formal',successor_scope=ctx['probe_scope'] if probe else ctx['formal_scope'],reviewed=False,manual_review=False,review_mode=MODE,execution_permitted=True,budget_authorized=True,synthetic_fixture=False,from_scratch=True,seed_list=[2024],additional_search=0,authorized_task_ids=[t['id'] for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},run_budget=dict(runs=ctx['runs'],run_epochs=ctx['epochs']),max_optimizer_steps=ctx['optimizer_steps'],caps=ctx['caps'] if probe else None,already_charged=dict(adam=0,forward=0,backward=0),permit_path=str(path),policy=policy(c),policy_sha=digest(policy(c)),technical_admission=not probe,task='MS' if ctx['stage']=='tmark' else 'M',metric_scope='target_only' if ctx['stage']=='tmark' else 'all_channels',old_boundary=boundary,replacement_boundary=replacement,resource_report=admission,authorization_basis='user preauthorized successor iff all preregistered technical gates pass')
+    a=dict(**binding(c),purpose='ch3_resource_probe' if probe else 'ch3_formal',successor_scope=ctx['probe_scope'] if probe else ctx['formal_scope'],reviewed=False,manual_review=False,review_mode=MODE,execution_permitted=True,budget_authorized=True,synthetic_fixture=False,from_scratch=True,seed_list=[2024],additional_search=0,authorized_task_ids=[t['id'] for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},run_budget=dict(runs=ctx['runs'],run_epochs=ctx['epochs']),max_optimizer_steps=ctx['optimizer_steps'],caps=ctx['caps'] if probe else None,already_charged=dict(adam=0,forward=0,backward=0),permit_path=str(path),policy=policy(c),policy_sha=digest(policy(c)),technical_admission=not probe,task='MS' if ctx['stage']=='tmark' else 'M',metric_scope='target_only' if ctx['stage']=='tmark' else 'all_channels',old_boundary=boundary,replacement_boundary=replacement,resource_report=admission,authorization_basis='user preauthorized successor from exact N/S retirement boundary iff all preregistered technical gates pass')
     if not probe:
         report=validate_admission(c,source.bound(admission));a.update(structure_frozen=True,m6_authorized=True,probe_complete=report['probe_complete'],probe_decisions=report['decisions'],probe_budget=report['budget'])
     reasons=readiness(c,a,probe)
@@ -333,7 +329,7 @@ def preflight(starting=False,token=None):
     try:
         cs=configs()
         for c in cs.values():binding(c)
-        old_queue_state(cs['m'])
+        retirement_boundary()
     except (OSError,ValueError,KeyError,subprocess.CalledProcessError) as exc:reasons.append(str(exc))
     if starting:
         try:record=verify_launch('handoff',token)
@@ -365,10 +361,9 @@ def run(root=ROOT_CONTROL,sleep=time.sleep,interval=60):
         while state!='COMPLETE':
             stop_check(root)
             if any(binding(c)!=initial[stage] for stage,c in cs.items()):raise ValueError('successor binding changed')
-            if state=='WAIT_OLD_MS':
-                if old_queue_state(cs['m'])=='wait':sleep(interval);continue
-                old=seal(old_path(),old_boundary(cs['m']));update('OLD_MS_BOUNDARY_SEALED')
-            elif state=='OLD_MS_BOUNDARY_SEALED':
+            if state=='WAIT_OLD_MS_RETIREMENT':
+                old=seal(old_path(),retirement_boundary());update('OLD_MS_RETIREMENT_BOUNDARY_SEALED')
+            elif state=='OLD_MS_RETIREMENT_BOUNDARY_SEALED':
                 receipts['tmark_probe_permit']=create_permit(cs['tmark'],True,old);update('TMARK_PROBE_RUNNING')
             elif state=='TMARK_PROBE_RUNNING':
                 receipts['tmark_probe']=run_owned(cs['tmark'],True,receipts['tmark_probe_permit']);update('TMARK_AUTO_AUDIT')
@@ -388,7 +383,7 @@ def run(root=ROOT_CONTROL,sleep=time.sleep,interval=60):
             elif state=='M_FORMAL_RUNNING':
                 receipts['m_formal']=run_owned(cs['m'],False,receipts['m_formal_permit']);update('COMPLETE')
             else:raise ValueError('unrecognized successor state')
-        dump(root/'complete.json',dict(scope=scope.ID,technical_complete=True,result_review='pending',manual_review=False,old_boundary=old,replacement_boundary=replacement,receipts=receipts,bindings=initial))
+        dump(root/'complete.json',dict(scope=scope.ID,technical_complete=True,original_old_batch_technical_complete=False,old_retirement_accepted=True,result_review='pending',manual_review=False,old_boundary=old,replacement_boundary=replacement,receipts=receipts,bindings=initial))
     except BaseException as exc:dump(root/'failure.json',dict(state=state,error=repr(exc),receipts=receipts,automatic_retry=False,result_review='pending'));raise
     finally:signal.signal(signal.SIGTERM,previous)
 

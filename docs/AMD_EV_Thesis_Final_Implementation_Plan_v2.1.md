@@ -2800,3 +2800,20 @@ M 仍为七 baseline×ETTh1/Weather/Exchange×四 H＝84 fresh runs、840 run-ep
 新独立 scope 为 m6-native-tmark-chain-v1。未来用户一次启动：old MS 全部 technical complete → 自动 seal → native mark probe/落盘技术审核 → 87 replacement → replacement technical boundary → 新 21-group M probe/落盘技术审核 → 84 M formal → COMPLETE。M 同时绑定 old MS 与 87 replacement 两条边界。机器许可 manual_review=false、reviewed=false、review_mode=preauthorized_machine_gate，正常成功路径无需中途人工许可；任一 gate 失败则停止、保留成本/现场，不改容差/参数/科学合同，不自动 retry。COMPLETE 仅为技术完成，scientific result_review=pending，科学结果审计在用户最终回复“训练好了”后进行。
 
 原 M probe 上限 1512 Adam/2016 forward/1512 backward 不变且尚未执行。native mark probe 单列待审计划：16 个计算身份、7 个调度组、28 worker 名义；仅 resource q4 失败允许一次 q2，两档资源失败且串行有效才能采用 q1。TimeMixer/UrbanEV 保留已批准两点评价和阈值，单 worker 为 6/10/6；其余为 6/8/6。最大 40 worker、240 Adam/392 forward/240 backward。本轮不执行 GPU，也不启动新 handoff；实际字节审核、独立分支 closure 与匹配新许可是未来执行前条件。新代码/文档尚未合并生产 R。
+
+
+### 用户最新决定：N/S 退休与 native successor v2（2026-10-02，工作区待审）
+
+本节替代前节要求原552全部完成后才接续的运行快照；此前方案及失败记录保留。用户授权立即退休剩余N与全部S，两次既有safe-stop已停止旧MS队列自有N执行链及仍处WAIT_OLD_MS的v1等待器。生产R源码未改；停止产生的STOP/failure、已完成结果、partial checkpoint/history/staging/budget均保留，预算不退款，此次为用户协议退休，不是模型效果失败。
+
+旧552实际完成520项；N完成16项、4项partial、4项未启动，S24项全部未执行，合计32项退休。边界kind=old_MS_user_authorized_retirement_boundary_v1，绑定原552精确集合、520完成与32退休集合、partial状态、用户退休回执完整SHA、原controller/PID/start_ticks退出、STOP/failure及原生产source/data身份；original batch technical_complete=false、retirement_accepted=true、scientific_failure=false、result_review=pending。不得写成552/552 Passed。N持久化消耗575959 Adam/646897 forward/575959 backward、172条已完成epoch记录；partial epoch未强行取整，历史已删除TimeMixer尝试成本不重建也不退款。
+
+新scope固定m6-native-tmark-chain-v2，独立准备根native-time-mark-chain-v2、session ch3-native-time-mark-chain-v2，结果执行根revisions/native-time-mark-v2与m-tasks/m-baselines-native-time-mark-v2。输入科学协议及87项revision/run身份仍native-time-mark-v1；执行namespace v2不改变profile。v1 controller/STOP/failure/launcher均保留且不能授权v2。
+
+新状态顺序为WAIT_OLD_MS_RETIREMENT → OLD_MS_RETIREMENT_BOUNDARY_SEALED → TMARK_PROBE_RUNNING → TMARK_AUTO_AUDIT → TMARK_FORMAL_RUNNING → TMARK_BOUNDARY_SEALED → M_PROBE_RUNNING → M_AUTO_PROBE_AUDIT → M_FORMAL_RUNNING → COMPLETE。启动时直接验证closure-bound精确退休回执，不再等待旧552 complete。M仍同时绑定退休边界与87 replacement技术边界。机器许可仍reviewed=false、manual_review=false、review_mode=preauthorized_machine_gate；总COMPLETE只表示后续技术链完成，保留original_old_batch_technical_complete=false和科学result_review=pending。
+
+replacement增量probe只覆盖实际计划并发：三模型UrbanEV各fold1四H q4；iTransformer与TimeMixer分别四个兼容EPF市场q4，剩余第五市场固定单路；TimeXer的PJM/BE/FR batch16三任务使用q4容量（实际宽度3），NP/DE batch4两任务直接q2。正式任务按相同兼容组合派发，batch16与batch4不合并。UrbanEV其他fold及EPF同构singleton继承仅限已登记计算身份；市场/label/fold/data来源继续逐任务绑定。
+
+真实计算身份由旧16收敛为7种、实际并发组合7个（不是沿用旧7组单路EPF方案）。为保留每个并发成员自己的串行数值与同任务耗时基线，需25个代表任务、50个名义worker，300 Adam/416 forward/300 backward；六个q4容量组最多各一次q2 resource复验，共最多73个worker、438/608/438。初始两任务q2组资源失败时仅可采用已测合法q1，不重复同一并发。旧16/7/240-392-240方案保留为历史；由于现在覆盖此前未测的跨市场并发，此待审上限高于旧方案，不能称为计算额度减少、挪用旧probe余额或自动启用。numeric/finite/identity/data/guard/未知失败立即停止，不作为resource降级。
+
+87 fresh replacement（1020 run-epochs、3687530 updates）与84 fresh M（840 run-epochs、294790 updates）全部科学profile、数据、seed、模型数学、time-mark、M监督、metric/test及数值阈值不变，不加入N/S；M21组probe及1512/2016/1512独立上限不变。已完成N/J等旧来源保留，论文是否使用N/S留给最终审计。本轮只做退休、隔离实现与无GPU验收，不启动v2/probe/formal，不stage/commit/push；新字节待ChatGPT审核，尚未合入生产canonical。

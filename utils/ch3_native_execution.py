@@ -29,6 +29,13 @@ def roots(c,probe):
     return ctx['probe_root'] if probe else ctx['control']
 
 
+def confirmation_endpoint(c,s):
+    """Only this exact replacement probe keeps the already approved 6/10/6 path."""
+    if 'native_replacement' not in c or s.get('purpose')!='ch3_probe' or s.get('successor_scope')!=scope.context(c)['probe_scope']:return False
+    t=task_by_id(c,s['task'])
+    return t['model']=='TimeMixer' and t['dataset']=='UrbanEV'
+
+
 def group_for(c,run):
     for g in scope.probe_groups(c):
         if run in g['representatives']:return g
@@ -63,6 +70,10 @@ def authorization_reasons(c,a,probe=False,worker=False):
 def metadata_files(c,a):
     from utils.ch3_native_chain import PREPARATION
     result={r['path']:r['sha256'] for r in PREPARATION.values()}
+    from utils.ch3_ms_retirement import RECEIPT
+    retired=source.bound(RECEIPT)
+    for ref in (RECEIPT,retired['run_inventory'],retired['production']['config']):
+        result[ref['path']]=ref['sha256']
     for key in ('old_boundary','replacement_boundary','resource_report'):
         if a.get(key):result.update({a[key]['path']:a[key]['sha256']})
     if a.get('resource_report'):
@@ -119,9 +130,9 @@ def validate_wave(c,configs,out):
     if any(s['approval']!=configs[0]['approval'] or s['successor_scope']!=configs[0]['successor_scope'] for s in configs) or len(set(ids))!=len(ids):raise ValueError('mixed successor scopes/permits')
     if probe:
         g=group_for(c,ids[0]);phase=configs[0]['successor_phase'];reps=g['representatives']
-        allowed=[[r] for r in reps] if phase=='serial' else wave_ids(reps,int(phase[1:])) if phase in ('q4','q2') and g['planned_q']>1 else []
+        allowed=[[r] for r in reps] if phase=='serial' else wave_ids(reps,int(phase[1:])) if phase in ('q4','q2') and int(phase[1:]) in scope.attempt_widths(g) else []
     else:
-        t=task_by_id(c,ids[0]);g=next(g for g in c['groups'] if g['id']==t['group']);report=source.bound(configs[0]['approval']['resource_report']);q=decision_for(c,report,t)['concurrency'];allowed=wave_ids(g['task_ids'],q)
+        t=task_by_id(c,ids[0]);report=source.bound(configs[0]['approval']['resource_report']);allowed=scope.formal_waves(c,report,t['model'])
     if ids not in allowed or not Path(out).resolve().is_relative_to(roots(c,probe)):raise ValueError('successor fixed wave scope')
     for s in configs:exact_path(c,task_by_id(c,s['task']),probe,s.get('successor_phase'),s['output'])
     return roots(c,probe)/'STOP'
@@ -191,7 +202,7 @@ def run_probe(c,a):
                 traces[r]=tr
             q=1;attempts=[];parallel=[];comparisons=[]
             if g['planned_q']>1:
-                for q in (4,2):
+                for q in scope.attempt_widths(g):
                     parallel=[];comparisons=[];failed=False
                     for n,ids in enumerate(wave_ids(reps,q)):
                         v=wave(g,'q'+str(q),ids,n);parallel.append(v)
@@ -226,7 +237,9 @@ def validate_probe_completion(c,r):
     for g in groups:
         d=r['decisions'][g['id']];reps=g['representatives'];q=d['concurrency'];attempts=d['attempts']
         if d['status']!='Passed' or type(q)is not int or q not in (1,2,4) or d['coverage']!=g.get('coverage'):raise ValueError('probe final q/coverage')
-        if [x['q'] for x in attempts]!=([] if g['planned_q']==1 else [4] if q==4 else [4,2]):raise ValueError('resource fallback order/history')
+        widths=list(scope.attempt_widths(g))
+        expected_widths=widths[:widths.index(q)+1] if q in widths else widths
+        if q>g['planned_q'] or [x['q'] for x in attempts]!=expected_widths:raise ValueError('resource fallback order/history')
         for n,run in enumerate(reps):expected[g['id']+'/serial/'+str(n)]=[run]
         for attempt in attempts:
             waves=attempt['waves'];width=attempt['q'];failed=not wave_passed(waves[-1]) if waves else None
@@ -351,11 +364,7 @@ def technical_group(c,model,a):
         if test.get('calls')!=1 or test.get('selected')!='best.pt' or test.get('epoch')!=best.epoch or test.get('sha256')!=source.sha(out/'best.pt'):raise ValueError('validation-selected one final best test binding')
         workers[t['id']]=str(runtime['pid']);totals['epochs']+=len(history)
         for k in counts:totals[k]+=counts[k]
-    report=source.bound(a['resource_report']);waves=[]
-    for g in [g for g in c['groups'] if g['model']==model]:
-        q=decision_for(c,report,task_by_id(c,g['task_ids'][0]))['concurrency']
-        # EPF never batches different identities/domains, regardless shared proof.
-        waves+=wave_ids(g['task_ids'],q)
+    report=source.bound(a['resource_report']);waves=scope.formal_waves(c,report,model)
     for n,ids in enumerate(waves):
         d=root/('wave-'+str(n));pr=load(d/'process.json')
         if not wave_passed(pr) or not pr['exit_transitions_resolved'] or set(pr['process_peaks'])!={workers[r] for r in ids}:raise ValueError('formal wave exit/ownership/resource')
@@ -379,13 +388,14 @@ def run_group(c,a,model):
         root.mkdir(parents=True,exist_ok=False);dump(root/'controller.json',dict(**identity(os.getpid()),commit=a['commit'],protocol_sha=digest(c),model=model))
         completed=[];n=0;report=source.bound(a['resource_report'])
         try:
-            for g in [g for g in c['groups'] if g['model']==model]:
-                for ids in wave_ids(g['task_ids'],decision_for(c,report,task_by_id(c,g['task_ids'][0]))['concurrency']):
-                    if (ctx['control']/'STOP').exists():raise InterruptedError('successor formal STOP')
-                    if authorization_reasons(c,a):raise ValueError('dynamic formal binding changed')
-                    configs=[make_config(c,'ch3_formal',scope.result_path(c,task_by_id(c,r)),task=r,approval=a) for r in ids]
-                    measured=run_configs(configs,root/('wave-'+str(n)),monitor=True)
-                    if not wave_passed(measured):raise RuntimeError('formal technical wave failure; stop remaining')
-                    completed+=ids;dump(root/'progress.json',dict(wave=n,completed=completed));n+=1
-            dump(root/'complete.json',dict(task_ids=completed,commit=a['commit'],protocol_sha=digest(c),result_review='pending'))
+            for ids in scope.formal_waves(c,report,model):
+                if (ctx['control']/'STOP').exists():raise InterruptedError('successor formal STOP')
+                if authorization_reasons(c,a):raise ValueError('dynamic formal binding changed')
+                configs=[make_config(c,'ch3_formal',scope.result_path(c,task_by_id(c,r)),task=r,approval=a) for r in ids]
+                measured=run_configs(configs,root/('wave-'+str(n)),monitor=True)
+                if not wave_passed(measured):raise RuntimeError('formal technical wave failure; stop remaining')
+                completed+=ids;dump(root/'progress.json',dict(wave=n,completed=completed));n+=1
+            expected=[t['id'] for t in c['tasks'] if t['model']==model]
+            if len(completed)!=len(expected) or set(completed)!=set(expected):raise ValueError('formal exact dispatched set')
+            dump(root/'complete.json',dict(task_ids=expected,commit=a['commit'],protocol_sha=digest(c),result_review='pending'))
         except BaseException as exc:dump(root/'failure.json',dict(error=repr(exc),completed=completed,automatic_retry=False));raise
