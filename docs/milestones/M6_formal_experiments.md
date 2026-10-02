@@ -292,3 +292,19 @@ v3 全部 18 个 replacement model/domain（iTransformer、TimeMixer、TimeXer �
 任何 state/loss/normalized metric 超差、finite、身份、数据、guard、业务或未知失败立即停止，不能 resource fallback 或运行时改阈值。仅明确 resource failure 允许 q4→一次 q2→合法已测 serial q1；TimeXer planned q2 资源失败只能采用合法 serial q1。成功链仍为精确用户 N/S retirement boundary → 七组 replacement probe/落盘自动 audit →87 replacement → replacement boundary →21-group M probe/落盘自动 audit →84 M →COMPLETE，无中途人工许可。机器许可 reviewed=false/manual_review=false，COMPLETE 仅技术完成，result_review=pending。
 
 87/1020/3687530 与84/840/294790科学任务、训练参数、seed、数据/time-mark/M监督/test合同全部不变。M 的21项原数值政策及1512/2016/1512预算保持原字节，不将 replacement 阈值扩到 M。此轮仅 W 实现与无模型验收，模型构造/forward/backward/Adam/GPU均0；不 commit/push/start。新字节待 ChatGPT 实际审核及精确 closure，生产 R 未修改。
+
+### 用户最新决定：replacement v4 恢复既有 full-state 准入尺度（2026-10-02，隔离工作区待审）
+
+v3 的 state_atol=1e-5 是用户临时统一窄阈值。v3 已通过 iTransformer-UrbanEV-native 和 iTransformer-EPF-combination-0 q4，随后在 TimeMixer-UrbanEV-native 的 H12 代表失败：step5 normalize_layers.0.affine_bias 差 1.0162340231545386e-5，step6/overall state_max_abs=2.0210838556522503e-5。六步 training loss 逐项相同，第2步原 validation 完全相同；第6步 endpoint evaluation 有微小差异，MSE/normalized SSE 分别 1.5663930819087568e-8 / 1.5663930825898752e-8，MAE/normalized SAE 分别 1.1427270241171072e-9 / 1.142727085417765e-9，均低于既定 metric_atol=1e-6。finite、初始化/RNG/batch exact 与资源检查通过；原失败项仍仅是浮点状态超过 v3 的 1e-5，不能将 failure 改为 Passed。
+
+用户随后明确要求“按之前实验阈值设置”。历史已审核 reviewed-resource-report 及原 TimeMixer/UrbanEV 确认计划证明此前项目正式使用 state_atol=1e-4、loss_atol=metric_atol=1e-6、rtol=0；原 full-state 比较器强制 finite，拒绝非有限状态。旧计划未显式单列 equal_nan/kind/loss_rtol，原字节保持；v4 将 full_float_state、equal_nan=false、loss_rtol=0 明确登记。此决定恢复项目已使用的 full-state 准入尺度，不是继续试探新阈值，不是作者论文标准，不根据正式效果择优。
+
+新 m6-native-tmark-chain-v4 将全部18个 replacement scope（iTransformer、TimeMixer、TimeXer × UrbanEV/PJM/NP/BE/FR/DE）统一为 native-tmark-replacement-fullfloat-atol1e-4-v4：state_atol=1e-4、loss_atol=metric_atol=1e-6、loss_rtol=rtol=0、equal_nan=false。全量浮点 parameters/buffers、gradients、Adam exp_avg/exp_avg_sq 使用绝对界；initialization、RNG、batch/order、optimizer step、非浮点/非张量状态、param groups、shape/dtype、task/profile/source/data 仍 exact，finite 必须 Passed。不引入 loss_rtol=1e-5 或 ModernTCN-ECL 的1e-3特殊规则，不修改M的21项数值政策。
+
+v1/v2/v3 package、failure、permit、trajectory/full-state、budget、controller/progress/launcher 永久保留，只作历史依据，不能授权v4或退款。v2实耗192/272/192，v3实耗144/208/144。v4独立package/session/result根为 native-time-mark-chain-v4、ch3-native-time-mark-chain-v4、revisions/native-time-mark-v4、m-tasks/m-baselines-native-time-mark-v4；科学协议仍 native_time_mark_v1。v4 debit=0，nominal300/416/300、caps438/608/438；历史实际加v4 worst cap=774/1088/774，仅为成本账，不是v4 cap。
+
+v4从头重新生成全部七组独立 serial reference，再运行原实际并发组合：三模型UrbanEV各四代表q4；iTransformer/TimeMixer EPF各四代表q4；TimeXer batch16三代表、q4容量实际宽度3；TimeXer batch4两代表q2。保持7计算身份、25代表、50名义/73最大worker、原formal waves。只有明确resource failure允许q4→一次q2→合法已测serial q1；planned q2仅可退合法serial q1。numeric/finite/identity/RNG/batch/data/source/guard/业务或未知失败立即停止，不能降级掩盖、改阈值或自动retry。
+
+87 replacement（1020 run-epochs / 3,687,530 updates）与84 M（840 run-epochs / 294,790 updates）、seed2024、科学profile、结构、LR/batch、数据/time-mark、监督及test合同全部不变。configs/ch3_formal_profiles.json保持原字节，M protocol仍831163583475c86604286db561cc309b10b31a6d4df10f3b57c0a52f6c74b3fa，M 21-group probe caps1512/2016/1512不变。
+
+正常成功链仍为精确N/S retirement boundary→v4七组probe/落盘机器audit→87 replacement/boundary→原21组M probe/机器audit→84 M→COMPLETE，无中途人工许可；机器准入manual_review=false/reviewed=false，COMPLETE仅技术完成、result_review=pending。本轮只在W实现与无GPU验收，不stage/commit/push/start，不修改生产R；新字节待ChatGPT实际审核及精确closure，不能宣称当前Ready。

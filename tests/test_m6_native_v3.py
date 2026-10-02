@@ -1,4 +1,4 @@
-"""Replacement v3 only: synthetic saved states, zero models/updates/GPU."""
+"""V3 regression methods retained for the active V4 scope; zero models/updates/GPU."""
 import copy
 import hashlib
 import json
@@ -37,7 +37,7 @@ class ReplacementV3Tests(unittest.TestCase):
             with self.subTest(scope=key):
                 self.assertEqual(row['rule'], self.rule)
                 self.assertEqual(row['policy_sha256'], digest(self.rule))
-                self.assertEqual(row['rule']['state_atol'], 1e-5)
+                self.assertEqual(row['rule']['state_atol'], 1e-4)
                 self.assertEqual(row['rule']['loss_atol'], 1e-6)
                 self.assertEqual(row['rule']['metric_atol'], 1e-6)
                 self.assertEqual(row['rule']['rtol'], 0.0)
@@ -46,7 +46,7 @@ class ReplacementV3Tests(unittest.TestCase):
 
     def test_missing_None_or_wrong_rule_refused(self):
         key = 'TimeMixer-NP'
-        for bad in ('missing', None, dict(self.rule, state_atol=1e-4)):
+        for bad in ('missing', None, dict(self.rule, state_atol=1e-5)):
             with self.subTest(rule=bad):
                 c = copy.deepcopy(self.c)
                 if bad == 'missing': del c['native_replacement']['numeric_policies'][key]
@@ -78,14 +78,14 @@ class ReplacementV3Tests(unittest.TestCase):
         self.assertEqual([g['planned_q'] for g in groups], [4, 4, 4, 4, 4, 4, 2])
         self.assertEqual([len(g['representatives']) for g in groups], [4, 4, 4, 4, 4, 3, 2])
         prior = source.bound(chain.PREPARATION['prior_execution'])
-        self.assertEqual(prior['actual'], dict(adam=192, forward=272, backward=192))
+        self.assertEqual(prior['executions']['v2']['actual'], dict(adam=192, forward=272, backward=192))
         self.assertIs(prior['budget_refund'], False)
-        self.assertEqual(prior['new_v3_starting_debit'], dict(adam=0, forward=0, backward=0))
-        self.assertEqual(prior['historical_actual_plus_v3_max'], dict(adam=630, forward=880, backward=630))
+        self.assertEqual(prior['new_v4_starting_debit'], dict(adam=0, forward=0, backward=0))
+        self.assertEqual(prior['historical_actual_plus_v4_max'], dict(adam=774, forward=1088, backward=774))
 
     def test_v2_permit_completion_paths_cannot_authorize_v3(self):
-        self.assertEqual(scope.ID, 'm6-native-tmark-chain-v3')
-        self.assertEqual(chain.SESSION, 'ch3-native-time-mark-chain-v3')
+        self.assertEqual(scope.ID, 'm6-native-tmark-chain-v4')
+        self.assertEqual(chain.SESSION, 'ch3-native-time-mark-chain-v4')
         old = source.PACKAGE / 'native-time-mark-chain-v2'
         a = json.loads((old / 'tmark-probe-permit.json').read_text())
         with patch.object(chain, 'binding', return_value={}):
@@ -126,9 +126,9 @@ class ReplacementV3Tests(unittest.TestCase):
     def test_each_floating_category_at_limit_and_over_limit(self):
         for key in ('model.parameter', 'model.buffer', 'gradient.parameter', 'optimizer.exp_avg', 'optimizer.exp_avg_sq'):
             with self.subTest(tensor=key):
-                x, y = self.traces(value=1e-5, changed=key)
+                x, y = self.traces(value=1e-4, changed=key)
                 self.assertTrue(self.compare(x, y)['passed'])
-                x, y = self.traces(value=1.0001e-5, changed=key)
+                x, y = self.traces(value=1.0001e-4, changed=key)
                 self.assertFalse(self.compare(x, y)['passed'])
 
     def test_loss_and_normalized_metric_over_limit(self):
@@ -180,9 +180,9 @@ class ReplacementV3Tests(unittest.TestCase):
         fixture.c = self.c; fixture.spec = dict(task_ids=[t['id']])
         t, x, y, detail = fixture.pair()
         for trace in (x, y): trace['urban_confirmation']['policy_sha'] = digest(self.rule)
-        detail['points'][1]['tensors'][0].update(max_abs_diff=1e-5, byte_equal=False)
+        detail['points'][1]['tensors'][0].update(max_abs_diff=1e-4, byte_equal=False)
         self.assertTrue(urban.compare_measured(self.c, t, x, y, detail)['passed'])
-        detail['points'][1]['tensors'][0]['max_abs_diff'] = 1.0001e-5
+        detail['points'][1]['tensors'][0]['max_abs_diff'] = 1.0001e-4
         self.assertFalse(urban.compare_measured(self.c, t, x, y, detail)['passed'])
         detail['points'][1]['tensors'][0]['max_abs_diff'] = 0.0
         y['urban_confirmation']['evaluations']['6']['metrics']['mse'] += 2e-6
@@ -217,7 +217,7 @@ class ReplacementFallbackV3Tests(unittest.TestCase):
         with stack:
             r = execution.run_probe(fixture.c, fixture.a)
             self.assertEqual(attempts, ['serial'] * 4 + ['q4'])
-            self.assertEqual(r['scope'], 'm6-native-tmark-chain-v3-tmark-probe')
+            self.assertEqual(r['scope'], 'm6-native-tmark-chain-v4-tmark-probe')
             self.assertEqual(r['budget']['actual'], dict(adam=48, forward=64, backward=48))
             self.assertIs(r['budget']['refund'], False)
 

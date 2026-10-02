@@ -9596,9 +9596,9 @@
     "numeric_policies": {
       "iTransformer-UrbanEV": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9610,15 +9610,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "iTransformer-PJM": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9630,15 +9630,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "iTransformer-NP": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9650,15 +9650,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "iTransformer-BE": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9670,15 +9670,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "iTransformer-FR": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9690,15 +9690,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "iTransformer-DE": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9710,15 +9710,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeMixer-UrbanEV": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9730,15 +9730,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeMixer-PJM": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9750,15 +9750,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeMixer-NP": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9770,15 +9770,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeMixer-BE": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9790,15 +9790,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeMixer-FR": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9810,15 +9810,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeMixer-DE": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9830,15 +9830,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeXer-UrbanEV": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9850,15 +9850,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeXer-PJM": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9870,15 +9870,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeXer-NP": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9890,15 +9890,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeXer-BE": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9910,15 +9910,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeXer-FR": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9930,15 +9930,15 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       },
       "TimeXer-DE": {
         "rule": {
-          "id": "native-tmark-replacement-fullfloat-atol1e-5-v3",
+          "id": "native-tmark-replacement-fullfloat-atol1e-4-v4",
           "kind": "full_float_state",
-          "state_atol": 1e-05,
+          "state_atol": 0.0001,
           "loss_atol": 1e-06,
           "metric_atol": 1e-06,
           "loss_rtol": 0.0,
@@ -9950,9 +9950,9 @@
           "initialization_rng_batches": "exact",
           "capture": "preallocated raw sidecar v1"
         },
-        "basis": "user approved v3 replacement-only bounded rule from retained v2 concurrent floating-state observations; not author paper standard; M policies unchanged",
+        "basis": "User restored historical reviewed project TimeMixer/UrbanEV full-state scale; replacement-only v4; not author paper standard; M policies unchanged",
         "status": "Prepared",
-        "policy_sha256": "0db6d29cc5f278839796e9c73656d8d1dce390cf72a7383cf4db6e5c5665bec4"
+        "policy_sha256": "476064ecd0ec50fea273180989d0d23a02291444421bfb8d833e7df8de5ee19b"
       }
     }
   }

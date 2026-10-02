@@ -54,7 +54,7 @@ def code_binding():
         files += ['utils/ch3_time_marks.py','utils/ch3_native_tasks.py','utils/ch3_native_execution.py',
                   'utils/ch3_native_chain.py','m6_native_chain_entry.py','scripts/ch3/start_native_time_mark_chain.sh',
                   'configs/ch3_native_time_mark_profiles.json','tests/test_m6_native_time_marks.py','tests/test_m6_native_chain.py',
-                  'utils/ch3_ms_retirement.py','tests/test_m6_native_retirement.py','tests/test_m6_native_v3.py']
+                  'utils/ch3_ms_retirement.py','tests/test_m6_native_retirement.py','tests/test_m6_native_v3.py','tests/test_m6_native_v4.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 

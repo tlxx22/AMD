@@ -85,8 +85,8 @@ class RetirementTests(unittest.TestCase):
             with self.assertRaises(ValueError):chain.check_boundary(self.cs['m'],source.ref(p))
 
     def test_v3_namespace_ignores_v1_v2_without_overwriting(self):
-        self.assertEqual(scope.ID,'m6-native-tmark-chain-v3');self.assertNotIn('chain-v1',str(chain.ROOT_CONTROL));self.assertNotIn('chain-v2',str(chain.ROOT_CONTROL))
-        self.assertNotIn('chain-v1',str(chain.LOG));self.assertNotIn('chain-v2',str(chain.LOG));self.assertEqual(chain.SESSION,'ch3-native-time-mark-chain-v3')
+        self.assertEqual(scope.ID,'m6-native-tmark-chain-v4');self.assertNotIn('chain-v1',str(chain.ROOT_CONTROL));self.assertNotIn('chain-v2',str(chain.ROOT_CONTROL))
+        self.assertNotIn('chain-v1',str(chain.LOG));self.assertNotIn('chain-v2',str(chain.LOG));self.assertEqual(chain.SESSION,'ch3-native-time-mark-chain-v4')
         with patch.object(chain,'configs',return_value=self.cs),patch.object(chain,'binding',return_value={}),patch.object(chain,'retirement_boundary',return_value={}),patch.object(chain.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
             self.assertEqual(chain.preflight(),[])
         for c in self.cs.values():

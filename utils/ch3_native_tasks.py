@@ -8,19 +8,19 @@ from utils.ch3_contract import ROOT, digest, profile, step_arithmetic, generate_
 from utils import ch3_m_tasks as m
 from utils.ch3_time_marks import MODE, MODELS, policy
 
-BASE = 'ed821978b2b616311490100f98d3f5a1d026c19e'
-ID = 'm6-native-tmark-chain-v3'
-PACKAGE = m.PACKAGE / 'native-time-mark-chain-v3'
+BASE = '42cee1d453aa56e5dd6fb725817cc8d0b97077a6'
+ID = 'm6-native-tmark-chain-v4'
+PACKAGE = m.PACKAGE / 'native-time-mark-chain-v4'
 EVIDENCE = ROOT.parent / 'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'
-REPLACEMENT = EVIDENCE / 'revisions/native-time-mark-v3'
-M_RESULT = EVIDENCE / 'm-tasks/m-baselines-native-time-mark-v3'
+REPLACEMENT = EVIDENCE / 'revisions/native-time-mark-v4'
+M_RESULT = EVIDENCE / 'm-tasks/m-baselines-native-time-mark-v4'
 PROFILE_FILE = ROOT / 'configs/ch3_native_time_mark_profiles.json'
 DOMAINS = ('UrbanEV', 'PJM', 'NP', 'BE', 'FR', 'DE')
 
 # Replacement only. M's independently frozen numerical policies are untouched.
 REPLACEMENT_NUMERIC_POLICY = dict(
-    id='native-tmark-replacement-fullfloat-atol1e-5-v3', kind='full_float_state',
-    state_atol=1e-5, loss_atol=1e-6, metric_atol=1e-6,
+    id='native-tmark-replacement-fullfloat-atol1e-4-v4', kind='full_float_state',
+    state_atol=1e-4, loss_atol=1e-6, metric_atol=1e-6,
     loss_rtol=0.0, rtol=0.0, equal_nan=False,
     floating_state='all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq',
     exact_state='initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data',
@@ -70,7 +70,7 @@ def numeric_policy(c, t):
         raise ValueError('foreign native numerical scope')
     rule = c['native_replacement']['numeric_policies'][t['model'] + '-' + t['dataset']]['rule']
     if rule != replacement_numeric_rule():
-        raise ValueError('exact preregistered replacement v3 numerical policy')
+        raise ValueError('exact preregistered replacement v4 numerical policy')
     return rule
 
 
@@ -80,7 +80,7 @@ def validate(c):
     if set(policies) != {model + '-' + domain for model in MODELS for domain in DOMAINS}:
         raise ValueError('exact 18 replacement numerical scopes')
     if any(row.get('rule') != replacement_numeric_rule() for row in policies.values()):
-        raise ValueError('all replacement scopes require the fixed v3 bounded rule')
+        raise ValueError('all replacement scopes require the fixed v4 bounded rule')
     if c['tasks'] != tasks() or c['groups'] != generate_groups(tasks()):
         raise ValueError('replacement exact tasks/groups')
     if c['native_replacement']['parent_protocol_sha'] != digest(old):
