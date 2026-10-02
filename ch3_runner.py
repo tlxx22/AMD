@@ -58,6 +58,11 @@ def code_binding():
     if (ROOT/'utils/ch3_native_recovery.py').exists():
         files += ['utils/ch3_native_recovery.py','utils/ch3_native_recovery_records.py','utils/ch3_native_recovery_execution.py',
                   'm6_native_recovery_entry.py','scripts/ch3/start_native_time_mark_recovery.sh','tests/test_m6_native_recovery.py']
+    if (ROOT/'utils/ch3_baseline_unified_tasks.py').exists():
+        files += ['utils/ch3_onecycle.py','utils/ch3_baseline_unified_tasks.py','utils/ch3_baseline_unified_execution.py',
+                  'utils/ch3_baseline_unified_chain.py','m6_baseline_unified_entry.py','scripts/ch3/start_baseline_unified.sh',
+                  'configs/ch3_baseline_ms_u96_oc01.json','configs/ch3_baseline_m_u96_oc01.json',
+                  'tests/test_ch3_onecycle.py','tests/test_m6_baseline_unified.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -208,7 +213,7 @@ def preflight(c,model,approval=None,probe=False):
 
 
 class GPULock:
-    def __init__(self,c):self.path=Path(c['m_experiment']['project_lock']) if 'm_experiment'in c else Path(c['execution']['evidence'])/'project-gpu0.lock';self.handle=None
+    def __init__(self,c):self.path=Path(c['baseline_unified']['project_lock']) if 'baseline_unified'in c else Path(c['m_experiment']['project_lock']) if 'm_experiment'in c else Path(c['execution']['evidence'])/'project-gpu0.lock';self.handle=None
     def __enter__(self):
         self.handle=self.path.open('a+')
         try:fcntl.flock(self.handle,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -302,6 +307,9 @@ class FullNumericStateWriter:
             row={}
             for k,v in group.items():row[k]=[self.names[id(x)] for x in v] if k=='params' else _numeric_json_safe(v)
             rows.append(row)
+        if getattr(self.opt,'_ch3_onecycle',None):
+            from utils.ch3_onecycle import optimizer_groups_static
+            rows=optimizer_groups_static(rows)
         return rows
     def _build(self):
         import torch
@@ -399,21 +407,26 @@ def cpu_tree(value):
     return value
 
 
-def save_state(path,model,opt,identity,best,epoch,steps,generator):
+def save_state(path,model,opt,identity,best,epoch,steps,generator,scheduler=None):
     import torch,random,numpy as np
     value=dict(schema='ch3-state-v1',identity=identity,model=cpu_tree(model.state_dict()),
                optimizer=cpu_tree(opt.state_dict()),best=vars(best),epoch=epoch,steps=steps,
                rng=dict(python=random.getstate(),numpy=np.random.get_state(),torch=torch.get_rng_state(),
                         cuda=torch.cuda.get_rng_state_all() if torch.cuda.is_initialized() else [],
                         generator=generator.get_state()))
+    if scheduler is not None:
+        if scheduler.updates!=steps:raise ValueError('checkpoint scheduler step accounting')
+        value.update(schema='ch3-state-v2-onecycle',scheduler=scheduler.state_dict())
     tmp=Path(str(path)+'.tmp');torch.save(value,tmp);os.replace(tmp,path)
 
 
-def restore_state(path,model,opt,identity,generator):
+def restore_state(path,model,opt,identity,generator,scheduler=None):
     import torch,random,numpy as np
     state=torch.load(path,map_location='cpu')
-    if state.get('schema')!='ch3-state-v1' or state.get('identity')!=identity:raise ValueError('resume identity mismatch; no cross-protocol recovery')
+    schema='ch3-state-v2-onecycle' if scheduler is not None else 'ch3-state-v1'
+    if state.get('schema')!=schema or state.get('identity')!=identity:raise ValueError('resume identity mismatch; no cross-protocol recovery')
     model.load_state_dict(state['model'],strict=True);opt.load_state_dict(state['optimizer'])
+    if scheduler is not None:scheduler.load_state_dict(state['scheduler'],state['steps'])
     random.setstate(state['rng']['python']);np.random.set_state(state['rng']['numpy']);torch.set_rng_state(state['rng']['torch'])
     if state['rng']['cuda']:torch.cuda.set_rng_state_all(state['rng']['cuda'])
     generator.set_state(state['rng']['generator'])
@@ -427,6 +440,9 @@ def formal_identity(c, task, metadata, approval):
     result=dict(purpose='ch3_formal',run_id=task['id'],input_variant=task['input_variant'],
                 protocol_sha=digest(c),profile_sha=digest(p),data_sha=digest(metadata),
                 source=code_binding(),commit=approval['commit'],**(__import__('utils.ch3_revision',fromlist=['identity_fields']).identity_fields(c,task,approval)))
+    if 'baseline_unified' in c:
+        result.update(scientific_protocol=c['baseline_unified']['id'],task=task['task'],metric_scope=task['metric_scope'],
+                      scheduler_sha=digest(p['training']['scheduler']),parent_profile=c['baseline_unified']['parent_refs'][task['id']],from_scratch=True)
     if c.get('native_time_mark'):
         result.update(time_mark=p.get('time_mark'),time_mark_protocol=c['native_time_mark']['id'])
         if p.get('time_mark'):
@@ -718,6 +734,8 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     import torch
     m_clock=time.monotonic()if task.get('task')=='M' or c.get('native_time_mark') else None
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
+    from utils.ch3_onecycle import build
+    scheduler=build(opt,p);scheduler_trace=[]
     m_timing=dict(initialization_seconds=time.monotonic()-m_clock,update_seconds=[],validation_seconds=None,includes_synthetic_batch_and_digest=True)if m_clock is not None else None
     from utils.ch3_contract import numeric_probe_policy
     numeric_rule=numeric_probe_policy(c,task);numeric_trace=[None]*6 if numeric_rule and numeric_rule['kind']=='named_tensor' else None
@@ -730,7 +748,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     state_digest=ReusableTensorDigest(model.state_dict());full_writer=FullNumericStateWriter(model,opt,out,state_digest,numeric_rule) if numeric_rule and numeric_rule['kind']=='full_float_state' else None
     full_trace=[None]*6 if full_writer else None
     M_full_writer=None;M_full_trace=[]
-    if (p.get('task')=='M' or p.get('time_mark')) and full_writer is None:
+    if (p.get('task')=='M' or p.get('time_mark') or scheduler is not None) and full_writer is None:
         M_full_writer=FullNumericStateWriter(model,opt,out,state_digest,dict(id=task['group']+'-exact-full-state'))
     initial=state_digest(model.state_dict());initial_rng=rng();capture('initial')
     diagnostic=None
@@ -757,6 +775,8 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         if m_timing is not None:m_update_start=time.monotonic()
         from utils.ch3_time_marks import batch_parts
         current_batch=batch(b);x,y,mark=batch_parts(current_batch);batch_ids[step]=tensor_digest(current_batch);loss=update(model,opt,x,y,p,device,mark)
+        if scheduler is not None:
+            scheduler.after_successful_update();scheduler_trace.append(scheduler.state_dict())
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         if m_timing is not None:m_timing['update_seconds'].append(time.monotonic()-m_update_start)
         before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
@@ -791,10 +811,11 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         result['endpoint_resources']=dict(allocated=torch.cuda.memory_allocated()if str(device).startswith('cuda')else 0,rss=rss())
         result['allocated']=torch.cuda.max_memory_allocated()if str(device).startswith('cuda')else 0
         result['reserved']=torch.cuda.max_memory_reserved()if str(device).startswith('cuda')else 0
-    if p.get('task')=='M' or p.get('time_mark'):
+    if p.get('task')=='M' or p.get('time_mark') or scheduler is not None:
         result['M_full_state_trace']=full_trace if full_trace else M_full_trace
         result['M_timing']=m_timing
         result['time_mark']=p.get('time_mark')
+    if scheduler is not None:result['scheduler_trace']=scheduler_trace
     if numeric_rule:
         result['numeric_policy_sha']=digest(numeric_rule)
         if numeric_trace is not None:result['numeric_trace']=numeric_trace
@@ -816,6 +837,8 @@ def formal_worker(c,task,out,approval,resume=False):
     if p.get('task')=='M':identity.update(task='M',metric_scope='all_channels',parent_MS_profile=p['parent_MS_profile'],from_scratch=True)
     if (out/'result.json').exists():raise FileExistsError('completed run cannot restart')
     p,model,opt,generator=init_training(c,task,'cuda:0');best=BestState(p['training']['patience']);epoch=steps=0
+    from utils.ch3_onecycle import build
+    scheduler=build(opt,p)
     if resume and approval.get('recovery_scope'):
         from utils.ch3_native_recovery_execution import resume_before_training
         best,epoch,steps=resume_before_training(c,task,out,approval,model,opt,generator)
@@ -824,7 +847,7 @@ def formal_worker(c,task,out,approval,resume=False):
     elif resume:
         audit_resume(out,approval,task['id'])
         if json.loads((out/'manifest.json').read_text())['identity']!=identity:raise ValueError('manifest identity mismatch before checkpoint load')
-        best,epoch,steps=restore_state(out/'last.pt',model,opt,identity,generator)
+        best,epoch,steps=restore_state(out/'last.pt',model,opt,identity,generator,scheduler)
     elif (out/'last.pt').exists():raise FileExistsError('staging retained; audit then explicit resume required')
     if not resume:dump(out/'manifest.json',dict(identity=identity,task=task,profile=p,metadata=metadata))
     train=batches(datasets['train'],p,'train',generator);val=batches(datasets['validation'],p,'validation')
@@ -833,9 +856,10 @@ def formal_worker(c,task,out,approval,resume=False):
         from utils.ch3_time_marks import batch_parts
         for batch in train:
             x,y,mark=batch_parts(batch);update(model,opt,x,y,p,'cuda:0',mark);steps+=1
+            if scheduler is not None:scheduler.after_successful_update()
         metrics=evaluate(model,val,p,'cuda:0')
-        if best.update(metrics['mse'],epoch_index):save_state(out/'best.pt',model,opt,identity,best,epoch_index,steps,generator)
-        save_state(out/'last.pt',model,opt,identity,best,epoch_index,steps,generator)
+        if best.update(metrics['mse'],epoch_index):save_state(out/'best.pt',model,opt,identity,best,epoch_index,steps,generator,scheduler)
+        save_state(out/'last.pt',model,opt,identity,best,epoch_index,steps,generator,scheduler)
         with (out/'history.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps(dict(epoch=epoch_index,steps=steps,validation=metrics,best_epoch=best.epoch))+'\n')
     del train,val,datasets,opt
     saved=torch.load(out/'best.pt',map_location='cpu')
@@ -850,10 +874,13 @@ def formal_worker(c,task,out,approval,resume=False):
     result=evaluate(model,batches(datasets['test'],p,'test'),p,'cuda:0')
     result.update(id=task['id'],input_variant=task['input_variant'],purpose='ch3_formal',protocol_sha=digest(c),best_epoch=best.epoch,
                   seed=2024,std=None,metric_space='train-standardized',stability='Not evaluated')
-    if p.get('task')=='M' or p.get('time_mark'):
+    if p.get('task')=='M' or p.get('time_mark') or scheduler is not None:
         result.update(task=p.get('task','MS'),metric_scope='all_channels' if p.get('task')=='M' else 'target_only',profile_sha=digest(p),data_sha=digest(metadata),commit=approval['commit'],from_scratch=True,final_test=dict(calls=1,selected='best.pt',sha256=hashlib.sha256((out/'best.pt').read_bytes()).hexdigest(),epoch=best.epoch))
         if p.get('task')=='M':result['parent_MS_profile']=p['parent_MS_profile']
         if task.get('parent_run_id'):result.update(parent_run_id=task['parent_run_id'],revision='native-time-mark-v1',time_mark=p['time_mark'],parent_profile_sha=p['parent_profile_sha'])
+    if 'baseline_unified' in c:
+        result.update(scientific_protocol=c['baseline_unified']['id'],task=task['task'],metric_scope=task['metric_scope'],
+                      scheduler_sha=digest(p['training']['scheduler']),scheduler_updates=steps)
     if approval.get('recovery_scope'):
         result.update(**{k:approval[k] for k in ('science_baseline_commit','controller_execution_commit','worker_execution_commit','science_computation_fingerprint')},
                       recovery_scope=approval['recovery_scope'],from_scratch=not resume)

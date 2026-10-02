@@ -66,6 +66,9 @@ RSS_PROBE_POLICY = dict(id='rss-material-growth-platform-v1', short_window=4,
 
 
 def numeric_probe_policy(c, task):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import numeric_policy
+        return numeric_policy(c,task)
     if 'native_replacement' in c:
         from utils.ch3_native_tasks import numeric_policy
         return numeric_policy(c,task)
@@ -168,6 +171,9 @@ def read_profiles(path=PROFILE_FILE):
 
 
 def generate_tasks(c):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import expected_tasks
+        return expected_tasks(c['baseline_unified']['stage'])
     if 'native_replacement' in c:
         from utils.ch3_native_tasks import tasks
         return tasks()
@@ -217,6 +223,9 @@ def task_by_id(c, run_id):
 
 
 def profile(c, task):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import profile as unified_profile
+        return unified_profile(c,task)
     if 'native_replacement' in c:
         from utils.ch3_native_tasks import resolved
         return resolved(c,task)
@@ -248,6 +257,9 @@ def profile(c, task):
 
 
 def validate_manifest(c):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import validate
+        return validate(c)
     if 'native_replacement' in c:
         from utils.ch3_native_tasks import validate
         return validate(c)

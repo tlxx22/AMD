@@ -2861,3 +2861,21 @@ v4七组replacement probe已技术通过，formal已开始；现场发现formal�
 A只读继承、不train/test；B严格read-old/write-new，恢复model/optimizer/RNG/generator/BestState，从最后完整epoch+1继续，历史是不可变prefix与新suffix，旧best仍胜出时使用其精确字节来源；C必须精确0模型工作并保留旧准备材料，新路径fresh；D新路径fresh。若某任务无法确认正式test是否已经访问，或其执行身份无法确认，则该任务必须标记为E类；不得自动恢复，也不得再次执行正式test，必须停止该任务的自动恢复流程并返回后续明确处理。有效87格来源按inventory固定，不按效果选择；只在原wave内跳过A，不跨wave补位、不提高q。87成功closeout/seal只做一次，未成功seal的中断校验可在后续合法生命周期重做；进入M后只轻量消费sealed boundary。
 
 drain-stop持久写DRAIN_STOP，不signal当前wave；当前wave技术完成后停止下一wave/group，登记DRAINED、technical_failure=false、resume_eligible=true，恢复仍需inventory/预算/版本/来源/资源/STOP核验。emergency safe-stop保持owned PID/start_ticks清理。原87/1020/3687530科学合同与84/840/294790 M合同、21组M probe/caps1512/2016/1512、各数值政策完全不变。本轮只完成repair、受限CPU checkpoint审查和无模型fixture验收，没有重跑v4 probe、没有恢复训练、没有修改生产R或stage/commit/push；新字节尚待ChatGPT实际审核。
+
+### M6 最新用户协议修订：baseline-unified96-onecycle001-v1（隔离 W 待审候选）
+
+用户本轮明确取代此前 replacement/recovery 剩余执行安排：七个 baseline 按 AMD、DLinear、PatchTST、iTransformer、TimeMixer、ModernTCN、TimeXer 顺序，在新统一协议中全部 fresh 重训。MS 是 UrbanEV F4 六 fold×四 label horizon 加 PJM/NP/BE/FR/DE 各 H24，203 项；M 是 ETTh1/Weather/Exchange×H96/192/336/720，84 项，共287项。J 保持既有冻结身份及结果，不改结构/L/LR，不重训或重新 test；N/S 不加入，ECL 仍不进入 M。这里统一的是七 baseline 新训练协议，不能声称 J 与 baseline 使用完全相同超参数。
+
+UrbanEV 仍 T=12、pred_len=1、C=11、label H3/6/9/12，既有 F4 业务列/target/aux、split/scaler/metric/test-once 不变；其它 MS/M 全部 T=96。MS 中 iTransformer/TimeMixer/TimeXer 从已审核 native v4 profile 继承，其余四模型从生产552矩阵对应 F4/EPF profile 继承；M 从当前已审核 M profile 继承。结构、batch/eval_batch、epochs、dropout、seed、原生 historical time-mark/freq 和其它冻结参数不变。只有 T、training.lr 及 scheduler 变更，287份 old→new 全字段对照存于外置新包。
+
+统一 scheduler 取自锁定 TimeMixer 作者 commit e24610583b36fdd8c76cc17a8df4e65759a5f460 的 scripts/long_term_forecast/ETT_script/TimeMixer_ETTh1_unify.sh、run.py 和 exp/exp_long_term_forecasting.py；正式 PyTorch2.0.1 签名已读取。显式冻结 OneCycleLR(max_lr=0.01,pct_start=0.2,anneal_strategy=cos,cycle_momentum=true,base_momentum=0.85,max_momentum=0.95,div_factor=25.0,final_div_factor=10000.0,three_phase=false,last_epoch=-1,verbose=false,total_steps=None,epochs=该任务冻结上限,steps_per_epoch=该任务 train_batches)。Adam 的 beta2/eps/weight_decay 等父值保留，beta1 按标准 cycle_momentum 更新；不是 fixed LR0.01。UrbanEV/M 继承10epoch、EPF继承20epoch，不能把作者 ETTh1 的10epoch套到所有域。这是用户选择的统一公平/诊断协议，不是各 baseline 作者原始推荐设置。
+
+scheduler 仅在成功 Adam update 后 step 一次，validation/test 不 step。新 best/last 使用 ch3-state-v2-onecycle 并保存 scheduler config/state/count/LR/betas；resume严格校验身份并恢复，旧 ch3-state-v1 仍供原协议读取，禁止跨协议恢复。PyTorch2.0.1 state_dict 中的 anneal_func 绑定方法以冻结 cosine 身份处理，其余实际状态完整序列化，避免将带 optimizer 的 callable 写入 probe JSON。
+
+当前旧 recovery1 已使用自身 safe-stop 退休：停时 REMAINING_TMARK_FORMAL/iTransformer，16项有效完成、4项 fold5 partial（四H history到epoch2）、67未启动，原 supervisor/group/四 worker 与其监测子实例均退出。原因 user_authorized_protocol_supersession，不是科学/模型/效果失败。原 v4＋recovery formal实耗 Adam/backward/forward=573259/573261/641201，全部checkpoint/history/result/STOP/failure保留，不退款；旧8407 allowance不转给新实验。退休回执 baseline-unified-protocol-retirement.json SHA256=64869e3735c49334dfd2e127691c1c2c958670c0e3d5f3d3b59f5e696aa26604。旧完成/partial/checkpoint均不得进入新287格。
+
+新 scope m6-baseline-unified96-oc01-v1、新结果根 baseline-unified96-onecycle001-v1/{MS,M,probe,queue} 独立。单次用户启动正常链：协议 preflight→MS probe→MS AUTO_AUDIT→MS七模型串行正式→seal MS boundary→M probe→M AUTO_AUDIT→M七模型串行正式→COMPLETE。技术失败停止且保留证据，不自动重试/调参，不按中途效果取消模型。每组即时数值/资源 gate 保留，AUTO_AUDIT完整落盘审计一次；formal 每生命周期仅一次 probe manifest SHA scan，worker只消费紧凑许可/runtime refs，不重放 raw numeric。COMPLETE仅技术完成，result_review=pending。
+
+新预算为待审提案：MS203/2380 run-epochs/7974050 Adam、backward/9019739 forward；M84/840/300150 Adam、backward/359040 forward；合计287/3220/8274200 Adam、backward/9378779 forward。MS最小代表计划15组63代表（UrbanEV每模型fold1四H，EPF按真实兼容结构/batch分组，因各市场 scheduler 步数不同，各市场保留独立短轨迹）：名义126 worker、756/1024/756，cap187 worker、1122/1520/1122。M21组84代表：名义168 worker、1008/1344/1008，cap252 worker、1512/2016/1512（Adam/forward/backward）。数值政策逐scope继承，未扩大容差；额外核 scheduler state/LR/beta1/steps exact。仅资源失败允许登记的q4→一次q2→合法serial q1；原q2组仅可退合法q1。
+
+旧结果永久保留，新协议若最终用作论文 baseline，主结果整体采用新协议，禁止按 test 在 old/new 间逐格择优。J仍如实使用自身冻结协议。工期依据已绑定历史同模型/域 worker runtime、精确新窗口/batch/epoch 和固定 wave估算，非新协议实测；probe后须用初始化/稳定 update/validation 分项修正，不将六步包整体除6外推。本轮只实现、CPU/无负载验收、dry-run与模板preflight检查；未stage/commit/push、未GPU/probe/formal/start，生产 R 原字节不动，W尚未合并生产，新字节待 ChatGPT 实际审核和新预算批准。

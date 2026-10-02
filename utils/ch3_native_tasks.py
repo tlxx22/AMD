@@ -104,6 +104,9 @@ def validate(c):
 
 
 def context(c):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import context as unified_context
+        return unified_context(c)
     from utils.ch3_native_recovery import active_context
     recovery = active_context(c)
     if recovery is not None:
@@ -140,6 +143,9 @@ def computational_identity(c, t):
 
 
 def probe_groups(c):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import probe_groups as unified_groups
+        return unified_groups(c)
     if 'native_replacement' not in c:
         return [dict(g, representatives=g['task_ids'], planned_q=4) for g in c['groups']]
     result = []
@@ -168,6 +174,9 @@ def probe_groups(c):
 
 
 def formal_waves(c,report,model):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import formal_waves as unified_waves
+        return unified_waves(c,report,model)
     """Fixed registered combinations, clipped only by a measured resource fallback."""
     from utils.ch3_m_execution import wave_ids
     if 'native_replacement' not in c:
@@ -203,6 +212,9 @@ def attempt_widths(g):
 
 
 def plan(c):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import plan as unified_plan
+        return unified_plan(c)
     ctx = context(c)
     groups = probe_groups(c)
     representatives = sum(len(g['representatives']) for g in groups)
@@ -229,6 +241,9 @@ def plan(c):
 
 
 def worker_counts(c,t):
+    if 'baseline_unified' in c:
+        from utils.ch3_baseline_unified_tasks import worker_counts as unified_counts
+        return unified_counts(c,t)
     endpoint = 'native_replacement' in c and t['model']=='TimeMixer' and t['dataset']=='UrbanEV'
     return dict(adam=6,forward=10 if endpoint else 8,backward=6)
 
