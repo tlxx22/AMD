@@ -2879,3 +2879,15 @@ scheduler 仅在成功 Adam update 后 step 一次，validation/test 不 step。
 新预算为待审提案：MS203/2380 run-epochs/7974050 Adam、backward/9019739 forward；M84/840/300150 Adam、backward/359040 forward；合计287/3220/8274200 Adam、backward/9378779 forward。MS最小代表计划15组63代表（UrbanEV每模型fold1四H，EPF按真实兼容结构/batch分组，因各市场 scheduler 步数不同，各市场保留独立短轨迹）：名义126 worker、756/1024/756，cap187 worker、1122/1520/1122。M21组84代表：名义168 worker、1008/1344/1008，cap252 worker、1512/2016/1512（Adam/forward/backward）。数值政策逐scope继承，未扩大容差；额外核 scheduler state/LR/beta1/steps exact。仅资源失败允许登记的q4→一次q2→合法serial q1；原q2组仅可退合法q1。
 
 旧结果永久保留，新协议若最终用作论文 baseline，主结果整体采用新协议，禁止按 test 在 old/new 间逐格择优。J仍如实使用自身冻结协议。工期依据已绑定历史同模型/域 worker runtime、精确新窗口/batch/epoch 和固定 wave估算，非新协议实测；probe后须用初始化/稳定 update/validation 分项修正，不将六步包整体除6外推。本轮只实现、CPU/无负载验收、dry-run与模板preflight检查；未stage/commit/push、未GPU/probe/formal/start，生产 R 原字节不动，W尚未合并生产，新字节待 ChatGPT 实际审核和新预算批准。
+
+### M6 最新用户门禁修订：baseline-unified96-onecycle001-v2（2026-10-03，隔离 W 字节待审）
+
+v1 closure 为 22b6447c4e62078d903446690225504f26e7a3ed。MS probe 在11/15组Passed后，于ModernTCN-EPF-compatible-0因exact numeric gate失败自动停止，未进入正式训练。四个已完成q4成员的state/loss/normalized metric最大差分别为：PJM 1.3441592454910278e-4 / 1.1920928955078125e-7 / 1.0502029601511254e-7；NP 2.063065767288208e-4 / 1.1920928955078125e-7 / 2.1928189686271082e-7；BE 2.4513527750968933e-4 / 2.384185791015625e-7 / 2.3932049497688013e-7；FR 1.7508119344711304e-4 / 2.384185791015625e-7 / 3.2853599907234354e-7。v1 failure/progress/trajectory/full-state/budget与所有历史现场保持原字节，实际642 Adam / 642 backward / 872 forward，budget_refund=false，不resume、不改成Passed。
+
+用户明确批准仅MS ModernTCN-PJM/NP/BE/FR/DE五scope从None/exact改为full_float_state：state_atol=5e-4、loss_atol=metric_atol=1e-6、loss_rtol=rtol=0、equal_nan=false。全部浮点parameters/buffers、gradients、Adam exp_avg/exp_avg_sq按有限绝对阈值比较；初始化/RNG/batch/order、optimizer step、非浮点状态、param groups、shape/dtype、task/profile/source/data、scheduler配置/step/LR/beta1仍exact，finite必须Passed。ModernTCN-UrbanEV仍exact，其余模型MS与全部M政策不变。这是用户批准的M6 technical numeric admission threshold revision，不是作者论文标准。
+
+v2协议/结果身份baseline-unified96-onecycle001-v2，scope m6-baseline-unified96-oc01-v2，package/result/probe/queue/launcher/session与v1隔离。原v1配置保留，新v2配置逐项证明287份正式训练profile完全一致，仅任务/协议namespace、数据元数据索引绑定及上述五scope政策变化；UrbanEV T12，其它T96，OneCycle、batch/epochs/结构/data/seed2024/metric/test/native mark均不变。七baseline、MS203＋M84、J/N/S/ECL排除保持，不能以v1的11组Passed拼接v2准入。v2必须fresh重跑完整15组MS probe，后续仍为MS_AUTO_AUDIT→203 MS正式→seal MS→21组M probe→M_AUTO_AUDIT→84 M正式→COMPLETE；正常成功路径一次用户start，科学result_review=pending。
+
+用户独立批准v2 MS probe从0计账，cap1122 Adam / 1122 backward / 1520 forward；v1 actual＋v2 worst为1764/1764/2392，v1不退款、不转移余额。M probe cap1512/1512/2016不增加。正式预算保持MS203/2380/7974050 Adam及backward/9019739 forward、M84/840/300150 Adam及backward/359040 forward；total287/3220/8274200 Adam及backward/9378779 forward。仅明确resource失败允许q4→一次q2→合法已测q1，原q2组仅可退合法q1；numeric/finite/identity/scheduler/data/guard失败立即停止，不自动放宽或重试。
+
+本轮只做无模型验收及v1保存payload的只读离线新政策重放；重放不构成v2实测admission，DE不能据四个旧q4成员重放冒称已通过。真实dry-run/模板preflight仍拒绝不可执行模板及尚未closure的新字节；未生成可执行start authorization，未GPU/probe/formal/start、未stage/commit/push，生产R与旧artifact不改。新实现与文档仍待ChatGPT实际字节审核，未合并生产canonical。

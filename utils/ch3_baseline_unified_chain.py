@@ -9,7 +9,7 @@ from m6_remaining_entry import identity,same,lock,signal_owned
 PYTHON='/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python'
 CONTROL=s.RESULT/'queue'/'controller'
 LOG=s.PACKAGE/'unified-launcher.log'
-SESSION='ch3-baseline-unified96-oc01-v1'
+SESSION='ch3-baseline-unified96-oc01-v2'
 TOKEN='CH3_UNIFIED_LAUNCH_TOKEN'
 SECRET='CH3_UNIFIED_RUNTIME_SECRET'
 ENVIRONMENT_REF=dict(path=str(s.PACKAGE/'environment-hardware.json'),sha256='e2fa17dc103fcc70acb9d7c49db75171126afdedf84f0cb5db0bb9fb944576c2')

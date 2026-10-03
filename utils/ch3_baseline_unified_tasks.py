@@ -8,17 +8,25 @@ from utils.ch3_contract import ROOT, digest
 from utils.ch3_onecycle import configuration
 from utils.ch3_native_recovery_records import bound, sha
 
-BASE='df6843204bf2b38fddc32856738a83e9793392f7'
-PROTOCOL='baseline-unified96-onecycle001-v1'
-ID='m6-baseline-unified96-oc01-v1'
+BASE='22b6447c4e62078d903446690225504f26e7a3ed'
+PROTOCOL='baseline-unified96-onecycle001-v2'
+ID='m6-baseline-unified96-oc01-v2'
 MODELS=('AMD','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer')
 MS_DOMAINS=('UrbanEV','PJM','NP','BE','FR','DE')
 M_DOMAINS=('ETTh1','Weather','Exchange')
 PACKAGE=ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1'/PROTOCOL
 RESULT=ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'/PROTOCOL
-CATALOG=dict(path=str(PACKAGE/'parent-profile-catalog.json'),sha256='1f295507e158ba5b3101027820c62655ef6ae0ea0dab5552940a8d3615eb35b6')
-AUTHOR_RECIPE=dict(path=str(PACKAGE/'onecycle-author-recipe.json'),sha256='e2e1cb27c93d2e865ea68c1e39858363ebc216a5c91df0ec773862bbc0a9185f')
-RETIREMENT=dict(path=str(PACKAGE/'baseline-unified-protocol-retirement.json'),sha256='64869e3735c49334dfd2e127691c1c2c958670c0e3d5f3d3b59f5e696aa26604')
+PARENT_PACKAGE=PACKAGE.with_name('baseline-unified96-onecycle001-v1')
+CATALOG=dict(path=str(PARENT_PACKAGE/'parent-profile-catalog.json'),sha256='1f295507e158ba5b3101027820c62655ef6ae0ea0dab5552940a8d3615eb35b6')
+AUTHOR_RECIPE=dict(path=str(PARENT_PACKAGE/'onecycle-author-recipe.json'),sha256='e2e1cb27c93d2e865ea68c1e39858363ebc216a5c91df0ec773862bbc0a9185f')
+RETIREMENT=dict(path=str(PARENT_PACKAGE/'baseline-unified-protocol-retirement.json'),sha256='64869e3735c49334dfd2e127691c1c2c958670c0e3d5f3d3b59f5e696aa26604')
+MODERNTCN_EPF_POLICY=dict(
+    id='baseline-unified-v2-moderntcn-epf-fullfloat-atol5e-4',kind='full_float_state',
+    state_atol=5e-4,loss_atol=1e-6,metric_atol=1e-6,loss_rtol=0.0,rtol=0.0,equal_nan=False,
+    capture='preallocated raw sidecar v1',
+    floating_state='all model parameters/buffers, gradients, Adam exp_avg and exp_avg_sq',
+    exact_state='initialization/RNG/batch identity/order, optimizer step/nonfloating state, param groups, tensor shape/dtype, task/profile/source/data; scheduler configuration/step/LR/beta1',
+    initialization_rng_batches='exact',nonfloating_and_step='exact')
 
 
 @lru_cache(maxsize=1)
@@ -33,7 +41,7 @@ def parents():
 
 def file(stage):
     if stage not in ('MS','M'):raise ValueError('exact unified stage')
-    return ROOT/'configs'/('ch3_baseline_'+stage.lower()+'_u96_oc01.json')
+    return ROOT/'configs'/('ch3_baseline_'+stage.lower()+'_u96_oc01_v2.json')
 
 
 def parent_rows(stage):
@@ -42,7 +50,7 @@ def parent_rows(stage):
 
 def task(row):
     old=row['parent_task'];p=row['parent_profile'];stage=row['stage']
-    group=old['model']+'-'+old['dataset']+'-'+('F4' if old['dataset']=='UrbanEV' else stage)+'-u96-oc01-v1'
+    group=old['model']+'-'+old['dataset']+'-'+('F4' if old['dataset']=='UrbanEV' else stage)+'-u96-oc01-v2'
     value={k:copy.deepcopy(old[k]) for k in ('model','dataset','fold','h','seed')}
     value.update(id=group+'-f'+str(old['fold'])+'-h'+str(old['h'])+'-s2024',
                  input_variant=p['input_variant'],group=group,profile=group+'-h'+str(old['h']),
@@ -77,12 +85,22 @@ def numeric_policy(c,t):
     return copy.deepcopy(c['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']])
 
 
+def expected_numeric_policy(row):
+    t=row['parent_task']
+    if row['stage']=='MS' and t['model']=='ModernTCN' and t['dataset'] in ('PJM','NP','BE','FR','DE'):
+        if row['numeric_policy'] is not None:raise ValueError('v2 requires the original exact ModernTCN EPF policy')
+        return copy.deepcopy(MODERNTCN_EPF_POLICY)
+    return copy.deepcopy(row['numeric_policy'])
+
+
 def validate(c):
     stage=c['baseline_unified']['stage'];old=parents();rows=parent_rows(stage)
     if c['baseline_unified']['id']!=PROTOCOL or c['tasks']!=expected_tasks(stage):raise ValueError('exact unified fresh task registry')
     if c['baseline_unified']['catalog_ref']!=CATALOG or c['baseline_unified']['recipe_ref']!=AUTHOR_RECIPE:raise ValueError('source-bound parent/recipe')
     if len(c['tasks'])!=(203 if stage=='MS' else 84) or len({t['id'] for t in c['tasks']})!=len(c['tasks']):raise ValueError('unique unified task count')
     if set(c['datasets'])!=set(MS_DOMAINS if stage=='MS' else M_DOMAINS) or any(t['model']not in MODELS for t in c['tasks']):raise ValueError('J/N/S/ECL excluded')
+    policies={r['parent_task']['model']+'-'+r['parent_task']['dataset']:expected_numeric_policy(r) for r in rows}
+    if c['baseline_unified']['numeric_policies']!=policies:raise ValueError('exact user-authorized v2 numeric registry required')
     for k,r in catalog()['parents'].items():
         if sha(r['ref']['path'])!=r['ref']['sha256'] or digest(old[k])!=r['protocol_sha']:raise ValueError('parent source changed')
     source=old['production'] if stage=='MS' else old['m']
@@ -93,7 +111,7 @@ def validate(c):
     for row,t in zip(rows,c['tasks']):
         p=profile(c,t);expected=resolved_parent(row)
         if p!=expected or digest(row['parent_profile'])!=row['parent_profile_sha']:raise ValueError('profile changes outside T/LR/scheduler whitelist')
-        if c['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']]!=row['numeric_policy']:raise ValueError('per-scope numerical policy cannot widen')
+        if numeric_policy(c,t)!=expected_numeric_policy(row):raise ValueError('per-scope numerical policy outside the exact v2 revision')
         if p['training']['optimizer']!='Adam' or p['training']['seed']!=2024 or not p['training']['from_scratch']:raise ValueError('Adam/seed/fresh contract')
     return c
 

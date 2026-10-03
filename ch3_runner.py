@@ -63,6 +63,8 @@ def code_binding():
                   'utils/ch3_baseline_unified_chain.py','m6_baseline_unified_entry.py','scripts/ch3/start_baseline_unified.sh',
                   'configs/ch3_baseline_ms_u96_oc01.json','configs/ch3_baseline_m_u96_oc01.json',
                   'tests/test_ch3_onecycle.py','tests/test_m6_baseline_unified.py']
+        files += ['configs/ch3_baseline_ms_u96_oc01_v2.json','configs/ch3_baseline_m_u96_oc01_v2.json',
+                  'tests/test_m6_baseline_unified_v2.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 

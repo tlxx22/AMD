@@ -30,9 +30,9 @@ class UnifiedTests(unittest.TestCase):
             for t in c['tasks']:
                 p=profile(c,t);self.assertEqual(p['T'],12 if t['dataset']=='UrbanEV' else 96)
                 self.assertEqual(p['training']['lr'],.01);cfg=p['training']['scheduler'];self.assertEqual(cfg['steps_per_epoch'],step_arithmetic(c,t)['train_batches']);self.assertEqual(cfg['epochs'],p['training']['epochs'])
-    def test_numeric_policies_never_widen(self):
+    def test_numeric_policies_exact_authorized_registry(self):
         for stage,c in self.cs.items():
-            for row,t in zip(s.parent_rows(stage),c['tasks']):self.assertEqual(s.numeric_policy(c,t),row['numeric_policy'])
+            for row,t in zip(s.parent_rows(stage),c['tasks']):self.assertEqual(s.numeric_policy(c,t),s.expected_numeric_policy(row))
     def test_M_21_registry(self):self.assertEqual(len(s.probe_groups(self.cs['M'])),21)
     def test_MS_15_minimal_groups_and_63_reps(self):
         groups=s.probe_groups(self.cs['MS']);self.assertEqual(len(groups),15);self.assertEqual(sum(len(g['representatives']) for g in groups),63)
