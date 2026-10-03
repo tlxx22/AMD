@@ -9,7 +9,7 @@ from m6_remaining_entry import identity,same,lock,signal_owned
 PYTHON='/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python'
 CONTROL=s.RESULT/'queue'/'controller'
 LOG=s.PACKAGE/'unified-launcher.log'
-SESSION='ch3-baseline-unified96-oc01-v2'
+SESSION='ch3-baseline-unified96-oc01-v3'
 TOKEN='CH3_UNIFIED_LAUNCH_TOKEN'
 SECRET='CH3_UNIFIED_RUNTIME_SECRET'
 ENVIRONMENT_REF=dict(path=str(s.PACKAGE/'environment-hardware.json'),sha256='e2fa17dc103fcc70acb9d7c49db75171126afdedf84f0cb5db0bb9fb944576c2')
@@ -215,7 +215,8 @@ def safe_stop(signal_supervisor=True):
     child=current.get('child');sent=False
     from utils.ch3_m_launch import command_has
     if child and same(child):
-        if current.get('owner')!=controller or not command_has(child['pid'],ROOT/'m6_baseline_unified_entry.py') or int(Path('/proc',str(child['pid']),'stat').read_text().rsplit(')',1)[1].split()[1])!=controller['pid']:raise PermissionError('owned child parent changed')
+        args=Path('/proc',str(child['pid']),'cmdline').read_bytes().decode().rstrip('\0').split('\0')
+        if current.get('owner')!=controller or args!=current.get('command') or str(ROOT/'m6_baseline_unified_entry.py')not in args or not any(action in args for action in ('probe-child','group-child')) or int(Path('/proc',str(child['pid']),'stat').read_text().rsplit(')',1)[1].split()[1])!=controller['pid']:raise PermissionError('owned child parent changed')
         sent=signal_owned(child)
     if same(controller) and not command_has(controller['pid'],ROOT/'m6_baseline_unified_entry.py'):raise PermissionError('foreign supervisor')
     return dict(STOP=True,child_signal_sent=sent,supervisor_signal_sent=signal_owned(controller) if signal_supervisor else False,old_chain_signal_sent=False)

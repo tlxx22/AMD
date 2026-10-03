@@ -65,6 +65,9 @@ def code_binding():
                   'tests/test_ch3_onecycle.py','tests/test_m6_baseline_unified.py']
         files += ['configs/ch3_baseline_ms_u96_oc01_v2.json','configs/ch3_baseline_m_u96_oc01_v2.json',
                   'tests/test_m6_baseline_unified_v2.py']
+    if (ROOT/'utils/ch3_baseline_unified_tasks.py').exists():
+        files += ['configs/ch3_baseline_ms_u96_oc01_v3.json','configs/ch3_baseline_m_u96_oc01_v3.json',
+                  'tests/test_m6_baseline_unified_v3.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 

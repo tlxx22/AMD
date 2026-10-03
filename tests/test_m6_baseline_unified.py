@@ -20,10 +20,14 @@ class UnifiedTests(unittest.TestCase):
     def test_domains_and_exclusions(self):
         self.assertEqual(set(self.cs['MS']['datasets']),set(s.MS_DOMAINS));self.assertEqual(set(self.cs['M']['datasets']),set(s.M_DOMAINS))
         for c in self.cs.values():self.assertEqual({t['model'] for t in c['tasks']},set(s.MODELS));self.assertNotIn('ECL',c['datasets'])
-    def test_only_T_lr_scheduler_changed(self):
+    def test_only_authorized_direct_parent_fields_changed(self):
         for stage,c in self.cs.items():
-            for row,t in zip(s.parent_rows(stage),c['tasks']):
-                old=copy.deepcopy(row['parent_profile']);new=profile(c,t);new['T']=old['T'];new['training']['lr']=old['training']['lr'];new['training']['scheduler']=old['training']['scheduler']
+            parent=s.direct_parent(stage)
+            for previous,t in zip(parent['tasks'],c['tasks']):
+                old=copy.deepcopy(parent['resolved_profiles'][previous['id']]);new=profile(c,t)
+                if t['dataset']=='UrbanEV':
+                    self.assertEqual((new['training']['epochs'],new['training']['patience'],new['training']['scheduler']['epochs']),(20,5,20))
+                    new['training']['epochs']=old['training']['epochs'];new['training']['patience']=old['training']['patience'];new['training']['scheduler']['epochs']=old['training']['scheduler']['epochs']
                 self.assertEqual(old,new)
     def test_T_urban_exception_and_onecycle_everywhere(self):
         for c in self.cs.values():
@@ -42,7 +46,7 @@ class UnifiedTests(unittest.TestCase):
         for g in s.probe_groups(c):
             if 'EPF' in g['id']:self.assertEqual(len({digest(s.compute_identity(c,next(t for t in c['tasks'] if t['id']==r),True)) for r in g['representatives']}),1)
     def test_new_budgets_proposal(self):
-        self.assertEqual(s.formal_budget(self.cs['MS'])['total'],dict(runs=203,run_epochs=2380,adam=7974050,backward=7974050,forward=9019739))
+        self.assertEqual(s.formal_budget(self.cs['MS'])['total'],dict(runs=203,run_epochs=4060,adam=15274280,backward=15274280,forward=17173829))
         self.assertEqual(s.formal_budget(self.cs['M'])['total'],dict(runs=84,run_epochs=840,adam=300150,backward=300150,forward=359040))
     def test_probe_budgets(self):
         self.assertEqual(s.probe_budget(self.cs['MS'])['caps'],dict(adam=1122,forward=1520,backward=1122));self.assertEqual(s.probe_budget(self.cs['M'])['caps'],dict(adam=1512,forward=2016,backward=1512))
