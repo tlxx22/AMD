@@ -72,6 +72,11 @@ def code_binding():
         files += ['utils/ch3_type1.py','utils/ch3_type1_tasks.py','utils/ch3_type1_chain.py','utils/ch3_type1_upstream.py',
                   'utils/ch3_type1_execution.py','utils/ch3_type1_summary.py','m6_type1_followup_entry.py','scripts/ch3/start_type1_followup.sh',
                   'configs/ch3_type1_urban_subset.json','configs/ch3_type1_epf_all.json','tests/test_m6_type1_followup.py']
+    if (ROOT/'utils/ch3_type1_scaled.py').exists():
+        files += ['utils/ch3_type1_scaled.py','configs/ch3_type1_urban_subset_v2.json','configs/ch3_type1_epf_all_v2.json',
+                  'configs/ch3_type1_m_all_v2.json','tests/test_m6_type1_followup_v2.py','tests/ch3_historical_type1_v1.py']
+    if (ROOT/'utils/ch3_type1_ett.py').exists():
+        files += ['utils/ch3_type1_ett.py','tests/test_m6_type1_ett.py','tests/ch3_historical_type1_v2_147.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 

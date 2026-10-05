@@ -18,7 +18,7 @@ def result_index(configs):
     for stage,c in configs.items():
         for prior,t in zip(s.selected(stage),c['tasks']):
             current=s.context(c)['result_root']/('formal-'+t['model'])/t['id']/'result.json'
-            row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],s.PROTOCOL,digest(s.profile(c,t))),v3=observed(OLD_RESULT/'MS'/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
+            row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],s.PROTOCOL,digest(s.profile(c,t))),v3=observed(OLD_RESULT/('M' if stage=='M_ALL' else 'MS')/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
             if stage=='EPF_ALL':
                 legacy_id=t['model']+'-'+t['dataset']+'-MS-f1-h24-s2024'
                 paths=[base/('formal-'+t['model'])/legacy_id/'result.json',base/'supplements/epf4-timemixer-v1'/('formal-'+t['model'])/legacy_id/'result.json']
@@ -29,4 +29,4 @@ def result_index(configs):
                     m=bound(ref(path.with_name('manifest.json')))
                     if m['profile'].get('T')==168 and all(m['task'].get(k)==t[k]for k in ('model','dataset','fold','h','seed')):row['historical_T168'].append(observed(path))
             rows.append(row)
-    return dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV='28/168: folds1,6 and H3,12 only',EPF='all 35 fixed model/market pairs'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=True,no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
+    return dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV='28/168: folds1,2 and H3,12 only',EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks; new ETT have no v3 result'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=True,no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')

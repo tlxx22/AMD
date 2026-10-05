@@ -67,7 +67,7 @@ def target_prediction(model, x, p, x_mark_enc=None):
     name=p['model']
     if p.get('time_mark'):
         from utils.ch3_time_marks import policy
-        if p['time_mark']!=policy(p) or x_mark_enc is None or tuple(x_mark_enc.shape)!=(x.shape[0],p['T'],4):
+        if p['time_mark']!=policy(p) or x_mark_enc is None or tuple(x_mark_enc.shape)!=(x.shape[0],p['T'],p['time_mark']['K']):
             raise ValueError('exact historical native mark required')
     elif x_mark_enc is not None:raise ValueError('mark outside registered native protocol')
     if name=='TimeXer' and p.get('task')!='M':

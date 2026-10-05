@@ -209,8 +209,11 @@ def compare(c,t,x,y):
     from ch3_runner import compare_probe_trajectories,_compare_full_numeric_files
     row=compare_probe_trajectories(c,t,x,y)
     if c.get('type1_followup'):
-        from utils.ch3_type1 import validate_probe_trace
         p=profile(c,t)
+        if p['training']['scheduler']['name']=='type1_horizon_scaled_v1':
+            from utils.ch3_type1_scaled import validate_probe_trace
+        else:
+            from utils.ch3_type1 import validate_probe_trace
         for value in (x,y):validate_probe_trace(p['training']['scheduler'],value.get('scheduler_trace',[]),p['training']['betas'])
         if x['scheduler_trace']!=y['scheduler_trace']:raise ValueError('serial/parallel type1 scheduler exact')
     elif 'baseline_unified' in c:

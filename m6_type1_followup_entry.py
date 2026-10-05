@@ -10,7 +10,7 @@ def cli():
     parser=argparse.ArgumentParser()
     parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary'))
     parser.add_argument('--approval',default=str(s.PACKAGE/'start-review.json'));parser.add_argument('--approval-sha')
-    parser.add_argument('--wrapper-pid',type=int);parser.add_argument('--stage',choices=('URBAN_SUBSET','EPF_ALL'));parser.add_argument('--model',choices=s.MODELS)
+    parser.add_argument('--wrapper-pid',type=int);parser.add_argument('--stage',choices=s.STAGES);parser.add_argument('--model',choices=s.MODELS)
     parser.add_argument('--runtime');parser.add_argument('--runtime-sha');a=parser.parse_args()
     value=dict(path=a.approval,sha256=a.approval_sha) if a.approval_sha else ref(a.approval) if Path(a.approval).exists() else None
     if a.action in ('dry-run','preflight'):
@@ -54,9 +54,10 @@ def cli():
     if a.action=='complete':
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
-        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=63:raise ValueError('exact technical complete required')
+        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=231:raise ValueError('exact technical complete required')
         q.validate_boundary_light(complete['URBAN_boundary'])
         q.validate_boundary_light(complete['EPF_boundary'],'EPF_ALL')
+        q.validate_boundary_light(complete['M_boundary'],'M_ALL')
     print(json.dumps(status,ensure_ascii=False,indent=2));return 0
 
 

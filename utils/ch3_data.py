@@ -55,7 +55,7 @@ class Windows:
     def __init__(self,x,y,start,end,T,H,*,urban=False,label_horizon=None,marks=None):
         self.x,self.y=x,y;self.start=start;self.end=end;self.T=T;self.H=H
         self.marks=marks
-        if marks is not None and (marks.shape!=(x.shape[0],4) or end>len(marks)):raise ValueError('historical mark clock/shape alignment')
+        if marks is not None and (marks.ndim!=2 or marks.shape[0]!=x.shape[0] or marks.shape[1]not in (4,5) or end>len(marks)):raise ValueError('historical mark clock/shape alignment')
         self.urban=urban;self.label_horizon=label_horizon
         self.nodes=x.shape[1] if urban else 1
         self.count=end-start-T-(label_horizon if urban else H)+1

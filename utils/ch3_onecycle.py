@@ -91,6 +91,9 @@ class Schedule:
 
 def build(optimizer, profile):
     config=profile['training'].get('scheduler')
+    if isinstance(config,dict) and config.get('name')=='type1_horizon_scaled_v1':
+        from utils.ch3_type1_scaled import Schedule as ScaledSchedule
+        return ScaledSchedule(optimizer,config)
     if isinstance(config,dict) and config.get('name')=='TimeXerType1':
         from utils.ch3_type1 import Schedule as Type1Schedule
         return Type1Schedule(optimizer,config)

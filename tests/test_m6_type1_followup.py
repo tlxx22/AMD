@@ -2,8 +2,8 @@
 import ast,copy,json,os,subprocess,sys,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch,Mock
-from utils.ch3_contract import ROOT,profile,digest,BestState
-from utils import ch3_type1_tasks as s,ch3_type1_chain as q,ch3_type1_upstream as u
+from utils.ch3_contract import ROOT,digest,BestState
+from tests.ch3_historical_type1_v1 import s,q,u,profile
 from utils.ch3_type1 import Schedule,configuration,lr_used,validate_probe_trace
 from utils.ch3_native_recovery_records import exclusive,ref,bound,manifest_projection,scan_manifest,sha
 
@@ -233,7 +233,7 @@ class HandoffTests(unittest.TestCase):
 
 class AuditArchitectureTests(unittest.TestCase):
     def test_formal_paths_no_full_probe_audit(self):
-        import utils.ch3_type1_execution as e
+        from tests.ch3_historical_type1_v1 import execution as e
         tree=ast.parse(Path(e.__file__).read_text())
         for f in (n for n in tree.body if isinstance(n,ast.FunctionDef)):
             self.assertNotIn('validate_probe_completion',ast.unparse(f));self.assertNotIn('_compare_full_numeric_files',ast.unparse(f))
@@ -253,7 +253,7 @@ class AuditArchitectureTests(unittest.TestCase):
     def test_runtime_crossprocess_mac(self):
         text=Path(q.__file__).read_text();self.assertIn('hmac.compare_digest',text);self.assertIn("v['owner']!=json.loads((CONTROL/'controller.json').read_text())['owner']",text)
     def test_raw_probe_not_worker_metadata(self):
-        import utils.ch3_type1_execution as e
+        from tests.ch3_historical_type1_v1 import execution as e
         c=q.configs()['URBAN_SUBSET'];refs=e.metadata_files(c,dict(start_authorization_ref=ref(s.PACKAGE/'start-approval.template.json')))
         self.assertFalse(any('numeric-full' in p or '/serial/' in p or '/q4/' in p or p.endswith('probe/complete.json')for p in refs))
     def test_summary_light_no_raw_replay(self):
@@ -261,11 +261,13 @@ class AuditArchitectureTests(unittest.TestCase):
     def test_boundary_light_no_rebuild(self):
         tree=ast.parse(Path(q.__file__).read_text());f=next(n for n in tree.body if isinstance(n,ast.FunctionDef)and n.name=='validate_boundary_light');self.assertNotIn('technical_group',ast.unparse(f))
     def test_generic_fullstate_dedup_branch(self):
-        from utils.ch3_native_execution import compare
+        from tests.ch3_historical_type1_v1 import native
+        compare=native.compare
         import inspect
         text=inspect.getsource(compare);self.assertIn('if not generic_full and not _compare_full_numeric_files',text);self.assertIn('compare_measured',text)
     def test_endpoint_gate_preserved(self):
-        from utils.ch3_native_execution import confirmation_endpoint
+        from tests.ch3_historical_type1_v1 import native
+        confirmation_endpoint=native.confirmation_endpoint
         c=q.configs()['URBAN_SUBSET'];t=next(t for t in c['tasks']if t['model']=='TimeMixer');self.assertTrue(confirmation_endpoint(c,dict(task=t['id'],purpose='ch3_probe',successor_scope=s.context(c)['probe_scope'])))
     def test_manifest_not_selfsigned(self):
         with tempfile.TemporaryDirectory()as tmp:
@@ -287,10 +289,12 @@ class AuditArchitectureTests(unittest.TestCase):
             p=Path(tmp)/'a.json';value=exclusive(p,dict(synthetic=True));p.write_text('{}')
             with self.assertRaises(ValueError):bound(value)
     def test_compact_config_no_inline_formal(self):
-        import inspect,utils.ch3_type1_execution as e
+        import inspect
+        from tests.ch3_historical_type1_v1 import execution as e
         text=inspect.getsource(e.make_config);self.assertIn("s['approval']=None",text);self.assertIn('formal_permit_ref',text);self.assertIn('runtime_admission_ref',text)
     def test_generic_payload_compared_once_bounded_and_exact(self):
-        from utils.ch3_native_execution import compare
+        from tests.ch3_historical_type1_v1 import native
+        compare=native.compare
         import ch3_runner
         for model in ('iTransformer','DLinear'):
             c=q.configs()['URBAN_SUBSET'];t=next(t for t in c['tasks']if t['model']==model);p=profile(c,t);o=FakeOptimizer();schedule=Schedule(o,p['training']['scheduler']);traces=[]
@@ -302,7 +306,7 @@ class AuditArchitectureTests(unittest.TestCase):
             with patch.object(ch3_runner,'_compare_full_numeric_files',return_value=dict(passed=True,state_max_abs=0.,compared_elements=10,exact=True,failures=[]))as gate:
                 self.assertTrue(compare(c,t,x,copy.deepcopy(x))['passed']);self.assertEqual(gate.call_count,6)
     def test_compact_real_config_fixture(self):
-        import utils.ch3_type1_execution as e
+        from tests.ch3_historical_type1_v1 import execution as e
         c=q.configs()['URBAN_SUBSET'];t=c['tasks'][0]
         with tempfile.TemporaryDirectory()as tmp:
             root=Path(tmp);ctx=s.context(c);ctx=dict(ctx,result_root=root/'results',control=root/'control',fixture=root/'fixture');ctx['control'].mkdir();ctx['fixture'].mkdir()
@@ -316,7 +320,7 @@ class AuditArchitectureTests(unittest.TestCase):
         from utils import ch3_baseline_unified_tasks as old
         self.assertEqual(old.PROTOCOL,'baseline-unified96-onecycle001-v3');self.assertEqual(old.ID,'m6-baseline-unified96-oc01-v3')
     def test_summary_supplements_and_no_selection(self):
-        from utils import ch3_type1_summary as x
+        from tests.ch3_historical_type1_v1 import summary as x
         text=Path(x.__file__).read_text();self.assertIn('supplements/epf4-timemixer-v1',text);self.assertIn('no_old_new_selection=True',text)
 
 
@@ -327,7 +331,8 @@ class ProbeAuditOwnershipTests(unittest.TestCase):
     def _fixture(self,stage,scope_kind='type1',failure=None,serial_failure=False,one_group=False):
         from contextlib import contextmanager,ExitStack
         from types import SimpleNamespace
-        import ch3_runner,utils.ch3_native_execution as e,m5_formal_entry as tool
+        import ch3_runner,m5_formal_entry as tool
+        from tests.ch3_historical_type1_v1 import native as e
 
         @contextmanager
         def fixture():
@@ -428,7 +433,8 @@ class ProbeAuditOwnershipTests(unittest.TestCase):
 
     def test_formal_light_paths_and_runtime_scan_rule_preserved(self):
         from contextlib import nullcontext
-        import ch3_runner,utils.ch3_type1_execution as execution
+        import ch3_runner
+        from tests.ch3_historical_type1_v1 import execution
         for stage in s.STAGES:
             with self.subTest(stage=stage),self._fixture(stage)as f:
                 f.e.run_probe(f.c,f.a);summary_ref=q.audit_probe(f.c);summary=bound(summary_ref);self.assertEqual(f.full.call_count,1)

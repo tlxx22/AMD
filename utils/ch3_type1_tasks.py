@@ -1,36 +1,55 @@
-"""Exact 28 UrbanEV + 35 EPF tasks, pinned directly to the reviewed v3 profiles."""
+"""Exact 28 UrbanEV + 35 EPF + 168 M tasks; explicit source-bound ETT extension."""
 import copy,json,math
 from pathlib import Path
 from functools import lru_cache
 from utils.ch3_contract import ROOT,digest,step_arithmetic
 from utils.ch3_native_recovery_records import bound,sha
-from utils.ch3_type1 import configuration
-BASE='df6a16403e10d51097db8c88829909c533d15652'
-PROTOCOL='baseline-type1-followup-v1'
-ID='m6-baseline-type1-followup-v1'
+from utils.ch3_type1_scaled import configuration
+BASE='9341e4eb44ed9225a3965b102b2504b1fecfe830'
+PROTOCOL='baseline-type1-followup-v2'
+ID='m6-baseline-type1-followup-v2'
 MODELS=('AMD','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer')
-STAGES=('URBAN_SUBSET','EPF_ALL')
+STAGES=('URBAN_SUBSET','EPF_ALL','M_ALL')
 PACKAGE=ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1'/PROTOCOL
 RESULT=ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'/PROTOCOL
 PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_ms_u96_oc01_v3.json'),sha256='6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09')
+M_PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_m_u96_oc01_v3.json'),sha256='f627260225b971d13d1e881d8123a0426c63304e64d8e8afa56fa0ab73a3cdb2')
 AUTHOR_RECIPE=dict(path=str(PACKAGE/'type1-author-recipe.json'),sha256='fc1081b5acaef98181bc4edd0d5bcbab7ca7620e69eff4a1b97850833cf3da71')
-@lru_cache(maxsize=1)
-def parent():return bound(PARENT_REF)
+@lru_cache(maxsize=2)
+def parent(stage='URBAN_SUBSET'):return bound(parent_ref(stage))
+def parent_ref(stage):return M_PARENT_REF if stage=='M_ALL' else PARENT_REF
 def file(stage):
     if stage not in STAGES:raise ValueError('exact type1 ring')
-    return ROOT/'configs'/('ch3_type1_'+stage.lower()+'.json')
+    return ROOT/'configs'/('ch3_type1_'+stage.lower()+'_v2.json')
 def selected(stage):
-    return [t for t in parent()['tasks'] if (t['dataset']=='UrbanEV' and t['fold']in (1,6) and t['h']in (3,12)) if stage=='URBAN_SUBSET'] if stage=='URBAN_SUBSET' else [t for t in parent()['tasks'] if t['dataset']!='UrbanEV']
+    if stage not in STAGES:raise ValueError('exact ring')
+    rows=parent(stage)['tasks']
+    if stage=='M_ALL':
+        from utils.ch3_type1_ett import NEW_DATASETS
+        result=[]
+        for model in MODELS:
+            bank=[t for t in rows if t['model']==model];result.extend(bank)
+            for name in NEW_DATASETS:
+                for t in bank:
+                    if t['dataset']!='ETTh1':continue
+                    value=copy.deepcopy(t);value['dataset']=name
+                    for k in ('id','profile','group'):value[k]=value[k].replace('ETTh1',name)
+                    result.append(value)
+        return result
+    return [t for t in rows if t['dataset']=='UrbanEV' and t['fold']in (1,2) and t['h']in (3,12)] if stage=='URBAN_SUBSET' else [t for t in rows if t['dataset']!='UrbanEV']
 def new_task(t):
-    value=copy.deepcopy(t);group=t['model']+'-'+t['dataset']+'-'+t['input_variant']+'-type1-followup-v1'
+    value=copy.deepcopy(t);group=t['model']+'-'+t['dataset']+'-'+t['input_variant']+'-type1-followup-v2'
     value.update(id=group+'-f'+str(t['fold'])+'-h'+str(t['h'])+'-s2024',group=group,profile=group+'-h'+str(t['h']))
     return value
 def expected_tasks(stage):return [new_task(t) for t in selected(stage)]
 def inherited_profile(t):
-    p=copy.deepcopy(parent()['resolved_profiles'][t['id']]);p['T']=12 if t['dataset']=='UrbanEV' else 168
-    train=p['training'];train['lr']=1e-4
-    d=parent()['datasets'][t['dataset']]
-    windows=(parent()['urban_folds'][t['fold']-1][0]-p['T']-t['h']+1)*275 if t['dataset']=='UrbanEV' else d['endpoints'][0]-p['T']-p['pred_len']+1
+    from utils import ch3_type1_ett as ett
+    if t['dataset']in ett.NEW_DATASETS:return ett.profile(t)
+    stage='M_ALL' if t['task']=='M' else 'URBAN_SUBSET' if t['dataset']=='UrbanEV' else 'EPF_ALL';old=parent(stage)
+    p=copy.deepcopy(old['resolved_profiles'][t['id']]);p['T']=12 if stage=='URBAN_SUBSET' else 96 if stage=='M_ALL' else 168
+    train=p['training'];train.update(lr=1e-4,batch=32 if stage=='EPF_ALL' else 128,eval_batch=32 if stage=='EPF_ALL' else 128,epochs=20 if stage=='URBAN_SUBSET' else 10,patience=5 if stage=='URBAN_SUBSET' else 3 if stage=='EPF_ALL' else None)
+    d=old['datasets'][t['dataset']]
+    windows=(old['urban_folds'][t['fold']-1][0]-p['T']-t['h']+1)*275 if stage=='URBAN_SUBSET' else d['endpoints'][0]-p['T']-p['pred_len']+1
     train['scheduler']=configuration(train['epochs'],windows//train['batch'])
     return p
 def profile(c,t):
@@ -40,19 +59,22 @@ def numeric_policy(c,t):
     if t not in c['tasks']:raise ValueError('foreign type1 policy')
     return copy.deepcopy(c['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']])
 def validate(c):
-    stage=c['baseline_unified']['stage'];old=parent()
+    from utils import ch3_type1_ett as ett
+    stage=c['baseline_unified']['stage'];old=parent(stage)
     if stage not in STAGES or c.get('type1_followup')!=ID or c['baseline_unified']['id']!=PROTOCOL or c['tasks']!=expected_tasks(stage):raise ValueError('exact type1 ring/task namespace')
-    if c['baseline_unified']['direct_parent_ref']!=PARENT_REF or c['baseline_unified']['recipe_ref']!=AUTHOR_RECIPE:raise ValueError('fixed reviewed parent/recipe')
+    if c['baseline_unified']['direct_parent_ref']!=parent_ref(stage) or c['baseline_unified']['recipe_ref']!=AUTHOR_RECIPE:raise ValueError('fixed reviewed parent/recipe')
     bound(AUTHOR_RECIPE)
-    expected_policies={t['model']+'-'+t['dataset']:old['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']] for t in selected(stage)}
+    expected_policies={t['model']+'-'+t['dataset']:(ett.numeric_policy(t['model'],t['dataset'])if t['dataset']in ett.NEW_DATASETS else old['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']]) for t in selected(stage)}
     if c['baseline_unified']['numeric_policies']!=expected_policies or c['sources']!=old['sources'] or c['urban_folds']!=old['urban_folds'] or c['urban_input_variants']!=old['urban_input_variants']:raise ValueError('source/policy/features/split changed')
-    domains={'UrbanEV'} if stage=='URBAN_SUBSET' else {'PJM','NP','BE','FR','DE'}
-    if set(c['datasets'])!=domains or len(c['tasks'])!=(28 if stage=='URBAN_SUBSET' else 35) or len({t['id']for t in c['tasks']})!=len(c['tasks']):raise ValueError('63 unique runs; J/N/S/ECL/M excluded')
+    domains={'UrbanEV'} if stage=='URBAN_SUBSET' else set(ett.M_DATASETS) if stage=='M_ALL' else {'PJM','NP','BE','FR','DE'}
+    if set(c['datasets'])!=domains or len(c['tasks'])!={'URBAN_SUBSET':28,'EPF_ALL':35,'M_ALL':168}[stage] or len({t['id']for t in c['tasks']})!=len(c['tasks']):raise ValueError('231 unique runs; J/N/S/ECL excluded')
+    if stage=='M_ALL'and c['baseline_unified'].get('extension_refs')!=dict(template=ett.TEMPLATE_REF,source=ett.SOURCE_REF,paper=ett.PAPER_REF):raise ValueError('new ETT template/source/paper binding')
     for name,d in c['datasets'].items():
-        expected=copy.deepcopy(old['datasets'][name]);expected['T']=12 if name=='UrbanEV' else 168
+        expected=ett.dataset(name)if name in ett.NEW_DATASETS else copy.deepcopy(old['datasets'][name]);expected['T']=12 if name=='UrbanEV' else 96 if stage=='M_ALL' else 168
         if d!=expected:raise ValueError('dataset only T changes')
     for prior,t in zip(selected(stage),c['tasks']):
-        if profile(c,t)!=inherited_profile(prior) or c['baseline_unified']['parent_refs'][t['id']]!=dict(task_id=prior['id'],profile_sha=digest(old['resolved_profiles'][prior['id']]),config_ref=PARENT_REF):raise ValueError('only T/lr/scheduler changes from v3')
+        expected_ref=ett.parent_ref(prior)if prior['dataset']in ett.NEW_DATASETS else dict(task_id=prior['id'],profile_sha=digest(old['resolved_profiles'][prior['id']]),config_ref=parent_ref(stage))
+        if profile(c,t)!=inherited_profile(prior) or c['baseline_unified']['parent_refs'][t['id']]!=expected_ref:raise ValueError('only approved parent profile changes or fixed ETTh1 ETT migration')
     data=bound(c['baseline_unified']['data_ref'])
     from utils.ch3_time_marks import metadata as mark_metadata
     for t in c['tasks']:
@@ -63,7 +85,8 @@ def probe_groups(c):
     stage=c['baseline_unified']['stage'];result=[]
     for model in MODELS:
         ts=[t for t in c['tasks']if t['model']==model]
-        banks=[(ts,4,'cross-fold-f1-f6-H3-H12')] if stage=='URBAN_SUBSET' else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-batch16'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-batch4')]
+        from utils.ch3_type1_ett import M_DATASETS
+        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage=='M_ALL' else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
         for rows,q,label in banks:
             result.append(dict(id=model+'-'+label,model=model,representatives=[t['id']for t in rows],planned_q=q,coverage={t['id']:[t['id']]for t in rows},identities={t['id']:digest(profile(c,t))for t in rows},equivalence='own-profile independent six-step serial; fixed actual waves; type1 epoch behavior proved separately with no-model fixtures'))
     return result

@@ -9,11 +9,11 @@ from m6_remaining_entry import identity,same,lock,signal_owned
 PYTHON='/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python'
 CONTROL=s.RESULT/'queue'/'controller'
 LOG=s.PACKAGE/'followup-launcher.log'
-SESSION='ch3-baseline-type1-followup-v1'
+SESSION='ch3-baseline-type1-followup-v2'
 TOKEN='CH3_TYPE1_LAUNCH_TOKEN'
 SECRET='CH3_TYPE1_RUNTIME_SECRET'
 ENVIRONMENT_REF=dict(path=str(s.PACKAGE/'environment-hardware.json'),sha256='e2fa17dc103fcc70acb9d7c49db75171126afdedf84f0cb5db0bb9fb944576c2')
-STATES=('WAIT_V3_COMPLETE_AND_RELEASED','FOLLOWUP_PROTOCOL_PREFLIGHT','URBAN_RESOURCE_NUMERIC_PROBE','URBAN_AUTO_AUDIT','URBAN_FORMAL_ALL_BASELINES','SEAL_URBAN_BOUNDARY','EPF_RESOURCE_NUMERIC_PROBE','EPF_AUTO_AUDIT','EPF_FORMAL_ALL_BASELINES','COMPLETE')
+STATES=('WAIT_V3_COMPLETE_AND_RELEASED','FOLLOWUP_PROTOCOL_PREFLIGHT','URBAN_RESOURCE_NUMERIC_PROBE','URBAN_AUTO_AUDIT','URBAN_FORMAL_ALL_BASELINES','SEAL_URBAN_BOUNDARY','EPF_RESOURCE_NUMERIC_PROBE','EPF_AUTO_AUDIT','EPF_FORMAL_ALL_BASELINES','SEAL_EPF_BOUNDARY','M_RESOURCE_NUMERIC_PROBE','M_AUTO_AUDIT','M_FORMAL_ALL_BASELINES','SEAL_M_BOUNDARY','COMPLETE')
 
 
 def upstream_anchors():
@@ -36,7 +36,7 @@ def wait_upstream():
             return exclusive(CONTROL/'upstream-technical-boundary.json',v)
         time.sleep(30)
 
-def configs():return {stage:s.validate(json.loads(s.file(stage).read_text())) for stage in ('URBAN_SUBSET','EPF_ALL')}
+def configs():return {stage:s.validate(json.loads(s.file(stage).read_text())) for stage in s.STAGES}
 
 
 def owner(pid=None):
@@ -62,6 +62,7 @@ def dynamic(c,worker=False):
     data=bound(c['baseline_unified']['data_ref'])
     env=bound(ENVIRONMENT_REF)
     recipe=bound(s.AUTHOR_RECIPE)
+    for value in c['baseline_unified'].get('extension_refs',{}).values():bound(value)
     if any(__import__('utils.ch3_native_recovery_records',fromlist=['sha']).sha(p)!=h for p,h in recipe['files'].items()):raise ValueError('locked TimeXer type1 source recipe changed')
     if env['environment']!=environment_binding() or env['hardware']!=hardware_binding():raise ValueError('frozen unified environment/hardware changed')
     if source_states(c)!=data['source_states']:raise ValueError('data file identity changed')
@@ -86,7 +87,7 @@ def start_template():
         config_refs={stage:ref(s.file(stage)) for stage in cs},plan_refs={stage:ref(s.PACKAGE/(stage.lower()+'-plan.json')) for stage in cs},
         upstream_anchors=upstream_anchors(),author_recipe_ref=s.AUTHOR_RECIPE,environment_hardware_ref=ENVIRONMENT_REF,
         formal_caps={stage:s.formal_budget(c)['total'] for stage,c in cs.items()},probe_caps={stage:s.probe_budget(c)['caps'] for stage,c in cs.items()},
-        budget_authorized=False,additional_search=0,seed=2024,from_scratch=True,result_review='pending',authorization_basis='non-executable preparation template; bind actual reviewed closure and the user-authorized fixed 63-run/probe caps')
+        budget_authorized=False,additional_search=0,seed=2024,from_scratch=True,result_review='pending',authorization_basis='non-executable preparation template; bind actual reviewed closure and the user-authorized fixed 231-run/probe caps')
 
 
 def validate_start(a):
@@ -106,7 +107,9 @@ def validate_permit(c,a,probe=False,worker=False):
         if a.get(k)!=v:raise ValueError('permit current binding changed: '+k)
     if a.get('authorized_task_ids')!=[t['id'] for t in c['tasks']] or a.get('profile_shas')!={t['id']:digest(profile(c,t)) for t in c['tasks']} or a.get('data_binding_ref')!=c['baseline_unified']['data_ref'] or a.get('additional_search')!=0 or a.get('from_scratch')is not True:raise ValueError('exact fresh scientific profile scope')
     if a.get('caps')!=(s.probe_budget(c)['caps'] if probe else s.formal_budget(c)['total']) or a.get('budget_refund')is not False:raise ValueError('independent authorized caps')
-    if ctx['stage']=='EPF_ALL':validate_boundary_light(a['ms_boundary_ref'])
+    required=s.STAGES[:s.STAGES.index(ctx['stage'])]
+    if set(a.get('predecessor_boundaries',{}))!=set(required):raise ValueError('exact new predecessor rings required')
+    for stage in required:validate_boundary_light(a['predecessor_boundaries'][stage],stage)
     validate_upstream_boundary_light(a['upstream_boundary_ref'])
     if not probe:validate_summary_light(c,a['summary_ref'])
     return a
@@ -151,7 +154,7 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None):
         authorized_task_ids=[t['id'] for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},
         data_binding_ref=c['baseline_unified']['data_ref'],caps=s.probe_budget(c)['caps'] if probe else s.formal_budget(c)['total'],
         budget_refund=False,additional_search=0,from_scratch=True,result_review='pending',upstream_boundary_ref=ref(CONTROL/'upstream-technical-boundary.json'),authorization_basis='user pre-authorized full training iff preregistered technical gates pass')
-    if boundary_ref:a['ms_boundary_ref']=boundary_ref
+    a['predecessor_boundaries']=boundary_ref or {}
     if not probe:
         summary=validate_summary_light(c,summary_ref);a['summary_ref']=summary_ref;a['manifest_ref']=summary['manifest_ref'];a['technical_admission']=True
     validate_permit(c,a,probe)
@@ -311,24 +314,28 @@ def run(start_ref):
     cs=configs()
     def probe(stage,r):
         c=cs[stage];ctx=s.context(c);ctx['control'].mkdir(parents=True,exist_ok=False)
-        pr=create_permit(c,start_ref,True,boundary_ref=r.get('SEAL_URBAN_BOUNDARY'))
+        predecessors={k:r[{'URBAN_SUBSET':'SEAL_URBAN_BOUNDARY','EPF_ALL':'SEAL_EPF_BOUNDARY'}[k]]for k in s.STAGES[:s.STAGES.index(stage)]}
+        pr=create_permit(c,start_ref,True,boundary_ref=predecessors)
         wait_owned(stage,pr,True);return pr
     def formal(stage,r):
-        c=cs[stage];summary=r[('URBAN_AUTO_AUDIT' if stage=='URBAN_SUBSET' else 'EPF_AUTO_AUDIT')];pr=create_permit(c,start_ref,False,summary,r.get('SEAL_URBAN_BOUNDARY'))
+        c=cs[stage];summary=r[{'URBAN_SUBSET':'URBAN_AUTO_AUDIT','EPF_ALL':'EPF_AUTO_AUDIT','M_ALL':'M_AUTO_AUDIT'}[stage]]
+        predecessors={k:r[{'URBAN_SUBSET':'SEAL_URBAN_BOUNDARY','EPF_ALL':'SEAL_EPF_BOUNDARY'}[k]]for k in s.STAGES[:s.STAGES.index(stage)]}
+        pr=create_permit(c,start_ref,False,summary,predecessors)
         runtime=seal_runtime(c,pr);receipts={}
         for model in s.MODELS:
             stop_check();wait_owned(stage,pr,False,model,runtime)
             receipts[model]=ref(s.context(c)['control']/('group-'+model)/'complete.json')
-        if stage=='EPF_ALL':return seal_boundary(c,receipts)
         return receipts
     actions={'WAIT_V3_COMPLETE_AND_RELEASED':lambda r:wait_upstream(), 'FOLLOWUP_PROTOCOL_PREFLIGHT':lambda r:validate_start(bound(start_ref)),
         'URBAN_RESOURCE_NUMERIC_PROBE':lambda r:probe('URBAN_SUBSET',r),'URBAN_AUTO_AUDIT':lambda r:audit_probe(cs['URBAN_SUBSET']),
         'URBAN_FORMAL_ALL_BASELINES':lambda r:formal('URBAN_SUBSET',r),'SEAL_URBAN_BOUNDARY':lambda r:seal_boundary(cs['URBAN_SUBSET'],r['URBAN_FORMAL_ALL_BASELINES']),
         'EPF_RESOURCE_NUMERIC_PROBE':lambda r:probe('EPF_ALL',r),'EPF_AUTO_AUDIT':lambda r:audit_probe(cs['EPF_ALL']),
-        'EPF_FORMAL_ALL_BASELINES':lambda r:formal('EPF_ALL',r)}
+        'EPF_FORMAL_ALL_BASELINES':lambda r:formal('EPF_ALL',r),'SEAL_EPF_BOUNDARY':lambda r:seal_boundary(cs['EPF_ALL'],r['EPF_FORMAL_ALL_BASELINES']),
+        'M_RESOURCE_NUMERIC_PROBE':lambda r:probe('M_ALL',r),'M_AUTO_AUDIT':lambda r:audit_probe(cs['M_ALL']),
+        'M_FORMAL_ALL_BASELINES':lambda r:formal('M_ALL',r),'SEAL_M_BOUNDARY':lambda r:seal_boundary(cs['M_ALL'],r['M_FORMAL_ALL_BASELINES'])}
     receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check)
-    mb=receipts['EPF_FORMAL_ALL_BASELINES'];stop_check()
-    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=mb,total_runs=63))
+    stop_check()
+    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],total_runs=231))
 
 
 def start(start_ref,token):
