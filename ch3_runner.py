@@ -68,6 +68,10 @@ def code_binding():
     if (ROOT/'utils/ch3_baseline_unified_tasks.py').exists():
         files += ['configs/ch3_baseline_ms_u96_oc01_v3.json','configs/ch3_baseline_m_u96_oc01_v3.json',
                   'tests/test_m6_baseline_unified_v3.py']
+    if (ROOT/'utils/ch3_type1_tasks.py').exists():
+        files += ['utils/ch3_type1.py','utils/ch3_type1_tasks.py','utils/ch3_type1_chain.py','utils/ch3_type1_upstream.py',
+                  'utils/ch3_type1_execution.py','utils/ch3_type1_summary.py','m6_type1_followup_entry.py','scripts/ch3/start_type1_followup.sh',
+                  'configs/ch3_type1_urban_subset.json','configs/ch3_type1_epf_all.json','tests/test_m6_type1_followup.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -421,14 +425,14 @@ def save_state(path,model,opt,identity,best,epoch,steps,generator,scheduler=None
                         generator=generator.get_state()))
     if scheduler is not None:
         if scheduler.updates!=steps:raise ValueError('checkpoint scheduler step accounting')
-        value.update(schema='ch3-state-v2-onecycle',scheduler=scheduler.state_dict())
+        value.update(schema=getattr(scheduler,'checkpoint_schema','ch3-state-v2-onecycle'),scheduler=scheduler.state_dict())
     tmp=Path(str(path)+'.tmp');torch.save(value,tmp);os.replace(tmp,path)
 
 
 def restore_state(path,model,opt,identity,generator,scheduler=None):
     import torch,random,numpy as np
     state=torch.load(path,map_location='cpu')
-    schema='ch3-state-v2-onecycle' if scheduler is not None else 'ch3-state-v1'
+    schema=getattr(scheduler,'checkpoint_schema','ch3-state-v2-onecycle') if scheduler is not None else 'ch3-state-v1'
     if state.get('schema')!=schema or state.get('identity')!=identity:raise ValueError('resume identity mismatch; no cross-protocol recovery')
     model.load_state_dict(state['model'],strict=True);opt.load_state_dict(state['optimizer'])
     if scheduler is not None:scheduler.load_state_dict(state['scheduler'],state['steps'])
@@ -460,7 +464,7 @@ def formal_identity(c, task, metadata, approval):
     return result
 
 
-def audit_resume(out,approval,run):
+def audit_resume(out,approval,run,protocol=None):
     """Metadata and approved fingerprints before any torch deserialization."""
     out=Path(out);record=approval.get('resume_audits',{}).get(run)
     if record is None:raise PermissionError('explicit audit of retained run required')
@@ -473,7 +477,8 @@ def audit_resume(out,approval,run):
         if out.exists():raise FileExistsError('cannot fresh-restart retained output')
         return mode
     # Reject foreign protocol/input identity from metadata before any checkpoint read.
-    c=read_profiles();task=task_by_id(c,run)
+    c=read_profiles() if protocol is None else protocol;task=task_by_id(c,run)
+    if c.get('type1_followup') and mode=='resume' and record.get('test_access_status')!='not_accessed':raise PermissionError('unknown or previously accessed formal test; automatic recovery prohibited')
     manifest=json.loads((out/'manifest.json').read_text())
     identity=manifest['identity']
     if (identity.get('protocol_sha')!=digest(c) or identity.get('profile_sha')!=digest(profile(c,task))
@@ -850,7 +855,7 @@ def formal_worker(c,task,out,approval,resume=False):
         dump(out/'manifest.json',dict(identity=identity,task=task,profile=p,metadata=metadata,
              resume_source_ref=__import__('utils.ch3_native_recovery_records',fromlist=['ref']).ref(out/'resume-source.json')))
     elif resume:
-        audit_resume(out,approval,task['id'])
+        audit_resume(out,approval,task['id'],protocol=c if c.get('type1_followup') else None)
         if json.loads((out/'manifest.json').read_text())['identity']!=identity:raise ValueError('manifest identity mismatch before checkpoint load')
         best,epoch,steps=restore_state(out/'last.pt',model,opt,identity,generator,scheduler)
     elif (out/'last.pt').exists():raise FileExistsError('staging retained; audit then explicit resume required')
@@ -863,7 +868,10 @@ def formal_worker(c,task,out,approval,resume=False):
             x,y,mark=batch_parts(batch);update(model,opt,x,y,p,'cuda:0',mark);steps+=1
             if scheduler is not None:scheduler.after_successful_update()
         metrics=evaluate(model,val,p,'cuda:0')
-        if best.update(metrics['mse'],epoch_index):save_state(out/'best.pt',model,opt,identity,best,epoch_index,steps,generator,scheduler)
+        improved=best.update(metrics['mse'],epoch_index)
+        if scheduler is not None and hasattr(scheduler,'after_epoch'):
+            scheduler.after_epoch(epoch_index,continuing=not best.stopped and epoch_index<p['training']['epochs'])
+        if improved:save_state(out/'best.pt',model,opt,identity,best,epoch_index,steps,generator,scheduler)
         save_state(out/'last.pt',model,opt,identity,best,epoch_index,steps,generator,scheduler)
         with (out/'history.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps(dict(epoch=epoch_index,steps=steps,validation=metrics,best_epoch=best.epoch))+'\n')
     del train,val,datasets,opt

@@ -12,6 +12,9 @@ from utils.ch3_m_execution import wave_ids,wave_passed,resource_fallback,gpu_env
 
 
 def read_config(s):
+    if s.get('type1_scope'):
+        from utils.ch3_type1_execution import read_config as handler
+        return handler(s)
     if s.get('unified_scope'):
         from utils.ch3_baseline_unified_execution import read_config
         return read_config(s)
@@ -37,7 +40,7 @@ def roots(c,probe):
 
 def confirmation_endpoint(c,s):
     """Only this exact replacement probe keeps the already approved 6/10/6 path."""
-    if not ('native_replacement' in c or c.get('baseline_unified',{}).get('stage')=='MS') or s.get('purpose')!='ch3_probe' or s.get('successor_scope')!=scope.context(c)['probe_scope']:return False
+    if not (c.get('type1_followup') or 'native_replacement' in c or c.get('baseline_unified',{}).get('stage')=='MS') or s.get('purpose')!='ch3_probe' or s.get('successor_scope')!=scope.context(c)['probe_scope']:return False
     t=task_by_id(c,s['task'])
     return t['model']=='TimeMixer' and t['dataset']=='UrbanEV'
 
@@ -49,6 +52,9 @@ def group_for(c,run):
 
 
 def decision_for(c,report,t):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import decision_for as handler
+        return handler(c,report,t)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import decision_for as unified_decision
         return unified_decision(c,report,t)
@@ -69,6 +75,9 @@ def exact_path(c,t,probe,phase,out):
 
 
 def authorization_reasons(c,a,probe=False,worker=False):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_execution import authorization_reasons as handler
+        return handler(c,a,probe,worker)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_execution import authorization_reasons
         return authorization_reasons(c,a,probe,worker)
@@ -86,6 +95,9 @@ def authorization_reasons(c,a,probe=False,worker=False):
 
 
 def metadata_files(c,a):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_execution import metadata_files as handler
+        return handler(c,a)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_execution import metadata_files
         return metadata_files(c,a)
@@ -110,6 +122,9 @@ def metadata_files(c,a):
 
 
 def validate_worker(c,s):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_execution import validate_worker as handler
+        return handler(c,s)
     if s.get('unified_scope'):
         from utils.ch3_baseline_unified_execution import validate_worker
         return validate_worker(c,s)
@@ -134,6 +149,9 @@ def validate_worker(c,s):
 
 
 def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_execution import make_config as handler
+        return handler(c,purpose,out,task=task,approval=approval,artifact_root=artifact_root,resume=resume)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_execution import make_config
         return make_config(c,purpose,out,task=task,approval=approval,artifact_root=artifact_root,resume=resume)
@@ -165,6 +183,9 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False):
 
 
 def validate_wave(c,configs,out):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_execution import validate_wave as handler
+        return handler(c,configs,out)
     if configs and configs[0].get('unified_scope'):
         from utils.ch3_baseline_unified_execution import validate_wave
         return validate_wave(c,configs,out)
@@ -187,7 +208,12 @@ def validate_wave(c,configs,out):
 def compare(c,t,x,y):
     from ch3_runner import compare_probe_trajectories,_compare_full_numeric_files
     row=compare_probe_trajectories(c,t,x,y)
-    if 'baseline_unified' in c:
+    if c.get('type1_followup'):
+        from utils.ch3_type1 import validate_probe_trace
+        p=profile(c,t)
+        for value in (x,y):validate_probe_trace(p['training']['scheduler'],value.get('scheduler_trace',[]),p['training']['betas'])
+        if x['scheduler_trace']!=y['scheduler_trace']:raise ValueError('serial/parallel type1 scheduler exact')
+    elif 'baseline_unified' in c:
         for value in (x,y):
             traces=value.get('scheduler_trace',[])
             if len(traces)!=6:raise ValueError('six scheduler/LR/beta1 identities required')
@@ -209,7 +235,7 @@ def compare(c,t,x,y):
                 p=Path(point[key])
                 if p.is_symlink() or not p.resolve().is_relative_to(scope.context(c)['probe_root']):raise ValueError('successor full state payload namespace')
         if not generic_full and not _compare_full_numeric_files(rule or dict(state_atol=0),left,right)['passed']:row['passed']=False
-    if ('native_replacement' in c or c.get('baseline_unified',{}).get('stage')=='MS') and t['model']=='TimeMixer' and t['dataset']=='UrbanEV':
+    if (c.get('type1_followup') or 'native_replacement' in c or c.get('baseline_unified',{}).get('stage')=='MS') and t['model']=='TimeMixer' and t['dataset']=='UrbanEV':
         from utils.ch3_urban_capture import compare_traces
         from utils.ch3_urban_confirmation import compare_measured
         extra=compare_measured(c,t,x,y,compare_traces(x,y,scope.context(c)['probe_root']))
@@ -223,7 +249,10 @@ def run_probe(c,a):
     ctx=scope.context(c);root=ctx['probe_root'];zero=dict(adam=0,forward=0,backward=0)
     budget=dict(caps=ctx['caps'],reserved=dict(zero),actual=dict(zero),refund=False);decisions={};evidence={};artifacts={}
     def wave(g,phase,ids,n):
-        if 'baseline_unified' in c:
+        if c.get('type1_followup'):
+            from utils.ch3_type1_chain import stop_check
+            stop_check()
+        elif 'baseline_unified' in c:
             from utils.ch3_baseline_unified_chain import stop_check
             stop_check()
         if a.get('recovery_scope'):
@@ -286,9 +315,9 @@ def run_probe(c,a):
             decisions[g['id']]=dict(status='Passed',concurrency=q,serial=serial,parallel=parallel,attempts=attempts,numerical_comparisons=comparisons,coverage=g.get('coverage'),makespan_scope='captured synthetic short package; not formal training speedup')
             dump(root/'progress.json',dict(decisions=decisions,budget=budget))
         report=dict(purpose='native_successor_probe_complete_v1',execution_complete=True,reviewed=False,manual_review=False,admission_granted=False,scope=ctx['probe_scope'],plan=scope.plan(c),approval=source.ref(root/'approval.json'),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,**{k:a[k] for k in ('commit','protocol_sha','code','environment','hardware')})
-        # New recovery M retains immediate group gates; final saved-evidence
-        # replay belongs only to M_AUTO_AUDIT. Legacy scopes retain old behavior.
-        if not a.get('recovery_scope') and not a.get('unified_scope'):validate_probe_completion(c,report)
+        # Recovery, unified and type1 retain immediate group gates; one final
+        # saved-evidence replay belongs to their AUTO_AUDIT. Legacy behavior stays.
+        if not a.get('recovery_scope') and not a.get('unified_scope') and not a.get('type1_scope'):validate_probe_completion(c,report)
         dump(root/'complete.json',report);return report
     except BaseException as exc:
         if a.get('recovery_scope'):

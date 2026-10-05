@@ -91,6 +91,9 @@ class Schedule:
 
 def build(optimizer, profile):
     config=profile['training'].get('scheduler')
+    if isinstance(config,dict) and config.get('name')=='TimeXerType1':
+        from utils.ch3_type1 import Schedule as Type1Schedule
+        return Type1Schedule(optimizer,config)
     return Schedule(optimizer, config) if isinstance(config,dict) else None
 
 

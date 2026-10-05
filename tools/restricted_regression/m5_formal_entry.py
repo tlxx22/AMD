@@ -416,7 +416,10 @@ def run_configs(configs,out,monitor=False):
             if configs and configs[0].get('recovery_scope'):
                 from utils.ch3_native_recovery import dispatch_guard
                 guard=dispatch_guard()
-            if configs and configs[0].get('unified_scope'):
+            if configs and configs[0].get('type1_scope'):
+                from utils.ch3_type1_chain import dispatch_guard
+                guard=dispatch_guard()
+            elif configs and configs[0].get('unified_scope'):
                 from utils.ch3_baseline_unified_chain import dispatch_guard
                 guard=dispatch_guard()
             with guard:
@@ -615,7 +618,10 @@ def worker():
         began=time.time();error=None
         try:
             approval=s['approval']
-            if s.get('unified_scope'):
+            if s.get('type1_scope'):
+                from utils.ch3_type1_execution import worker_permit
+                approval=worker_permit(s)
+            elif s.get('unified_scope'):
                 from utils.ch3_baseline_unified_execution import worker_permit
                 approval=worker_permit(s)
             if s.get('recovery_scope'):

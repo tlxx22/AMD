@@ -11,7 +11,9 @@ from utils.ch3_native_recovery_records import bound,sha
 
 class UnifiedV3Tests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):cls.cs=q.configs()
+    def setUpClass(cls):
+        from tests.ch3_historical_v3 import configurations
+        cls.cs=configurations(cls,s,q)
 
     def test_exact_MS_count(self):self.assertEqual(len(self.cs['MS']['tasks']),203)
     def test_exact_M_count(self):self.assertEqual(len(self.cs['M']['tasks']),84)
@@ -103,10 +105,11 @@ class UnifiedV3Tests(unittest.TestCase):
     def test_early_stop_test_and_update_math_AST_unchanged(self):
         import ch3_runner,subprocess
         old=ast.parse(subprocess.check_output(['git','show',s.BASE+':ch3_runner.py'],cwd=s.ROOT,text=True))
-        new=ast.parse(inspect.getsource(ch3_runner))
+        historical_source=subprocess.check_output(['git','show','df6a16403e10d51097db8c88829909c533d15652:ch3_runner.py'],cwd=s.ROOT,text=True)
+        new=ast.parse(historical_source)
         fs=lambda tree:{x.name:ast.dump(x,include_attributes=False) for x in tree.body if isinstance(x,ast.FunctionDef)}
         for name in ('formal_worker','update','evaluate','init_training','save_state','restore_state'):self.assertEqual(fs(old)[name],fs(new)[name])
-        src=inspect.getsource(ch3_runner.formal_worker)
+        src=ast.get_source_segment(historical_source,next(n for n in new.body if isinstance(n,ast.FunctionDef)and n.name=='formal_worker'))
         self.assertIn('best.stopped',src);self.assertIn('best.update',src)
         self.assertIn('best.pt',src)
 
@@ -136,7 +139,7 @@ class UnifiedV3Tests(unittest.TestCase):
         self.assertEqual({k:sum(v[k] for v in values.values()) for k in values['MS']},dict(runs=287,run_epochs=4900,adam=15574430,backward=15574430,forward=17532869))
 
     def test_v2_start_review_cannot_authorize_v3(self):
-        a=json.loads((s.PACKAGE.with_name('baseline-unified96-onecycle001-v2')/'start-review.json').read_text())
+        a=json.loads((s.ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v2/start-review.json').read_text())
         with patch.object(q,'closure',return_value=a['closure_commit']):
             with self.assertRaises(PermissionError):q.validate_start(a)
 

@@ -11,7 +11,9 @@ from utils.ch3_native_recovery_records import bound,exclusive,ref,sha
 
 class UnifiedTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):cls.cs=q.configs()
+    def setUpClass(cls):
+        from tests.ch3_historical_v3 import configurations
+        cls.cs=configurations(cls,s,q)
     def test_exact_matrix(self):
         self.assertEqual([len(self.cs[k]['tasks']) for k in ('MS','M')],[203,84])
         ids=[t['id'] for c in self.cs.values() for t in c['tasks']]

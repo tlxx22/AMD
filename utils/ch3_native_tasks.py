@@ -104,6 +104,9 @@ def validate(c):
 
 
 def context(c):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import context as type1_handler
+        return type1_handler(c)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import context as unified_context
         return unified_context(c)
@@ -143,6 +146,9 @@ def computational_identity(c, t):
 
 
 def probe_groups(c):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import probe_groups as type1_handler
+        return type1_handler(c)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import probe_groups as unified_groups
         return unified_groups(c)
@@ -174,6 +180,9 @@ def probe_groups(c):
 
 
 def formal_waves(c,report,model):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import formal_waves as type1_handler
+        return type1_handler(c,report,model)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import formal_waves as unified_waves
         return unified_waves(c,report,model)
@@ -212,6 +221,9 @@ def attempt_widths(g):
 
 
 def plan(c):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import plan as type1_handler
+        return type1_handler(c)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import plan as unified_plan
         return unified_plan(c)
@@ -241,6 +253,9 @@ def plan(c):
 
 
 def worker_counts(c,t):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import worker_counts as type1_handler
+        return type1_handler(c,t)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import worker_counts as unified_counts
         return unified_counts(c,t)

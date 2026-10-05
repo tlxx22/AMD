@@ -2915,3 +2915,37 @@ MS/M numeric registry逐项继承v2且diff=0：MS registry SHA d29aaf90b9db5dfa8
 本次仅在 tests/test_m6_baseline_unified_v2.py 将18个历史测试绑定冻结 v2 commit b1a88bff143e4513761ac02895efd683fe32b499、固定 SHA 的 v2 config/start-review/plan及准备证据。历史许可拒绝行为只提取旧源中的校验函数，不加载或运行旧链；过去准备时的fresh状态按留存证据审核，不要求已经退休的v2现场重新变成fresh。测试方法、原断言语义及数值容差保留，无skip/expectedFailure。正式Python、CUDA_VISIBLE_DEVICES=''、PYTHONDONTWRITEBYTECODE=1及指定restricted_regression PYTHONPATH下，v2＋v3复验48/48、统一三组复验94/94均Passed，0 failure/error/skip；仅纯数据fixture及已保存payload只读比较，模型构造/forward/backward/Adam/GPU initialization均0。
 
 相对于修前v3候选，科学配置/profile/numeric registry/预算和全部科学及执行代码字节均未变；本次只增加历史测试修改与两份文档的审核记录。MS203、M84、total287，UrbanEV168项20/5、EPF35项20/5、M84项10/None，numeric diff=0和全部已授权预算保持。未stage/commit/push、未生成start-review、未启动v3；新测试/文档及刷新交付证据仍待ChatGPT最终实际字节审核。
+
+
+### M6 用户新增：baseline-type1-followup-v1（2026-10-05，独立 N 分支候选，未审核/未启动）
+
+本轮在 `m6/type1-followup-v1`、`AMD-type1-followup-v1` 从运行基线 `df6a16403e10d51097db8c88829909c533d15652` 创建独立 worktree。运行 W 的 v3 与生产 R 的 `5341fbcb7c9f4f97658728d79b1af5487f7d38c3` 不编辑、不停止；锁定作者仓库与环境不改。新分支仅为候选权威增量，未合并生产，未stage/commit/push，ChatGPT尚未审核本轮新字节。
+
+新协议 `baseline-type1-followup-v1`，scope `m6-baseline-type1-followup-v1`，session `ch3-baseline-type1-followup-v1`；package/result/probe/queue/log/permit/STOP 全部独立。七模型固定顺序 AMD→DLinear→PatchTST→iTransformer→TimeMixer→ModernTCN→TimeXer。第一环 UrbanEV F4 只选 fold1、6 × label H3、12，共28项，覆盖训练规模/跨度两端，非按test挑选；这是首批28格正式补充实验，覆盖28/168而非完整六fold，也不是validation-only开发。T12/pred_len1/C11、20epoch/patience5、batch/eval128、结构、输入11列、target/aux、原生historical marks、split、train-only scaler、seed2024及其它父值不变，只改优化调度。第二环 PJM/NP/BE/FR/DE ×七模型、H=pred_len24，共35项；T由96恢复168，只再改变优化调度，20/5及各模型/市场自己的batch/eval/结构和其它profile保持。T依赖的train窗口/batch与metadata按固定endpoints重算，validation/test目标边界和scaler不变，无test标签预算读取。合计63 fresh run/1260 max run-epochs；J/N/S/ECL不入队，无新M，不补齐其余140个UrbanEV格。
+
+学习率仅借锁定TimeXer commit `76011909357972bd55a27adba2e1be994d81b327` 的type1规则，来源run.py、utils/tools.py、exp/exp_long_term_forecasting.py、scripts/forecast_exogenous/EPF/TimeXer.sh逐份SHA绑定；tools SHA `64048f154f899221d202ee740d06a32d30b5ba01425c9d69a3f20af8e43c15b8`，exp SHA `c235090c91d22275ba871ed6972a9e4521c6b5b53239ef38b4a757b742adcacc`。不执行作者训练脚本，不搬入作者每epoch访问test或默认10/3。两环Adam initial_lr=1e-4，基础betas固定，eps/weight_decay保留，移除OneCycle动态beta1。第e轮实际LR为 `1e-4*0.5**max(e-2,0)`：前两轮均1e-4，第3轮5e-5，第4轮2.5e-5。epoch末validation与BestState更新后、若继续训练才调整下一轮；严格val MSE `<`、tie保留早best、连续5次无改善停止不变。独立type1 checkpoint schema保存updates/completed_epoch/LR位置/current-nextLR/固定betas/config，完整恢复避免重复/漏衰减；旧OneCycle路径保持兼容，跨科学协议checkpoint禁止恢复。
+
+用户明确授权每个新run在validation-selected best锁定后一次正式test，两环均如此。probe不访问正式test；训练/早停不依据test。已有v3及T168旧formal/补做（包括supplements/epf4-timemixer-v1）对照只读落盘指标与身份，不重训、不重test、不逐格择优、不自动替换论文主表。历史test曾被查看如实登记，单seed std=N/A。未来同协议扩展需另行授权且精确继承28项，不因队列改名重训；本轮不实施扩展。若无法确认test是否已访问，停止该项自动恢复，不再次test；checkpoint恢复须审计scheduler/optimizer/RNG/best/patience/history一致性，本链fresh-only，不构建无限resume平台。
+
+新等待器未来一次用户start/arm即可持久tmux等待。固定上游v3 start-review SHA `4c39ec5e025ca8ea492129d459ba395c70e68d1d2a6a698b2b142518bf8e632d`、controller SHA `1b8e6098450326577a3f42091ac09237a2c84caac12d2aff7a9b6403645dda79`、owner36799/start_ticks171530843及scope/commit/path进入代码和许可绑定。等待期间不初始化GPU、不占组GPU锁、不启动probe/worker；旧链running是合法arm状态。只有合法顶层complete覆盖203 MS＋84 M、MS/M sealed边界和完整唯一结果索引/来源/expected refs一致、无旧STOP/failure、原owner及登记owned实例全部退出，才能启动新计算。只完成MS、owner消失无complete、伪造/错误SHA/缺失/重复/来源变化均不能启用。旧链不做test/probe数值回放；旧checkpoint只继承其sealed索引引用，不反序列化。新handoff完成核验后由当前受控生命周期MAC封存，不能以现场JSON自签READY。新的safe-stop只影响新scope，不向旧v3发信号。
+
+正常链：WAIT_V3_COMPLETE_AND_RELEASED→协议preflight→Urban probe→Urban AUTO_AUDIT→28 formal/test→Urban sealed boundary→EPF probe→EPF AUTO_AUDIT→35 formal/test→COMPLETE。第一环效果不控制第二环；技术完整就按固定计划继续，无中途人工许可。技术失败保留现场并停后续，不自动调参/改阈值/fresh retry。COMPLETE仅technical complete，result_review=pending。
+
+必要技术准入共15组63代表，各自独立serial六步，再实际parallel。Urban每模型f1H3/f1H12/f6H3/f6H12同波候选q4；非TimeXer六模型EPF五市场q4候选4+1；TimeXer PJM/BE/FR为batch16实际3、q4容量，NP/DE为batch4 q2，不跨模型并发，不改batch。跨epoch减半/20轮/resume以无模型合成测试证明，不把六步称作完整epoch。全部numeric逐scope继承v3；ModernTCN五EPF仍5e-4 full-state、Urban exact，浮点完整state/gradient/Adam moments与finite/初始化/RNG/batch/order/step/身份检查保留，scheduler/LR/betas exact，TimeMixer Urban step2/6 endpoint gate保留。仅resource可一次q4→q2→合法serial q1、原q2→serial q1；numeric/finite/identity/scheduler/data/guard失败不得fallback。每环AUTO_AUDIT完整审计一次，随后compact summary/manifest/permit/runtime refs；每formal监督器生命周期一次manifest SHA scan，group/wave/task/worker零probe原张量回放，generic payload不重复比较，第二环轻量消费第一环sealed边界。GPU组锁由实际执行子组持有，等待supervisor不自锁。
+
+用户授权固定预算已由helper独立复算，数字顺序Adam/backward/forward：Urban正式28/560，2414440/2414440/2711114；EPF正式35/700，672860/672860/778932；总63/1260，3087300/3087300/3490046。Urban probe 7/28，nominal336/336/464、cap504/504/696；EPF probe8/35，nominal420/420/560、cap618/618/824；总nominal756/756/1024、cap1122/1122/1520。cap含预登记resource回退，不含无限重试；所有旧消费保留、不退款、不抵扣，技术失败不抹账，效果不佳/正常早停不增加预算，不新增seed/search/candidate。预算本轮已经由用户批准，模板flags仍为false，仅表示尚待新字节审核/closure/start-record绑定，不是再次请求预算授权。
+
+192/192无模型验收Passed，0 failure/error/skip；真实模型构造/forward/backward/Adam update/GPU initialization均0，GPU未初始化。原OneCycle和历史v2/v3回归保留；历史配置/来源显式版本隔离，所有fixture输出移到新P，不让新worktree或旧链实时结果误作历史fresh状态。初轮80项1failure、后续111项2error、187项5failure及187项1failure/3error均保留，属于测试/执行身份接线发现，不删断言/skip/改容差。送审前纯metadata复核发现15项EPF native mark形状仍继承T96，已按T168更正并增加逐项shape/window绑定验收；scaler/prefix/source内容和所有预算保持，未发生任何真实模型尝试。合成tmux首轮因缺start argv被身份门禁拒绝，重做的受控fixture已证明SSH启动器返回后等待存活、owned safe-stop退出、old_chain_signal_sent=false；没有启动真实新等待器。
+
+工期为历史同model/域runtime、精确窗口/batch/max20及实际wave的估算，不是新协议实测：候选q通过且无其它GPU负载时，Urban约27.8–55.6小时、EPF约2.9–5.8小时；新probe名义约0.24–1.07小时，总新计算约31–63小时，另加旧v3剩余等待。资源退为serial时正式约2.95–5.90天；early stop可能减少actual但不扩大cap。当前只生成不可执行模板，dry-run exit0展示计划且blocked、模板preflight exit2按预期拒绝未review/closure/start-record绑定。READY_TO_ARM_HANDOFF与READY_FOR_GPU_EXECUTION分别登记；本轮二者false，没有start-review、真实session、结果根、GPU/probe/formal/test。外置P存完整task/profile/source/budget/调用链/验收失败账/diff/SHA与操作命令，N最新canonical/M6为候选，W/R原文和历史artifact保持。
+#### baseline-type1-followup-v1 审核后完整审计职责修复（2026-10-05，N候选修后待复审）
+
+ChatGPT服务器实际字节/代码路径审核确认：原type1候选许可只有type1_scope，run_probe尾部仅排除recovery_scope/unified_scope，因此probe全部成功后仍调用validate_probe_completion，随后对应AUTO_AUDIT再次调用。原192/192无模型证据继续对其原覆盖范围有效，但未覆盖这条双调用路径；该发现来自代码审核，不是已启动GPU后观察到的耗时、数值或科学结果失败。
+
+本轮仅在utils/ch3_native_execution.py的尾部归属条件加入type1_scope排除，与既有recovery/unified保持一致；不伪造unified_scope，不删除legacy完整审计，不删除serial自检及逐组numeric/finite/resource/identity即时gate，不延迟失败组检查，不删除AUTO_AUDIT。新增tests/test_m6_type1_followup.py中的7项调用位置回归，用合成fixture驱动实际run_probe及audit_probe入口；仅模型/进程计算和完整数值回放使用可计数替身，没有整体mock这两个待验证入口。
+
+实际成功调度证据：URBAN_SUBSET的run_probe尾部完整审计0、AUTO_AUDIT完整审计1；EPF_ALL同为0/1；两环合计2而非4。逐组实际compare和串行自检继续执行，numeric/finite/identity失败均不派发后续组、不走resource fallback。legacy尾部仍1，recovery/unified尾部仍0。formal permit/config/worker/group/wave的完整probe审计及原始张量比较均0；formal监督器manifest扫描仍每生命周期1次，子路径不再次扫描，跨进程轻量绑定、第一环sealed边界消费方式不变。
+
+本轮原192项覆盖加新增7项实际共199/199 Passed，0 failure/error/skip；模型构造、真实forward/backward/Adam、GPU初始化全部0。首轮实际199项出现1个error：recovery兼容fixture错误读取旧退休scope的STOP，已将该fixture的CONTROL显式绑定其临时目录，保留原STOP检查和全部断言；失败日志及旧送审材料完整归档，不加skip或放宽容差。
+
+两份type1 config、63任务/profile、numeric registry、数据metadata、TimeXer来源recipe、type1 scheduler实现、正式/probe计划与预算逐份SHA保持原值；W/v3与生产R、作者仓库及环境不改，不signal或停止旧链。候选变化仍为原24项（12 modified+12 untracked），本轮相对上次候选仅执行文件、测试文件和两份最新文档4项变化。外置P刷新调用次数、验收/不变证明、inventory/完整patch/report/evidence-index及受代码绑定影响的非执行fixture；保留原192和前一版审核材料。未stage/commit/push，未物化可执行许可、未启动真实等待器/probe/formal/test；修后新字节仍待ChatGPT审核。

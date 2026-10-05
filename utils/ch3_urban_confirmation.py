@@ -19,6 +19,10 @@ POLICY=dict(id='timemixer-urban-f4-confirmation-v1',model='TimeMixer',dataset='U
 def policy(c,t):
  if (t['model'],t['dataset'],t['input_variant'],t['h'])!=('TimeMixer','UrbanEV','F4',t['h']) or t['h']not in POLICY['horizons']:return None
  p=profile(c,t)
+ if c.get('type1_followup'):
+  if (p['T'],p['pred_len'],p['C'],p['training']['batch'],p['training']['eval_batch'],p['training']['lr'])!=(12,1,11,128,128,1e-4):raise ValueError('type1 inherited UrbanEV computation')
+  from utils.ch3_type1_tasks import numeric_policy
+  return numeric_policy(c,t)
  if 'baseline_unified' in c:
   if (p['T'],p['pred_len'],p['C'],p['training']['batch'],p['training']['eval_batch'],p['training']['lr'])!=(12,1,11,128,128,.01):raise ValueError('unified UrbanEV inherited computation')
   from utils.ch3_baseline_unified_tasks import numeric_policy

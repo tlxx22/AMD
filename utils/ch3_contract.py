@@ -66,6 +66,9 @@ RSS_PROBE_POLICY = dict(id='rss-material-growth-platform-v1', short_window=4,
 
 
 def numeric_probe_policy(c, task):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import numeric_policy as type1_handler
+        return type1_handler(c,task)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import numeric_policy
         return numeric_policy(c,task)
@@ -171,6 +174,9 @@ def read_profiles(path=PROFILE_FILE):
 
 
 def generate_tasks(c):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import expected_tasks as type1_handler
+        return type1_handler(c['baseline_unified']['stage'])
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import expected_tasks
         return expected_tasks(c['baseline_unified']['stage'])
@@ -223,6 +229,9 @@ def task_by_id(c, run_id):
 
 
 def profile(c, task):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import profile as type1_handler
+        return type1_handler(c,task)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import profile as unified_profile
         return unified_profile(c,task)
@@ -257,6 +266,9 @@ def profile(c, task):
 
 
 def validate_manifest(c):
+    if c.get('type1_followup'):
+        from utils.ch3_type1_tasks import validate as type1_handler
+        return type1_handler(c)
     if 'baseline_unified' in c:
         from utils.ch3_baseline_unified_tasks import validate
         return validate(c)
