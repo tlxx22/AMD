@@ -5,15 +5,17 @@ from utils.ch3_contract import ROOT, digest, step_arithmetic
 from utils.ch3_native_recovery_records import bound, ref
 from utils import ch3_type1_ett as ett
 
-PROTOCOL = 'baseline-unified96-onecycle001-v3-amend1'
-ID = 'm6-baseline-unified96-oc01-v3-amend1'
+PROTOCOL = 'baseline-unified96-onecycle001-v3-amend1-m128-recovery1'
+ID = 'm6-baseline-unified96-oc01-v3-amend1-m128-recovery1'
 STAGE = 'M_AMEND'
 DATASETS = ('ETTh2', 'ETTm1', 'ETTm2', 'Weather')
 MODELS = ('AMD','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer')
-PACKAGE = ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1'/PROTOCOL
-RESULT = ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'/PROTOCOL
-PARENT_REF = dict(path=str(ROOT/'configs/ch3_baseline_m_u96_oc01_v3.json'),sha256='f627260225b971d13d1e881d8123a0426c63304e64d8e8afa56fa0ab73a3cdb2')
-RECIPE_REF = dict(path=str(PACKAGE.parent/'baseline-unified96-onecycle001-v1/onecycle-author-recipe.json'),sha256='e2e1cb27c93d2e865ea68c1e39858363ebc216a5c91df0ec773862bbc0a9185f')
+from utils import ch3_ms_seal_recovery as recovery
+PACKAGE = recovery.PACKAGE/'amendment'
+RESULT = recovery.RESULT/'round2-amendment'
+HISTORICAL_RESULT = ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3-amend1'
+PARENT_REF = dict(path=str(recovery.M_FILE),sha256='7f4720a723e31e3f5b291466c5b483021d480e0152c4317871f8d8097b4b14a5')
+RECIPE_REF = dict(path=str(recovery.PACKAGE.parent/'baseline-unified96-onecycle001-v1/onecycle-author-recipe.json'),sha256='e2e1cb27c93d2e865ea68c1e39858363ebc216a5c91df0ec773862bbc0a9185f')
 
 @lru_cache(maxsize=1)
 def parent(): return bound(PARENT_REF)
@@ -29,7 +31,7 @@ def selected():
     return result
 
 def task(t):
-    t = copy.deepcopy(t); group = t['model']+'-'+t['dataset']+'-M-oc01-v3-amend1'
+    t = copy.deepcopy(t); group = t['model']+'-'+t['dataset']+'-M-oc01-v3-amend1-m128-recovery1'
     t.update(id=group+'-f1-h'+str(t['h'])+'-s2024',group=group,profile=group+'-h'+str(t['h']))
     return t
 
@@ -95,10 +97,11 @@ def validate_index(v):
     for row in cells:
         t=expected_tasks[row['cell_id']]
         if any(row.get(k)!=t['h' if k=='H' else k] for k in ('task','model','dataset','fold','H','seed')):raise ValueError('exact cell/source identity; dataset labels cannot redefine selection')
-        expected='amend1' if row['dataset'] in DATASETS else 'original_v3'
+        expected='amend1' if row['dataset'] in DATASETS else 'original_v3' if row['task']=='MS' else 'base_m128'
         if row['origin']!=expected: raise ValueError('fixed all-Weather20 selection; no metric-based choice')
         if row['dataset']=='Weather' and not row.get('supersedes'): raise ValueError('old Weather10 remains referenced as superseded')
         if row['origin']=='amend1' and row['scientific_protocol']!=PROTOCOL: raise ValueError('amendment execution identity cannot masquerade as original')
+        if row['origin']=='base_m128' and row['scientific_protocol']!=recovery.M_PROTOCOL:raise ValueError('ETTh1/Exchange must use new M128 source')
     return v
 
 def artifact_rows(boundary_ref):
@@ -113,20 +116,21 @@ def artifact_rows(boundary_ref):
 
 def build_index(old_boundaries,amendment_ref,c):
     from utils.ch3_type1_upstream import records,OLD_RESULT,OLD_PROTOCOL,BASE
-    start,_=records(); old={stage:bound(start['config_refs'][stage]) for stage in ('MS','M')}
+    start,_=records(); old={'MS':bound(start['config_refs']['MS']),'M':parent()}
     banks={stage:artifact_rows(old_boundaries[stage]) for stage in old}; new=artifact_rows(amendment_ref)
     if set(new)!={t['id'] for t in c['tasks']}: raise ValueError('all 112 amendment results must be sealed before selection')
     cells=[]
     def add(config,t,files,origin,supersedes=None):
         r=bound(files['result.json']);m=bound(files['manifest.json']);p=config['resolved_profiles'][t['id']]
-        science=config['baseline_unified']['id'];root=(OLD_RESULT/('MS' if t['task']=='MS' else 'M') if origin=='original_v3' else RESULT/STAGE)/('formal-'+t['model'])/t['id']
+        science=config['baseline_unified']['id'];root=(OLD_RESULT/'MS' if origin=='original_v3' else recovery.RESULT/'M_BASE' if origin=='base_m128' else RESULT/STAGE)/('formal-'+t['model'])/t['id']
         if files['result.json']['path']!=str(root/'result.json') or files['manifest.json']['path']!=str(root/'manifest.json') or m['task']!=t or m['profile']!=p or r['id']!=t['id'] or r['profile_sha']!=digest(p) or r['protocol_sha']!=digest(config) or r['scientific_protocol']!=science or r['commit']!=m['identity']['commit'] or r.get('final_test',{}).get('calls')!=1: raise ValueError('exact source/config/execution/test-once provenance')
         if origin=='original_v3' and r['commit']!=BASE: raise ValueError('original execution commit must remain original')
+        if origin!='original_v3' and r['commit']!=bound(old_boundaries['M'])['commit']:raise ValueError('new M/amendment current actual execution commit')
         cells.append(dict(cell_id=key(t),task=t['task'],model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=t['seed'],origin=origin,scientific_protocol=science,execution_commit=r['commit'],profile_sha=r['profile_sha'],protocol_sha=r['protocol_sha'],result_ref=files['result.json'],manifest_ref=files['manifest.json'],runtime_ref=files['runtime.json'],mse=r['mse'],mae=r['mae'],supersedes=supersedes,std='N/A'))
     for stage,config in old.items():
         for t in config['tasks']:
             if t['dataset']=='Weather': continue
-            add(config,t,banks[stage][t['id']],'original_v3')
+            add(config,t,banks[stage][t['id']],'original_v3' if stage=='MS' else 'base_m128')
     for t in c['tasks']:
         prior=source_task(t);supersedes=banks['M'][prior['id']]['result.json'] if t['dataset']=='Weather' else None
         add(c,t,new[t['id']],'amend1',supersedes)

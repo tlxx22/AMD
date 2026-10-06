@@ -50,9 +50,9 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，指令一closure后文档整理）**：第一轮为初始全量方案及已接受补做/修订；第二轮为v3统一OneCycle体系，修订完成后371有效格；第三轮为衰减学习率续接231项。固定顺序为原v3全部287项技术完成并释放owned计算进程→第二轮112项补齐/Weather20修订→371格来源边界→第三轮231项，不另设第四轮。第二轮371格区别于原287＋112＝399次计划正式运行，来源固定、不按test择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)。
+**当前总览（M6，MS封存修复与M128恢复候选）**：第一轮为初始全量方案及已接受补做/修订；第二轮为v3统一OneCycle体系，修订完成后371有效格；第三轮为衰减学习率续接231项。原v3已完成203项MS训练/test，但在MS封存因重复`protocol_sha`传参失败，M84尚未probe或训练；本次用户批准M84的train/eval batch统一128，属于科学修订，区别于封存技术修复。固定顺序改为只读验证旧MS203及退出身份→恢复封存→fresh M128的84项→混合来源基础287边界→第二轮112项补齐/Weather20修订→371格来源边界→第三轮231项，不另设第四轮。第二轮最终所有M域batch128，Weather主结果采用20轮OneCycle；新增ETT84及第三轮231科学合同保持。371有效格区别于第二轮287＋112＝399次计划正式运行，余下总链84＋112＋231＝427项；来源固定、不按test择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)。
 
-19项实现已实际字节审核并closure，代码commit为`26e7dcaa32ce5fb21b9f15f475fdd668d18a3571`。本轮只整理AGENTS/canonical/M6，修后文档待直读审核；第二轮补做与第三轮新执行未启动，旧第三轮等待器已停止。原v3的只读现场时点及证据见M6文件头，未将自然进度当成已完成。
+此前实现、文档及两次窄修已closure，本轮从N实际版本`1134611cd52e4cedb7418d8a9f8a7f6e76512617`开发恢复候选。W原失败代码、failure/controller/许可/probe及203项MS产物只读保留，原等待续接链因上游failure退出且零计算；恢复封存记录旧训练来源与未来实际封存执行版本，不伪造旧链正常完成。新恢复包`baseline-unified-v3-ms-seal-m128-recovery1`隔离输出与许可；本轮未提交、未生成可执行许可、未启动真实恢复/probe/训练/test，新字节待ChatGPT实际读取审核。
 
 <a id="experiment-authorization-and-technical-failures"></a>
 ### 实验授权、必要检查与技术失败处理

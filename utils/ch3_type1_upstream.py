@@ -16,6 +16,9 @@ OWNER=dict(pid=36799,start_ticks='171530843')
 CODE_REF=dict(path=str(OLD_PACKAGE.with_name('baseline-type1-followup-v1')/'upstream-code-binding.json'),sha256='4ec3c6872e2b48ba6263b05c3c35af0db33c7bb10ed402ed4c299d51f650a153')
 ENV_REF=dict(path=str(OLD_PACKAGE/'environment-hardware.json'),sha256='e2fa17dc103fcc70acb9d7c49db75171126afdedf84f0cb5db0bb9fb944576c2')
 def anchors():
+    from utils import ch3_ms_seal_recovery as recovery
+    return recovery.anchors()
+def historical_anchors():
     return dict(scope=OLD_SCOPE,scientific_protocol=OLD_PROTOCOL,commit=BASE,worktree=str(OLD_WORK),result_root=str(OLD_RESULT),start_ref=START_REF,controller_ref=CONTROLLER_REF,owner=OWNER,code_ref=CODE_REF,environment_ref=ENV_REF,expected_runs=dict(MS=203,M=84,total=287))
 def records():
     start=bound(START_REF);control=bound(CONTROLLER_REF)
@@ -30,6 +33,13 @@ def health():
     return True
 def owned_refs():
     refs={ (OWNER['pid'],OWNER['start_ticks']):OWNER }
+    def register(value):
+        pid=int(value['pid'])
+        if 'start_ticks' not in value:
+            if value.get('state')!='metadata_unavailable' or (Path('/proc')/str(pid)).exists():raise ValueError('unverifiable retained sampled process is still present')
+            instance=dict(pid=pid,start_ticks=None,exit_proof='sample metadata_unavailable; PID absent; ticks unknown')
+        else:instance=dict(pid=pid,start_ticks=str(value['start_ticks']))
+        refs[(instance['pid'],instance['start_ticks'])]=instance
     current=OLD_RESULT/'queue/controller/current.json'
     if current.exists():
         value=json.loads(current.read_text())
@@ -42,7 +52,7 @@ def owned_refs():
             with memory.open()as handle:
                 for line in handle:
                     for value in json.loads(line).get('owned_pid_metadata',{}).values():
-                        instance=dict(pid=int(value['pid']),start_ticks=str(value['start_ticks']));refs[(instance['pid'],instance['start_ticks'])]=instance
+                        register(value)
         complete=OLD_RESULT/'probe'/stage/'complete.json'
         if complete.exists():
             report=json.loads(complete.read_text())
@@ -53,7 +63,7 @@ def owned_refs():
                 with memory.open()as handle:
                     for line in handle:
                         for v in json.loads(line).get('owned_pid_metadata',{}).values():
-                            instance=dict(pid=int(v['pid']),start_ticks=str(v['start_ticks']));refs[(instance['pid'],instance['start_ticks'])]=instance
+                            register(v)
     return list(refs.values())
 def expected_ref(value,path):
     if value.get('path')!=str(path):raise ValueError('upstream expected reference path')
@@ -102,6 +112,9 @@ def validate_completion(top):
         receipts[stage]=top[stage+'_boundary']
     return receipts
 def status(full=False):
+    from utils.ch3_ms_seal_recovery import status as recovery_status
+    return recovery_status(full)
+def historical_status(full=False):
     health();top_path=OLD_RESULT/'queue/controller/complete.json';live=same(OWNER)
     if not top_path.exists():
         if not live:raise RuntimeError('upstream owner exited without legal complete')

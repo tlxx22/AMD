@@ -30,7 +30,7 @@ def metadata_files(c,a,runtime_ref=None):
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
     values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
     values += list(a.get('predecessor_boundaries',{}).values())
-    for key in ('summary_ref','ms_boundary_ref','upstream_boundary_ref','round2_boundary_ref'):
+    for key in ('summary_ref','ms_boundary_ref','upstream_boundary_ref','base287_boundary_ref','round2_boundary_ref'):
         if a.get(key):values.append(a[key])
     if runtime_ref:values.append(runtime_ref)
     # Raw probe payloads and the large probe completion report are deliberately absent.

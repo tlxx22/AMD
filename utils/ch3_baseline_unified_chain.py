@@ -256,8 +256,10 @@ def seal_boundary(c,receipts):
     for m in s.MODELS:
         r=bound(receipts[m])
         if r.get('technical_complete')is not True or r['model']!=m or r['task_ids']!=[t['id'] for t in c['tasks'] if t['model']==m]:raise ValueError('exact successful model receipt')
+    binding=dynamic(c)
+    if binding.get('protocol_sha')!=digest(c):raise ValueError('seal protocol binding differs from exact configuration')
     return exclusive(s.context(c)['control']/'technical-boundary.json',dict(purpose='baseline_unified_'+s.context(c)['stage']+'_boundary_v1',scope=s.ID,
-        task_ids=[t['id'] for t in c['tasks']],protocol_sha=digest(c),receipts=receipts,technical_complete=True,result_review='pending',**dynamic(c)))
+        task_ids=[t['id'] for t in c['tasks']],receipts=receipts,technical_complete=True,result_review='pending',**binding))
 
 
 def drive(actions,update,check):

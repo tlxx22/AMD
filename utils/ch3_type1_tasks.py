@@ -6,18 +6,24 @@ from utils.ch3_contract import ROOT,digest,step_arithmetic
 from utils.ch3_native_recovery_records import bound,sha
 from utils.ch3_type1_scaled import configuration
 BASE='5bd62dc93d611b3271467a46fd16335b622e0af1'
-PROTOCOL='baseline-type1-followup-v3'
-ID='m6-baseline-type1-followup-v3'
+PROTOCOL='baseline-type1-followup-v3-recovery1'
+ID='m6-baseline-type1-followup-v3-recovery1'
 MODELS=('AMD','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer')
-STAGES=('M_AMEND','URBAN_SUBSET','EPF_ALL','M_ALL')
-PACKAGE=ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1'/PROTOCOL
-RESULT=ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'/PROTOCOL
+STAGES=('M_BASE','M_AMEND','URBAN_SUBSET','EPF_ALL','M_ALL')
+from utils.ch3_ms_seal_recovery import PACKAGE,RESULT
 PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_ms_u96_oc01_v3.json'),sha256='6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09')
 M_PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_m_u96_oc01_v3.json'),sha256='f627260225b971d13d1e881d8123a0426c63304e64d8e8afa56fa0ab73a3cdb2')
 AUTHOR_RECIPE=dict(path=str(PACKAGE.parent/'baseline-type1-followup-v2/type1-author-recipe.json'),sha256='fc1081b5acaef98181bc4edd0d5bcbab7ca7620e69eff4a1b97850833cf3da71')
 @lru_cache(maxsize=2)
 def parent(stage='URBAN_SUBSET'):return bound(parent_ref(stage))
-def parent_ref(stage):return M_PARENT_REF if stage in ('M_ALL','M_AMEND') else PARENT_REF
+def parent_ref(stage):
+    if stage=='M_BASE':
+        from utils.ch3_ms_seal_recovery import M_PARENT
+        return M_PARENT
+    if stage=='M_AMEND':
+        from utils.ch3_round2_amendment import PARENT_REF as value
+        return value
+    return M_PARENT_REF if stage=='M_ALL' else PARENT_REF
 def package(stage):
     if stage=='M_AMEND':
         from utils.ch3_round2_amendment import PACKAGE as value
@@ -25,9 +31,15 @@ def package(stage):
     return PACKAGE
 def file(stage):
     if stage not in STAGES:raise ValueError('exact type1 ring')
-    return ROOT/'configs/ch3_round2_m_amend1.json' if stage=='M_AMEND' else ROOT/'configs'/('ch3_type1_'+stage.lower()+'_v3.json')
+    if stage=='M_BASE':
+        from utils.ch3_ms_seal_recovery import M_FILE
+        return M_FILE
+    return ROOT/'configs/ch3_round2_m_amend1_recovery1.json' if stage=='M_AMEND' else ROOT/'configs'/('ch3_type1_'+stage.lower()+'_v3_recovery1.json')
 def selected(stage):
     if stage not in STAGES:raise ValueError('exact ring')
+    if stage=='M_BASE':
+        from utils.ch3_ms_seal_recovery import m_parent
+        return m_parent()['tasks']
     if stage=='M_AMEND':
         from utils.ch3_round2_amendment import selected as handler
         return handler()
@@ -46,10 +58,13 @@ def selected(stage):
         return result
     return [t for t in rows if t['dataset']=='UrbanEV' and t['fold']in (1,2) and t['h']in (3,12)] if stage=='URBAN_SUBSET' else [t for t in rows if t['dataset']!='UrbanEV']
 def new_task(t):
-    value=copy.deepcopy(t);group=t['model']+'-'+t['dataset']+'-'+t['input_variant']+'-type1-followup-v3'
+    value=copy.deepcopy(t);group=t['model']+'-'+t['dataset']+'-'+t['input_variant']+'-type1-followup-v3-recovery1'
     value.update(id=group+'-f'+str(t['fold'])+'-h'+str(t['h'])+'-s2024',group=group,profile=group+'-h'+str(t['h']))
     return value
 def expected_tasks(stage):
+    if stage=='M_BASE':
+        from utils.ch3_ms_seal_recovery import m_tasks
+        return m_tasks()
     if stage=='M_AMEND':
         from utils.ch3_round2_amendment import tasks
         return tasks()
@@ -72,6 +87,9 @@ def numeric_policy(c,t):
     return copy.deepcopy(c['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']])
 def validate(c):
     from utils import ch3_type1_ett as ett
+    if c['baseline_unified']['stage']=='M_BASE':
+        from utils.ch3_ms_seal_recovery import validate_m
+        return validate_m(c)
     if c['baseline_unified']['stage']=='M_AMEND':
         from utils.ch3_round2_amendment import validate as handler
         return handler(c)
@@ -101,9 +119,10 @@ def probe_groups(c):
     for model in MODELS:
         ts=[t for t in c['tasks']if t['model']==model]
         from utils.ch3_type1_ett import M_DATASETS
+        if stage=='M_BASE':M_DATASETS=('ETTh1','Weather','Exchange')
         if stage=='M_AMEND':
             from utils.ch3_round2_amendment import DATASETS as M_DATASETS
-        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage in ('M_ALL','M_AMEND') else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
+        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage in ('M_BASE','M_ALL','M_AMEND') else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
         for rows,q,label in banks:
             result.append(dict(id=model+'-'+label,model=model,representatives=[t['id']for t in rows],planned_q=q,coverage={t['id']:[t['id']]for t in rows},identities={t['id']:digest(profile(c,t))for t in rows},equivalence='own-profile independent six-step serial; fixed actual waves; type1 epoch behavior proved separately with no-model fixtures'))
     return result

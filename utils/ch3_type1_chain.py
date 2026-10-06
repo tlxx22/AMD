@@ -9,15 +9,16 @@ from m6_remaining_entry import identity,same,lock,signal_owned
 PYTHON='/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python'
 CONTROL=s.RESULT/'queue'/'controller'
 LOG=s.PACKAGE/'followup-launcher.log'
-SESSION='ch3-baseline-type1-followup-v3'
+SESSION='ch3-baseline-type1-followup-v3-recovery1'
 TOKEN='CH3_TYPE1_LAUNCH_TOKEN'
 SECRET='CH3_TYPE1_RUNTIME_SECRET'
 ENVIRONMENT_REF=dict(path=str(s.PACKAGE/'environment-hardware.json'),sha256='e2fa17dc103fcc70acb9d7c49db75171126afdedf84f0cb5db0bb9fb944576c2')
-STAGE_STATES={'M_AMEND':('AMEND_RESOURCE_NUMERIC_PROBE','AMEND_AUTO_AUDIT','AMEND_FORMAL_ALL_BASELINES','SEAL_AMEND_BOUNDARY'),
+STAGE_STATES={'M_BASE':('M128_RESOURCE_NUMERIC_PROBE','M128_AUTO_AUDIT','M128_FORMAL_ALL_BASELINES','SEAL_M128_BOUNDARY'),
+    'M_AMEND':('AMEND_RESOURCE_NUMERIC_PROBE','AMEND_AUTO_AUDIT','AMEND_FORMAL_ALL_BASELINES','SEAL_AMEND_BOUNDARY'),
     'URBAN_SUBSET':('URBAN_RESOURCE_NUMERIC_PROBE','URBAN_AUTO_AUDIT','URBAN_FORMAL_ALL_BASELINES','SEAL_URBAN_BOUNDARY'),
     'EPF_ALL':('EPF_RESOURCE_NUMERIC_PROBE','EPF_AUTO_AUDIT','EPF_FORMAL_ALL_BASELINES','SEAL_EPF_BOUNDARY'),
     'M_ALL':('M_RESOURCE_NUMERIC_PROBE','M_AUTO_AUDIT','M_FORMAL_ALL_BASELINES','SEAL_M_BOUNDARY')}
-STATES=('WAIT_V3_COMPLETE_AND_RELEASED','FOLLOWUP_PROTOCOL_PREFLIGHT',*STAGE_STATES['M_AMEND'],'SEAL_ROUND2_REVISED_BOUNDARY',*STAGE_STATES['URBAN_SUBSET'],*STAGE_STATES['EPF_ALL'],*STAGE_STATES['M_ALL'],'COMPLETE')
+STATES=('VERIFY_IMPORT_MS203_AND_SEAL','FOLLOWUP_PROTOCOL_PREFLIGHT',*STAGE_STATES['M_BASE'],'SEAL_BASE_287_BOUNDARY',*STAGE_STATES['M_AMEND'],'SEAL_ROUND2_REVISED_BOUNDARY',*STAGE_STATES['URBAN_SUBSET'],*STAGE_STATES['EPF_ALL'],*STAGE_STATES['M_ALL'],'COMPLETE')
 
 
 def upstream_anchors():
@@ -29,16 +30,23 @@ def upstream_status():
     return status()
 
 def wait_upstream():
-    from utils.ch3_type1_upstream import status
-    while True:
-        stop_check();v=status(full=True)
-        if v['READY_FOR_GPU_EXECUTION']:
-            v.update(handoff_scope=s.ID,successor_owner=owner())
-            secret=os.environ.get(SECRET)
-            if not secret:raise PermissionError('controlled handoff lifecycle absent')
-            v['mac']=hmac.new(secret.encode(),digest(v).encode(),hashlib.sha256).hexdigest()
-            return exclusive(CONTROL/'upstream-technical-boundary.json',v)
-        time.sleep(30)
+    from utils import ch3_ms_seal_recovery as recovery
+    from ch3_runner import code_binding
+    stop_check();source=recovery.verify_source();stop_check()
+    seal_commit=closure()
+    ms=dict(purpose='recovered_original_MS203_boundary_v1',scope=s.ID,technical_complete=True,result_review='pending',
+        task_ids=source['task_ids'],receipts=source['receipts'],protocol_sha=source['training_protocol_sha'],
+        training_commit=source['training_commit'],training_protocol=source['training_protocol'],commit=seal_commit,
+        seal_execution_commit=seal_commit,seal_execution_code=code_binding(),training_code=source['code'],
+        source_verification_ref=recovery.SOURCE_REF,original_failure_ref=source['failure_ref'],
+        code=source['code'],environment=source['environment'],hardware=source['hardware'],source_states=source['source_states'])
+    ms_ref=exclusive(CONTROL/'imported-MS-technical-boundary.json',ms)
+    v=dict(state='ORIGINAL_MS203_VERIFIED_SEALED_AND_RELEASED',READY_FOR_GPU_EXECUTION=True,anchors=upstream_anchors(),
+        boundaries=dict(MS=ms_ref),owned_exited=source['owned_exited'],handoff_scope=s.ID,successor_owner=owner(),result_review='pending')
+    secret=os.environ.get(SECRET)
+    if not secret:raise PermissionError('controlled handoff lifecycle absent')
+    v['mac']=hmac.new(secret.encode(),digest(v).encode(),hashlib.sha256).hexdigest()
+    return exclusive(CONTROL/'upstream-technical-boundary.json',v)
 
 def configs():return {stage:s.validate(json.loads(s.file(stage).read_text())) for stage in s.STAGES}
 
@@ -67,7 +75,7 @@ def dynamic(c,worker=False):
     env=bound(ENVIRONMENT_REF)
     recipe=bound(s.AUTHOR_RECIPE)
     for value in c['baseline_unified'].get('extension_refs',{}).values():bound(value)
-    if c['baseline_unified']['stage']=='M_AMEND':
+    if c['baseline_unified']['stage']in ('M_BASE','M_AMEND'):
         from utils.ch3_round2_amendment import RECIPE_REF
         onecycle=bound(RECIPE_REF)
         for value in onecycle['source_refs']:
@@ -114,7 +122,7 @@ def start_template():
         config_refs={stage:ref(s.file(stage)) for stage in cs},plan_refs={stage:ref(s.package(stage)/(stage.lower()+'-plan.json')) for stage in cs},
         upstream_anchors=upstream_anchors(),author_recipe_ref=s.AUTHOR_RECIPE,environment_hardware_ref=ENVIRONMENT_REF,
         formal_caps={stage:s.formal_budget(c)['total'] for stage,c in cs.items()},probe_caps={stage:s.probe_budget(c)['caps'] for stage,c in cs.items()},
-        budget_authorized=False,additional_search=0,seed=2024,from_scratch=True,result_review='pending',authorization_basis='non-executable preparation template; bind actual reviewed closure and the user-authorized 112 round-two amendment plus 231 third-round tasks and derived fixed caps')
+        budget_authorized=False,additional_search=0,seed=2024,from_scratch=True,result_review='pending',authorization_basis='non-executable preparation template; bind actual reviewed closure, registered MS203 seal recovery, and user-authorized fresh M128 84 plus round-two amendment 112 plus unchanged third-round 231 tasks and derived fixed caps')
 
 
 def validate_start(a):
@@ -138,7 +146,9 @@ def validate_permit(c,a,probe=False,worker=False):
     if set(a.get('predecessor_boundaries',{}))!=set(required):raise ValueError('exact new predecessor rings required')
     for stage in required:validate_boundary_light(a['predecessor_boundaries'][stage],stage)
     validate_upstream_boundary_light(a['upstream_boundary_ref'])
-    if ctx['stage']!='M_AMEND':validate_round2_boundary_light(a['round2_boundary_ref'])
+    if ctx['stage']!='M_BASE':validate_base287_boundary_light(a['base287_boundary_ref'])
+    elif a.get('base287_boundary_ref') is not None:raise ValueError('M128 must precede base287 seal')
+    if ctx['stage']not in ('M_BASE','M_AMEND'):validate_round2_boundary_light(a['round2_boundary_ref'])
     elif a.get('round2_boundary_ref') is not None:raise ValueError('amendment must precede the revised round-two boundary')
     if not probe:validate_summary_light(c,a['summary_ref'])
     return a
@@ -149,6 +159,24 @@ def validate_upstream_boundary_light(value):
     if value['path']!=str(CONTROL/'upstream-technical-boundary.json') or not secret or not hmac.compare_digest(v.get('mac',''),hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()):raise PermissionError('handoff boundary not sealed by this controlled lifecycle')
     if v.get('handoff_scope')!=s.ID or v.get('anchors')!=upstream_anchors() or v.get('READY_FOR_GPU_EXECUTION')is not True or v.get('successor_owner')!=json.loads((CONTROL/'controller.json').read_text())['owner'] or not same(v['successor_owner']):raise ValueError('fixed upstream and current successor owner required')
     return v
+
+
+def validate_base287_boundary_light(value):
+    v=bound(value);secret=os.environ.get(SECRET,'');body={k:x for k,x in v.items()if k!='mac'}
+    if value['path']!=str(CONTROL/'base287-boundary.json')or not secret or not hmac.compare_digest(v.get('mac',''),hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()):raise PermissionError('mixed-source base287 seal lifecycle')
+    upstream=validate_upstream_boundary_light(v['upstream_ref']);validate_boundary_light(v['boundaries']['M'],'M_BASE')
+    if v.get('scope')!=s.ID or v.get('counts')!={'MS':203,'M':84,'total':287}or v.get('technical_complete')is not True or v['boundaries']['MS']!=upstream['boundaries']['MS']or v.get('owner')!=upstream['successor_owner']:raise ValueError('exact old MS/new M128 base287 sources')
+    return v
+
+
+def seal_base287_boundary(m_ref):
+    upstream_ref=ref(CONTROL/'upstream-technical-boundary.json');upstream=validate_upstream_boundary_light(upstream_ref)
+    validate_boundary_light(m_ref,'M_BASE')
+    body=dict(purpose='round2_mixed_source_base287_v1',scope=s.ID,counts=dict(MS=203,M=84,total=287),boundaries=dict(MS=upstream['boundaries']['MS'],M=m_ref),upstream_ref=upstream_ref,owner=owner(),commit=closure(),technical_complete=True,result_review='pending')
+    secret=os.environ.get(SECRET)
+    if not secret:raise PermissionError('controlled base287 seal absent')
+    body['mac']=hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()
+    value=exclusive(CONTROL/'base287-boundary.json',body);validate_base287_boundary_light(value);return value
 
 def validate_summary_light(c,value):
     v=bound(value);ctx=s.context(c)
@@ -181,7 +209,7 @@ def validate_round2_boundary_light(value):
 
 def seal_round2_boundary(amendment_ref):
     from utils import ch3_round2_amendment as amend
-    upstream_ref=ref(CONTROL/'upstream-technical-boundary.json');upstream=validate_upstream_boundary_light(upstream_ref)
+    upstream_ref=ref(CONTROL/'base287-boundary.json');upstream=validate_base287_boundary_light(upstream_ref)
     validate_boundary_light(amendment_ref,'M_AMEND')
     main=amend.build_index(upstream['boundaries'],amendment_ref,configs()['M_AMEND'])
     main_ref=exclusive(amend.RESULT/'queue/round2-main-results.json',main)
@@ -203,6 +231,7 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
         data_binding_ref=c['baseline_unified']['data_ref'],caps=s.probe_budget(c)['caps'] if probe else s.formal_budget(c)['total'],
         budget_refund=False,additional_search=0,from_scratch=True,result_review='pending',upstream_boundary_ref=ref(CONTROL/'upstream-technical-boundary.json'),authorization_basis='user pre-authorized full training iff preregistered technical gates pass')
     a['predecessor_boundaries']=boundary_ref or {}
+    a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'else None
     a['round2_boundary_ref']=round2_ref
     if not probe:
         summary=validate_summary_light(c,summary_ref);a['summary_ref']=summary_ref;a['manifest_ref']=summary['manifest_ref'];a['technical_admission']=True
@@ -271,7 +300,9 @@ def readiness_report(a=None):
     blocked=readiness(a,live_remote=True)
     try:v=upstream_status()
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
-    return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,arming_does_not_require_old_completion=True,execution_requires_full_203_MS_84_M_and_owned_exit=True)
+    return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,
+        registered_ms203_recovery_requires_full_source_check_and_owned_exit=True,
+        remaining_formal_runs=427,base287_requires_imported_MS203_and_fresh_M128_84=True)
 
 
 def wrapper_command(pid):
@@ -347,8 +378,10 @@ def seal_boundary(c,receipts):
     for m in s.MODELS:
         r=bound(receipts[m])
         if r.get('technical_complete')is not True or r['model']!=m or r['task_ids']!=[t['id'] for t in c['tasks'] if t['model']==m]:raise ValueError('exact successful model receipt')
+    binding=dynamic(c)
+    if binding.get('protocol_sha')!=digest(c):raise ValueError('seal protocol binding differs from exact configuration')
     return exclusive(s.context(c)['control']/'technical-boundary.json',dict(purpose='baseline_type1_'+s.context(c)['stage']+'_boundary_v1',scope=s.ID,
-        task_ids=[t['id'] for t in c['tasks']],protocol_sha=digest(c),receipts=receipts,technical_complete=True,result_review='pending',**dynamic(c)))
+        task_ids=[t['id'] for t in c['tasks']],receipts=receipts,technical_complete=True,result_review='pending',**binding))
 
 
 def drive(actions,update,check):
@@ -378,7 +411,8 @@ def run(start_ref):
             stop_check();wait_owned(stage,pr,False,model,runtime)
             receipts[model]=ref(s.context(c)['control']/('group-'+model)/'complete.json')
         return receipts
-    actions={'WAIT_V3_COMPLETE_AND_RELEASED':lambda r:wait_upstream(), 'FOLLOWUP_PROTOCOL_PREFLIGHT':lambda r:validate_start(bound(start_ref)),
+    actions={'VERIFY_IMPORT_MS203_AND_SEAL':lambda r:wait_upstream(), 'FOLLOWUP_PROTOCOL_PREFLIGHT':lambda r:validate_start(bound(start_ref)),
+        'SEAL_BASE_287_BOUNDARY':lambda r:seal_base287_boundary(r['SEAL_M128_BOUNDARY']),
         'SEAL_ROUND2_REVISED_BOUNDARY':lambda r:seal_round2_boundary(r['SEAL_AMEND_BOUNDARY'])}
     for stage,(probe_state,audit_state,formal_state,seal_state) in STAGE_STATES.items():
         actions[probe_state]=lambda r,stage=stage:probe(stage,r)
@@ -387,7 +421,7 @@ def run(start_ref):
         actions[seal_state]=lambda r,stage=stage:seal_boundary(cs[stage],r[STAGE_STATES[stage][2]])
     receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check)
     stop_check()
-    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],total_runs=343,third_round_runs=231,round2_effective_runs=371))
+    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],total_runs=427,imported_ms_runs=203,base_round2_runs=287,third_round_runs=231,round2_effective_runs=371))
 
 
 def start(start_ref,token):

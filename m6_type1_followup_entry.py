@@ -57,7 +57,12 @@ def cli():
     if a.action=='complete':
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
-        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=343 or complete.get('third_round_runs')!=231 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
+        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=427 or complete.get('imported_ms_runs')!=203 or complete.get('base_round2_runs')!=287 or complete.get('third_round_runs')!=231 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
+        q.validate_boundary_light(complete['M_BASE_boundary'],'M_BASE')
+        base=bound(complete['base287_boundary']);ms=bound(complete['MS_import_boundary'])
+        from utils.ch3_ms_seal_recovery import SOURCE_REF
+        source=bound(SOURCE_REF)
+        if base.get('counts')!={'MS':203,'M':84,'total':287}or base.get('scope')!=s.ID or base.get('technical_complete')is not True or base.get('boundaries')!={'MS':complete['MS_import_boundary'],'M':complete['M_BASE_boundary']}or ms.get('source_verification_ref')!=SOURCE_REF or ms.get('training_commit')!=source['training_commit']or ms.get('task_ids')!=source['task_ids']or ms.get('receipts')!=source['receipts']:raise ValueError('exact mixed-source MS203/M12884 base boundary')
         q.validate_boundary_light(complete['AMEND_boundary'],'M_AMEND')
         from utils.ch3_round2_amendment import RESULT,validate_index
         if complete['round2_boundary']['path']!=str(RESULT/'queue/round2-boundary.json'):raise ValueError('exact second-round revision boundary')

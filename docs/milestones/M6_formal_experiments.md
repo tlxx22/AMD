@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 第二轮补齐/Weather20修订及第三轮续接的19项实现已审核并closure（`26e7dcaa32ce5fb21b9f15f475fdd668d18a3571`）；本轮仅文档整理，修后待直读审核，新执行尚未启动。原v3于2026-10-06T19:52:37.846844+00:00只读核验为MS_FORMAL_ALL_BASELINES、TimeXer，owner36799/start_ticks171530843仍存活；旧第三轮v2等待器已停止且零计算。当前三轮合同见[§0总览](#m6-three-rounds)。**
+**In Progress — 本轮只读核验原v3停在SEAL_MS_BOUNDARY，七份MS组收据共203项已完成，因重复`protocol_sha`传参失败；M probe/queue/result尚不存在。原owner36799/start_ticks171530843与续接owner64037/start_ticks198463305均退出，续接链因上游failure退出且零计算。本次修复封存、按用户批准将未执行M84统一batch128，并准备从封存处承接的隔离总链；未stage/commit/push、未物化可执行许可、未启动恢复计算，候选待ChatGPT直读审核。当前三轮合同见[§0总览](#m6-three-rounds)，本轮证据见[恢复小节](#m6-ms-seal-m128-recovery)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”属于初次启动准备时的历史快照，不代表当前实际进度。
 
@@ -19,7 +19,7 @@ M6按三个主要正式实验批次组织讨论、结果表和复现材料。
 
 “三轮”是主要实验批次的报告名称，不是只启动过三次、只访问过三次test，也不等同于工程目录的v1/v2/v3。补做、暂停、失败、修订和退休保留真实身份与记录；第二轮amend1属于第二轮，不另称第四轮。
 
-批准的最终结果采用规则与结果已经全部产生分开。未完成、未审核或没有合法来源的格子不能因写入总览而变成完成；技术完成、结果记录审核和效果达标分别报告。第二轮补做及第三轮实现已经ChatGPT实际字节审核并完成19项精确closure，真实代码commit为`26e7dcaa32ce5fb21b9f15f475fdd668d18a3571`。本轮只整理三份文档，修后文档待直读审核，新补做和第三轮均未启动；旧type1-followup-v2等待器已安全停止、零计算，不再写成仍在等待。
+批准的最终结果采用规则与结果已经全部产生分开。未完成、未审核或没有合法来源的格子不能因写入总览而变成完成；技术完成、结果记录审核和效果达标分别报告。此前实现、文档及两次窄修已closure，本轮从N实际`1134611cd52e4cedb7418d8a9f8a7f6e76512617`继续开发。原v3的203项MS已训练/test完成但封存失败，原M84未开始；旧type1-followup-v3等待器因上游failure退出，没有补做或第三轮计算。旧type1-followup-v2退休记录保持。本轮修后候选尚未审核/closure/启动。
 
 <a id="m6-round-one"></a>
 ### 0.2 第一轮：范围及最终结果来源
@@ -97,19 +97,19 @@ TimeMixer原四标准域16项最终采用`timemixer-fixedlr-v2/attempt2`：
 | Weather M修订 | Weather四H×七模型 | 96 | 20/None | 28 |
 | 合计 | MS203＋M168 | — | — | 371 |
 
-原任务batch/eval_batch采用各自冻结effective profile，不能把TimeMixer的batch或第三轮统一batch套给整个第二轮。新增三个ETT固定train/eval batch128；Weather20继承第二轮各模型原Weather的batch及其他设置。
+MS任务batch/eval_batch继续采用原冻结effective profile。本次用户明确批准原未执行M84全部train/eval batch128，57项训练batch改变、27项原本128；独立M128配置重算批次数、OneCycle steps_per_epoch及执行计量，不改原绑定配置。新增三个ETT84项已是128/128，科学配置保持；Weather20继承本次M128的同模型/H Weather配置，再只增加epochs/scheduler.epochs至20。因此第二轮修订后所有M域train/eval batch128；模型结构、数据与其他冻结字段不随统一batch改变。
 
 新增ETT从同模型同H的v3 ETTh1-M profile迁移，保留各模型结构，采用各自独立数据、split、train-only scaler及适用历史marks。ETTh2为小时，ETTm1/ETTm2为15分钟及适用的5维历史timeF；marks按各模型原生接口提供，不新增七模型统一业务输入通道。训练长度/batch对齐限于已绑定TimeMixer论文Table7与指定字段，eval_batch128和patience=None属于项目合同；OneCycle采用绑定作者实现。已知结构差异保留：TimeMixer迁移ETTm2的d_model=16，Table7为32，不为追齐该表修改冻结结构，不声称完整作者配置复现。
 
 第二轮OneCycle：max_lr=0.01、pct_start=0.2、cos，cycle_momentum=true，base/max_momentum=0.85/0.95，div_factor=25，final_div_factor=10000，three_phase=false；其余初始化和推进参数按冻结配置。max_lr不是固定LR；调度初始化LR为0.01/25=0.0004。每次成功optimizer update后推进scheduler，validation/test不推进。
 
-Weather20只改training.epochs与training.scheduler.epochs，必须fresh按20轮长度执行完整OneCycle，不从Weather10 checkpoint续接或把旧轨迹拼入后半程。
+Weather20相对本次M128 Weather10只改training.epochs与training.scheduler.epochs；相对先前amend1候选同步新增batch/eval_batch128及派生steps_per_epoch变化。必须fresh按20轮长度执行完整OneCycle，不从Weather10 checkpoint续接或拼入旧轨迹。batch改变会改变每轮更新次数及按step展开的LR/beta1轨迹，是用户批准的科学修订，不是修复旧batch的bug。
 
 ### 0.4 第二轮最终结果采用规则
 
-原UrbanEV168＋原EPF35＋原ETTh1/Exchange56＋新Weather20的28＋新增ETT84＝371有效格。
+原UrbanEV168＋原EPF35＋本次M128的ETTh1/Exchange56＋新Weather20/batch128的28＋新增ETT84＝371有效格。
 
-新Weather28项全部技术完成后统一切换来源，即使部分变差，也不在10/20轮间逐格挑选。完成之前显示修订Pending，不把旧10轮值标为20轮。原287结果及完成边界保持原样；原Weather10保留原位置，不进入修订后的默认主表。日常只采用一个第二轮修订入口，引用保留真实路径、config/commit、revision、替代关系及时间，不移动改写旧artifact或伪造原执行。
+新Weather28项全部技术完成后统一切换来源，即使部分变差，也不在10/20轮间逐格挑选。完成之前显示修订Pending，不把10轮值标为20轮。原MS203及原failure/未封存现场保持；恢复版基础287明确组合旧MS203与fresh新M128的84项，不扩张原失败controller的完成证明。先完成的新M128 Weather10保留原位置和引用，最终不进入修订后的默认主表。日常只采用一个第二轮修订入口，引用保留真实路径、config/训练commit、封存执行commit、revision、替代关系及时间，不移动改写旧artifact或伪造原执行。
 
 371是有效格数；287＋112＝399是含Weather替换训练的计划正式运行次数，实际是否执行以完成记录为准。probe和失败attempt另计，不混入正式格数，也不要求用户逐次审批底层step。
 
@@ -145,11 +145,11 @@ E在训练前固定，不随早停、暂停、恢复或validation重新缩放。
 
 ### 0.7 自动执行顺序与评价边界
 
-原第二轮287项技术完成且owned计算进程释放→第二轮amend1必要准入、112项正式训练/test及完整性检查→第二轮371格来源封存→第三轮UrbanEV→EPF→M→总链技术完成，结果审核另行进行。
+只读验证旧MS203、精确封存失败身份与owned进程释放→恢复MS封存→M128的84项必要probe/AUTO_AUDIT/formal/test→旧MS203＋新M12884的基础287来源封存→第二轮amend1的112项必要准入、训练/test及完整性检查→371格来源封存→第三轮UrbanEV→EPF→M→总链技术完成，结果审核另行进行。不得继续等待已失败退出的旧owner生成原complete，不重派MS203，不等待监督器自身退出。
 
-文档审核、最终closure和启动准备完成后，由用户一次启动总等待器。等待不占训练组锁、不初始化GPU；正常阶段自动衔接，不因效果好坏改任务或等待中间人工许可。补做按七模型固定顺序，每模型ETTh2四H→ETTm1四H→ETTm2四H→Weather四H；第三轮沿冻结模型和任务顺序。
+文档审核、最终closure和启动准备完成后，由用户一次启动恢复总监督器。导入封存不占训练组锁、不初始化GPU；实际计算组持锁并等待真实子进程退出释放资源后衔接，不因效果好坏改任务或等待中间人工许可。M128及第三轮沿各自冻结模型/任务顺序；补做每模型ETTh2四H→ETTm1四H→ETTm2四H→Weather四H。只允许登记的重复键故障在完整来源证明下导入，不提供通用ignore_failure。
 
-补做28个准入组/112代表，第三轮57组/231代表，合计85组343代表，不计作额外343个正式结果。并发最多q4，仅在对应实际条件验证后用；仅明确resource失败按预登记降q，不改科学batch、精度、结构或阈值。numeric/finite/identity/data/scheduler/guard失败停止后续派发。逐组即时gate保留，完整审计仅由对应AUTO_AUDIT执行一次，formal轻量消费凭据；有效证据按适用范围复用，不逐任务回放完整probe。
+M128为21组/84代表，补做28组/112代表，第三轮57组/231代表，共106组427代表，不计作额外427个正式结果。并发最多q4，仅在真实batch/结构/调度条件验证后用；仅明确resource失败按预登记降q，单任务batch128不适合时停止，不改batch、精度、结构、accumulation或阈值。numeric/finite/identity/data/scheduler/guard失败停止后续派发。逐组即时gate保留，完整审计仅由各阶段AUTO_AUDIT执行一次，五阶段合计5次；formal轻量消费凭据，监督器生命周期manifest扫描每阶段1次，不逐任务回放完整probe，不重新回放原MS数值轨迹。
 
 每项正式训练仅validation选best及执行既定早停，锁定后按本轮授权最终test一次；历史test访问如实保留，某run只test一次不代表整个研究从未多次观察同一测试集。test状态不明停止自动恢复，不重复test试探。
 
@@ -661,3 +661,35 @@ helper预算（Adam/backward/forward）：补做112/1400=608000/608000/734673；
 随后审核确认：前轮将`ls-remote`放入`closure()`，经`validate_start`/`validate_permit`进入逐任务和worker路径；前轮24项证明版本条件，未覆盖运行期联网次数。本轮将严格祖先/分支/clean/HEAD-tracking/0/0及精确commit许可检查留在本地，远端核验移至既有公开启动前`readiness_report`→`readiness(live_remote=True)`路径；原start/arm包装器仍先调用真实preflight，CLI无需修改。一次合法preflight仅查远端一次，30秒超时、不交互、不fetch/pull、不自动重试；远端不一致、缺失、不可达或超时明确阻止启动。已启动等待器的本地readiness、许可、任务配置及worker检查均不联网；正常文档后继、固定BASE、scope/config/plan/来源和287→112→371→第三轮顺序不变。
 
 正式Python定向复验实际30/30 Passed，0 failure/error/skip：保留前轮相关语义，将远端拒绝断言迁移至实际preflight，并新增6项调用路径回归。真实公开CLI preflight远端查询1次；实际运行分支中35次permit校验、17次make_config、17次validate_worker及run_group/wave检查远端调用0次，完整四阶段队列也为0。preflight后远端不可用仍可作本地核验，本地代码/HEAD或许可不符仍拒绝。首次30项1error为合成Git根误用于读取真实代码清单，测试夹具分离版本操作与N代码读取后复验通过；原失败日志保留。真实model construction/forward/backward/Adam/GPU initialization全部0，无真实probe/test/checkpoint访问。前轮证据、科学材料及W/R保持，增量另存`P/baseline-unified96-onecycle001-v3-amend1/preflight-remote-repair-v1/`；本轮未stage/commit/push、未物化可执行许可、未arm/start，修后候选待ChatGPT实际字节审核。
+
+<a id="m6-ms-seal-m128-recovery"></a>
+#### MS封存重复键修复与M128恢复候选
+
+本次故障与科学修订分开登记。原W版本`df6a16403e10d51097db8c88829909c533d15652`在SEAL_MS_BOUNDARY因`TypeError("dict() got multiple values for keyword argument 'protocol_sha'")`退出：统一链与type1链的seal同时显式传入protocol_sha并展开已含此字段的dynamic。N修后dynamic只取一次，验证其中protocol_sha精确等于配置digest，再完整写入；错误digest仍拒绝，不删除字段、静默覆盖或catch后当成功。W原失败字节、failure/controller/许可/probe/日志及203项MS产物均保留；本次不重新训练、validation或test这些MS项。
+
+旧MS来源核验实际203项、七组各29项、1421个标准artifact引用，绑定原训练commit、完整任务/配置、manifest/history/budget/runtime、原probe/admission及记录的validation-selected best/test一次。checkpoint仅checksum，不反序列化；不重新完整数值回放。原owner36799/start_ticks171530843及续接owner64037/start_ticks198463305退出，登记owned实例共661条（含原监控metadata_unavailable样本：ticks未知且当前PID不存在；不猜ticks，PID重新出现即拒绝）。原M probe/queue/result及补做、第三轮计算不存在。旧MS正式实际Adam/backward=8,065,706、forward=9,115,302；原MS probe实际756/756/1024。消耗保留，不退款、不抵扣原任务完成额度。原失败不是科学/效果失败；续接失败保留真实上游failure原因，没有发信号或重新退休旧链。
+
+用户在本条明确批准未执行M84全部train/eval batch128。逐项effective profile独立复算：57项训练batch改变，27项原本128；科学diff白名单仅training.batch、training.eval_batch及必然派生scheduler.steps_per_epoch，结构/L96/H/epochs10/patienceNone/seed2024/Adam基础设置/数据/marks/评价/numeric policy不变。OneCycle按新train_batches展开，update数量与LR/beta1轨迹因此变化，不能称仅显示值修改。新增ETT84与第三轮231科学diff均0；Weather20相对新M128 Weather10仅epoch/scheduler.epochs至20，相对前版amend同步batch及派生steps变化，不能加载10轮checkpoint续训。
+
+隔离准备包为`P/baseline-unified-v3-ms-seal-m128-recovery1/`，未来结果根为`E/baseline-unified-v3-ms-seal-m128-recovery1/`，session为`ch3-baseline-type1-followup-v3-recovery1`；总scope为`m6-baseline-type1-followup-v3-recovery1`。M基础执行身份为`baseline-unified96-onecycle001-v3-mbatch128-recovery1`，补做为`baseline-unified96-onecycle001-v3-amend1-m128-recovery1`，第三轮科学方案仍是冻结type1-followup-v3，仅恢复执行revision改变。仍是第二轮修订与第三轮，不新增第四轮。两条旧失败根不复用、不覆盖，也不清除failure/STOP。唯一MS故障入口只接受登记failure、完整来源与退出证明，不提供通用ignore_failure。
+
+实际队列顺序：MS203只读导入/恢复封存→M12884 probe/AUTO_AUDIT/formal/test→混合来源基础287封存→112补做→371来源封存→第三轮Urban28→EPF35→M168→COMPLETE。导入seal保存旧training_commit/protocol/code及新的seal_execution_commit/code；新M、补做、第三轮记录未来实际closure和自身config，不将全部来源强标成旧commit。第二轮计划399、有效371、第三轮231不变，余下新正式427；不额外重跑ETTh1。Weather28统一采用20轮batch128，保留新Weather10引用，不按指标选择。用户未来只arm一次，各技术通过自动继续，效果不控制后环。
+
+正式helper独立预算如下，数字为最坏上界，早停actual另记；未读取test标签作算术。
+
+| 阶段 | runs | max run-epochs | Adam | backward | forward |
+|---|---:|---:|---:|---:|---:|
+| M_BASE | 84 | 840 | 108080 | 108080 | 128877 |
+| M_AMEND | 112 | 1400 | 325920 | 325920 | 410445 |
+| URBAN_SUBSET | 28 | 560 | 1028440 | 1028440 | 1143128 |
+| EPF_ALL | 35 | 350 | 399000 | 399000 | 467845 |
+| M_ALL | 168 | 1960 | 354480 | 354480 | 446642 |
+| 余下总链 | 427 | 5110 | 2215920 | 2215920 | 2596937 |
+
+probe cap按上述阶段分别为1512/1512/2016、2016/2016/2688、504/504/696、618/618/824、3024/3024/4032，合计7674/7674/10256（Adam/backward/forward）；含原预登记resource回退，不含无限重试。共106组427代表。各阶段probe尾部完整审计0、AUTO_AUDIT1，formal不完整回放；原即时numeric/finite/identity等gate保留。q<=4，仅resource降q，不自动降batch/改精度/结构/阈值；单任务batch128无法容纳时停止。实际资源准入仍待未来GPU probe，不将CPU验收冒充Passed准入。
+
+本轮正式Python定向最终62/62 Passed，0 failure/error/skip，含54项新恢复回归及8项受影响的既有Git/许可/远端保护回归。合成fixture驱动实际seal、MS导入、混合287来源、371固定替换、队列、probe/AUTO_AUDIT及permit/config/worker/group路径；验证full dynamic字段集合、防错digest、缺失/重复/错来源/篡改/存活worker/未知test拒绝，旧许可不能授权新配置。五阶段完整审计各1，runtime启动manifest扫描1，formal完整probe回放和运行期联网0；公开preflight远端1次且30秒有界超时。合成tmux及owned safe-stop通过，旧scope信号0。runner函数级AST仅code_binding增量，模型forward/loss/evaluate/数据处理、scheduler实现及全部模型源码保持；测试禁止实际torch/models/layers导入，真实model construction/forward/backward/Adam/GPU初始化全部0。
+
+失败账保留：首次来源核验遇原样本缺start_ticks，改为明确未知且PID不存在的保守退出证明；首轮42项2error为尚未物化plan材料，第二轮48项1error为合成probe缺approval.json，补齐fixture后复验。随后probe职责2/2、runtime路径3/3及最终62/62实际结果独立保留，不拼接成Passed、不删断言/skip/放宽阈值。原84/221/30证据保留各自有效覆盖，不机械重跑全历史。
+
+模板flags全部false、closure=null；实际dry-run exit0展示完整计划，模板preflight exit2拒绝未审核/未closure候选，READY_TO_ARM_HANDOFF与READY_FOR_GPU_EXECUTION均false。新结果根、可执行start-review、launcher日志及真实session均未生成，未stage/commit/push，未真实启动恢复/probe/formal/test。完整diff、SHA、effective profile差异、来源核验、预算、测试/失败账及未来操作命令集中绑定上述新准备包；本轮新字节仍待ChatGPT服务器实际直读审核。

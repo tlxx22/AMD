@@ -82,6 +82,10 @@ def code_binding():
                   'configs/ch3_type1_urban_subset_v3.json','configs/ch3_type1_epf_all_v3.json',
                   'configs/ch3_type1_m_all_v3.json','tests/test_m6_round2_amendment.py',
                   'tests/ch3_historical_type1_v2_231.py']
+    if (ROOT/'utils/ch3_ms_seal_recovery.py').exists():
+        files += ['utils/ch3_ms_seal_recovery.py','tests/test_m6_ms_seal_recovery.py','configs/ch3_round2_m_batch128_recovery1.json',
+                  'configs/ch3_round2_m_amend1_recovery1.json','configs/ch3_type1_urban_subset_v3_recovery1.json',
+                  'configs/ch3_type1_epf_all_v3_recovery1.json','configs/ch3_type1_m_all_v3_recovery1.json']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 

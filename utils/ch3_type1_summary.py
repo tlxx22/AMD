@@ -18,7 +18,7 @@ def result_index(configs):
     revision=summary();cell_bank={r['cell_id']:r for r in revision.get('cells',[])}
     rows=[];base=s.RESULT.parent
     for stage,c in configs.items():
-        if stage=='M_AMEND':continue
+        if stage in ('M_BASE','M_AMEND'):continue
         for prior,t in zip(s.selected(stage),c['tasks']):
             current=s.context(c)['result_root']/('formal-'+t['model'])/t['id']/'result.json'
             row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],s.PROTOCOL,digest(s.profile(c,t))),v3=observed(OLD_RESULT/('M' if stage=='M_ALL' else 'MS')/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
