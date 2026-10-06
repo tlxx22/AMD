@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 本轮只读核验原v3停在SEAL_MS_BOUNDARY，七份MS组收据共203项已完成，因重复`protocol_sha`传参失败；M probe/queue/result尚不存在。原owner36799/start_ticks171530843与续接owner64037/start_ticks198463305均退出，续接链因上游failure退出且零计算。本次修复封存、按用户批准将未执行M84统一batch128，并准备从封存处承接的隔离总链；未stage/commit/push、未物化可执行许可、未启动恢复计算，候选待ChatGPT直读审核。当前三轮合同见[§0总览](#m6-three-rounds)，本轮证据见[恢复小节](#m6-ms-seal-m128-recovery)。**
+**In Progress — MS封存恢复＋M128的19项实现已审核并closure于128592e0030bcf2dde99fce7baeb0d08947b92cd，原MS203仍为只读来源。启动许可已物化，但2026-10-07 06:39 UTC+8公开preflight因旧进程身份判断阻塞而exit2；未arm、未恢复封存、未开始新计算。本轮仅做身份归并窄修与无模型定向验收，科学合同不变，修后4文件仍为未提交候选、待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，来源恢复见[恢复小节](#m6-ms-seal-m128-recovery)，本次技术增量见[身份归并小节](#m6-pid-identity-repair)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”属于初次启动准备时的历史快照，不代表当前实际进度。
 
@@ -693,3 +693,18 @@ probe cap按上述阶段分别为1512/1512/2016、2016/2016/2688、504/504/696�
 失败账保留：首次来源核验遇原样本缺start_ticks，改为明确未知且PID不存在的保守退出证明；首轮42项2error为尚未物化plan材料，第二轮48项1error为合成probe缺approval.json，补齐fixture后复验。随后probe职责2/2、runtime路径3/3及最终62/62实际结果独立保留，不拼接成Passed、不删断言/skip/放宽阈值。原84/221/30证据保留各自有效覆盖，不机械重跑全历史。
 
 模板flags全部false、closure=null；实际dry-run exit0展示完整计划，模板preflight exit2拒绝未审核/未closure候选，READY_TO_ARM_HANDOFF与READY_FOR_GPU_EXECUTION均false。新结果根、可执行start-review、launcher日志及真实session均未生成，未stage/commit/push，未真实启动恢复/probe/formal/test。完整diff、SHA、effective profile差异、来源核验、预算、测试/失败账及未来操作命令集中绑定上述新准备包；本轮新字节仍待ChatGPT服务器实际直读审核。
+
+<a id="m6-pid-identity-repair"></a>
+#### 旧进程身份归并窄修（2026-10-07 UTC+8，未提交候选）
+
+上述19项实现随后审核并closure。2026-10-07 06:39 UTC+8的实际公开preflight返回exit2：`old owned instance live or unverified PID reappeared`；许可及原始输出保留在恢复包的`start-review.json`和`start-preparation-v1/`。当次未记录命中PID及即时身份，不能据后续PID均不存在改写为通过，也不能认定当时必然由某个Codex/preflight进程复用造成。
+
+原`ms203-source-verification.json`保持原SHA和661条历史采样登记，其中332条有ticks、329条缺ticks。对56个formal wave和84个probe wave的原始`process.json`/`memory.jsonl`逐wave核验后，340次缺字段采样涉及的329个PID均在各自同scope、同wave的注册与完整采样中唯一关联到ticks、namespace和host PID；未发现未关联项或冲突。归并后是332个唯一进程实例，包括原controller、group child和已失败续接controller。缺字段记录仍保留为当时监控事实，不作为独立、永久未知的进程身份，也不跨wave按PID全局补ticks。
+
+窄修仅在`ch3_type1_upstream.py`与`ch3_ms_seal_recovery.py`统一身份判断：轻量检查消费固定SHA绑定的小型归并证明，完整snapshot重新核对注册/采样引用及原历史投影，再调用同一存活判断。两次有界`/proc`读取须给出稳定身份或稳定不存在；同一旧PID/ticks仍活跃则拒绝，可确定的不同ticks新实例不误判成旧实例；无可靠关联、多候选、namespace冲突、权限不足或读取中身份变化仍阻塞。诊断只给PID、历史/当前身份、scope/wave、来源及拒绝理由，不打印环境变量、token或无关命令。不发送信号。
+
+增量证据位于原恢复包的`pid-identity-repair-v1/`，归并证明绑定原SOURCE_REF及140个wave的注册/采样来源。旧SOURCE_REF、MS1421项完整性证据、两条旧failure、19项送审证据和启动准备exit2原文均保留；未再次checksum真实checkpoint、反序列化或回放probe。旧许可仍绑定原closure，不能授权未来修后commit；本轮不生成新可执行许可。
+
+正式Python最终无模型定向验收45/45 Passed，0 failure/error/skip，含新增18项身份测试及27项相关来源、许可、worker、队列、来源索引和审计职责回归；补充冲突诊断最多4个候选的上界后复验最终字节，此前44/44通过日志独立保留。合成收据与进程观察驱动真实公开preflight及snapshot/verify_source，验证PID复用场景下轻量与完整导入结论一致；未整体mock这些入口。测试限制真实torch/models/layers导入和信号操作，真实model construction/GPU/forward/backward/Adam/validation/test/恢复封存/信号均0。原62项仍保留其有效覆盖，本次不将它们拼成新的全量Passed，也没有重试真实失败preflight。
+
+M84 batch128、补做112、第三轮231、各自scheduler、numeric policy、科学配置及正式/probe预算不变；MS→M84→基础287→112→有效371→第三轮顺序不变。canonical与AGENTS保持；本轮仅4文件增量，未stage/commit/push、未arm/start，修后字节待ChatGPT实际审核。

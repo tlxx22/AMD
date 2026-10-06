@@ -1,5 +1,5 @@
 """Read-only anchored upstream handoff. Never signals or launches the old scope."""
-import json,subprocess,time
+import json,os,subprocess,time
 from pathlib import Path
 from utils.ch3_contract import ROOT,digest
 from utils.ch3_native_recovery_records import bound,ref,sha
@@ -31,40 +31,117 @@ def health():
         if subprocess.check_output(['git',*args],cwd=OLD_WORK,text=True).strip()!=BASE:raise ValueError('upstream reviewed commit changed')
     if subprocess.check_output(['git','status','--porcelain'],cwd=OLD_WORK,text=True).strip():raise ValueError('upstream unreviewed source change')
     return True
-def owned_refs():
+def reconcile_wave(scope,wave,registered,samples,process_ref,memory_ref):
+    """Resolve missing monitor fields only inside one registered scope/wave."""
+    known={};missing={}
+    for line,row in enumerate(samples,1):
+        for key,value in row.get('owned_pid_metadata',{}).items():
+            pid=int(value['pid'])
+            if str(pid)!=str(key) or pid not in registered:raise ValueError('unregistered sampled PID: '+str(dict(scope=scope,wave=wave,pid=pid,source=memory_ref)))
+            if value.get('start_ticks')is None:
+                if value.get('state')!='metadata_unavailable':raise ValueError('missing process identity without metadata_unavailable')
+                missing.setdefault(pid,[]).append((line,value))
+            else:
+                identity=(str(value['start_ticks']),value.get('namespace'),value.get('host_pid'))
+                if not identity[0].isdigit() or not isinstance(identity[1],str) or not identity[1].startswith('pid:[') or not isinstance(identity[2],int):raise ValueError('incomplete namespace/start_ticks/host PID evidence')
+                known.setdefault(pid,{}).setdefault(identity,line)
+    result=[]
+    for pid in sorted(registered):
+        candidates=known.get(pid,{})
+        if len(candidates)!=1:raise ValueError('process evidence insufficient or conflicting: '+json.dumps(dict(scope=scope,wave=wave,pid=pid,candidate_count=len(candidates),candidates=list(candidates)[:4],source=memory_ref)))
+        (ticks,namespace,host_pid),line=next(iter(candidates.items()))
+        for _,value in missing.get(pid,[]):
+            if value.get('namespace')not in (None,namespace) or value.get('host_pid')not in (None,host_pid):raise ValueError('missing sample conflicts with same-wave namespace/host PID')
+        absent=missing.get(pid,[])
+        result.append(dict(pid=pid,start_ticks=ticks,namespace=namespace,host_pid=host_pid,scope=scope,wave=wave,source=memory_ref,registration=process_ref,complete_sample_line=line,missing_sample_count=len(absent),missing_first_line=absent[0][0]if absent else None,missing_last_line=absent[-1][0]if absent else None))
+    return result
+
+def owned_evidence():
+    """Only retained registration/memory records; no model or checkpoint reads."""
     refs={ (OWNER['pid'],OWNER['start_ticks']):OWNER }
+    instances=[dict(**OWNER,scope=OLD_SCOPE,wave='controller',source=CONTROLLER_REF)]
+    sources=[CONTROLLER_REF];waves=[]
     def register(value):
         pid=int(value['pid'])
-        if 'start_ticks' not in value:
-            if value.get('state')!='metadata_unavailable' or (Path('/proc')/str(pid)).exists():raise ValueError('unverifiable retained sampled process is still present')
+        if value.get('start_ticks')is None:
+            if value.get('state')!='metadata_unavailable':raise ValueError('unverifiable retained sample identity')
+            # Preserve this original historical record; it is not a new instance.
             instance=dict(pid=pid,start_ticks=None,exit_proof='sample metadata_unavailable; PID absent; ticks unknown')
         else:instance=dict(pid=pid,start_ticks=str(value['start_ticks']))
         refs[(instance['pid'],instance['start_ticks'])]=instance
+    def memory_wave(memory,process_ref):
+        if memory.is_symlink() or Path(process_ref['path']).is_symlink():raise ValueError('ownership source symlink')
+        memory_ref=ref(memory);process=bound(process_ref)
+        samples=[json.loads(line)for line in memory.read_text().splitlines()]
+        if sha(memory)!=memory_ref['sha256']:raise ValueError('ownership sampling source changed during read')
+        registered={int(pid)for pid in process['process_peaks']}
+        wave=str(memory.parent.relative_to(OLD_RESULT))
+        resolved=reconcile_wave(OLD_SCOPE,wave,registered,samples,process_ref,memory_ref)
+        for row in samples:
+            for value in row.get('owned_pid_metadata',{}).values():register(value)
+        instances.extend(resolved);sources.extend((process_ref,memory_ref));waves.append(dict(scope=OLD_SCOPE,wave=wave,registered_pids=sorted(registered),process_ref=process_ref,memory_ref=memory_ref))
     current=OLD_RESULT/'queue/controller/current.json'
     if current.exists():
-        value=json.loads(current.read_text())
+        current_ref=ref(current);value=bound(current_ref);sources.append(current_ref)
         if value.get('owner')!=OWNER:raise ValueError('old current owner mismatch')
         child=value.get('child')
-        if child:refs[(child['pid'],child['start_ticks'])]=child
+        if child:
+            if not str(child.get('start_ticks','')).isdigit():raise ValueError('registered group child ticks missing')
+            refs[(child['pid'],child['start_ticks'])]=child
+            instances.append(dict(**child,scope=OLD_SCOPE,wave='current-group-child',source=current_ref))
     # Registered formal/probe workers, including sampled monitor descendants, are read only.
     for stage in ('MS','M'):
         for memory in (OLD_RESULT/'queue'/stage).glob('group-*/wave-*/memory.jsonl'):
-            with memory.open()as handle:
-                for line in handle:
-                    for value in json.loads(line).get('owned_pid_metadata',{}).values():
-                        register(value)
+            group_ref=ref(memory.parent.parent/'complete.json');group=bound(group_ref)
+            if group.get('technical_complete')is not True or memory.parent.parent.name!='group-'+group.get('model',''):raise ValueError('formal ownership registration/group mismatch')
+            sources.append(group_ref);memory_wave(memory,ref(memory.with_name('process.json')))
         complete=OLD_RESULT/'probe'/stage/'complete.json'
         if complete.exists():
-            report=json.loads(complete.read_text())
+            complete_ref=ref(complete);report=bound(complete_ref);sources.append(complete_ref)
+            if report.get('scope')!=OLD_SCOPE+'-'+stage+'-probe':raise ValueError('probe ownership scope mismatch')
             for value in report.get('evidence',{}).values():
-                process=bound(value['process']);memory=Path(value['process']['path']).with_name('memory.jsonl')
+                process_path=Path(value['process']['path']);process_path.relative_to(OLD_RESULT/'probe'/stage)
+                memory=process_path.with_name('memory.jsonl')
                 expected=report.get('artifacts',{}).get(str(memory))
                 if expected is None or sha(memory)!=expected['sha256']:raise ValueError('upstream bound probe ownership evidence')
-                with memory.open()as handle:
-                    for line in handle:
-                        for v in json.loads(line).get('owned_pid_metadata',{}).values():
-                            register(v)
-    return list(refs.values())
+                memory_wave(memory,value['process'])
+    return dict(historical_refs=list(refs.values()),instances=instances,waves=waves,sources=list({v['path']:v for v in sources}.values()))
+
+def owned_refs():
+    # Historical projection remains unchanged, including metadata_unavailable.
+    return owned_evidence()['historical_refs']
+
+def _read_instance(pid):
+    base=Path('/proc')/str(pid)
+    try:raw=(base/'stat').read_text()
+    except FileNotFoundError:return None
+    fields=raw.rsplit(')',1)[1].split()
+    if int(raw.split(' ',1)[0])!=pid or len(fields)<20:raise ValueError('invalid proc identity')
+    return dict(pid=pid,start_ticks=fields[19],state=fields[0],namespace=os.readlink(base/'ns/pid'))
+
+def observe_instance(pid):
+    """Two bounded reads distinguish absence, a stable instance and uncertainty."""
+    try:
+        first=_read_instance(pid);second=_read_instance(pid)
+    except (OSError,ValueError,IndexError) as exc:return dict(kind='uncertain',reason=type(exc).__name__)
+    if first is None and second is None:return dict(kind='absent')
+    if first is None or second is None or any(first[k]!=second[k]for k in ('pid','start_ticks','namespace')):return dict(kind='uncertain',reason='process disappeared or identity changed during read',observations=[first,second])
+    return dict(kind='present',identity=second)
+
+def assert_owned_exited(instances):
+    """Never signals; a recycled number is accepted only after instance proof."""
+    try:observer_namespace=os.readlink('/proc/self/ns/pid')
+    except OSError as exc:raise ValueError('process evidence insufficient: observer namespace unreadable')from exc
+    observed={}
+    for old in instances:
+        pid=old['pid'];now=observed.setdefault(pid,observe_instance(pid))if pid not in observed else observed[pid]
+        reason=None
+        if not str(old.get('start_ticks','')).isdigit():reason='historical instance unresolved'
+        elif old.get('namespace')not in (None,observer_namespace):reason='historical/observer namespace conflict'
+        elif now['kind']=='uncertain':reason='current process evidence insufficient'
+        elif now['kind']=='present' and now['identity']['start_ticks']==str(old['start_ticks']) and now['identity']['state']!='Z':reason='same old instance still live'
+        if reason:raise ValueError('owned process blocked: '+json.dumps(dict(reason=reason,pid=pid,historical_start_ticks=old.get('start_ticks'),historical_namespace=old.get('namespace'),scope=old.get('scope'),wave=old.get('wave'),source=old.get('source'),current=now),ensure_ascii=False))
+    return observed
 def expected_ref(value,path):
     if value.get('path')!=str(path):raise ValueError('upstream expected reference path')
     return bound(value)

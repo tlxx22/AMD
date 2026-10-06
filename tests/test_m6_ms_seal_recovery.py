@@ -120,7 +120,7 @@ def source_fixture():
   owner=dict(pid=123456789,start_ticks='1');controller=exclusive(control/'controller.json',dict(scope=u.OLD_SCOPE,owner=owner,authorization=start))
   exclusive(control/'failure.json',dict(automatic_retry=False,error=r.ERROR,result_review='pending',scope=u.OLD_SCOPE));exclusive(control/'progress.json',dict(state='SEAL_MS_BOUNDARY',scope=u.OLD_SCOPE))
   exclusive(fc/'controller.json',dict(scope='m6-baseline-type1-followup-v3',owner=dict(pid=123456788,start_ticks='2')));exclusive(fc/'failure.json',dict(error="RuntimeError('upstream STOP/failure; successor cannot run')"));exclusive(fc/'progress.json',dict(state='WAIT_V3_COMPLETE_AND_RELEASED'))
-  probe=exclusive(root/'probe-permit.json',{'start_authorization_ref':start});report=exclusive(old/'probe/MS/complete.json',dict(approval=probe,execution_complete=True,commit=u.BASE,budget={'actual':{'adam':0,'backward':0,'forward':0}},evidence={}))
+  probe=exclusive(root/'probe-permit.json',{'start_authorization_ref':start});report=exclusive(old/'probe/MS/complete.json',dict(scope=u.OLD_SCOPE+'-MS-probe',approval=probe,execution_complete=True,commit=u.BASE,budget={'actual':{'adam':0,'backward':0,'forward':0}},evidence={}))
   summary=exclusive(root/'summary.json',dict(technical_admission=True,owner=owner,protocol_sha=digest(c),complete_ref=report))
   permit=exclusive(old/'queue/MS/formal-permit.json',dict(start_authorization_ref=start,unified_scope=u.OLD_SCOPE,commit=u.BASE,protocol_sha=digest(c),authorized_task_ids=[t['id']for t in c['tasks']],code={},data_binding_ref=data_ref,summary_ref=summary,source_states={}))
   exclusive(old/'queue/MS/runtime-admission.json',dict(owner=owner,permit_ref=permit,protocol_sha=digest(c),integrity_scan_passed=True))
@@ -134,7 +134,103 @@ def source_fixture():
    exclusive(old/'queue/MS'/('group-'+model)/'complete.json',dict(technical_complete=True,result_review='pending',model=model,task_ids=[t['id']for t in tasks],artifacts=artifacts))
   for k,v in dict(OLD_RESULT=old,START_REF=start,CONTROLLER_REF=controller,CODE_REF=code,ENV_REF=env,OWNER=owner).items():stack.enter_context(patch.object(u,k,v))
   stack.enter_context(patch.object(r.subprocess,'check_output',side_effect=lambda args,**kw:'' if 'status'in args else u.BASE+'\n'))
+  pin_fixture_identity(root,old,fc,stack)
   yield old,fc,c
+
+def pin_fixture_identity(root,old,fc,stack,source=None):
+ ownership=u.owned_evidence();fref=ref(fc/'controller.json');follower=bound(fref)
+ owners=ownership['historical_refs']+[follower['owner']]
+ if source is None:
+  source=dict(owned_exited=owners,follower_controller_ref=fref,follower_failure_ref=ref(fc/'failure.json'),controller_ref=u.CONTROLLER_REF,failure_ref=ref(old/'queue/controller/failure.json'),progress_ref=ref(old/'queue/controller/progress.json'))
+ source_ref=exclusive(root/'identity-source.json',source)
+ evidence=dict(purpose='ms203_owned_identity_reconciliation_v1',source_ref=source_ref,follower_ref=fref,historical_refs=owners,upstream=ownership,instances=ownership['instances']+[dict(**follower['owner'],scope=follower['scope'],wave='controller',source=fref)])
+ stack.enter_context(patch.object(r,'SOURCE_REF',source_ref));stack.enter_context(patch.object(r,'IDENTITY_REF',exclusive(root/'identity-reconciliation.json',evidence)))
+ return evidence
+
+class ProcessIdentity(unittest.TestCase):
+ PID=123456787
+ def sample(self,ticks='10',namespace=None,host_pid=99):
+  value=dict(pid=self.PID,host_pid=host_pid,start_ticks=ticks,namespace=namespace or os.readlink('/proc/self/ns/pid'))if ticks is not None else dict(pid=self.PID,host_pid=None,state='metadata_unavailable')
+  return dict(owned_pid_metadata={str(self.PID):value})
+ def wave(self,rows,wave='wave-0',scope='fixed-scope'):
+  return u.reconcile_wave(scope,wave,{self.PID},rows,dict(path='/fixture/'+wave+'/process.json',sha256='process'),dict(path='/fixture/'+wave+'/memory.jsonl',sha256='memory'))
+ def test_same_old_instance_live_rejected_with_bounded_diagnostic(self):
+  old=self.wave([self.sample()])[0]
+  with patch.object(u,'observe_instance',return_value=dict(kind='present',identity=dict(pid=self.PID,start_ticks='10',state='S',namespace=old['namespace']))),patch.object(os,'kill')as signal:
+   with self.assertRaisesRegex(ValueError,'same old instance still live')as error:u.assert_owned_exited([old])
+   self.assertIn(str(self.PID),str(error.exception));self.assertIn('memory.jsonl',str(error.exception));self.assertLess(len(str(error.exception)),1600);signal.assert_not_called()
+ def test_reused_pid_different_ticks_passes_without_signal(self):
+  old=self.wave([self.sample()])[0]
+  with patch.object(u,'observe_instance',return_value=dict(kind='present',identity=dict(pid=self.PID,start_ticks='999',state='R',namespace=old['namespace']))),patch.object(os,'kill')as signal:
+   self.assertIn(self.PID,u.assert_owned_exited([old]));signal.assert_not_called()
+ def test_same_wave_missing_and_duplicate_missing_resolved(self):
+  result=self.wave([self.sample(),self.sample(None),self.sample(None)])
+  self.assertEqual(len(result),1);self.assertEqual(result[0]['start_ticks'],'10');self.assertEqual(result[0]['missing_sample_count'],2);self.assertEqual(result[0]['missing_first_line'],2)
+ def test_different_waves_and_instances_not_merged_by_pid(self):
+  one=self.wave([self.sample(),self.sample(None)],'wave-0');two=self.wave([self.sample('20'),self.sample(None)],'wave-1')
+  self.assertEqual([(v['wave'],v['start_ticks'])for v in one+two],[('wave-0','10'),('wave-1','20')])
+  other=self.wave([self.sample('30'),self.sample(None)],'wave-0','other-scope');self.assertEqual(other[0]['scope'],'other-scope')
+ def test_missing_only_wave_cannot_borrow_other_wave_ticks(self):
+  self.wave([self.sample()],'wave-0')
+  with self.assertRaisesRegex(ValueError,'insufficient'):self.wave([self.sample(None)],'wave-1')
+ def test_two_candidate_instances_in_same_wave_rejected(self):
+  with self.assertRaisesRegex(ValueError,'conflicting'):self.wave([self.sample(),self.sample('20'),self.sample(None)])
+ def test_conflicting_identity_diagnostic_is_bounded(self):
+  with self.assertRaisesRegex(ValueError,'conflicting')as error:self.wave([self.sample(str(n))for n in range(20)]+[self.sample(None)])
+  detail=json.loads(str(error.exception).split(': ',1)[1]);self.assertEqual(detail['candidate_count'],20);self.assertEqual(len(detail['candidates']),4);self.assertLess(len(str(error.exception)),1600)
+ def test_missing_namespace_conflict_rejected(self):
+  row=self.sample(None);row['owned_pid_metadata'][str(self.PID)]['namespace']='pid:[wrong]'
+  with self.assertRaisesRegex(ValueError,'conflicts'):self.wave([self.sample(),row])
+ def test_unregistered_pid_and_incomplete_known_identity_rejected(self):
+  with self.assertRaisesRegex(ValueError,'unregistered'):u.reconcile_wave('scope','wave',set(),[self.sample()],{}, {})
+  with self.assertRaisesRegex(ValueError,'incomplete'):self.wave([self.sample(namespace='unknown')])
+ def test_observer_namespace_conflict_rejected(self):
+  old=self.wave([self.sample(namespace='pid:[other]')])[0]
+  with patch.object(u,'observe_instance',return_value=dict(kind='absent')):
+   with self.assertRaisesRegex(ValueError,'namespace conflict'):u.assert_owned_exited([old])
+ def test_two_absent_reads_are_released(self):
+  with patch.object(u,'_read_instance',side_effect=[None,None])as read:
+   self.assertEqual(u.observe_instance(self.PID),dict(kind='absent'));self.assertEqual(read.call_count,2)
+ def test_disappearance_during_read_is_uncertain_and_rejected(self):
+  old=self.wave([self.sample()])[0];current=dict(pid=self.PID,start_ticks='99',state='S',namespace=old['namespace'])
+  with patch.object(u,'_read_instance',side_effect=[current,None]):
+   with self.assertRaisesRegex(ValueError,'current process evidence insufficient'):u.assert_owned_exited([old])
+ def test_pid_identity_changes_during_read_are_uncertain(self):
+  one=dict(pid=self.PID,start_ticks='99',state='S',namespace=os.readlink('/proc/self/ns/pid'));two=dict(one,start_ticks='100')
+  with patch.object(u,'_read_instance',side_effect=[one,two]):self.assertEqual(u.observe_instance(self.PID)['kind'],'uncertain')
+ def test_permission_denied_not_treated_as_absence(self):
+  with patch.object(u,'_read_instance',side_effect=PermissionError('synthetic denial')):
+   with self.assertRaisesRegex(ValueError,'evidence insufficient'):u.assert_owned_exited(self.wave([self.sample()]))
+ def test_missing_proc_namespace_after_stat_is_uncertain(self):
+  with patch.object(u,'_read_instance',side_effect=FileNotFoundError('namespace vanished')):self.assertEqual(u.observe_instance(self.PID)['kind'],'uncertain')
+ def test_run_state_change_does_not_change_instance(self):
+  one=dict(pid=self.PID,start_ticks='99',state='R',namespace=os.readlink('/proc/self/ns/pid'));two=dict(one,state='S')
+  with patch.object(u,'_read_instance',side_effect=[one,two]):self.assertEqual(u.observe_instance(self.PID),dict(kind='present',identity=two))
+ def test_actual_public_preflight_and_import_agree_for_reused_number(self):
+  import io,m6_type1_followup_entry as entry
+  from contextlib import redirect_stdout
+  with source_fixture()as(old,fc,c),tempfile.TemporaryDirectory()as tmp,ExitStack()as stack:
+   root=Path(tmp);wave=old/'queue/MS/group-AMD/wave-identity';wave.mkdir()
+   (wave/'memory.jsonl').write_text('\n'.join(json.dumps(x)for x in [self.sample(),self.sample(None),self.sample(None)])+'\n');exclusive(wave/'process.json',dict(process_peaks={str(self.PID):1.}))
+   pin_fixture_identity(root/'first',old,fc,stack)
+   observe=stack.enter_context(patch.object(u,'observe_instance',side_effect=lambda pid:dict(kind='present',identity=dict(pid=pid,start_ticks='99999',state='S',namespace=os.readlink('/proc/self/ns/pid')))))
+   self.assertTrue(any(v['start_ticks']is None for v in u.owned_refs()))
+   full=r.snapshot();self.assertEqual(len(full['task_ids']),203);pin_fixture_identity(root/'full',old,fc,stack,full)
+   self.assertEqual(r.verify_source(),full);self.assertEqual(r.status()['state'],'MS_SEAL_RECOVERY_AWAITING_FULL_START_CHECK')
+   stack.enter_context(patch.object(q,'closure',return_value='synthetic-reviewed-closure'));stack.enter_context(patch.object(q,'dynamic',return_value={}));remote=stack.enter_context(patch.object(q,'verify_live_remote'));stack.enter_context(patch.object(q.subprocess,'run',return_value=subprocess.CompletedProcess([],1)))
+   approval=q.start_template()
+   for key in ('reviewed','execution_permitted','structure_frozen','m6_authorized','budget_authorized'):approval[key]=True
+   approval.update(closure_commit='synthetic-reviewed-closure',authorization_basis='synthetic user-approved fixed recovery scope')
+   auth=exclusive(root/'synthetic-start.json',approval);output=io.StringIO()
+   with patch('sys.argv',['entry','preflight','--approval',auth['path'],'--approval-sha',auth['sha256']]),redirect_stdout(output):exit_code=entry.cli()
+   result=json.loads(output.getvalue());self.assertEqual(exit_code,0);self.assertEqual(result['blocked'],[]);self.assertTrue(result['READY_TO_ARM_HANDOFF']);self.assertFalse(result['READY_FOR_GPU_EXECUTION']);remote.assert_called_once();self.assertGreater(observe.call_count,0)
+ def test_original_evidence_retained_and_exact_raw_projection_checked(self):
+  evidence=r.identity_evidence();source=bound(r.SOURCE_REF)
+  self.assertEqual(len(source['owned_exited']),661);self.assertEqual(sum(v['start_ticks']is None for v in source['owned_exited']),329);self.assertEqual(evidence['historical_refs'],source['owned_exited']);self.assertEqual(len({(v['pid'],v['start_ticks'])for v in evidence['instances']}),332)
+  with tempfile.TemporaryDirectory()as tmp:
+   changed=copy.deepcopy(evidence);changed['historical_refs']=changed['historical_refs'][:-1]
+   with patch.object(r,'IDENTITY_REF',exclusive(Path(tmp)/'changed.json',changed)):
+    with self.assertRaisesRegex(ValueError,'source mismatch'):r.identity_evidence()
 
 class SourceImport(unittest.TestCase):
  def test_203_read_only_full_integrity(self):
@@ -157,7 +253,7 @@ class SourceImport(unittest.TestCase):
    p=old/'queue/MS/group-AMD/complete.json';x=json.loads(p.read_text());x['task_ids'][0]=x['task_ids'][1];p.write_text(json.dumps(x))
    with self.assertRaises(ValueError):r.snapshot()
  def test_alive_original_worker_refused(self):
-  with source_fixture()as(old,fc,c),patch.object(r,'same',return_value=True):
+  with source_fixture()as(old,fc,c),patch.object(u,'observe_instance',side_effect=lambda pid:dict(kind='present',identity=dict(pid=pid,start_ticks='1',state='S',namespace=os.readlink('/proc/self/ns/pid')))):
    with self.assertRaises(ValueError):r.snapshot()
  def test_M_already_attempted_refused(self):
   with source_fixture()as(old,fc,c):
@@ -176,6 +272,7 @@ class SourceImport(unittest.TestCase):
  def test_actual_import_and_mixed_base287_seals_distinguish_training_and_sealing(self):
   with source_fixture()as(old,fc,c),tempfile.TemporaryDirectory()as tmp,ExitStack()as stack:
    root=Path(tmp);control=root/'controller';control.mkdir();source=r.snapshot();record=exclusive(root/'source.json',source);stack.enter_context(patch.object(r,'SOURCE_REF',record));stack.enter_context(patch.object(q,'CONTROL',control));stack.enter_context(patch.object(q,'closure',return_value='synthetic-recovery-closure'));stack.enter_context(patch('ch3_runner.code_binding',return_value={'recovery':'synthetic-new-code'}));stack.enter_context(patch.dict(os.environ,{q.SECRET:'synthetic-import-secret'}));exclusive(control/'controller.json',dict(scope=s.ID,owner=q.owner()))
+   evidence=bound(r.IDENTITY_REF);evidence['source_ref']=record;stack.enter_context(patch.object(r,'IDENTITY_REF',exclusive(root/'rebound-identity.json',evidence)))
    upstream=bound(q.wait_upstream());ms=bound(upstream['boundaries']['MS']);self.assertEqual(len(ms['task_ids']),203);self.assertEqual(ms['training_commit'],u.BASE);self.assertEqual(ms['seal_execution_commit'],'synthetic-recovery-closure');self.assertEqual(ms['training_code'],source['code']);self.assertEqual(ms['seal_execution_code'],{'recovery':'synthetic-new-code'})
    mc=q.configs()['M_BASE'];ctx=dict(s.context(mc),control=root/'M_BASE');stack.enter_context(patch.object(s,'context',return_value=ctx))
    receipts={model:exclusive(root/(model+'.json'),dict(model=model,technical_complete=True,task_ids=[t['id']for t in mc['tasks']if t['model']==model]))for model in s.MODELS};binding=dict(commit='synthetic-recovery-closure',protocol_sha=digest(mc),code={},environment={},hardware={},source_states={});stack.enter_context(patch.object(q,'dynamic',return_value=binding))

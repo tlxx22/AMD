@@ -3,7 +3,6 @@ import copy,json,subprocess
 from pathlib import Path
 from utils.ch3_contract import ROOT,digest,step_arithmetic,BestState
 from utils.ch3_native_recovery_records import bound,ref,sha
-from m6_remaining_entry import same
 
 NAME='baseline-unified-v3-ms-seal-m128-recovery1'
 PACKAGE=ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1'/NAME
@@ -12,6 +11,7 @@ M_PROTOCOL='baseline-unified96-onecycle001-v3-mbatch128-recovery1'
 M_FILE=ROOT/'configs/ch3_round2_m_batch128_recovery1.json'
 M_PARENT=dict(path=str(ROOT/'configs/ch3_baseline_m_u96_oc01_v3.json'),sha256='f627260225b971d13d1e881d8123a0426c63304e64d8e8afa56fa0ab73a3cdb2')
 SOURCE_REF=dict(path=str(PACKAGE/'ms203-source-verification.json'),sha256='7f77d387f4ee19a96fa69220e73842664a51a68803d14a83987804e1b5662e32')
+IDENTITY_REF=dict(path=str(PACKAGE/'pid-identity-repair-v1/owned-identity-reconciliation.json'),sha256='b88eaf82752a84947bfef94834e9143889735db83ac9899dee40159ef13f21be')
 ERROR='TypeError("dict() got multiple values for keyword argument \'protocol_sha\'")'
 FILES={'manifest.json','result.json','history.jsonl','budget.json','runtime.json','best.pt','last.pt'}
 
@@ -44,6 +44,16 @@ def validate_m(c):
         if m['window_counts']!={'train':arithmetic['train_windows'],'validation':arithmetic['validation_windows']}or data['data_bindings'][t['dataset']][t['id']]!=digest(m):raise ValueError('M128 actual metadata/window binding')
     return c
 
+def identity_evidence():
+    """Small review-bound reconciliation, separate from the untouched MS proof."""
+    expected=bound(SOURCE_REF);evidence=bound(IDENTITY_REF)
+    if evidence.get('purpose')!='ms203_owned_identity_reconciliation_v1' or evidence.get('source_ref')!=SOURCE_REF or evidence.get('historical_refs')!=expected['owned_exited']:raise ValueError('review-bound process reconciliation/source mismatch')
+    follower=bound(expected['follower_controller_ref'])
+    if evidence.get('follower_ref')!=expected['follower_controller_ref'] or evidence['upstream']['historical_refs']+[follower['owner']]!=expected['owned_exited']:raise ValueError('historical process sample projection changed')
+    want=evidence['upstream']['instances']+[dict(**follower['owner'],scope=follower['scope'],wave='controller',source=expected['follower_controller_ref'])]
+    if evidence.get('instances')!=want or any(v.get('start_ticks')is None for v in want):raise ValueError('unresolved or changed process instance reconciliation')
+    return evidence
+
 def snapshot(checksums=True):
     """No deserialization, numerical replay, model, optimizer or test execution."""
     from utils import ch3_type1_upstream as u
@@ -64,9 +74,10 @@ def snapshot(checksums=True):
     if any((follower/x).exists()for x in ('probe','URBAN_SUBSET','EPF_ALL','M_ALL')):raise ValueError('successor computation already exists')
     from utils.ch3_round2_amendment import HISTORICAL_RESULT
     if HISTORICAL_RESULT.exists():raise ValueError('old amendment computation already exists')
-    owners=u.owned_refs()+[fcontrol['owner']]
-    live=[v for v in owners if same(v)]
-    if live:raise ValueError('old registered owner/child/worker still live: '+str(live))
+    ownership=u.owned_evidence();evidence=identity_evidence()
+    owners=ownership['historical_refs']+[fcontrol['owner']]
+    if ownership!=evidence['upstream'] or owners!=evidence['historical_refs']:raise ValueError('registered ownership sampling/reference changed')
+    u.assert_owned_exited(evidence['instances'])
     c=bound(start['config_refs']['MS']);ids=[t['id']for t in c['tasks']]
     from utils.ch3_baseline_unified_tasks import MODELS
     if len(ids)!=203 or len(set(ids))!=203 or {t['model']for t in c['tasks']}!=set(MODELS):raise ValueError('exact seven-model 203-task MS required')
@@ -111,7 +122,7 @@ def snapshot(checksums=True):
 
 def anchors():
     from utils import ch3_type1_upstream as u
-    return dict(recovery='specific_protocol_sha_seal_failure',source_verification_ref=SOURCE_REF,original_start_ref=u.START_REF,original_controller_ref=u.CONTROLLER_REF,training_commit=u.BASE,expected_runs=dict(MS=203,M=84,total=287),expected_remaining_formal=427)
+    return dict(recovery='specific_protocol_sha_seal_failure',source_verification_ref=SOURCE_REF,ownership_identity_ref=IDENTITY_REF,original_start_ref=u.START_REF,original_controller_ref=u.CONTROLLER_REF,training_commit=u.BASE,expected_runs=dict(MS=203,M=84,total=287),expected_remaining_formal=427)
 def verify_source():
     expected=bound(SOURCE_REF);actual=snapshot()
     if actual!=expected:raise ValueError('review-bound MS source verification changed')
@@ -121,5 +132,6 @@ def status(full=False):
         v=verify_source();return dict(state='RECOVERABLE_MS203_VERIFIED_AND_RELEASED',READY_FOR_GPU_EXECUTION=True,source_verification_ref=SOURCE_REF,anchors=anchors(),owned_exited=v['owned_exited'],result_review='pending')
     expected=bound(SOURCE_REF)
     for key in ('failure_ref','progress_ref','controller_ref','follower_failure_ref','follower_controller_ref'):bound(expected[key])
-    if any((Path('/proc')/str(v['pid'])).exists() if v['start_ticks'] is None else same(v)for v in expected['owned_exited']):raise ValueError('old owned instance live or unverified PID reappeared')
+    from utils import ch3_type1_upstream as u
+    u.assert_owned_exited(identity_evidence()['instances'])
     return dict(state='MS_SEAL_RECOVERY_AWAITING_FULL_START_CHECK',READY_FOR_GPU_EXECUTION=False,anchors=anchors(),result_review='pending')
