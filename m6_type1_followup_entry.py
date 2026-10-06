@@ -8,7 +8,7 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive
 
 def cli():
     parser=argparse.ArgumentParser()
-    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary'))
+    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round'))
     parser.add_argument('--approval',default=str(s.PACKAGE/'start-review.json'));parser.add_argument('--approval-sha')
     parser.add_argument('--wrapper-pid',type=int);parser.add_argument('--stage',choices=s.STAGES);parser.add_argument('--model',choices=s.MODELS)
     parser.add_argument('--runtime');parser.add_argument('--runtime-sha');a=parser.parse_args()
@@ -46,7 +46,10 @@ def cli():
             run_group(c,permit,a.model,dict(path=a.runtime,sha256=a.runtime_sha))
         return 0
     if a.action=='safe-stop':print(json.dumps(q.safe_stop()));return 0
-    if a.action=='summary':
+    if a.action in ('summary','second-round'):
+        from utils.ch3_round2_amendment import summary
+        print(json.dumps(summary(),ensure_ascii=False,indent=2));return 0
+    if a.action=='third-round':
         from utils.ch3_type1_summary import result_index
         print(json.dumps(result_index(q.configs()),ensure_ascii=False,indent=2));return 0
     status=q.status()
@@ -54,7 +57,12 @@ def cli():
     if a.action=='complete':
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
-        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=231:raise ValueError('exact technical complete required')
+        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=343 or complete.get('third_round_runs')!=231 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
+        q.validate_boundary_light(complete['AMEND_boundary'],'M_AMEND')
+        from utils.ch3_round2_amendment import RESULT,validate_index
+        if complete['round2_boundary']['path']!=str(RESULT/'queue/round2-boundary.json'):raise ValueError('exact second-round revision boundary')
+        revision=bound(complete['round2_boundary']);validate_index(bound(revision['main_index_ref']))
+        if revision.get('amendment_ref')!=complete['AMEND_boundary'] or revision.get('technical_complete')is not True:raise ValueError('sealed second-round amendment lineage')
         q.validate_boundary_light(complete['URBAN_boundary'])
         q.validate_boundary_light(complete['EPF_boundary'],'EPF_ALL')
         q.validate_boundary_light(complete['M_boundary'],'M_ALL')

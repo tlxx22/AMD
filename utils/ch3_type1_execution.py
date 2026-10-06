@@ -28,9 +28,9 @@ def metadata_files(c,a,runtime_ref=None):
     values=[scope.parent_ref(c['baseline_unified']['stage']),scope.AUTHOR_RECIPE,c['baseline_unified']['data_ref'],a['start_authorization_ref']]
     values.append(ENVIRONMENT_REF)
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
-    values += [ref(scope.PACKAGE/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
+    values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
     values += list(a.get('predecessor_boundaries',{}).values())
-    for key in ('summary_ref','ms_boundary_ref','upstream_boundary_ref'):
+    for key in ('summary_ref','ms_boundary_ref','upstream_boundary_ref','round2_boundary_ref'):
         if a.get(key):values.append(a[key])
     if runtime_ref:values.append(runtime_ref)
     # Raw probe payloads and the large probe completion report are deliberately absent.
@@ -144,7 +144,7 @@ def technical_group(c,model,a):
         if not history or (len(history)!=p['training']['epochs'] and not best.stopped):raise ValueError('incomplete epoch contract')
         steps=history[-1]['steps'];test=r.get('final_test',{})
         if m['task']!=t or m['profile']!=p or m['identity']['commit']!=a['commit'] or m['identity']['profile_sha']!=digest(p) or m['identity']['protocol_sha']!=digest(c) or m['identity']['data_sha']!=a['data_bindings'][t['dataset']][t['id']]:raise ValueError('formal manifest profile/data/version')
-        if r['id']!=t['id'] or r['commit']!=a['commit'] or r['protocol_sha']!=digest(c) or r['profile_sha']!=digest(p) or r['scientific_protocol']!=scope.PROTOCOL or r['scheduler_updates']!=steps or r['scheduler_sha']!=digest(p['training']['scheduler']):raise ValueError('formal result scheduler identity')
+        if r['id']!=t['id'] or r['commit']!=a['commit'] or r['protocol_sha']!=digest(c) or r['profile_sha']!=digest(p) or r['scientific_protocol']!=c['baseline_unified']['id'] or r['scheduler_updates']!=steps or r['scheduler_sha']!=digest(p['training']['scheduler']):raise ValueError('formal result scheduler identity')
         if t['task']=='M' and (p.get('metric_scope')!='all_channels' or p.get('supervised_channels')!=list(range(p['C'])) or p.get('output_order')!=p['features'] or r.get('metric_scope')!='all_channels' or r.get('elements')!=a_steps['test_windows_arithmetic_only']*p['pred_len']*p['C']):raise ValueError('genuine M all-channel supervision/evaluation/output order')
         import math
         if not all(math.isfinite(r[k]) for k in ('mse','mae')) or test!=dict(calls=1,selected='best.pt',sha256=refs['best.pt']['sha256'],epoch=best.epoch) or r['best_epoch']!=best.epoch:raise ValueError('finite/test-once/selected checkpoint')

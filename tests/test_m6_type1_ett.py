@@ -2,7 +2,8 @@
 import ast,copy,importlib.util,json,math,unittest
 from pathlib import Path
 from unittest.mock import patch
-from utils import ch3_type1_tasks as s,ch3_type1_ett as e,ch3_type1_chain as q,ch3_type1_upstream as u
+from tests.ch3_historical_type1_v2_231 import s,q
+from utils import ch3_type1_ett as e,ch3_type1_upstream as u
 from utils.ch3_contract import ROOT,digest,profile,step_arithmetic
 from utils.ch3_native_recovery_records import bound,ref,sha
 
@@ -150,11 +151,14 @@ class ETTExtension(unittest.TestCase):
         with patch.object(q,'closure',return_value='fixture'):
             with self.assertRaises(PermissionError):q.validate_start(a)
     def test_source_refs_worker_allowlist(self):
-        from utils.ch3_type1_execution import metadata_files
+        from tests.ch3_historical_type1_v2_231 import execution
+        metadata_files=execution.metadata_files
         values=metadata_files(self.c,dict(start_authorization_ref=ref(s.PACKAGE/'start-approval.template.json')))
         for value in (e.SOURCE_REF,e.PAPER_REF,e.TEMPLATE_REF):self.assertEqual(values[value['path']],value['sha256'])
         self.assertFalse(any(p.endswith('.bin')or '/probe/'in p for p in values))
-    def test_new_output_and_auth_not_materialized(self):self.assertFalse(s.RESULT.exists());self.assertFalse((s.PACKAGE/'start-review.json').exists());self.assertTrue(all(q.start_template()[k]is False for k in ('reviewed','execution_permitted','budget_authorized')))
+    def test_new_output_and_auth_not_materialized(self):
+        acceptance=bound(dict(path=str(s.PACKAGE/'acceptance.json'),sha256='3cf254d5ddceb2dd3040b7696063d73b3a8994450d91b8cc401b9d7cd722537a'))
+        self.assertTrue(acceptance['no_actual_followup_start']);self.assertTrue(all(q.start_template()[k]is False for k in ('reviewed','execution_permitted','budget_authorized')))
     def test_training_test_save_math_unchanged_AST(self):
         import subprocess
         old=ast.parse(subprocess.check_output(['git','show',s.BASE+':ch3_runner.py'],cwd=ROOT,text=True));new=ast.parse((ROOT/'ch3_runner.py').read_text())

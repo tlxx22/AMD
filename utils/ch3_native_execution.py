@@ -208,7 +208,7 @@ def validate_wave(c,configs,out):
 def compare(c,t,x,y):
     from ch3_runner import compare_probe_trajectories,_compare_full_numeric_files
     row=compare_probe_trajectories(c,t,x,y)
-    if c.get('type1_followup'):
+    if c.get('type1_followup') and profile(c,t)['training']['scheduler']['name']!='OneCycleLR':
         p=profile(c,t)
         if p['training']['scheduler']['name']=='type1_horizon_scaled_v1':
             from utils.ch3_type1_scaled import validate_probe_trace

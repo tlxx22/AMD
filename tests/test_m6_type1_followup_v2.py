@@ -3,7 +3,8 @@ import ast,copy,json,math,os,subprocess,tempfile,time,unittest
 from pathlib import Path
 from unittest.mock import patch
 from contextlib import ExitStack,nullcontext
-from utils import ch3_type1_tasks as s,ch3_type1_chain as q,ch3_type1_upstream as u
+from tests.ch3_historical_type1_v2_231 import s,q
+from utils import ch3_type1_upstream as u
 from utils.ch3_type1_scaled import Schedule,configuration,coefficient,lr_used,validate_probe_trace
 from utils.ch3_contract import ROOT,profile,digest,BestState,step_arithmetic
 from utils.ch3_native_recovery_records import ref,bound,exclusive,sha
@@ -224,10 +225,12 @@ class ThreeRingLifecycleTests(unittest.TestCase):
             c=q.configs()['EPF_ALL'];path=s.context(c)['control']/'technical-boundary.json';r=exclusive(path,dict(purpose='baseline_type1_EPF_ALL_boundary_v1',scope=s.ID,technical_complete=True,result_review='pending',protocol_sha=digest(c),task_ids=['wrong']*35))
             with self.assertRaises(ValueError):q.validate_boundary_light(r,'EPF_ALL')
     def test_summary_M_route_and_no_selection(self):
-        from utils.ch3_type1_summary import result_index
+        from tests.ch3_historical_type1_v2_231 import summary
+        result_index=summary.result_index
         rows=result_index(q.configs());self.assertEqual(len(rows['rows']),231);self.assertTrue(rows['no_old_new_selection']);self.assertTrue(all('/M/formal-'in r['v3']['path']for r in rows['rows']if r['ring']=='M_ALL'))
     def test_formal_metadata_excludes_raw(self):
-        from utils.ch3_type1_execution import metadata_files
+        from tests.ch3_historical_type1_v2_231 import execution
+        metadata_files=execution.metadata_files
         for c in q.configs().values():
             refs=metadata_files(c,dict(start_authorization_ref=ref(s.PACKAGE/'start-approval.template.json')))
             self.assertFalse(any('/serial/'in p or '/q4/'in p or p.endswith('.bin')for p in refs))
@@ -241,7 +244,8 @@ class ThreeRingLifecycleTests(unittest.TestCase):
     def test_eval_weighted_tail_math_unchanged(self):
         source=(ROOT/'ch3_runner.py').read_text();f=next(x for x in ast.parse(source).body if isinstance(x,ast.FunctionDef)and x.name=='evaluate');text=ast.unparse(f);self.assertIn('sse / count',text);self.assertIn('sae / count',text);self.assertIn('numel()',text)
     def test_fresh_no_resume(self):
-        from utils.ch3_type1_execution import make_config
+        from tests.ch3_historical_type1_v2_231 import execution
+        make_config=execution.make_config
         c=q.configs()['M_ALL'];t=c['tasks'][0]
         with self.assertRaises(PermissionError):make_config(c,'ch3_formal',Path('/tmp/not-created-type1-resume'),task=t['id'],approval={},resume=True)
 
@@ -250,7 +254,8 @@ class ThreeRingAuditTests(unittest.TestCase):
     def _fixture(self,stage,scope_kind='type1',failure=None,serial_failure=False,one_group=False,full_audit=False):
             from contextlib import contextmanager,ExitStack
             from types import SimpleNamespace
-            import ch3_runner,utils.ch3_native_execution as e,m5_formal_entry as tool
+            import ch3_runner,m5_formal_entry as tool
+            from tests.ch3_historical_type1_v2_231 import native as e
 
             @contextmanager
             def fixture():
@@ -352,7 +357,8 @@ class ThreeRingAuditTests(unittest.TestCase):
                     self.observations.append(dict(case=branch+'-tail-branch',run_probe_tail_full_audits=expected,immediate_compare_calls=f.immediate.call_count,branch_fixture_only=True))
     def test_formal_light_paths_and_runtime_scan_rule_preserved(self):
             from contextlib import nullcontext
-            import ch3_runner,utils.ch3_type1_execution as execution
+            import ch3_runner
+            from tests.ch3_historical_type1_v2_231 import execution
             for stage in s.STAGES:
                 with self.subTest(stage=stage),self._fixture(stage)as f:
                     f.e.run_probe(f.c,f.a);summary_ref=q.audit_probe(f.c);summary=bound(summary_ref);self.assertEqual(f.full.call_count,1)
@@ -394,8 +400,8 @@ class ThreeRingAuditTests(unittest.TestCase):
 
 class CPUPlumbingTests(unittest.TestCase):
     def test_actual_M_technical_closeout(self):
-        from utils.ch3_type1_execution import technical_group
-        from utils.ch3_native_tasks import result_path
+        from tests.ch3_historical_type1_v2_231 import execution,native_tasks
+        technical_group=execution.technical_group;result_path=native_tasks.result_path
         c=q.configs()['M_ALL'];data=bound(c['baseline_unified']['data_ref'])
         with tempfile.TemporaryDirectory(dir=s.PACKAGE)as tmp,patch.object(s,'RESULT',Path(tmp)):
             approval=dict(commit='synthetic-M-closeout',data_bindings=data['data_bindings'])

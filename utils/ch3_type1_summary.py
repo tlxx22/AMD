@@ -14,11 +14,16 @@ def observed(path,task_id=None,protocol=None,profile_sha=None):
     if r.get('id')!=m['task']['id'] or (task_id and r.get('id')!=task_id)or (protocol and r.get('scientific_protocol')!=protocol)or (profile_sha and r.get('profile_sha')!=profile_sha):raise ValueError('result source identity mismatch')
     return dict(path=str(path),ref=ref(path),manifest_ref=ref(path.with_name('manifest.json')),task_id=r['id'],profile_sha=m['identity']['profile_sha'],science_execution_commit=m['identity']['commit'],mse=r['mse'],mae=r['mae'],status='complete',seed=r['seed'],std='N/A')
 def result_index(configs):
+    from utils.ch3_round2_amendment import summary,key
+    revision=summary();cell_bank={r['cell_id']:r for r in revision.get('cells',[])}
     rows=[];base=s.RESULT.parent
     for stage,c in configs.items():
+        if stage=='M_AMEND':continue
         for prior,t in zip(s.selected(stage),c['tasks']):
             current=s.context(c)['result_root']/('formal-'+t['model'])/t['id']/'result.json'
             row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],s.PROTOCOL,digest(s.profile(c,t))),v3=observed(OLD_RESULT/('M' if stage=='M_ALL' else 'MS')/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
+            # Daily comparison follows the sealed round-two source rule, never test ranking.
+            row['second_round_revised']=cell_bank.get(key(t),dict(status='revision_pending'))
             if stage=='EPF_ALL':
                 legacy_id=t['model']+'-'+t['dataset']+'-MS-f1-h24-s2024'
                 paths=[base/('formal-'+t['model'])/legacy_id/'result.json',base/'supplements/epf4-timemixer-v1'/('formal-'+t['model'])/legacy_id/'result.json']

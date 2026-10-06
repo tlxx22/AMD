@@ -48,6 +48,8 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
+2026-10-06 UTC当前M6：旧第三轮等待器已安全停止，W原unified-v3继续287项；N候选准备第二轮112项补齐/Weather20修订、371格统一来源，随后自动第三轮Weather20后的231项。仍仅三轮，旧版本/成本/test历史保留，固定来源不按test择优；用户批准科学范围，机器准入与step核账由工程层负责，审核后技术补做不扣减原任务完成额度，不盲重试。候选未stage/commit/push或启动，详见文末最新小节。
+
 2026-09-30最新M6执行决定：正文主实验集为UrbanEV/PJM/Weather/Exchange，完整552任务矩阵及既有结果保留；剩余228任务以DLinear→iTransformer→ModernTCN→TimeXer→N→S六组总队列一次用户启动、组间自动技术交接。此为跨模型启动方式修订，不改变baseline、科学profile、消融或第四章路线。41-run在原绑定版本下本轮审计通过、结果待ChatGPT审核；总队列为未提交待审核工作区，尚未获实际启动许可。正文范围及启动例外详见§9.6与唯一M6 §5.14，旧时点快照不倒写。
 
 **M6当前增量（用户本次批准，工作区待字节审核）**：TimeMixer/UrbanEV/F4的h3/6/9/12采用独立确认政策：初始化、RNG、batch、结构及非浮点/Adam step/参数组精确一致；六步浮点参数、buffer、梯度、Adam moments绝对差≤1e-4；逐步loss与第2/6步MSE、MAE、同元素数归一SSE/SAE差≤1e-6，均rtol=0。仅命中当前冻结T12/pred_len1/C11/B128/LR0.001/seed2024及既有线程/硬件；其他域和旧exact失败不改。四H串行后q4共8 worker，局部48 Adam/80前向/48反向；第6步后复用第2步两个CPU评价batch额外评价，不改变六步训练/RNG。A阶段零模型负载，B须实现字节审核和精确closure后另签实际许可；本轮不提交或执行。完整条款、87＋1来源合并与正式队列边界见唯一M6 §5.13。
@@ -2993,3 +2995,27 @@ ETTh2沿小时freq=h、原4维历史timeF；ETTm1/2显式freq=t、实际间隔15
 本轮复验相关历史type1/OneCycle/三环M与新ETT范围，实际221/221 Passed，0 failure/error/skip；真实model construction/forward/backward/Adam/GPU initialization全部0，GPU未初始化。原147项数据合同测试绑定保留候选快照，保留原方法与断言；新增35项覆盖84格迁移、数据来源/reader/scaler/分钟marks、全通道接口、窗口尾batch、政策、新旧完成边界与许可、budget及科学数学AST。辅助来源获取的GitHub API403已保留，改用只读git ls-remote锁定提交及原始对象获取；来源脚本语法错误及一次原子patch上下文拒绝记录保留，未产生模型计算或科学尝试。没有删除断言、skip或容差放宽。
 
 AST/JSON/bash-n/bundle/diff-check通过；真实不可执行模板dry-run exit0，preflight exit2，blocked仅为未实际字节审核/未closure/未物化start record三项；五授权flags仍false、closure_commit=null。本轮READY_TO_ARM_HANDOFF=false、READY_FOR_GPU_EXECUTION=false，没有新start-review、真实等待器/tmux、probe、formal/test或结果根。工期重新按231项实际固定波次及同模型/H的ETTh1代理、分钟数据实际train/val/test workload比计算，未以run数等比例或六步除6外推：候选并发新正式约10.1–78.7小时，降q2约15.1–131.7小时，串行约29.4–248.0小时；M的新增数据/batch128缺同任务实测，区间为较宽代理估计而非置信区间，另加未实测probe/完整性检查开销及旧v3剩余等待，不复用旧147项11–60小时为新工期。本轮只在N/P形成候选，未stage/commit/push，扩展后字节待ChatGPT审核，不宣称已审核或已同步。
+
+#### 第二轮112项补齐/Weather20修订与第三轮Weather20续接（2026-10-06 UTC，N候选）
+
+本次来自用户明确科学调整，不冒称已证明旧实现有科学bug。日常仍只有三轮：第一轮＝初始全量及已接受补做；第二轮＝unified-v3及本次amend1；第三轮＝type1-followup内部revision v3，不称第四轮。开发仅N，基线5bd62dc93d611b3271467a46fd16335b622e0af1。W原v3继续203 MS＋84 M=287，代码/config/docs/许可/历史artifact不改；R、作者、数据、环境、Closed milestones及baseline tag不改。
+
+旧第三轮v2原owner46708/start_ticks189114285经scope、完整argv、parent/owned核验，用原safe-stop入口退出，session退出。停止时仍WAIT_V3_COMPLETE_AND_RELEASED，无probe/formal/test及消耗，Adam/backward/forward/test均0；退休性质user_authorized_protocol_supersession、scientific_failure=false、budget_refund=false、old_v3_signal_sent=false，原STOP/controller/日志/许可永久保留。W owner36799/start_ticks171530843未被发送信号，继续合法执行；自然进度不作版本异常。
+
+第二轮补做独立baseline-unified96-onecycle001-v3-amend1，七模型AMD→DLinear→PatchTST→iTransformer→TimeMixer→ModernTCN→TimeXer，每模型ETTh2四H→ETTm1四H→ETTm2四H→Weather四H，共112 fresh/1400 max run-epochs。新增ETT84项从冻结v3自身同H ETTh1-M实际profile迁移结构；L96、pred_len=H、train/eval128、10/None、seed2024、accumulation1，全通道监督/评价。独立数据SHA、split、train-only scaler、小时/15分钟marks继承现有已审核来源，不能套ETTh1数据SHA/scaler或小时marks。采用冻结v3 OneCycle：max_lr0.01、pct_start0.2、cos、cycle_momentum=true、base/max_momentum0.85/0.95、div25、final_div10000、three_phase=false、last_epoch=-1、verbose=false、total_steps=None、epochs10、steps_per_epoch按实际批次；每成功Adam update后推进，validation/test不推进，max_lr不等于固定/第一步LR。Weather28只改training.epochs和training.scheduler.epochs 10→20；patience=None、各模型自身原batch/eval_batch、steps_per_epoch、结构/数据/marks及其余OneCycle不变，fresh20，不加载10轮checkpoint或拼接旧轨迹。
+
+来源复核固定论文2405.14616v1第14页Table7，PDF SHA a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d；TimeMixer作者commit e24610583b36fdd8c76cc17a8df4e65759a5f460与四份来源源码SHA一致。对齐限定指定L/batch/最大epoch及ETTh1-derived OneCycle安排，eval128/patience=None为项目合同，不能声称各模型作者最优或完整复现。差异明确：冻结TimeMixer迁移至ETTm2仍d_model16，Table7为32；本轮不扩大结构修改。
+
+第二轮唯一日常主结果入口371有效格＝原MS203＋原ETTh1/Exchange56＋新Weather20的28＋新ETT84，原287边界不扩成371。新Weather28全部技术完成后按预先固定规则整批切换，效果更差也不逐格选旧结果；此前显示revision Pending，不冒充10轮值是20轮。原Weather10和其他旧artifact保留位置、真实时间/config/commit；索引只引用并保存来源ref/SHA、profile/protocol、实际执行版本、revision及supersedes，不搬移/重写。371格区别于原287＋112＝399次计划正式运行，其中Weather28是替换重复计算；probe与失败attempt另记。第三轮结果汇总消费封存的第二轮修订来源，旧v3记录另标历史，不自动按test替换主表。
+
+第三轮新baseline-type1-followup-v3仍231 fresh，Urban28（f1/2、H3/12，T12、20/5）、EPF35（T168、batch32、10/3）、M168（六域/四H，L96、batch128）。只Weather28变20/None、scheduler.epochs20、coefficient4/9；其他203项resolved scientific profile diff=0，全numeric registry逐项不变，ModernTCN EPF5e-4不套给M。总max run-epochs2870。复用type1_horizon_scaled_v1，lr(e,E)=1e-4×0.5**(max(e-2,0)×c)，c=1(E<=10)或8/(E-2)；WeatherE20首两轮1e-4、e3约7.348672461378e-5、e10约8.504937501090e-6、e20=3.90625e-7；E固定，基础betas固定，不残留OneCycle动态beta1，不拼接旧10轮。无J/N/S/ECL、新seed/search或额外Urban格。
+
+未来一次总arm：旧287完整技术完成＋owned释放→112项必要probe/AUTO_AUDIT/formal/test/seal→第二轮371来源封存→第三轮Urban→EPF→M各自probe/audit/formal/test/seal→COMPLETE，result_review=pending。第三轮不得仅等旧287绕过112；旧v3 running允许审核closure后arm等待，等待不初始化GPU、不占训练组锁。效果不控制后环，技术失败停止派发；仅明确resource按预登记降q，q<=4，不改batch/精度/结构/容差。即时gate不删，probe尾部完整审计0、每个AUTO_AUDIT1，四执行阶段合计4；formal compact引用贯通、零完整probe回放/逐task raw读取，manifest扫描每阶段监督器生命周期1次。补做仅新增scheduler类型接线到原OneCycle精确检查，legacy/type1行为保留。
+
+helper预算（Adam/backward/forward）：补做112/1400=608000/608000/734673；第三轮Urban28/560=1028440/1028440/1143128，EPF35/350=399000/399000/467845，M168/1960=354480/354480/446642，第三轮231/2870=1781920/1781920/2057615；新增总343/4270=2389920/2389920/2792288。补做probe cap2016/2016/2688、第三轮4146/4146/5552，总6162/6162/8240；nominal总4116/4116/5504。用户批准固定科学范围，机器准入与step核账由工程层负责；技术失败成本保留、不退款，诊断修复和实际字节审核后的合法補做不扣减原任务完成额度，不盲重试，不把效果差/正常早停当故障或据节省做搜索。
+
+每任务只validation严格MSE改善选best、既定早停，锁定best后正式test一次，probe无test，后环派发不依test；test状态无法确认则停止自动恢复，不重复访问。保留已看test及协议修订研究历史。runner的formal_worker/evaluate/save/restore/audit_resume/init_training函数级AST不变，只code_binding纳入新增文件；OneCycle/scaled/data/time-mark/adapter数学字节保持。历史测试绑定冻结C3/147版本，原方法与断言保留，不skip/放宽。
+
+定向验收/最终复验与失败账绑定外置amend1包，原221项证据保留原覆盖，不机械全跑。首次79项1error发现OneCycle误送type1校验，修正窄路由；随后79项1failure为即时/最终比较次数混计，现分开验证；82项定向通过，真实model/forward/backward/Adam/GPU均0。辅助语法/白名单遗漏、patch上下文/重复操作拒绝保留，不形成科学计算。模板dry-run exit0展示112/28/35/168，preflight exit2只有未review/closure/start-record绑定三项，flags=false、closure=null。READY_TO_ARM_HANDOFF=false、READY_FOR_GPU_EXECUTION=false，无新真实许可、等待器/tmux、结果根、probe/formal/test；本轮未stage/commit/push，停在候选待ChatGPT实际字节审核，不宣称已审核、closure或训练完成。
+
+最终定向复验84/84 Passed（此前82/82及83/83通过记录同时保留），0 failure/error/skip，真实model construction/forward/backward/Adam/GPU initialization全部0。实际调度分支证明四阶段probe尾部0、AUTO_AUDIT各1，formal完整审计/数值回放/raw读取0，runtime完整manifest扫描各1；合成tmux持久等待及owned safe-stop通过。JSON/AST/bash-n/bundle SHA/git diff --check通过，全部修后SHA、完整patch、固定来源/预算/调用次数及失败账由本轮外置包绑定；该Passed是CPU验收，不是实际GPU准入、科学结果review或ChatGPT对新候选的审核。

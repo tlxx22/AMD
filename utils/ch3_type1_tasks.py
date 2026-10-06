@@ -1,28 +1,36 @@
-"""Exact 28 UrbanEV + 35 EPF + 168 M tasks; explicit source-bound ETT extension."""
+"""112 round-two amendments followed by 231 fixed third-round tasks."""
 import copy,json,math
 from pathlib import Path
 from functools import lru_cache
 from utils.ch3_contract import ROOT,digest,step_arithmetic
 from utils.ch3_native_recovery_records import bound,sha
 from utils.ch3_type1_scaled import configuration
-BASE='9341e4eb44ed9225a3965b102b2504b1fecfe830'
-PROTOCOL='baseline-type1-followup-v2'
-ID='m6-baseline-type1-followup-v2'
+BASE='5bd62dc93d611b3271467a46fd16335b622e0af1'
+PROTOCOL='baseline-type1-followup-v3'
+ID='m6-baseline-type1-followup-v3'
 MODELS=('AMD','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer')
-STAGES=('URBAN_SUBSET','EPF_ALL','M_ALL')
+STAGES=('M_AMEND','URBAN_SUBSET','EPF_ALL','M_ALL')
 PACKAGE=ROOT.parent/'amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1'/PROTOCOL
 RESULT=ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu'/PROTOCOL
 PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_ms_u96_oc01_v3.json'),sha256='6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09')
 M_PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_m_u96_oc01_v3.json'),sha256='f627260225b971d13d1e881d8123a0426c63304e64d8e8afa56fa0ab73a3cdb2')
-AUTHOR_RECIPE=dict(path=str(PACKAGE/'type1-author-recipe.json'),sha256='fc1081b5acaef98181bc4edd0d5bcbab7ca7620e69eff4a1b97850833cf3da71')
+AUTHOR_RECIPE=dict(path=str(PACKAGE.parent/'baseline-type1-followup-v2/type1-author-recipe.json'),sha256='fc1081b5acaef98181bc4edd0d5bcbab7ca7620e69eff4a1b97850833cf3da71')
 @lru_cache(maxsize=2)
 def parent(stage='URBAN_SUBSET'):return bound(parent_ref(stage))
-def parent_ref(stage):return M_PARENT_REF if stage=='M_ALL' else PARENT_REF
+def parent_ref(stage):return M_PARENT_REF if stage in ('M_ALL','M_AMEND') else PARENT_REF
+def package(stage):
+    if stage=='M_AMEND':
+        from utils.ch3_round2_amendment import PACKAGE as value
+        return value
+    return PACKAGE
 def file(stage):
     if stage not in STAGES:raise ValueError('exact type1 ring')
-    return ROOT/'configs'/('ch3_type1_'+stage.lower()+'_v2.json')
+    return ROOT/'configs/ch3_round2_m_amend1.json' if stage=='M_AMEND' else ROOT/'configs'/('ch3_type1_'+stage.lower()+'_v3.json')
 def selected(stage):
     if stage not in STAGES:raise ValueError('exact ring')
+    if stage=='M_AMEND':
+        from utils.ch3_round2_amendment import selected as handler
+        return handler()
     rows=parent(stage)['tasks']
     if stage=='M_ALL':
         from utils.ch3_type1_ett import NEW_DATASETS
@@ -38,16 +46,20 @@ def selected(stage):
         return result
     return [t for t in rows if t['dataset']=='UrbanEV' and t['fold']in (1,2) and t['h']in (3,12)] if stage=='URBAN_SUBSET' else [t for t in rows if t['dataset']!='UrbanEV']
 def new_task(t):
-    value=copy.deepcopy(t);group=t['model']+'-'+t['dataset']+'-'+t['input_variant']+'-type1-followup-v2'
+    value=copy.deepcopy(t);group=t['model']+'-'+t['dataset']+'-'+t['input_variant']+'-type1-followup-v3'
     value.update(id=group+'-f'+str(t['fold'])+'-h'+str(t['h'])+'-s2024',group=group,profile=group+'-h'+str(t['h']))
     return value
-def expected_tasks(stage):return [new_task(t) for t in selected(stage)]
+def expected_tasks(stage):
+    if stage=='M_AMEND':
+        from utils.ch3_round2_amendment import tasks
+        return tasks()
+    return [new_task(t) for t in selected(stage)]
 def inherited_profile(t):
     from utils import ch3_type1_ett as ett
     if t['dataset']in ett.NEW_DATASETS:return ett.profile(t)
     stage='M_ALL' if t['task']=='M' else 'URBAN_SUBSET' if t['dataset']=='UrbanEV' else 'EPF_ALL';old=parent(stage)
     p=copy.deepcopy(old['resolved_profiles'][t['id']]);p['T']=12 if stage=='URBAN_SUBSET' else 96 if stage=='M_ALL' else 168
-    train=p['training'];train.update(lr=1e-4,batch=32 if stage=='EPF_ALL' else 128,eval_batch=32 if stage=='EPF_ALL' else 128,epochs=20 if stage=='URBAN_SUBSET' else 10,patience=5 if stage=='URBAN_SUBSET' else 3 if stage=='EPF_ALL' else None)
+    train=p['training'];train.update(lr=1e-4,batch=32 if stage=='EPF_ALL' else 128,eval_batch=32 if stage=='EPF_ALL' else 128,epochs=20 if stage=='URBAN_SUBSET' or t['dataset']=='Weather' else 10,patience=5 if stage=='URBAN_SUBSET' else 3 if stage=='EPF_ALL' else None)
     d=old['datasets'][t['dataset']]
     windows=(old['urban_folds'][t['fold']-1][0]-p['T']-t['h']+1)*275 if stage=='URBAN_SUBSET' else d['endpoints'][0]-p['T']-p['pred_len']+1
     train['scheduler']=configuration(train['epochs'],windows//train['batch'])
@@ -60,6 +72,9 @@ def numeric_policy(c,t):
     return copy.deepcopy(c['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']])
 def validate(c):
     from utils import ch3_type1_ett as ett
+    if c['baseline_unified']['stage']=='M_AMEND':
+        from utils.ch3_round2_amendment import validate as handler
+        return handler(c)
     stage=c['baseline_unified']['stage'];old=parent(stage)
     if stage not in STAGES or c.get('type1_followup')!=ID or c['baseline_unified']['id']!=PROTOCOL or c['tasks']!=expected_tasks(stage):raise ValueError('exact type1 ring/task namespace')
     if c['baseline_unified']['direct_parent_ref']!=parent_ref(stage) or c['baseline_unified']['recipe_ref']!=AUTHOR_RECIPE:raise ValueError('fixed reviewed parent/recipe')
@@ -86,7 +101,9 @@ def probe_groups(c):
     for model in MODELS:
         ts=[t for t in c['tasks']if t['model']==model]
         from utils.ch3_type1_ett import M_DATASETS
-        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage=='M_ALL' else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
+        if stage=='M_AMEND':
+            from utils.ch3_round2_amendment import DATASETS as M_DATASETS
+        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage in ('M_ALL','M_AMEND') else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
         for rows,q,label in banks:
             result.append(dict(id=model+'-'+label,model=model,representatives=[t['id']for t in rows],planned_q=q,coverage={t['id']:[t['id']]for t in rows},identities={t['id']:digest(profile(c,t))for t in rows},equivalence='own-profile independent six-step serial; fixed actual waves; type1 epoch behavior proved separately with no-model fixtures'))
     return result
@@ -109,7 +126,10 @@ def formal_budget(c):
     return dict(total=total,tasks=rows,early_stopping_retained=True,refund=False)
 def context(c):
     stage=c['baseline_unified']['stage'];b=formal_budget(c)['total']
-    return dict(stage=stage,probe_scope=ID+'-'+stage+'-probe',formal_scope=ID+'-'+stage+'-formal',probe_root=RESULT/'probe'/stage,result_root=RESULT/stage,control=RESULT/'queue'/stage,protocol_file=file(stage),fixture=PACKAGE/'fixtures',models=MODELS,caps=probe_budget(c)['caps'],runs=b['runs'],epochs=b['run_epochs'],optimizer_steps=b['adam'])
+    result=RESULT;identity=ID
+    if stage=='M_AMEND':
+        from utils.ch3_round2_amendment import RESULT as result,ID as identity
+    return dict(stage=stage,probe_scope=identity+'-'+stage+'-probe',formal_scope=identity+'-'+stage+'-formal',probe_root=result/'probe'/stage,result_root=result/stage,control=result/'queue'/stage,protocol_file=file(stage),fixture=package(stage)/'fixtures',package=package(stage),models=MODELS,caps=probe_budget(c)['caps'],runs=b['runs'],epochs=b['run_epochs'],optimizer_steps=b['adam'])
 def decision_for(c,report,t):
     return report['decisions'][next(g['id']for g in probe_groups(c)if t['id']in g['representatives'])]
 def formal_waves(c,report,model):
@@ -122,4 +142,4 @@ def formal_waves(c,report,model):
     return waves
 def plan(c):
     nominal=dict(decisions={g['id']:dict(status='Passed',concurrency=g['planned_q'])for g in probe_groups(c)})
-    return dict(protocol=PROTOCOL,scope=ID,stage=c['baseline_unified']['stage'],models=list(MODELS),task_ids=[t['id']for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t))for t in c['tasks']},groups=probe_groups(c),formal_waves={m:formal_waves(c,nominal,m)for m in MODELS},formal_budget=formal_budget(c),probe_budget=probe_budget(c),science_review='pending',proposed_concurrency=True,additional_search=0,from_scratch=True)
+    return dict(protocol=c['baseline_unified']['id'],scope=ID,stage=c['baseline_unified']['stage'],models=list(MODELS),task_ids=[t['id']for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t))for t in c['tasks']},groups=probe_groups(c),formal_waves={m:formal_waves(c,nominal,m)for m in MODELS},formal_budget=formal_budget(c),probe_budget=probe_budget(c),science_review='pending',proposed_concurrency=True,additional_search=0,from_scratch=True)
