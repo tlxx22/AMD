@@ -85,7 +85,25 @@ def dynamic(c,worker=False):
 def closure():
     from ch3_runner import git
     head=git('rev-parse','HEAD')
-    if head==s.BASE or git('rev-parse','HEAD^')!=s.BASE or git('branch','--show-current')!='m6/type1-followup-v1' or git('status','--porcelain') or git('rev-parse','@{u}')!=head or git('rev-list','--left-right','--count','HEAD...@{u}').split()!=['0','0']:raise ValueError('reviewed direct-successor clean followup closure required')
+    try:descendant=git('merge-base',s.BASE,head)==s.BASE
+    except subprocess.CalledProcessError:descendant=False
+    if (head==s.BASE or not descendant or git('branch','--show-current')!='m6/type1-followup-v1'
+        or git('status','--porcelain','--untracked-files=all') or git('rev-parse','@{u}')!=head
+        or git('rev-list','--left-right','--count','HEAD...@{u}').split()!=['0','0']):
+        raise ValueError('reviewed descendant clean followup closure required')
+    return head
+
+
+def verify_live_remote(head):
+    """Explicit launch preflight only; runtime authorization stays local."""
+    branch='refs/heads/m6/type1-followup-v1'
+    try:
+        result=subprocess.run(['git','-C',str(ROOT),'ls-remote','--exit-code','origin',branch],
+            capture_output=True,text=True,timeout=30,env={**os.environ,'GIT_TERMINAL_PROMPT':'0'})
+    except subprocess.TimeoutExpired as exc:raise ValueError('live remote followup preflight timed out after 30 seconds')from exc
+    except OSError as exc:raise ValueError('live remote followup preflight unavailable: '+str(exc))from exc
+    if result.returncode!=0:raise ValueError('live remote followup preflight unavailable or branch absent: exit '+str(result.returncode)+'; '+result.stderr.strip()[:300])
+    if result.stdout.split()!=[head,branch]:raise ValueError('live remote followup preflight differs from current HEAD')
     return head
 
 
@@ -231,12 +249,13 @@ def validate_runtime(c,value,permit_ref):
     return v
 
 
-def readiness(a=None,launch=False):
+def readiness(a=None,launch=False,live_remote=False):
     reasons=[]
     if not a or a.get('reviewed')is not True or a.get('execution_permitted')is not True:reasons.append('reviewed followup start record not materialized')
     if not a or a.get('budget_authorized')is not True:reasons.append('user-authorized fixed caps await reviewed closure/start-record binding')
     try:
-        configs();upstream_status();closure();validate_start(a)
+        configs();upstream_status();validate_start(a)
+        if live_remote:verify_live_remote(a['closure_commit'])
     except (OSError,KeyError,ValueError,PermissionError,subprocess.CalledProcessError) as exc:reasons.append(str(exc))
     for stage,c in configs().items():
         try:dynamic(c)
@@ -249,7 +268,7 @@ def readiness(a=None,launch=False):
 
 
 def readiness_report(a=None):
-    blocked=readiness(a)
+    blocked=readiness(a,live_remote=True)
     try:v=upstream_status()
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
     return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,arming_does_not_require_old_completion=True,execution_requires_full_203_MS_84_M_and_owned_exit=True)

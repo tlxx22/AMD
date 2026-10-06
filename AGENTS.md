@@ -12,10 +12,12 @@
 
 6. 最终回执默认只报结论/gate、关键数值、变化文件、测试、Git 状态和文档同步，不重复 milestone 大表或 artifact 全部命令。训练前交接必须提供完整可执行启动和操作命令。
 
-7. 长时训练默认停在启动前最后一步，由用户启动。守护方式实测后按 tmux > systemd-run --user > nohup+setsid 选择；提供日志、进程、完成判断与安全停止命令。失败/中断先审计 resume，不删证据、不自动重跑。
+7. 长时训练默认停在启动前最后一步，由用户启动。守护方式实测后按 tmux > systemd-run --user > nohup+setsid 选择；提供日志、进程、完成判断与安全停止命令。实验因程序、运行或恢复等技术问题失败时，先诊断、必要修复和复验，由ChatGPT审核后再继续或重新训练。失败消耗照实记录，但不从原计划实验完成额度扣除，也不要求用户因此重新批准同一实验额度。例如20轮任务第4轮技术失败，修复后确需从头训练仍最多20轮，不是只剩16轮。从checkpoint继续保留真实进度，不能加载旧状态后清零多训。正常早停、效果不好不是技术失败，不反复择优；长训练仍默认由用户最后启动。详细规则见[canonical](docs/AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md#experiment-authorization-and-technical-failures)。
 
 8. 每阶段只维护一份 milestone，Closed 不追加；docs/archive 不作当前决策依据，不创建 current_status.md 等重复摘要。不把候选当前状态、最新 commit 或指标复制到 AGENTS.md。
 
-9. 永久回归测试保留；仅清理本轮明确创建且获准清理的一次性文件。不擅自删除 artifact、checkpoint、staging、history 或日志，不移动 baseline tag，不执行未授权破坏性 Git 操作。本文件不授予新结构、实验预算或阶段推进权限。
+9. 永久回归测试保留；仅清理本轮明确创建且获准清理的一次性文件。不擅自删除 artifact、checkpoint、staging、history 或日志，不移动 baseline tag，不执行未授权破坏性 Git 操作。本文件不授予新增模型/任务/seed/搜索、改变科学实验设置、推进阶段或突破用户明确资源硬上限的权限。经诊断、修复、必要复验和ChatGPT审核的同任务技术补做，不因之前失败消耗而被视为新增实验额度。
 
 10. 每次最终回复独立设置“本次文档变更与 ChatGPT Project 同步提醒”。对变化文档逐份报告相对路径、增/改/删、完整 SHA-256、摘要/用途及 Project 操作。canonical/current milestone 默认“无需上传（ChatGPT通过服务器直读核验）”，此为核验渠道，不代表修后版本已被读取；AGENTS、代码、测试和工具默认“无需操作（仅服务器端）”。无变化时写：“本次未新增、修改或删除任何文档，无需同步 ChatGPT Project。”
+
+用户决定研究做什么及重要科学取舍。必要技术检查、准入文件、SHA和执行计数由Codex落实、ChatGPT审核，不逐项交给用户批准。详细证据保留，日常回执优先报告结论、实质变化、异常和需要用户决定的事项。

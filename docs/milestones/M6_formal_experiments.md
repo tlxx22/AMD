@@ -1,8 +1,182 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — W原第二轮unified-v3继续287项；旧第三轮v2等待器已安全停止且零计算。N候选准备第二轮112项补齐/Weather20修订、371格统一来源，随后自动第三轮Weather20的231项。未stage/commit/push或启动，候选待实际字节审核；最新合同见文末，旧时点记录保留。**
+**In Progress — 第二轮补齐/Weather20修订及第三轮续接的19项实现已审核并closure（`26e7dcaa32ce5fb21b9f15f475fdd668d18a3571`）；本轮仅文档整理，修后待直读审核，新执行尚未启动。原v3于2026-10-06T19:52:37.846844+00:00只读核验为MS_FORMAL_ALL_BASELINES、TimeXer，owner36799/start_ticks171530843仍存活；旧第三轮v2等待器已停止且零计算。当前三轮合同见[§0总览](#m6-three-rounds)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”属于初次启动准备时的历史快照，不代表当前实际进度。
+
+<a id="m6-three-rounds"></a>
+## 0. 三轮正式实验组织与最终结果采用规则
+
+### 0.1 名称、用途及状态含义
+
+M6按三个主要正式实验批次组织讨论、结果表和复现材料。
+
+| 名称 | 技术范围 | 结果组织 |
+|---|---|---|
+| 第一轮正式实验：初始全量方案 | 最初正式实验及归属于该方案的补充覆盖、已接受修订 | 原有效结果加已接受补做；TimeMixer指定16格采用fixedlr-v2修订来源 |
+| 第二轮正式实验：v3统一OneCycle方案 | 原baseline-unified96-onecycle001-v3，加baseline-unified96-onecycle001-v3-amend1 | 修订完成后的默认有效结果为371格 |
+| 第三轮正式实验：衰减学习率续接方案 | baseline-type1-followup-v3，承接原type1-followup-v2的231项并修改Weather训练长度 | 231项独立fresh正式实验 |
+
+“三轮”是主要实验批次的报告名称，不是只启动过三次、只访问过三次test，也不等同于工程目录的v1/v2/v3。补做、暂停、失败、修订和退休保留真实身份与记录；第二轮amend1属于第二轮，不另称第四轮。
+
+批准的最终结果采用规则与结果已经全部产生分开。未完成、未审核或没有合法来源的格子不能因写入总览而变成完成；技术完成、结果记录审核和效果达标分别报告。第二轮补做及第三轮实现已经ChatGPT实际字节审核并完成19项精确closure，真实代码commit为`26e7dcaa32ce5fb21b9f15f475fdd668d18a3571`。本轮只整理三份文档，修后文档待直读审核，新补做和第三轮均未启动；旧type1-followup-v2等待器已安全停止、零计算，不再写成仍在等待。
+
+<a id="m6-round-one"></a>
+### 0.2 第一轮：范围及最终结果来源
+
+第一轮最初登记495项，后经EPF四市场及TimeMixer覆盖补做扩展到552个计划任务身份。这些数字描述历史计划范围，不自动等于全部完成或全部被接受；各任务实际完成、修订和退休状态依据既有审核记录。
+
+第一轮最终结果必须包含已注册的PJM、NP、BE、FR、DE五个EPF市场。七baseline与第一轮已注册的J分别保留自身任务身份，八个主表模型的完整EPF目标范围为40格。不能因后两轮只跑七baseline就从第一轮历史中删掉J，也不为N/S增加EPF任务。
+
+原PJM结果与`E/supplements/epf4-timemixer-v1`补充结果按固定来源合并。57项补做主要用于补齐覆盖，不是按指标替换已有结果。工程完整性与结果审核状态分别依据收据，不能仅见complete.json就宣称全部review Passed；缺失列出，本轮不自动补跑。本次只读核验40个EPF result/manifest全部存在且任务身份相符，无缺项；其中20项可绑定明确reviewed收据（原AMD/J/PatchTST PJM3项及41-run补做中的EPF17项），其余DLinear/iTransformer/ModernTCN/TimeXer各五市场共20项未在本次定位到单独结果review收据。本条不将这些20项追认为review Passed，也不据此否定可能存在的其他历史审核；逐项来源检查见下方记录。
+
+TimeMixer原四标准域16项最终采用`timemixer-fixedlr-v2/attempt2`：
+
+| 数据集 | 原固定LR | 修订固定LR | 正式修订范围 |
+|---|---:|---:|---|
+| ETTh1 | 0.01 | 0.001 | 四H |
+| Weather | 0.01 | 0.001 | 四H |
+| ECL | 0.01 | 0.001 | 四H |
+| Exchange | 0.0003 | 0.0003 | 四H，随修订独立fresh重跑 |
+
+四H为96/192/336/720，原任务为MS，不能与后两轮M全通道指标混为同一任务。仅前三个域12个profile改变LR；Exchange不是从0.01改为0.001。TimeMixer的UrbanEV和EPF补做不属于本次固定LR替换范围。
+
+这16项按事先确定的修订来源采用，不按新旧test逐格择优。修订发生在观察过旧正式结果后，是项目批准的事后协议调整，不能描述为首次盲测，也不能因旧目录在新训练前退休就称整个调整未受旧test信息影响。替换理由按当时记录区分用户改变协议、异常现象和已证实实现错误；无对应证据时不写“旧代码已证实有bug”“ECL根因已确定为LR”或“固定0.001全面优于0.01”。本修订不是TimeMixer作者OneCycle的完整复现。
+
+#### TimeMixer修订前后表现与证据状态
+
+修订后读取已审核`timemixer-fixedlr-v2-completed-review-v1/reviewed-result-receipts.json`；16项result及manifest当前SHA与收据绑定值一致，指标直接来自合法result，不重新test。修订前检查了删除前接受索引、退役索引/摘要、删除计划/回执和既有导出/早期比较包，未定位到可核验的旧TimeMixer MSE/MAE；删除前摘要保留了身份与退役事实，不能据此补造旧指标。旧值及变化百分比均记N/A，代表证据未找到，不代表旧训练未发生或旧值为0。
+
+百分比定义为`100×(新值/旧值−1)`，负数为误差下降；旧值为0时不计算普通百分比。下表新值显示到小数点后9位，外置来源记录保留原JSON精度；R16为上述reviewed收据，按dataset/H精确定位，每行独立result/manifest路径及SHA见来源检查记录。
+
+| 数据集 | H | 旧MSE | 新MSE | MSE变化% | 旧MAE | 新MAE | MAE变化% | 来源 |
+|---|---:|---|---:|---|---|---:|---|---|
+| ETTh1 | 96 | N/A | 0.087243289 | N/A | N/A | 0.229839473 | N/A | R16：ETTh1/H96，旧值未核验 |
+| ETTh1 | 192 | N/A | 0.112136047 | N/A | N/A | 0.266859509 | N/A | R16：ETTh1/H192，旧值未核验 |
+| ETTh1 | 336 | N/A | 0.100225454 | N/A | N/A | 0.250576811 | N/A | R16：ETTh1/H336，旧值未核验 |
+| ETTh1 | 720 | N/A | 0.121722273 | N/A | N/A | 0.280806657 | N/A | R16：ETTh1/H720，旧值未核验 |
+| Weather | 96 | N/A | 0.091616175 | N/A | N/A | 0.222349706 | N/A | R16：Weather/H96，旧值未核验 |
+| Weather | 192 | N/A | 0.148864001 | N/A | N/A | 0.285876258 | N/A | R16：Weather/H192，旧值未核验 |
+| Weather | 336 | N/A | 0.212876268 | N/A | N/A | 0.339612209 | N/A | R16：Weather/H336，旧值未核验 |
+| Weather | 720 | N/A | 0.365029224 | N/A | N/A | 0.456327601 | N/A | R16：Weather/H720，旧值未核验 |
+| ECL | 96 | N/A | 0.239910976 | N/A | N/A | 0.344974410 | N/A | R16：ECL/H96，旧值未核验 |
+| ECL | 192 | N/A | 0.316621938 | N/A | N/A | 0.402006865 | N/A | R16：ECL/H192，旧值未核验 |
+| ECL | 336 | N/A | 0.385504480 | N/A | N/A | 0.435793028 | N/A | R16：ECL/H336，旧值未核验 |
+| ECL | 720 | N/A | 0.566518442 | N/A | N/A | 0.540629301 | N/A | R16：ECL/H720，旧值未核验 |
+| Exchange | 96 | N/A | 0.101263750 | N/A | N/A | 0.240706488 | N/A | R16：Exchange/H96，旧值未核验 |
+| Exchange | 192 | N/A | 0.309439363 | N/A | N/A | 0.423410461 | N/A | R16：Exchange/H192，旧值未核验 |
+| Exchange | 336 | N/A | 0.484237818 | N/A | N/A | 0.533336686 | N/A | R16：Exchange/H336，旧值未核验 |
+| Exchange | 720 | N/A | 0.923061728 | N/A | N/A | 0.749124548 | N/A | R16：Exchange/H720，旧值未核验 |
+
+| 数据集 | 四H旧MSE均值 | 四H新MSE均值 | MSE变化% | 四H旧MAE均值 | 四H新MAE均值 | MAE变化% |
+|---|---|---:|---|---|---:|---|
+| ETTh1 | N/A | 0.105331766 | N/A | N/A | 0.257020613 | N/A |
+| Weather | N/A | 0.204596417 | N/A | N/A | 0.326041444 | N/A |
+| ECL | N/A | 0.377138959 | N/A | N/A | 0.430850901 | N/A |
+| Exchange | N/A | 0.454500665 | N/A | N/A | 0.486644546 | N/A |
+
+只计算各数据集内部四H算术均值，不跨数据集平均原始MSE/MAE。该review包的`comparison.json`比较修订后TimeMixer与AMD/J/PatchTST，不能作为TimeMixer修订前后对照；AMD/J的ECL诊断不作为TimeMixer故障根因。未完成并退休的native-time-mark replacement不零散拼入第一轮最终矩阵；后续协议采用其接口修订，不意味着历史replacement结果完整可用。
+
+来源与核验记录：
+
+- [TimeMixer16项reviewed收据](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/timemixer-fixedlr-v2-completed-review-v1/reviewed-result-receipts.json)。
+- [41项补做reviewed收据](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/catchup41-completed-review-v1/reviewed-result-receipts.json)及[原已接受结果收据](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/boundary-index-v1/accepted-receipts.json)。
+- [本次TimeMixer指标来源检查](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v3-amend1/documentation-review-v1/timemixer-metrics-source-check.json)与[第一轮40格EPF来源检查](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v3-amend1/documentation-review-v1/first-round-epf-source-check.json)。
+
+<a id="m6-round-two"></a>
+### 0.3 第二轮：v3修订后完整范围
+
+第二轮默认采用统一OneCycle体系。原v3登记287项，amend1追加84项ETT及28项Weather20修订训练。
+
+| 范围 | 数据集/任务 | L | 最大epoch/patience | 有效格数 |
+|---|---|---:|---|---:|
+| UrbanEV MS | F4六fold×H3/6/9/12×七模型 | 12 | 20/5 | 168 |
+| EPF MS | 五市场各H24×七模型 | 96 | 20/5 | 35 |
+| 原有M | ETTh1、Exchange各四H×七模型 | 96 | 10/None | 56 |
+| 新增M | ETTh2、ETTm1、ETTm2各四H×七模型 | 96 | 10/None | 84 |
+| Weather M修订 | Weather四H×七模型 | 96 | 20/None | 28 |
+| 合计 | MS203＋M168 | — | — | 371 |
+
+原任务batch/eval_batch采用各自冻结effective profile，不能把TimeMixer的batch或第三轮统一batch套给整个第二轮。新增三个ETT固定train/eval batch128；Weather20继承第二轮各模型原Weather的batch及其他设置。
+
+新增ETT从同模型同H的v3 ETTh1-M profile迁移，保留各模型结构，采用各自独立数据、split、train-only scaler及适用历史marks。ETTh2为小时，ETTm1/ETTm2为15分钟及适用的5维历史timeF；marks按各模型原生接口提供，不新增七模型统一业务输入通道。训练长度/batch对齐限于已绑定TimeMixer论文Table7与指定字段，eval_batch128和patience=None属于项目合同；OneCycle采用绑定作者实现。已知结构差异保留：TimeMixer迁移ETTm2的d_model=16，Table7为32，不为追齐该表修改冻结结构，不声称完整作者配置复现。
+
+第二轮OneCycle：max_lr=0.01、pct_start=0.2、cos，cycle_momentum=true，base/max_momentum=0.85/0.95，div_factor=25，final_div_factor=10000，three_phase=false；其余初始化和推进参数按冻结配置。max_lr不是固定LR；调度初始化LR为0.01/25=0.0004。每次成功optimizer update后推进scheduler，validation/test不推进。
+
+Weather20只改training.epochs与training.scheduler.epochs，必须fresh按20轮长度执行完整OneCycle，不从Weather10 checkpoint续接或把旧轨迹拼入后半程。
+
+### 0.4 第二轮最终结果采用规则
+
+原UrbanEV168＋原EPF35＋原ETTh1/Exchange56＋新Weather20的28＋新增ETT84＝371有效格。
+
+新Weather28项全部技术完成后统一切换来源，即使部分变差，也不在10/20轮间逐格挑选。完成之前显示修订Pending，不把旧10轮值标为20轮。原287结果及完成边界保持原样；原Weather10保留原位置，不进入修订后的默认主表。日常只采用一个第二轮修订入口，引用保留真实路径、config/commit、revision、替代关系及时间，不移动改写旧artifact或伪造原执行。
+
+371是有效格数；287＋112＝399是含Weather替换训练的计划正式运行次数，实际是否执行以完成记录为准。probe和失败attempt另计，不混入正式格数，也不要求用户逐次审批底层step。
+
+<a id="m6-round-three"></a>
+### 0.5 第三轮：最新231项矩阵
+
+第三轮采用baseline-type1-followup-v3；七模型顺序为AMD→DLinear→PatchTST→iTransformer→TimeMixer→ModernTCN→TimeXer，seed2024，全部fresh，additional_search=0。不含J/N/S/ECL，不继承第二轮checkpoint。
+
+| 环节 | 数据集/任务 | L | train/eval batch | 最大epoch | patience | runs |
+|---|---|---:|---|---:|---|---:|
+| UrbanEV精简MS | F4 fold1/2，各H3/H12 | 12 | 128/128 | 20 | 5 | 28 |
+| EPF MS | PJM/NP/BE/FR/DE，各H24 | 168 | 32/32 | 10 | 3 | 35 |
+| 其他M | ETTh1/ETTh2/ETTm1/ETTm2/Exchange，各四H | 96 | 128/128 | 10 | None | 140 |
+| Weather M | 四H | 96 | 128/128 | 20 | None | 28 |
+| 合计 | — | — | — | — | — | 231 |
+
+最大2870 run-epochs＝Urban560＋EPF350＋其他M1400＋Weather560。UrbanEV的H是单点标签偏移，model pred_len=1；EPF pred_len=24；M pred_len=H，全通道监督及评价。patience=None是不按早停规则提前结束，不是取消validation或best选择。
+
+UrbanEV只覆盖28/168，不称完整六折四H。第二轮修订包含三个新增ETT，不能继续概括“第三轮新增ETT没有第二轮对应任务”；补做完成后这84项有对应结果，完成前不伪造对照。
+
+### 0.6 第三轮学习率与来源边界
+
+Adam、initial_lr=1e-4，基础betas/eps/weight_decay按各冻结profile，不使用OneCycle动态beta1，accumulation=1。
+
+`type1_horizon_scaled_v1`：`lr(e,E)=1e-4×0.5**(max(e−2,0)×c(E))`；E<=10时c(E)=1，E>10时c(E)=8/(E−2)。
+
+| 最大长度E | 适用任务 | epoch1/2 | epoch3 | epoch10 | epoch20 |
+|---|---|---:|---:|---:|---:|
+| 10 | EPF及其他M | 1e-4 | 5e-5 | 3.90625e-7 | 不适用 |
+| 20 | UrbanEV及Weather | 1e-4 | 约7.348672461378e-5 | 约8.504937501090e-6 | 3.90625e-7 |
+
+E在训练前固定，不随早停、暂停、恢复或validation重新缩放。10轮时序借鉴锁定TimeXer官方type1；20轮拉长是项目修改，不是作者原配方。Weather只继承20轮调度，不继承UrbanEV的patience5；第二轮Weather20仍是OneCycle，与本轮衰减方式区分。
+
+### 0.7 自动执行顺序与评价边界
+
+原第二轮287项技术完成且owned计算进程释放→第二轮amend1必要准入、112项正式训练/test及完整性检查→第二轮371格来源封存→第三轮UrbanEV→EPF→M→总链技术完成，结果审核另行进行。
+
+文档审核、最终closure和启动准备完成后，由用户一次启动总等待器。等待不占训练组锁、不初始化GPU；正常阶段自动衔接，不因效果好坏改任务或等待中间人工许可。补做按七模型固定顺序，每模型ETTh2四H→ETTm1四H→ETTm2四H→Weather四H；第三轮沿冻结模型和任务顺序。
+
+补做28个准入组/112代表，第三轮57组/231代表，合计85组343代表，不计作额外343个正式结果。并发最多q4，仅在对应实际条件验证后用；仅明确resource失败按预登记降q，不改科学batch、精度、结构或阈值。numeric/finite/identity/data/scheduler/guard失败停止后续派发。逐组即时gate保留，完整审计仅由对应AUTO_AUDIT执行一次，formal轻量消费凭据；有效证据按适用范围复用，不逐任务回放完整probe。
+
+每项正式训练仅validation选best及执行既定早停，锁定后按本轮授权最终test一次；历史test访问如实保留，某run只test一次不代表整个研究从未多次观察同一测试集。test状态不明停止自动恢复，不重复test试探。
+
+<a id="m6-result-expression"></a>
+### 0.8 统一结果表达与复现定位
+
+分别采用第一轮有效来源、第二轮修订来源及第三轮来源，不跨轮按test逐格择优拼一张“最优表”。配对核对模型、dataset、MS/M、fold、H、input variant、target/输出范围及seed；第一轮MS与后两轮M不是同监督同评价任务。多个训练/输入条件同时变化，不把差异单独归因于LR或batch。
+
+UrbanEV保留逐fold/H和明确域内均值，EPF逐市场报告；不跨数据集平均原始MSE/MAE。单seed2024，std=N/A，多seed稳定性未评价。论文正文选哪些域与执行范围分开，不因此删结果或取消任务。
+
+现有复现根：
+
+```text
+E=/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu
+P=/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1
+第二轮原协议：E/baseline-unified96-onecycle001-v3，P/baseline-unified96-onecycle001-v3
+第二轮补做：E/baseline-unified96-onecycle001-v3-amend1，P/baseline-unified96-onecycle001-v3-amend1
+第三轮当前：E/baseline-type1-followup-v3，P/baseline-type1-followup-v3
+```
+
+P中的两个新准备包已存在，E中对应新结果根尚未创建。路径是冻结规划，不表示已经运行；不重命名历史分支、协议或artifact。第二轮默认主结果命令为N的`start_type1_followup.sh second-round`，第三轮为`third-round`，未封存时返回Pending；本轮不为说明命令创建新结果或许可。
+
+预算详情见[已绑定budget.json](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v3-amend1/budget.json)，来源/字段差异见[来源证明](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v3-amend1/source-alignment-proof.json)和[逐项profile diff](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v3-amend1/effective-profile-diff.json)，实现及验收见[既有实现小节](#m6-amend-implementation)与[84项验收证据](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified96-onecycle001-v3-amend1/acceptance.json)。本轮只整理文档，不递归把文档自身SHA或不存在的新commit写入正文。
+
+---
+
+**以下§1及其后小节保留各自记录时点；其中“当前”“最新”“待审核”“未提交”等描述只对应当时，不能与上方真正当前总览竞争。旧计划、失败、删除授权、退休、执行日期和test历史不倒写。**
 
 ## 1. 授权、冻结身份与来源
 
@@ -451,6 +625,7 @@ ETTh2沿小时freq=h、原4维历史timeF；ETTm1/2显式freq=t、实际间隔15
 
 AST/JSON/bash-n/bundle/diff-check通过；真实不可执行模板dry-run exit0，preflight exit2，blocked仅为未实际字节审核/未closure/未物化start record三项；五授权flags仍false、closure_commit=null。本轮READY_TO_ARM_HANDOFF=false、READY_FOR_GPU_EXECUTION=false，没有新start-review、真实等待器/tmux、probe、formal/test或结果根。工期重新按231项实际固定波次及同模型/H的ETTh1代理、分钟数据实际train/val/test workload比计算，未以run数等比例或六步除6外推：候选并发新正式约10.1–78.7小时，降q2约15.1–131.7小时，串行约29.4–248.0小时；M的新增数据/batch128缺同任务实测，区间为较宽代理估计而非置信区间，另加未实测probe/完整性检查开销及旧v3剩余等待，不复用旧147项11–60小时为新工期。本轮只在N/P形成候选，未stage/commit/push，扩展后字节待ChatGPT审核，不宣称已审核或已同步。
 
+<a id="m6-amend-implementation"></a>
 #### 第二轮112项补齐/Weather20修订与第三轮Weather20续接（2026-10-06 UTC，N候选）
 
 本次来自用户明确科学调整，不冒称已证明旧实现有科学bug。日常仍只有三轮：第一轮＝初始全量及已接受补做；第二轮＝unified-v3及本次amend1；第三轮＝type1-followup内部revision v3，不称第四轮。开发仅N，基线5bd62dc93d611b3271467a46fd16335b622e0af1。W原v3继续203 MS＋84 M=287，代码/config/docs/许可/历史artifact不改；R、作者、数据、环境、Closed milestones及baseline tag不改。
@@ -474,3 +649,15 @@ helper预算（Adam/backward/forward）：补做112/1400=608000/608000/734673；
 定向验收/最终复验与失败账绑定外置amend1包，原221项证据保留原覆盖，不机械全跑。首次79项1error发现OneCycle误送type1校验，修正窄路由；随后79项1failure为即时/最终比较次数混计，现分开验证；82项定向通过，真实model/forward/backward/Adam/GPU均0。辅助语法/白名单遗漏、patch上下文/重复操作拒绝保留，不形成科学计算。模板dry-run exit0展示112/28/35/168，preflight exit2只有未review/closure/start-record绑定三项，flags=false、closure=null。READY_TO_ARM_HANDOFF=false、READY_FOR_GPU_EXECUTION=false，无新真实许可、等待器/tmux、结果根、probe/formal/test；本轮未stage/commit/push，停在候选待ChatGPT实际字节审核，不宣称已审核、closure或训练完成。
 
 最终定向复验84/84 Passed（此前82/82及83/83通过记录同时保留），0 failure/error/skip，真实model construction/forward/backward/Adam/GPU initialization全部0。实际调度分支证明四阶段probe尾部0、AUTO_AUDIT各1，formal完整审计/数值回放/raw读取0，runtime完整manifest扫描各1；合成tmux持久等待及owned safe-stop通过。JSON/AST/bash-n/bundle SHA/git diff --check通过，全部修后SHA、完整patch、固定来源/预算/调用次数及失败账由本轮外置包绑定；该Passed是CPU验收，不是实际GPU准入、科学结果review或ChatGPT对新候选的审核。
+
+#### closure祖先关系窄修与定向验收（候选）
+
+据用户本轮说明，三份文档已通过ChatGPT服务器实际字节审核；随后发现启动器要求`HEAD^ == BASE`，会拒绝实现closure之后的正常文档提交。本轮只将`closure()`改为冻结BASE必须是当前HEAD的严格祖先，并实际核验live remote；保留正确分支、worktree/index clean、HEAD/tracking一致及0/0要求。祖先关系不表示已审核或获准启动，`validate_start`仍要求许可完整`closure_commit`精确等于实际当前HEAD，scope/config/plan/来源等绑定保持。BASE不变，实际执行版本仍记录当次commit，不冒充原实现closure。
+
+正式Python、无模型/GPU定向验收实际24/24 Passed：新增15项合成Git/许可回归及9项相关既有回归，0 failure/error/skip。验证后续文档提交可通过、BASE自身/非后代/错误分支/dirty/index/tracking/live remote异常拒绝、旧commit许可拒绝；精确绑定合成HEAD的许可驱动实际队列分支，仍须287完成释放→112补做→371封存→第三轮。真实model construction/forward/backward/Adam/GPU initialization全部0，无真实probe/test/checkpoint访问。原84/84及221项证据保留各自有效范围，未全量重跑；科学配置、任务、numeric policy、scheduler、预算及W/R均未修改。增量diff、验收和SHA绑定另存`P/baseline-unified96-onecycle001-v3-amend1/closure-lineage-repair-v1/`，原19项及`documentation-review-v1`证据不覆盖。本轮未stage/commit/push，未物化可执行许可、未arm/start，修后新字节停在ChatGPT review点。
+
+#### 启动前远端核验与运行期本地核验（候选）
+
+随后审核确认：前轮将`ls-remote`放入`closure()`，经`validate_start`/`validate_permit`进入逐任务和worker路径；前轮24项证明版本条件，未覆盖运行期联网次数。本轮将严格祖先/分支/clean/HEAD-tracking/0/0及精确commit许可检查留在本地，远端核验移至既有公开启动前`readiness_report`→`readiness(live_remote=True)`路径；原start/arm包装器仍先调用真实preflight，CLI无需修改。一次合法preflight仅查远端一次，30秒超时、不交互、不fetch/pull、不自动重试；远端不一致、缺失、不可达或超时明确阻止启动。已启动等待器的本地readiness、许可、任务配置及worker检查均不联网；正常文档后继、固定BASE、scope/config/plan/来源和287→112→371→第三轮顺序不变。
+
+正式Python定向复验实际30/30 Passed，0 failure/error/skip：保留前轮相关语义，将远端拒绝断言迁移至实际preflight，并新增6项调用路径回归。真实公开CLI preflight远端查询1次；实际运行分支中35次permit校验、17次make_config、17次validate_worker及run_group/wave检查远端调用0次，完整四阶段队列也为0。preflight后远端不可用仍可作本地核验，本地代码/HEAD或许可不符仍拒绝。首次30项1error为合成Git根误用于读取真实代码清单，测试夹具分离版本操作与N代码读取后复验通过；原失败日志保留。真实model construction/forward/backward/Adam/GPU initialization全部0，无真实probe/test/checkpoint访问。前轮证据、科学材料及W/R保持，增量另存`P/baseline-unified96-onecycle001-v3-amend1/preflight-remote-repair-v1/`；本轮未stage/commit/push、未物化可执行许可、未arm/start，修后候选待ChatGPT实际字节审核。

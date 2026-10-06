@@ -1,7 +1,7 @@
 """112 amendments -> 371 sources -> 231 followups; synthetic leaves, no training."""
-import ast,copy,json,os,subprocess,tempfile,unittest
+import ast,copy,io,json,os,subprocess,tempfile,unittest
 from pathlib import Path
-from contextlib import ExitStack
+from contextlib import ExitStack,contextmanager,nullcontext,redirect_stdout
 from unittest.mock import patch
 from utils import ch3_type1_tasks as s,ch3_type1_chain as q,ch3_round2_amendment as a,ch3_type1_upstream as u
 from utils.ch3_contract import ROOT,digest,profile,step_arithmetic
@@ -264,5 +264,276 @@ class DispatchAndAudit(unittest.TestCase):
     def test_scheduler_and_data_math_files_unchanged(self):
         for file in ('utils/ch3_type1_scaled.py','utils/ch3_onecycle.py','utils/ch3_data.py','utils/ch3_time_marks.py','models/ch3_adapter.py'):
             raw=subprocess.check_output(['git','show',s.BASE+':'+file],cwd=ROOT);self.assertEqual(raw,(ROOT/file).read_bytes())
+
+class ClosureLineage(unittest.TestCase):
+    """Real local Git histories; no production commits, permissions or execution."""
+    BRANCH='m6/type1-followup-v1'
+    network_observations=[]
+
+    def command(self,*args,cwd=None):
+        return subprocess.check_output(['git','-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false',*args],cwd=cwd or self.repo,text=True,stderr=subprocess.PIPE).strip()
+
+    def commit_file(self,name,text):
+        (self.repo/name).write_text(text)
+        self.command('add','--',name);self.command('commit','-m','synthetic '+name)
+        return self.command('rev-parse','HEAD')
+
+    def setUp(self):
+        import ch3_runner
+        tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup)
+        self.root=Path(tmp.name);self.repo=self.root/'repository';self.origin=self.root/'origin.git'
+        self.repo.mkdir();self.command('init','--bare',str(self.origin));self.command('init','-b',self.BRANCH)
+        self.command('config','user.name','Synthetic closure test');self.command('config','user.email','fixture@example.invalid')
+        self.base=self.commit_file('base.txt','synthetic frozen baseline\n')
+        self.implementation=self.commit_file('implementation.txt','synthetic reviewed implementation\n')
+        self.head=self.commit_file('documentation.txt','synthetic subsequent documentation\n')
+        self.command('remote','add','origin',str(self.origin));self.command('push','-u','origin',self.BRANCH)
+        stack=ExitStack();self.addCleanup(stack.close)
+        stack.enter_context(patch.object(ch3_runner,'ROOT',self.repo));stack.enter_context(patch.object(s,'BASE',self.base))
+
+    def authorization(self):
+        value=q.start_template()
+        value.update({k:True for k in ('reviewed','execution_permitted','structure_frozen','m6_authorized','budget_authorized')})
+        value.update(closure_commit=self.head,authorization_basis='synthetic exact-commit authorization; never authorizes production execution')
+        return value
+
+    @contextmanager
+    def preflight_fixture(self):
+        with ExitStack()as stack:
+            stack.enter_context(patch.object(q,'ROOT',self.repo))
+            stack.enter_context(patch.object(q,'upstream_status',return_value=dict(state='WAIT',READY_FOR_GPU_EXECUTION=False)))
+            stack.enter_context(patch.object(q,'dynamic',return_value={'commit':self.head}))
+            stack.enter_context(patch.object(s,'RESULT',self.root/'unused-third-result'))
+            stack.enter_context(patch.object(a,'RESULT',self.root/'unused-amend-result'))
+            stack.enter_context(patch.object(q,'LOG',self.root/'unused-launcher.log'))
+            stack.enter_context(patch.object(q,'SESSION','synthetic-unarmed-'+self.root.name))
+            yield
+
+    @contextmanager
+    def remote_calls(self,forbid=False,timeout=False):
+        original=subprocess.run;calls=[]
+        def run(args,*rest,**kwargs):
+            if isinstance(args,(list,tuple))and args[0]=='git'and any(x in args for x in ('ls-remote','fetch','pull')):
+                calls.append(dict(command=list(args),timeout=kwargs.get('timeout')))
+                if forbid:raise AssertionError('runtime must not access remote Git')
+                if timeout:raise subprocess.TimeoutExpired(args,kwargs['timeout'])
+            return original(args,*rest,**kwargs)
+        with patch.object(subprocess,'run',side_effect=run):yield calls
+
+    def test_documentation_descendant_with_live_remote_passes(self):
+        self.assertEqual(self.command('rev-parse','HEAD^'),self.implementation)
+        self.assertNotEqual(self.implementation,self.base)
+        with self.remote_calls(forbid=True)as calls:
+            self.assertEqual(q.closure(),self.head)
+        self.assertEqual(calls,[])
+        with self.preflight_fixture(),self.remote_calls()as calls:
+            result=q.readiness_report(self.authorization())
+        self.assertEqual(result['blocked'],[]);self.assertEqual(len(calls),1);self.assertEqual(calls[0]['timeout'],30)
+        self.assertIn('ls-remote',calls[0]['command']);self.assertEqual(calls[0]['command'][-1],'refs/heads/'+self.BRANCH)
+
+    def test_BASE_itself_cannot_execute(self):
+        with patch.object(s,'BASE',self.head),self.assertRaises(ValueError):q.closure()
+
+    def test_unrelated_clean_synced_history_rejected(self):
+        self.command('branch','-m','retained-fixture-history');self.command('checkout','--orphan',self.BRANCH)
+        self.commit_file('unrelated.txt','unrelated synthetic root\n')
+        fresh=self.root/'unrelated-origin.git';self.command('init','--bare',str(fresh));self.command('remote','set-url','origin',str(fresh))
+        self.command('push','-u','origin',self.BRANCH)
+        self.assertEqual(self.command('status','--porcelain'),'')
+        self.assertEqual(self.command('rev-parse','HEAD'),self.command('rev-parse','@{u}'))
+        with self.assertRaises(ValueError):q.closure()
+
+    def test_wrong_branch_rejected(self):
+        self.command('switch','-c','wrong-fixture-branch')
+        with self.assertRaises(ValueError):q.closure()
+
+    def test_dirty_worktree_rejected(self):
+        (self.repo/'documentation.txt').write_text('unreviewed synthetic edit\n')
+        with self.assertRaises(ValueError):q.closure()
+
+    def test_staged_index_rejected(self):
+        (self.repo/'documentation.txt').write_text('staged synthetic edit\n');self.command('add','--','documentation.txt')
+        with self.assertRaises(ValueError):q.closure()
+
+    def test_untracked_file_rejected(self):
+        (self.repo/'unreviewed.txt').write_text('synthetic untracked\n')
+        with self.assertRaises(ValueError):q.closure()
+
+    def test_tracking_mismatch_rejected(self):
+        self.commit_file('repair.txt','synthetic unpushed repair\n')
+        with self.assertRaises(ValueError):q.closure()
+
+    def test_stale_tracking_cannot_hide_live_remote_change(self):
+        peer=self.root/'peer';self.command('clone','--branch',self.BRANCH,str(self.origin),str(peer))
+        self.command('config','user.name','Synthetic peer',cwd=peer);self.command('config','user.email','peer@example.invalid',cwd=peer)
+        (peer/'peer.txt').write_text('remote advanced\n');self.command('add','--','peer.txt',cwd=peer)
+        self.command('commit','-m','synthetic remote advance',cwd=peer);self.command('push','origin',self.BRANCH,cwd=peer)
+        self.assertEqual(self.command('rev-parse','HEAD'),self.command('rev-parse','@{u}'))
+        self.assertEqual(self.command('rev-list','--left-right','--count','HEAD...@{u}').split(),['0','0'])
+        self.assertEqual(q.closure(),self.head)
+        with self.preflight_fixture(),self.remote_calls()as calls:result=q.readiness_report(self.authorization())
+        self.assertTrue(any('live remote' in reason and 'differs' in reason for reason in result['blocked']))
+        self.assertFalse(result['READY_TO_ARM_HANDOFF']);self.assertEqual(len(calls),1)
+
+    def test_missing_live_remote_branch_rejected(self):
+        empty=self.root/'empty-origin.git';self.command('init','--bare',str(empty));self.command('remote','set-url','origin',str(empty))
+        self.assertEqual(q.closure(),self.head)
+        with self.preflight_fixture(),self.remote_calls()as calls:result=q.readiness_report(self.authorization())
+        self.assertTrue(any('live remote' in reason and 'branch absent' in reason for reason in result['blocked']))
+        self.assertFalse(result['READY_TO_ARM_HANDOFF']);self.assertEqual(len(calls),1)
+
+    def test_current_exact_commit_authorization_passes(self):
+        value=self.authorization();self.assertEqual(q.validate_start(value),value)
+        self.assertEqual(value['closure_commit'],self.head);self.assertNotEqual(self.head,self.implementation)
+
+    def test_previous_implementation_permission_rejected(self):
+        value=self.authorization();value['closure_commit']=self.implementation
+        with self.assertRaises(PermissionError):q.validate_start(value)
+
+    def test_descendant_does_not_authorize_unreviewed_template(self):
+        value=q.start_template();value['closure_commit']=self.head
+        with self.assertRaises(PermissionError):q.validate_start(value)
+
+    def test_scope_config_plan_and_source_bindings_remain_exact(self):
+        original=self.authorization()
+        mutations={'scope':'wrong-scope','config_refs':{},'plan_refs':{},'upstream_anchors':{},'author_recipe_ref':{},'formal_caps':{}}
+        for field,value in mutations.items():
+            with self.subTest(field=field):
+                changed=copy.deepcopy(original);changed[field]=value
+                with self.assertRaises(PermissionError):q.validate_start(changed)
+
+    def test_exact_current_permission_preserves_287_112_371_third_order(self):
+        cs=q.configs();original=s.context;root=self.root/'execution';root.mkdir();order=[]
+        start=exclusive(root/'synthetic-start.json',self.authorization())
+        with ExitStack()as stack:
+            network=stack.enter_context(self.remote_calls(forbid=True))
+            stack.enter_context(patch.object(q,'CONTROL',root/'controller'));q.CONTROL.mkdir()
+            stack.enter_context(patch.object(s,'context',side_effect=lambda c:dict(original(c),control=root/c['baseline_unified']['stage'],probe_root=root/'probe'/c['baseline_unified']['stage'])))
+            stack.enter_context(patch.object(q,'stop_check'));stack.enter_context(patch.object(q,'dynamic',return_value={'commit':self.head}))
+            stack.enter_context(patch.object(q,'wait_upstream',side_effect=lambda:order.append('released-287')or{}))
+            def permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_ref=None):
+                stage=c['baseline_unified']['stage'];self.assertEqual(start_ref,start)
+                self.assertEqual(set(boundary_ref),set(s.STAGES[:s.STAGES.index(stage)]))
+                self.assertEqual(round2_ref is None,stage=='M_AMEND')
+                if stage!='M_AMEND':self.assertIn('sealed-371',order)
+                return exclusive(s.context(c)['control']/('probe-permit.json'if probe else'formal-permit.json'),dict(synthetic=True,execution_permitted=False))
+            def wait(stage,value,probe,model=None,runtime_ref=None):
+                self.assertIn('released-287',order);order.append((stage,probe,model))
+                if not probe:exclusive(s.context(cs[stage])['control']/('group-'+model)/'complete.json',dict(model=model,technical_complete=True,result_review='pending',task_ids=[t['id']for t in cs[stage]['tasks']if t['model']==model]))
+            def seal_round2(value):
+                boundary=bound(value);self.assertEqual(len(boundary['task_ids']),112)
+                self.assertEqual(boundary['commit'],self.head)
+                self.assertEqual([v[2]for v in order if isinstance(v,tuple)and v[0]=='M_AMEND'and not v[1]],list(s.MODELS))
+                order.append('sealed-371');return exclusive(root/'round2.json',dict(synthetic=True,execution_permitted=False,effective_runs=371))
+            stack.enter_context(patch.object(q,'create_permit',side_effect=permit));stack.enter_context(patch.object(q,'wait_owned',side_effect=wait))
+            stack.enter_context(patch.object(q,'audit_probe',side_effect=lambda c:exclusive(s.context(c)['control']/'admission-summary.json',dict(synthetic=True))))
+            stack.enter_context(patch.object(q,'seal_runtime',side_effect=lambda c,pr:exclusive(s.context(c)['control']/'runtime-admission.json',dict(synthetic=True))))
+            stack.enter_context(patch.object(q,'seal_round2_boundary',side_effect=seal_round2))
+            q.run(start) # Actual closure, validate_start, drive and per-ring seal; computation leaves are synthetic.
+            self.assertLess(order.index('sealed-371'),order.index(('URBAN_SUBSET',True,None)))
+            self.assertEqual([v[2]for v in order if isinstance(v,tuple)and not v[1]],list(s.MODELS)*4)
+            complete=bound(ref(q.CONTROL/'complete.json'))
+            self.assertEqual((complete['total_runs'],complete['third_round_runs'],complete['round2_effective_runs']),(343,231,371))
+            self.assertEqual(network,[])
+            self.network_observations.append(dict(path='run/drive/validate_start/closure/all four rings',remote_calls=0))
+
+    def test_public_preflight_queries_remote_once(self):
+        import m6_type1_followup_entry as entry
+        approval=exclusive(self.root/'synthetic-cli-approval.json',self.authorization());output=io.StringIO()
+        with self.preflight_fixture(),self.remote_calls()as calls,patch('sys.argv',['entry','preflight','--approval',approval['path']]),redirect_stdout(output):
+            status=entry.cli()
+        result=json.loads(output.getvalue());self.assertEqual(status,0);self.assertEqual(result['blocked'],[])
+        self.assertTrue(result['READY_TO_ARM_HANDOFF']);self.assertFalse(result['READY_FOR_GPU_EXECUTION'])
+        self.assertEqual(len(calls),1);self.assertEqual(calls[0]['timeout'],30)
+        self.network_observations.append(dict(path='public CLI preflight/readiness_report',remote_calls=len(calls),timeout_seconds=calls[0]['timeout']))
+
+    def test_remote_timeout_blocks_preflight(self):
+        with self.preflight_fixture(),self.remote_calls(timeout=True)as calls:result=q.readiness_report(self.authorization())
+        self.assertTrue(any('live remote' in reason and 'timed out after 30 seconds'in reason for reason in result['blocked']))
+        self.assertFalse(result['READY_TO_ARM_HANDOFF']);self.assertEqual(len(calls),1);self.assertEqual(calls[0]['timeout'],30)
+
+    def test_unreachable_remote_blocks_preflight(self):
+        self.command('remote','set-url','origin',str(self.root/'nonexistent-origin.git'))
+        with self.preflight_fixture(),self.remote_calls()as calls:result=q.readiness_report(self.authorization())
+        self.assertTrue(any('live remote' in reason and 'unavailable' in reason for reason in result['blocked']))
+        self.assertFalse(result['READY_TO_ARM_HANDOFF']);self.assertEqual(len(calls),1)
+
+    def test_offline_after_preflight_local_checks_still_work(self):
+        value=self.authorization()
+        with self.preflight_fixture(),self.remote_calls()as calls:
+            self.assertEqual(q.readiness_report(value)['blocked'],[])
+        self.assertEqual(len(calls),1)
+        self.command('remote','set-url','origin',str(self.root/'nonexistent-origin.git'))
+        with self.preflight_fixture(),self.remote_calls(forbid=True)as calls:
+            self.assertEqual(q.closure(),self.head);self.assertEqual(q.validate_start(value),value)
+            self.assertEqual(q.readiness(value,launch=True),[])
+        self.assertEqual(calls,[])
+        self.network_observations.append(dict(path='offline runtime closure/validate_start/start-readiness',remote_calls=0))
+
+    @contextmanager
+    def formal_fixture(self):
+        import ch3_runner
+        from utils import ch3_type1_execution as execution
+        c=q.configs()['M_AMEND'];original=s.context;root=self.root/'formal-fixture';root.mkdir()
+        ctx=dict(original(c),control=root/'stage',fixture=root/'fixtures',result_root=root/'results',probe_root=root/'probe')
+        ctx['control'].mkdir();ctx['fixture'].mkdir();control=root/'controller';control.mkdir()
+        secret='synthetic runtime secret, never production'
+        def signed(path,body):
+            body=dict(body);body['mac']=q.hmac.new(secret.encode(),digest(body).encode(),q.hashlib.sha256).hexdigest()
+            return exclusive(path,body)
+        def binding(config,worker=False):
+            return dict(commit=q.closure(),protocol_sha=digest(config),code={'synthetic_implementation':sha(self.repo/'implementation.txt')})
+        actual_git=ch3_runner.git
+        def fixture_git(*args):
+            # Version operations use the synthetic history; repository_files reads actual N bytes.
+            with patch.object(ch3_runner,'ROOT',self.repo):return actual_git(*args)
+        with ExitStack()as stack:
+            stack.enter_context(patch.object(ch3_runner,'ROOT',ROOT));stack.enter_context(patch.object(ch3_runner,'git',side_effect=fixture_git))
+            stack.enter_context(patch.object(q,'CONTROL',control));stack.enter_context(patch.dict(os.environ,{q.SECRET:secret,'TMPDIR':str(ctx['fixture'])}))
+            stack.enter_context(patch.object(s,'context',side_effect=lambda config:ctx if config['baseline_unified']['stage']=='M_AMEND'else original(config)))
+            stack.enter_context(patch.object(q,'dynamic',side_effect=binding))
+            stack.enter_context(patch('utils.ch3_m_execution.gpu_environment_reasons',return_value=[]))
+            stack.enter_context(patch('utils.ch3_native_recovery.resource_check'))
+            owner=q.owner();exclusive(control/'controller.json',dict(scope=s.ID,owner=owner))
+            signed(control/'upstream-technical-boundary.json',dict(handoff_scope=s.ID,anchors=q.upstream_anchors(),READY_FOR_GPU_EXECUTION=True,successor_owner=owner))
+            complete=exclusive(ctx['probe_root']/'complete.json',dict(synthetic=True));manifest=exclusive(ctx['control']/'probe-artifact-manifest.json',dict(synthetic=True))
+            summary=signed(ctx['control']/'admission-summary.json',dict(purpose='baseline_type1_technical_admission_v1',scope=ctx['probe_scope'],technical_admission=True,manual_review=False,reviewed=False,result_review='pending',owner=owner,complete_ref=complete,manifest_ref=manifest,protocol_sha=digest(c),policy_sha=digest(c['baseline_unified']['numeric_policies']),profile_shas={t['id']:digest(profile(c,t))for t in c['tasks']},decisions={g['id']:dict(status='Passed',concurrency=g['planned_q'],coverage=g['coverage'])for g in s.probe_groups(c)},budget=dict(caps=ctx['caps'],refund=False,actual={k:0 for k in ctx['caps']},reserved={k:0 for k in ctx['caps']})))
+            start=exclusive(root/'synthetic-start.json',self.authorization())
+            permit=q.create_permit(c,start,False,summary_ref=summary);value=bound(permit)
+            runtime=signed(ctx['control']/'runtime-admission.json',dict(scope=s.ID,stage='M_AMEND',owner=owner,permit_ref=permit,protocol_sha=digest(c),integrity_scan_passed=True,full_scans=1,science_protocol=c['baseline_unified']['id']))
+            yield dict(c=c,ctx=ctx,permit=value,permit_ref=permit,runtime=runtime,execution=execution)
+
+    def test_formal_permit_config_worker_group_paths_are_local(self):
+        import ch3_runner
+        with self.remote_calls(forbid=True)as calls,self.formal_fixture()as f,ExitStack()as stack:
+            c=f['c'];execution=f['execution'];t=c['tasks'][0]
+            permit_calls=stack.enter_context(patch.object(q,'validate_permit',wraps=q.validate_permit))
+            config_calls=stack.enter_context(patch.object(execution,'make_config',wraps=execution.make_config))
+            worker_calls=stack.enter_context(patch.object(execution,'validate_worker',wraps=execution.validate_worker))
+            q.validate_permit(c,f['permit'])
+            out=s.context(c)['result_root']/('formal-'+t['model'])/t['id']
+            cfg=execution.make_config(c,'ch3_formal',out,task=t['id'],approval=f['permit'],runtime_ref=f['runtime'])
+            execution.validate_worker(c,cfg)
+            def compute(configs,out,monitor):
+                execution.validate_wave(c,configs,out)
+                for cfg in configs:execution.validate_worker(c,cfg)
+                return dict(failure=None,returncodes=[0]*len(configs),resource_admission=True)
+            stack.enter_context(patch.object(ch3_runner,'GPULock',side_effect=lambda _:nullcontext()))
+            stack.enter_context(patch('m5_formal_entry.run_configs',side_effect=compute))
+            stack.enter_context(patch.object(execution,'technical_group',return_value=dict(synthetic=True,technical_complete=True)))
+            execution.run_group(c,f['permit'],'DLinear',f['runtime'])
+            self.assertGreater(permit_calls.call_count,1);self.assertGreater(config_calls.call_count,1);self.assertGreater(worker_calls.call_count,1)
+            self.assertEqual(calls,[])
+            self.network_observations.append(dict(path='actual validate_permit/make_config/validate_worker/run_group',remote_calls=0,permit_calls=permit_calls.call_count,make_config_calls=config_calls.call_count,validate_worker_calls=worker_calls.call_count,entrypoints_mocked=False))
+
+    def test_local_code_or_permission_mismatch_still_rejected(self):
+        with self.remote_calls(forbid=True)as calls,self.formal_fixture()as f:
+            bad=copy.deepcopy(f['permit']);bad['code']={'synthetic_implementation':'0'*64}
+            with self.assertRaisesRegex(ValueError,'permit current binding changed: code'):q.validate_permit(f['c'],bad)
+            bad=copy.deepcopy(f['permit']);bad['commit']=self.implementation
+            with self.assertRaisesRegex(ValueError,'permit current binding changed: commit'):q.validate_permit(f['c'],bad)
+            (self.repo/'implementation.txt').write_text('unreviewed local source change\n')
+            with self.assertRaises(ValueError):q.validate_permit(f['c'],f['permit'])
+            self.assertEqual(calls,[])
 
 if __name__=='__main__':unittest.main()
