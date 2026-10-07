@@ -1,5 +1,6 @@
 """Only the registered AMD ETT declaration failure after sealed base287."""
 import ast
+import copy
 import hashlib
 import hmac
 import json
@@ -25,17 +26,77 @@ WRAPPER = ROOT / 'scripts/ch3/start_amend_ett_identity_recovery.sh'
 SOURCE_REF = dict(path=str(PACKAGE / 'source-anchors.json'), sha256='8fe23863733d7a8f59733b5f1018ca3907d611fba2c72222510f7a783f47bf36')
 REUSE_REF = dict(path=str(PACKAGE / 'prefix-verification.json'), sha256='4550f45447919a8d12c2a65c1d13851ef35d7b6a606fdabebc1396d56008c4b0')
 ALL_M_POLICY_REF = numeric.ALL_M_POLICY_REF
+WEATHER_PACKAGE = PACKAGE / 'weather20-patience10-v1'
+WEATHER_REF = dict(path=str(WEATHER_PACKAGE / 'weather20-contract.json'), sha256='f80aaf39935955e57ce727e5749d0e271eca802697b67a3002edb86c26b485b7')
+WEATHER_CONFIG_REFS = {
+    'M_AMEND': dict(path=str(ROOT / 'configs/ch3_round2_m_amend1_weather20_patience10_v1.json'), sha256='671e647d13316e49a5d326d3064a24da83bd7a9389469defce703ae570fd1226'),
+    'M_ALL': dict(path=str(ROOT / 'configs/ch3_type1_m_all_weather20_patience10_v1.json'), sha256='5b1012c13973338736b83b3a71c9321aafeb2ed1bc564e66ec3a3c8e40ca5d94')}
 COMPLETED_PREFIX = True
 ACTIVE = False
 
 
+def weather_profile(c, t, p):
+    """Only the explicit new revision changes Weather's maximum-20 patience."""
+    from utils.ch3_type1_tasks import MODELS
+    value = c['baseline_unified'].get('weather20_patience_ref')
+    if value is None:
+        return p
+    if value != WEATHER_REF or c['baseline_unified']['stage'] not in WEATHER_CONFIG_REFS:
+        raise ValueError('registered Weather20 patience revision only')
+    if t['dataset'] == 'Weather' and p['training']['epochs'] == 20:
+        if t['task'] != 'M' or t['model'] not in MODELS or t['h'] not in (96,192,336,720) or p['training']['patience'] is not None:
+            raise ValueError('exact approved Weather M parent patience')
+        p = copy.deepcopy(p)
+        p['training']['patience'] = 10
+    return p
+
+
+def revise_weather_config(old):
+    from utils.ch3_type1_tasks import MODELS
+    stage = old['baseline_unified']['stage']
+    if stage not in WEATHER_CONFIG_REFS or old != bound(numeric.CONFIG_REFS[stage]):
+        raise ValueError('exact frozen Weather revision parent')
+    contract = bound(WEATHER_REF)
+    if contract['old_config_refs'] != {k:numeric.CONFIG_REFS[k] for k in WEATHER_CONFIG_REFS}:
+        raise ValueError('Weather revision cannot redefine completed sources')
+    c = copy.deepcopy(old)
+    c['baseline_unified']['weather20_patience_ref'] = WEATHER_REF
+    changed = []
+    for t in c['tasks']:
+        p = old['resolved_profiles'][t['id']]
+        c['resolved_profiles'][t['id']] = weather_profile(c,t,p)
+        if c['resolved_profiles'][t['id']] != p:
+            changed.append((t['model'],t['h']))
+    if len(changed) != 28 or set(changed) != {(m,h) for m in MODELS for h in (96,192,336,720)}:
+        raise ValueError('exact 28 Weather20 revisions per stage')
+    return c
+
+
+def weather_base(c):
+    """Validate the whole delta before evaluating the frozen numeric contract."""
+    if 'weather20_patience_ref' not in c['baseline_unified']:
+        return c
+    stage = c['baseline_unified']['stage']
+    if c['baseline_unified']['weather20_patience_ref'] != WEATHER_REF or stage not in WEATHER_CONFIG_REFS:
+        raise ValueError('unregistered Weather revision')
+    old = bound(numeric.CONFIG_REFS[stage])
+    if c != revise_weather_config(old):
+        raise ValueError('only 28 None-to-10 patience fields and revision binding may change')
+    return old
+
+
+def config_refs():
+    return dict(numeric.CONFIG_REFS, **WEATHER_CONFIG_REFS)
+
+
 def delta_ref():
-    return ref(PACKAGE / 'producer-delta-proof.json')
+    return ref(WEATHER_PACKAGE / 'producer-delta-proof.json')
 
 
 def code_binding():
     return {str(p.relative_to(ROOT)): sha(p) for p in (Path(__file__), ENTRY, WRAPPER,
-        ROOT / 'tests/test_m6_amend_ett_identity_recovery.py')}
+        ROOT / 'tests/test_m6_amend_ett_identity_recovery.py',
+        ROOT / 'tests/test_m6_weather20_patience.py')}
 
 
 def activate():
@@ -48,6 +109,9 @@ def activate():
     DELTA_REF = delta_ref()
     s.RESULT = ms.RESULT = RESULT
     amend.RESULT = RESULT / 'round2-amendment'
+    original_file, original_package = s.file, s.package
+    s.file = lambda stage: Path(WEATHER_CONFIG_REFS[stage]['path']) if stage in WEATHER_CONFIG_REFS else original_file(stage)
+    s.package = lambda stage: WEATHER_PACKAGE if stage in WEATHER_CONFIG_REFS else original_package(stage)
     original_context = s.context
     s.context = lambda c: dict(original_context(c), fixture=PACKAGE / c['baseline_unified']['stage'] / 'fixtures')
     q.CONTROL = RESULT / 'queue/controller'
@@ -60,7 +124,8 @@ def anchors():
     return dict(recovery='specific_AMD_new_ETT_declaration_after_completed_base287',
         execution_attempt=ATTEMPT, parent_technical_failure_ref=SOURCE_REF,
         source_anchors_ref=SOURCE_REF, completed_prefix_ref=REUSE_REF,
-        producer_delta_ref=delta_ref(), candidate_config_refs=numeric.CONFIG_REFS,
+        producer_delta_ref=delta_ref(), candidate_config_refs=config_refs(),
+        weather20_patience_ref=WEATHER_REF,
         all_m_policy_ref=ALL_M_POLICY_REF, retained_producer_commit=PRODUCER,
         expected_runs=dict(MS=203, M=84, total=287), completed_new_formal=84,
         expected_remaining_formal=343, approved_total_new_formal=427)
@@ -85,7 +150,8 @@ def verify_production_inheritance():
         raise ValueError('registered producer delta proof')
     producer = bound(bound(SOURCE_REF)['refs']['M_boundary'])['code']
     allowed = {'utils/ch3_contract.py', 'utils/ch3_type1_chain.py', 'utils/ch3_round2_amendment.py',
-               'utils/ch3_probe_schema_recovery.py', 'utils/ch3_type1_execution.py', 'm6_type1_followup_entry.py'}
+               'utils/ch3_probe_schema_recovery.py', 'utils/ch3_type1_execution.py', 'm6_type1_followup_entry.py',
+               'utils/ch3_type1_tasks.py', 'utils/ch3_moderntcn_etth1_recovery.py'}
     actual = {name for name, expected in producer.items() if sha(ROOT / name) != expected}
     if actual != set(proof['changes']) or not actual <= allowed:
         raise ValueError('unregistered completed producer delta')
@@ -99,6 +165,10 @@ def verify_production_inheritance():
     # this finite repair delta can change under an existing precise start approval.
     if proof['new_code'] != code_binding():
         raise ValueError('new adoption entry byte binding')
+    if proof.get('weather20_patience_ref') != WEATHER_REF:
+        raise ValueError('exact user-approved Weather scientific delta binding')
+    for value in WEATHER_CONFIG_REFS.values():
+        weather_base(bound(value))
     from tools.restricted_regression.run_restricted import verify_bundle
     return dict(changes=sorted(actual), bundle_sha=verify_bundle())
 
@@ -248,6 +318,8 @@ def validate_permit_link(c, a, probe):
         raise PermissionError('completed M_BASE cannot be dispatched again')
     if a.get('execution_attempt') != ATTEMPT or a.get('probe_recovery_ref') != REUSE_REF:
         raise PermissionError('exact completed-prefix attempt/evidence binding')
+    if c != bound(config_refs()[c['baseline_unified']['stage']]):
+        raise PermissionError('current attempt requires the exact current Weather configuration')
     numeric.validate_revision(c)
 
 

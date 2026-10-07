@@ -222,7 +222,7 @@ def prefix_fixture():
         failed='AMD-ETTh2-M-oc01-v3-amend1-m128-recovery1-f1-h96-s2024'
         refs['failed_runtime']=exclusive(old/'failed-runtime.json',dict(task=failed))
         refs['failed_worker_config']=exclusive(old/'failed-worker.json',dict(task=failed))
-        refs['probe_permit']=exclusive(old/'probe-permit.json',dict(commit=r.PRODUCER,protocol_sha=digest(cs['M_AMEND'])))
+        refs['probe_permit']=exclusive(old/'probe-permit.json',dict(commit=r.PRODUCER,protocol_sha=digest(bound(numeric.CONFIG_REFS['M_AMEND']))))
         refs['M_permit']=exclusive(old/'M-permit.json',dict(commit=r.PRODUCER,protocol_sha=digest(c),**binding))
         refs['M_probe_complete']=exclusive(old/'M-complete.json',dict(execution_complete=True,protocol_sha=digest(c),plan=s.plan(c),decisions={g['id']:dict(status='Passed',coverage=g['coverage'])for g in s.probe_groups(c)}))
         (old/'worker.log').write_text('ValueError: M AMD native all-channel identity\n')
@@ -234,11 +234,13 @@ def prefix_fixture():
             (s,'RESULT',new),(q,'CONTROL',control),(q,'LOG',root/'launcher.log'),(q,'SESSION','synthetic-ett-absent-'+str(os.getpid()))):stack.enter_context(patch.object(mod,key,value))
         from utils import ch3_ms_seal_recovery as ms,ch3_round2_amendment as amend
         stack.enter_context(patch.object(ms,'RESULT',new));stack.enter_context(patch.object(amend,'RESULT',new/'round2-amendment'))
+        original_context=s.context
+        stack.enter_context(patch.object(s,'context',side_effect=lambda c:dict(original_context(c),fixture=root/'fixtures'/c['baseline_unified']['stage'])))
         stack.enter_context(patch.object(ms,'SOURCE_REF',refs['MS_verification']))
         stack.enter_context(patch.object(q,'closure',return_value='f'*40))
         stack.enter_context(patch.dict(os.environ,{q.SECRET:'synthetic-secret'}))
         exclusive(control/'controller.json',dict(owner=q.owner(),scope=s.ID))
-        delta=exclusive(root/'delta.json',dict(purpose='exact_base287_producer_delta_v1',producer_commit=r.PRODUCER,changes={},new_code=r.code_binding()))
+        delta=exclusive(root/'delta.json',dict(purpose='exact_base287_producer_delta_v1',producer_commit=r.PRODUCER,changes={},new_code=r.code_binding(),weather20_patience_ref=r.WEATHER_REF))
         stack.enter_context(patch.object(r,'delta_ref',return_value=delta));stack.enter_context(patch.object(r,'DELTA_REF',delta))
         yield root,old,new,source,evidence,stack
 
@@ -309,7 +311,11 @@ class Prefix(unittest.TestCase):
             self.assertEqual(sum(len(c['baseline_unified']['numeric_policies'])for c in cs.values()),133)
             self.assertEqual(sum(len(cs[k]['tasks'])for k in ('M_AMEND','URBAN_SUBSET','EPF_ALL','M_ALL')),343)
             for stage,c in cs.items():
-                self.assertEqual(ref(s.file(stage)),numeric.CONFIG_REFS[stage]);self.assertEqual(c,bound(numeric.CONFIG_REFS[stage]))
+                old=bound(numeric.CONFIG_REFS[stage])
+                self.assertEqual(ref(s.file(stage)),r.config_refs()[stage])
+                self.assertEqual(r.weather_base(c),old)
+                self.assertEqual(s.formal_budget(c),s.formal_budget(old))
+                self.assertEqual(c['baseline_unified']['numeric_policies'],old['baseline_unified']['numeric_policies'])
 
 
 @contextmanager

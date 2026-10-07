@@ -41,7 +41,7 @@ def tasks(): return [task(t) for t in selected()]
 def source_task(t):
     return next(x for x in parent()['tasks'] if x['model']==t['model'] and x['dataset']==('Weather' if t['dataset']=='Weather' else 'ETTh1') and x['h']==t['h'])
 
-def inherited(t):
+def inherited(t,c=None):
     p = copy.deepcopy(parent()['resolved_profiles'][source_task(t)['id']])
     if t['dataset']=='Weather':
         p['training']['epochs']=20; p['training']['scheduler']['epochs']=20
@@ -54,6 +54,9 @@ def inherited(t):
         p['training'].update(batch=128,eval_batch=128,epochs=10,patience=None)
         windows=ett.dataset(t['dataset'])['endpoints'][0]-p['T']-p['pred_len']+1
         p['training']['scheduler']['steps_per_epoch']=windows//128
+    if c is not None:
+        from utils.ch3_amend_ett_identity_recovery import weather_profile
+        p=weather_profile(c,t,p)
     return p
 
 def dataset(name):
@@ -79,7 +82,7 @@ def validate(c):
     data=bound(c['baseline_unified']['data_ref'])
     from utils.ch3_time_marks import metadata
     for t in c['tasks']:
-        p=inherited(t); old=source_task(t)
+        p=inherited(t,c); old=source_task(t)
         expected=dict(task_id=old['id'],profile_sha=digest(parent()['resolved_profiles'][old['id']]),config_ref=PARENT_REF)
         if c['resolved_profiles'][t['id']]!=p or c['baseline_unified']['parent_refs'][t['id']]!=expected: raise ValueError('only authorized effective profile changes')
         a=step_arithmetic(c,t); m=data['metadata'][t['dataset']][t['id']]

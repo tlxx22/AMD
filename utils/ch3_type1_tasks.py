@@ -69,7 +69,7 @@ def expected_tasks(stage):
         from utils.ch3_round2_amendment import tasks
         return tasks()
     return [new_task(t) for t in selected(stage)]
-def inherited_profile(t):
+def inherited_profile(t,c=None):
     from utils import ch3_type1_ett as ett
     if t['dataset']in ett.NEW_DATASETS:return ett.profile(t)
     stage='M_ALL' if t['task']=='M' else 'URBAN_SUBSET' if t['dataset']=='UrbanEV' else 'EPF_ALL';old=parent(stage)
@@ -78,6 +78,9 @@ def inherited_profile(t):
     d=old['datasets'][t['dataset']]
     windows=(old['urban_folds'][t['fold']-1][0]-p['T']-t['h']+1)*275 if stage=='URBAN_SUBSET' else d['endpoints'][0]-p['T']-p['pred_len']+1
     train['scheduler']=configuration(train['epochs'],windows//train['batch'])
+    if c is not None:
+        from utils.ch3_amend_ett_identity_recovery import weather_profile
+        p=weather_profile(c,t,p)
     return p
 def profile(c,t):
     if t not in c['tasks']:raise ValueError('foreign type1 task')
@@ -110,7 +113,7 @@ def validate(c):
         if d!=expected:raise ValueError('dataset only T changes')
     for prior,t in zip(selected(stage),c['tasks']):
         expected_ref=ett.parent_ref(prior)if prior['dataset']in ett.NEW_DATASETS else dict(task_id=prior['id'],profile_sha=digest(old['resolved_profiles'][prior['id']]),config_ref=parent_ref(stage))
-        if profile(c,t)!=inherited_profile(prior) or c['baseline_unified']['parent_refs'][t['id']]!=expected_ref:raise ValueError('only approved parent profile changes or fixed ETTh1 ETT migration')
+        if profile(c,t)!=inherited_profile(prior,c) or c['baseline_unified']['parent_refs'][t['id']]!=expected_ref:raise ValueError('only approved parent profile changes or fixed ETTh1 ETT migration')
     data=bound(c['baseline_unified']['data_ref'])
     from utils.ch3_time_marks import metadata as mark_metadata
     for t in c['tasks']:

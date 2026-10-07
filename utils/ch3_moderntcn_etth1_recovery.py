@@ -35,6 +35,8 @@ ACTIVE=False
 
 def validate_revision(c):
     """One shared materialized default table; historical revisions stay explicit."""
+    from utils.ch3_amend_ett_identity_recovery import weather_base
+    c=weather_base(c)
     from utils.ch3_contract import BASELINE_NUMERIC_ADMISSION_ID,BASELINE_NUMERIC_DEFAULTS,materialize_baseline_numeric_admission,validate_baseline_numeric_registry
     b=c['baseline_unified'];stage=b.get('stage');value=b.get('numeric_revision_ref')
     if b.get('numeric_admission_version')is not None:

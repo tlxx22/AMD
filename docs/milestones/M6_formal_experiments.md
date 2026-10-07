@@ -1,8 +1,10 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — N实际closure/旧r2执行版本为760b9dd7162d200c11b8836a7c9ece41822dfcf1。M_BASE 21/21技术准入、M84及混合来源基础287已完成；M_AMEND首个AMD–ETTh2 serial worker因M声明旧三域允许名单拒绝而退出，补做正式0/112、第三轮正式0/231。当前为新增ETT声明窄修及完成前缀采用候选，只继续剩余343项；统一133政策、五阶段科学profile和原预算保持，旧来源/失败/许可/结果保留，result_review仍pending。真实CPU构造/合成输出检查已完成；本轮未stage/commit/push、未生成可执行新许可、未arm/start或执行新GPU probe/正式训练，候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[新增ETT声明repair](#m6-amend-ett-identity-repair-v1)。**
+**In Progress — AMD新增ETT声明/完成前缀恢复已closure于08a79f250c4982201f4ae065b812a18caa3d5dc4，旧配置准备通过但新恢复链尚未启动。M_BASE 21/21准入、M84和基础287保持完成；MS203与M84保留真实旧来源，补做正式0/112、第三轮正式0/231，result_review仍pending。当前用户启动前协议修订仅把两阶段Weather20共56项patience None改为10；133数值政策、其余科学字段、原预算及剩余343项范围保持。只做无业务模型合成验收，未stage/commit/push、未生成可执行新许可、未arm/start或执行真实模型/GPU/训练/validation/test；候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[Weather20早停修订](#m6-weather20-patience10-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
+
+下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 <a id="m6-three-rounds"></a>
 ## 0. 三轮正式实验组织与最终结果采用规则
@@ -849,3 +851,22 @@ MAE及归一化聚合检查同样在1e-6内；对应资源、进程归属、退�
 最终当前版本无模型定向套件22/22 Passed（419.204秒），覆盖前缀采用、混合来源371、真实permit/runtime/worker接线、四个剩余阶段各一次AUTO_AUDIT、formal完整probe replay为0、运行期远端查询为0、公开preflight查询一次、失败停止及新入口合成tmux owned safe-stop。适用的真实CPU smoke3/3及受影响既有保护50/50分别登记；三项历史四阶段fixture另在冻结1134611版本3/3核验，不拼为当前单次验收。六次失败测试尝试及修正依据保留在failure-ledger与原日志，没有删除断言、加skip或放宽容差。五阶段427项scientific profile和133政策逐项不变；剩余343项最多4270 run-epochs、85个准入组，正式及probe派生上限见scientific-invariance，原预算不改。
 
 当前修后只是12文件候选（8 modified＋4 untracked），尚未stage/commit/push、生成新可执行start-review或启动新链；已有效历史证据按适用范围复用，不机械重跑全部历史milestone。后续需ChatGPT实际字节审核、精确closure及实际许可/preflight，然后由用户最后一次arm。未来操作材料见本增量operations.sh，已语法检查并标明审核closure及许可就绪后启用，不预填未来commit或许可SHA。
+
+<a id="m6-weather20-patience10-v1"></a>
+## 启动前Weather20 patience10修订候选
+
+上一节候选已真实closure于`08a79f250c4982201f4ae065b812a18caa3d5dc4`，旧配置许可/preflight准备通过。2026-10-08 01:25 UTC+8只读核验N/W/R三端一致0/0及clean，新attempt没有所属入口进程、session、result/log/launch/claimed；条件授权成立。本次是用户在启动前明确改变早停协议，不称旧None为bug、技术失败或效果失败。旧许可`start-review.json`及原准备输出完整保留，不授权未来修订commit。
+
+M_AMEND与M_ALL独立新配置分别为`configs/ch3_round2_m_amend1_weather20_patience10_v1.json`和`configs/ch3_type1_m_all_weather20_patience10_v1.json`。严格按dataset=Weather、resolved epochs=20筛选，两阶段七模型各四H，共56项，仅training.patience None→10；其余科学profile、task/顺序、source/data/marks、batch128、seed、133政策及TimeMixer–Weather loss例外不变。最大epochs仍20，第二轮OneCycle20完整合同、第三轮type1固定4/9均不改。已完成M_BASE Weather10仍None，MS203/M84/基础287不重训/retest或倒改。
+
+现有BestState严格MSE改善重置bad；相等不改善，保留较早best，连续10次未改善后不启动下一epoch。scheduler仍绑定20轮最大计划，保存/恢复保留真实epoch、bad、best与scheduler更新数；当前统一执行仍fresh-only，本次没有开放真实checkpoint resume。完成审计根据实际history和合法停止条件核验，可接受合法少于20轮的结果，拒绝无停止依据的截断、停止后再追加epoch及重复test。最终test仍只访问validation-selected best一次；正常早停不重跑。实际训练轮数从封存history保留，不能写成20。
+
+配置生成与校验共用精确Weather修订投影；先核对旧完整配置及56处允许差异，再沿原数值合同验证，不把新默认动态套到历史配置。当前恢复入口只替换两个待执行config/plan引用，原SOURCE_REF、prefix-verification及numeric.CONFIG_REFS继续表示旧生产来源。新许可模板绑定Weather合同、两份新config/plan、完整427任务上限及精确producer delta；旧许可/配置不能串用。生产继承检查新增的限定变更是profile生成/校验及绑定，不改训练/评价数学；restricted bundle仍完整验证。
+
+顺序保持基础287采用→M_AMEND probe/一次AUTO_AUDIT/112正式→第二轮371封存→Urban28→EPF35→M168。已完成84＋剩余343仍为原427；第二轮399计划运行、371有效格、第三轮231不变。M_BASE21组、旧40份测量和M84不再派发；Weather20全部28项合法完成后整批替换Weather10来源，不按指标择优。最大轮数与计算上限不增加，实际早停成本照实记录，不转为搜索额度。
+
+本次增量集中于原准备包`weather20-patience10-v1/`，只提供非执行许可模板与审核closure后的操作方案；原许可、历史失败和完成来源保留。本轮不执行真实模型构造、GPU、forward/backward/Adam、真实数据validation/test，不读取真实训练checkpoint、重放数值sidecar或重新采用完成前缀。定向验收及完整候选字节清单由该目录acceptance/inventory记录；纯合成checkpoint与scheduler事件明确区别于业务训练消耗。
+
+最终同一代码版本定向套件29/29 Passed（419.892秒），覆盖56项差异、133政策和上限保持、两种scheduler的真实formal循环/BestState/合成checkpoint保存恢复、合法早停与跑满20轮、截断/停止后多训/test重复拒绝、新旧许可隔离、完整混合来源恢复顺序及四个剩余阶段各一次AUTO_AUDIT；formal不回放完整probe，运行期远端查询为0。7份Python内存语法、JSON、bash-n、tracked diff-check、三份新增文件EOF/whitespace及qualified bundle验证通过。父准备上下文没有导入torch；合成scheduler/checkpoint套件使用CPU PyTorch事件替身，禁止业务模型、Adam构造和CUDA初始化，真实数据读取/训练/评价均0。现有入口fresh-only不变。
+
+首轮28项中的两处失败/一处错误及日志保留：worker夹具缺少实际子组专用导入路径、无torch断言受测试顺序污染、旧全配置相等断言需绑定本条批准的Weather差异；保护断言保留，未加skip或放宽政策。外置机械检查曾误解no-index的差异退出码及annotated tag对象/commit区别，诊断记录保留，未改文件权限或tag。最大剩余343项仍4270 run-epochs，正式Adam/backward/forward上限2107840/2107840/2468060，probe上限6162/6162/8240，不因patience改变增加额度。最终候选为8 modified＋3 untracked共11文件，index为空，未stage/commit/push或生成可执行许可；新result/log/session仍未创建，待ChatGPT实际字节审核。
