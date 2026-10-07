@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — MS封存恢复＋M128的19项实现已审核并closure于128592e0030bcf2dde99fce7baeb0d08947b92cd，原MS203仍为只读来源。启动许可已物化，但2026-10-07 06:39 UTC+8公开preflight因旧进程身份判断阻塞而exit2；未arm、未恢复封存、未开始新计算。本轮仅做身份归并窄修与无模型定向验收，科学合同不变，修后4文件仍为未提交候选、待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，来源恢复见[恢复小节](#m6-ms-seal-m128-recovery)，本次技术增量见[身份归并小节](#m6-pid-identity-repair)。**
+**In Progress — PID身份归并修复已closure于fe3def16a3e19928e7c538e223d766751721cbe2并由用户启动。MS203已成功只读导入封存；M_BASE probe前12组局部Passed，第13组TimeMixer-ETTh1-H96已生成serial六步轨迹，在自比较时因validation schema兼容问题失败，所属supervisor/child/97个worker实例均已退出。M84、补做112及第三轮231正式计算尚未开始。本轮仅修比较器与精确证据复用接线、完成无模型验收；候选未提交、未物化新可执行许可、未启动新恢复attempt，待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，本次增量见[probe schema恢复小节](#m6-probe-schema-repair)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”属于初次启动准备时的历史快照，不代表当前实际进度。
 
@@ -708,3 +708,18 @@ probe cap按上述阶段分别为1512/1512/2016、2016/2016/2688、504/504/696�
 正式Python最终无模型定向验收45/45 Passed，0 failure/error/skip，含新增18项身份测试及27项相关来源、许可、worker、队列、来源索引和审计职责回归；补充冲突诊断最多4个候选的上界后复验最终字节，此前44/44通过日志独立保留。合成收据与进程观察驱动真实公开preflight及snapshot/verify_source，验证PID复用场景下轻量与完整导入结论一致；未整体mock这些入口。测试限制真实torch/models/layers导入和信号操作，真实model construction/GPU/forward/backward/Adam/validation/test/恢复封存/信号均0。原62项仍保留其有效覆盖，本次不将它们拼成新的全量Passed，也没有重试真实失败preflight。
 
 M84 batch128、补做112、第三轮231、各自scheduler、numeric policy、科学配置及正式/probe预算不变；MS→M84→基础287→112→有效371→第三轮顺序不变。canonical与AGENTS保持；本轮仅4文件增量，未stage/commit/push、未arm/start，修后字节待ChatGPT实际审核。
+
+<a id="m6-probe-schema-repair"></a>
+#### M128 validation schema兼容与精确probe断点恢复候选
+
+PID窄修已closure于`fe3def16a3e19928e7c538e223d766751721cbe2`并经用户启动；MS203已成功导入封存。新的故障是`M_BASE-probe`子进程在第13组TimeMixer-ETTh1-H96的serial六步轨迹自比较时抛出`ValueError('validation schema changed')`，不是已证实的数值或效果失败。实际旧现场保留12组局部Passed、97份trajectory（前12组96份与TimeMixer单份serial），预算实际582 Adam／582 backward／776 forward；所属supervisor、probe-child及97个有PID/start_ticks的worker实例均退出。M基础84、补做112、第三轮231正式训练/test仍未开始；原failure、日志、许可、MS封存和probe文件不改写。本轮冻结旧现场SHA作为明确恢复来源，不通过删除failure或重复arm旧根恢复。
+
+比较器按已验证task/resolved profile的`task=='M'`识别，与现有evaluate路由一致；核对任务归属、MS/M一致性、全通道metric_scope、supervised_channels、output_order、C、诊断字段、通道名称/顺序/元素数、finite及聚合一致性。M的七个validation字段全部保留落盘，仅比较器内部投影全通道聚合指标；MS_target_diagnostic仍为诊断，不新增逐通道效果gate。聚合一致性的binary64累加舍入检查不改变串并发numeric阈值；exact、历史named_tensor及full_float_state规则、完整state/gradient/Adam覆盖和scheduler/LR/beta exact规则不变。五份科学配置、任务profile、数据metadata、numeric registry、scheduler实现及正式/probe预算原字节保持。
+
+准备阶段用原保存证据只读复现旧schema错误，再对精确旧前缀做一次有界离线核验：48次serial/q4比较结果保持有效，TimeMixer-H96作1次自检查通过，共49次。完整97份轨迹/预算/runtime/guard、61份波次资源与makespan证据及1419个probe artifact引用核对；没有模型计算、训练checkpoint读取或正式test。TimeMixer自检查不等于该组q4 Passed，M阶段仍须21组完整通过。证据增量在`P/baseline-unified-v3-ms-seal-m128-recovery1/probe-schema-repair-v1/`，保留原生产commit/config/scope/path，另绑定新比较器AST、来源及采用关系。
+
+恢复入口为N的`scripts/ch3/start_probe_schema_recovery.sh`，计算输出为`E/baseline-unified-v3-ms-seal-m128-recovery1-probe-schema-r1/`，session为`ch3-baseline-type1-followup-v3-recovery1-probe-schema-r1`；日志、launch/claim、队列锁和fixture也隔离。科学protocol/task ID及427正式任务集合不改，这是同一恢复链的新attempt，不是第四轮或新的科学协议。旧许可不能授权修后worker；新许可仍须审核closure后精确绑定实际HEAD，当前只生成不可执行模板。旧数值sidecar只允许精确来源目录和SHA目录表，不能任意跨目录读取或通用忽略failure。
+
+实际接线复用旧MS封存，通过新的owned生命周期记录引用，原训练与封存执行版本都保持；不机械复查MS checkpoint或重训/retest。probe预算以历史实际582/582/776初始化，另记new_actual；12组不再派发，已完整TimeMixer-H96 serial不再派发，名义仅71份新增短轨迹（426/426/568）。原12组及该serial的离线复核在最终AUTO_AUDIT消费绑定结论，不重复数值比较；其余新/混合成员按原比较器验证。probe尾部完整审计0、最终AUTO_AUDIT1，manifest及每阶段生命周期完整性扫描保持，formal仅消费紧凑summary/permit/runtime引用。原caps1512/1512/2016不增加，预登记resource-only回退不改；本次可证最坏新增107份worker（642/642/856），合旧最多1224/1224/1632，技术失败仍停止，不自动降低batch/精度/模型或放宽容差。
+
+顺序保持：复用MS203封存→补齐M_BASE probe→21组AUTO_AUDIT/准入→M84→基础287封存→补做112→有效371封存→第三轮231。未完成21组不能生成整个M阶段准入，效果不改变后续派发。正式Python最终定向45/45 Passed、0 failure/error/skip：25项schema/恢复/准入接线及20项既有PID/结果来源回归；合成现场驱动实际run_probe、AUTO_AUDIT、manifest、permit/runtime/config/worker、封存与整链入口，验证97份旧证据不派发、71份名义新测量、21组完整报告、AUTO_AUDIT一次、formal数值回放0，及numeric/finite/identity失败立即停止。新入口marker的合成tmux生命周期与owned安全停止仅操作本轮夹具进程，未signal历史或无关实例。首次23项2error为测试夹具的历史named_tensor调用层和type1状态字段错误；第二次23项1error由测试期间文件清单变化触发worker来源保护；第一次45项1failure为历史preflight夹具误读当前真实失败输出。只修测试夹具并隔离历史输出，旧断言不删、不skip、不放宽容差；所有失败日志保留，最终稳定字节独立复验。原62/45等证据保留其未受影响范围，不拼接成新版本Passed。AST/JSON/bash-n/bundle/diff-check通过；不可执行模板dry-run exit0展示427项，preflight exit2按未审核/未closure保护拒绝，两个READY均false。本轮未stage/commit/push、未物化可执行新许可、未arm/start、无新真实模型/GPU/probe/formal/validation/test，候选待ChatGPT实际字节审核。

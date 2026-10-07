@@ -86,6 +86,9 @@ def code_binding():
         files += ['utils/ch3_ms_seal_recovery.py','tests/test_m6_ms_seal_recovery.py','configs/ch3_round2_m_batch128_recovery1.json',
                   'configs/ch3_round2_m_amend1_recovery1.json','configs/ch3_type1_urban_subset_v3_recovery1.json',
                   'configs/ch3_type1_epf_all_v3_recovery1.json','configs/ch3_type1_m_all_v3_recovery1.json']
+    if (ROOT/'utils/ch3_probe_schema_recovery.py').exists():
+        files += ['utils/ch3_probe_schema_recovery.py','m6_probe_schema_recovery_entry.py',
+                  'scripts/ch3/start_probe_schema_recovery.sh','tests/test_m6_probe_schema_recovery.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -587,6 +590,50 @@ def numeric_probe_snapshot(model, opt, rule, step, digest_state=None):
                 exact_gradients=digest_state({k:v.grad for k,v in params.items() if k!=name and v.grad is not None}))
 
 
+def _probe_validation_metrics(c, task, value, tail=None):
+    """Validate the evaluation contract; project M's aggregate without dropping evidence."""
+    import math
+    if task not in c['tasks']:raise ValueError('foreign validation task')
+    p=profile(c,task);is_m=p.get('task')=='M'  # Same routing as evaluate().
+    if task.get('task','MS')!=p.get('task','MS'):raise ValueError('MS/M task/profile conflict')
+    fields={'mse','mae','sse','sae','elements'}
+    if not isinstance(value,dict) or set(value)!=(fields|{'channels','MS_target_diagnostic'} if is_m else fields):
+        raise ValueError('validation schema changed')
+    def totals(row,expected=None):
+        n=row['elements']
+        if type(n)is not int or n<=0 or (expected is not None and n!=expected):raise ValueError('validation element count mismatch')
+        for k in ('mse','mae','sse','sae'):
+            if isinstance(row[k],bool) or not isinstance(row[k],(int,float)) or not math.isfinite(row[k]) or row[k]<0:
+                raise ValueError('nonfinite or nonnumeric validation metric')
+        if row['mse']!=row['sse']/n or row['mae']!=row['sae']/n:raise ValueError('validation aggregation inconsistent')
+    totals(value)
+    if is_m:
+        C=p['C'];names=p['features']
+        if (type(C)is not int or C<=0 or len(names)!=C or len(set(names))!=C
+            or p.get('metric_scope')!='all_channels' or task.get('metric_scope')!='all_channels'
+            or p.get('supervised_channels')!=list(range(C)) or p.get('output_order')!=names):
+            raise ValueError('M all-channel contract mismatch')
+        channels=value['channels']
+        if not isinstance(channels,list) or len(channels)!=C or value['elements']%C:raise ValueError('M validation channel count')
+        n=value['elements']//C
+        if tail is not None:
+            v=p['training']['eval_batch']
+            if type(tail)is not int or not 0<=tail<v:raise ValueError('validation tail identity')
+            if n!=(v+(tail or v))*p['pred_len']:raise ValueError('M probe validation shape/elements')
+        for i,row in enumerate(channels):
+            if not isinstance(row,dict) or set(row)!=fields|{'index','name'} or type(row['index'])is not int or row['index']!=i or row['name']!=names[i]:
+                raise ValueError('M validation channel order/schema')
+            totals(row,n)
+        index=p['target_idx']
+        if type(index)is not int or not 0<=index<C or value['MS_target_diagnostic']!=channels[index]:raise ValueError('M target diagnostic identity')
+        for k in ('sse','sae'):
+            # CPU reduction order may round differently. This is binary64
+            # accumulation integrity, not a serial/parallel admission tolerance.
+            total=math.fsum(row[k] for row in channels)
+            if abs(value[k]-total)>C*math.ulp(total):raise ValueError('M channel aggregation inconsistent')
+    return {k:value[k] for k in fields}
+
+
 def compare_probe_trajectories(c, task, reference, actual):
     """Fail closed on identity; compare exact, named or full-state bounded paths."""
     import math
@@ -601,6 +648,8 @@ def compare_probe_trajectories(c, task, reference, actual):
     exact_fields=('trajectory','validation','final')
     if any(k not in x for x in (reference,actual) for k in exact_fields):raise ValueError('required trajectory evidence missing')
     if any(len(x['trajectory'])!=6 for x in (reference,actual)):raise ValueError('six-step coverage missing')
+    a=_probe_validation_metrics(c,task,reference['validation'],reference['validation_tail'])
+    b=_probe_validation_metrics(c,task,actual['validation'],actual['validation_tail'])
     raw_equal=all(reference[k]==actual[k] for k in exact_fields)
     if rule is None:return dict(passed=raw_equal,mode='exact',bitwise_equal=raw_equal,reason=None if raw_equal else 'exact numerical mismatch')
     if reference.get('numeric_policy_sha')!=digest(rule) or actual.get('numeric_policy_sha')!=digest(rule):raise ValueError('missing or foreign numeric policy evidence')
@@ -621,9 +670,6 @@ def compare_probe_trajectories(c, task, reference, actual):
         loss_ratio=max(loss_ratio,delta/allowance)
         compare_number(la,lb,'step%d loss'%step,allowance)
     scalar_max=0.0
-    a,b=reference['validation'],actual['validation']
-    if 'm_experiment'in c:
-        a={k:a[k]for k in ('mse','mae','sse','sae','elements')};b={k:b[k]for k in ('mse','mae','sse','sae','elements')}
     if set(a)!={'mse','mae','sse','sae','elements'} or set(a)!=set(b):raise ValueError('validation schema changed')
     if type(a['elements']) is not int or type(b['elements']) is not int or a['elements']<=0 or a['elements']!=b['elements']:raise ValueError('validation element count mismatch')
     for x in (a,b):

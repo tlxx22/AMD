@@ -12,6 +12,10 @@ LOG=s.PACKAGE/'followup-launcher.log'
 SESSION='ch3-baseline-type1-followup-v3-recovery1'
 TOKEN='CH3_TYPE1_LAUNCH_TOKEN'
 SECRET='CH3_TYPE1_RUNTIME_SECRET'
+ENTRY=ROOT/'m6_type1_followup_entry.py'
+WRAPPER=ROOT/'scripts/ch3/start_type1_followup.sh'
+PROBE_RECOVERY=None
+QUEUE_LOCK=s.PACKAGE/'queue.lock'
 ENVIRONMENT_REF=dict(path=str(s.PACKAGE/'environment-hardware.json'),sha256='e2fa17dc103fcc70acb9d7c49db75171126afdedf84f0cb5db0bb9fb944576c2')
 STAGE_STATES={'M_BASE':('M128_RESOURCE_NUMERIC_PROBE','M128_AUTO_AUDIT','M128_FORMAL_ALL_BASELINES','SEAL_M128_BOUNDARY'),
     'M_AMEND':('AMEND_RESOURCE_NUMERIC_PROBE','AMEND_AUTO_AUDIT','AMEND_FORMAL_ALL_BASELINES','SEAL_AMEND_BOUNDARY'),
@@ -22,14 +26,17 @@ STATES=('VERIFY_IMPORT_MS203_AND_SEAL','FOLLOWUP_PROTOCOL_PREFLIGHT',*STAGE_STAT
 
 
 def upstream_anchors():
+    if PROBE_RECOVERY:return PROBE_RECOVERY.anchors()
     from utils.ch3_type1_upstream import anchors
     return anchors()
 
 def upstream_status():
+    if PROBE_RECOVERY:return PROBE_RECOVERY.status()
     from utils.ch3_type1_upstream import status
     return status()
 
 def wait_upstream():
+    if PROBE_RECOVERY:return PROBE_RECOVERY.import_ms()
     from utils import ch3_ms_seal_recovery as recovery
     from ch3_runner import code_binding
     stop_check();source=recovery.verify_source();stop_check()
@@ -136,6 +143,8 @@ def validate_start(a):
 
 def validate_permit(c,a,probe=False,worker=False):
     stop_check();ctx=s.context(c);start=validate_start(bound(a['start_authorization_ref']))
+    if PROBE_RECOVERY:PROBE_RECOVERY.validate_permit_link(c,a,probe)
+    elif a.get('probe_recovery_ref'):raise PermissionError('recovery permit requires its fixed attempt entry')
     expected=dynamic(c,worker)
     if a.get('purpose')!=('baseline_type1_probe_permit_v1' if probe else 'baseline_type1_formal_permit_v1') or a.get('type1_scope')!=s.ID or a.get('successor_scope')!=(ctx['probe_scope'] if probe else ctx['formal_scope']) or a.get('execution_permitted')is not True or a.get('manual_review')is not False or a.get('reviewed')is not False or a.get('review_mode')!='preauthorized_machine_gate':raise PermissionError('exact machine-gate permit only')
     for k,v in expected.items():
@@ -231,6 +240,7 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
         data_binding_ref=c['baseline_unified']['data_ref'],caps=s.probe_budget(c)['caps'] if probe else s.formal_budget(c)['total'],
         budget_refund=False,additional_search=0,from_scratch=True,result_review='pending',upstream_boundary_ref=ref(CONTROL/'upstream-technical-boundary.json'),authorization_basis='user pre-authorized full training iff preregistered technical gates pass')
     a['predecessor_boundaries']=boundary_ref or {}
+    if PROBE_RECOVERY:a.update(execution_attempt='M_BASE-probe-schema-r1',probe_recovery_ref=PROBE_RECOVERY.REUSE_REF)
     a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'else None
     a['round2_boundary_ref']=round2_ref
     if not probe:
@@ -307,7 +317,7 @@ def readiness_report(a=None):
 
 def wrapper_command(pid):
     proc=Path('/proc')/str(pid);args=proc.joinpath('cmdline').read_bytes().decode().split('\0');cwd=proc.joinpath('cwd').resolve()
-    return any(a in ('start','arm')for a in args) and any(a and (Path(a) if Path(a).is_absolute()else cwd/a)==ROOT/'scripts/ch3/start_type1_followup.sh'for a in args)
+    return any(a in ('start','arm')for a in args) and any(a and (Path(a) if Path(a).is_absolute()else cwd/a)==WRAPPER for a in args)
 
 def prepare_launch(approval_ref,pid):
     from utils.ch3_m_launch import ancestors,file_identity,command_has
@@ -338,14 +348,14 @@ def safe_stop(signal_supervisor=True):
     from utils.ch3_m_launch import command_has
     if child and same(child):
         args=Path('/proc',str(child['pid']),'cmdline').read_bytes().decode().rstrip('\0').split('\0')
-        if current.get('owner')!=controller or args!=current.get('command') or str(ROOT/'m6_type1_followup_entry.py')not in args or not any(action in args for action in ('probe-child','group-child')) or int(Path('/proc',str(child['pid']),'stat').read_text().rsplit(')',1)[1].split()[1])!=controller['pid']:raise PermissionError('owned child parent changed')
+        if current.get('owner')!=controller or args!=current.get('command') or str(ENTRY)not in args or not any(action in args for action in ('probe-child','group-child')) or int(Path('/proc',str(child['pid']),'stat').read_text().rsplit(')',1)[1].split()[1])!=controller['pid']:raise PermissionError('owned child parent changed')
         sent=signal_owned(child)
-    if same(controller) and not command_has(controller['pid'],ROOT/'m6_type1_followup_entry.py'):raise PermissionError('foreign supervisor')
+    if same(controller) and not command_has(controller['pid'],ENTRY):raise PermissionError('foreign supervisor')
     return dict(STOP=True,child_signal_sent=sent,supervisor_signal_sent=signal_owned(controller) if signal_supervisor and same(controller) else False,old_chain_signal_sent=False)
 
 
 def wait_owned(stage,permit_ref,probe,model=None,runtime_ref=None):
-    stop_check();label=stage+('-probe' if probe else '-'+model);args=[PYTHON,'-B',str(ROOT/'m6_type1_followup_entry.py'),'probe-child' if probe else 'group-child','--stage',stage,'--approval',permit_ref['path'],'--approval-sha',permit_ref['sha256']]
+    stop_check();label=stage+('-probe' if probe else '-'+model);args=[PYTHON,'-B',str(ENTRY),'probe-child' if probe else 'group-child','--stage',stage,'--approval',permit_ref['path'],'--approval-sha',permit_ref['sha256']]
     if model:args+=['--model',model,'--runtime',runtime_ref['path'],'--runtime-sha',runtime_ref['sha256']]
     child=None;instance=None
     try:
@@ -427,11 +437,11 @@ def run(start_ref):
 def start(start_ref,token):
     launch=verify_launch(start_ref,token);reasons=readiness(bound(start_ref),True)
     if reasons:raise PermissionError('; '.join(reasons))
-    with lock(s.PACKAGE/'queue.lock'):
+    with lock(QUEUE_LOCK):
         if s.RESULT.exists():raise FileExistsError('retained execution')
         exclusive(str(LOG)+'.claimed.json',dict(launch=ref(str(LOG)+'.launch.json'),consumer=owner(),tmux=launch['tmux']))
         CONTROL.mkdir(parents=True,exist_ok=False)
-        for stage in s.STAGES:(s.package(stage)/'fixtures').mkdir(exist_ok=True)
+        for c in configs().values():s.context(c)['fixture'].mkdir(parents=True,exist_ok=True)
         exclusive(CONTROL/'controller.json',dict(scope=s.ID,owner=owner(),launch=ref(str(LOG)+'.claimed.json'),authorization=start_ref))
         os.environ[SECRET]=secrets.token_hex(32)
         signal.signal(signal.SIGTERM,lambda *_:safe_stop(signal_supervisor=False))

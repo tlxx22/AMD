@@ -207,6 +207,15 @@ def validate_wave(c,configs,out):
 
 def compare(c,t,x,y):
     from ch3_runner import compare_probe_trajectories,_compare_full_numeric_files
+    # Authorize both producers' exact payload paths before the numeric reader.
+    for value in (x,y):
+        for point in value.get('M_full_state_trace',[]):
+            for key in ('schema_file','data_file'):
+                p=Path(point[key])
+                if p.is_symlink():raise ValueError('successor full state payload namespace')
+                if not p.resolve().is_relative_to(scope.context(c)['probe_root']):
+                    from utils.ch3_probe_schema_recovery import retained_payload
+                    if not retained_payload(c,point):raise ValueError('successor full state payload namespace')
     row=compare_probe_trajectories(c,t,x,y)
     if c.get('type1_followup') and profile(c,t)['training']['scheduler']['name']!='OneCycleLR':
         p=profile(c,t)
@@ -233,10 +242,6 @@ def compare(c,t,x,y):
     if rule is not None and rule.get('kind') not in ('full_float_state','named_tensor'):
         raise ValueError('unsupported numerical policy branch')
     for left,right in zip(x['M_full_state_trace'],y['M_full_state_trace']):
-        for point in (left,right):
-            for key in ('schema_file','data_file'):
-                p=Path(point[key])
-                if p.is_symlink() or not p.resolve().is_relative_to(scope.context(c)['probe_root']):raise ValueError('successor full state payload namespace')
         if not generic_full and not _compare_full_numeric_files(rule or dict(state_atol=0),left,right)['passed']:row['passed']=False
     if (c.get('type1_followup') or 'native_replacement' in c or c.get('baseline_unified',{}).get('stage')=='MS') and t['model']=='TimeMixer' and t['dataset']=='UrbanEV':
         from utils.ch3_urban_capture import compare_traces
@@ -251,7 +256,16 @@ def run_probe(c,a):
     from m5_formal_entry import make_config,run_configs
     ctx=scope.context(c);root=ctx['probe_root'];zero=dict(adam=0,forward=0,backward=0)
     budget=dict(caps=ctx['caps'],reserved=dict(zero),actual=dict(zero),refund=False);decisions={};evidence={};artifacts={}
+    seed=None
+    if a.get('probe_recovery_ref') and c['baseline_unified']['stage']=='M_BASE':
+        from utils.ch3_probe_schema_recovery import load_seed
+        seed=load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
     def wave(g,phase,ids,n):
+        key=g['id']+'/'+phase+'/'+str(n)
+        if seed and key in seed['evidence']:
+            entry=seed['evidence'][key]
+            if entry['task_ids']!=ids:raise ValueError('retained wave membership differs')
+            return source.bound(entry['process'])
         if c.get('type1_followup'):
             from utils.ch3_type1_chain import stop_check
             stop_check()
@@ -287,15 +301,20 @@ def run_probe(c,a):
                                 if p.is_symlink() or not p.resolve().is_relative_to(d):raise ValueError('worker payload namespace')
                                 artifacts[str(p)]=source.ref(p)
             if (location/'memory.jsonl').exists():artifacts[str(location/'memory.jsonl')]=source.ref(location/'memory.jsonl')
+            if seed:budget['new_actual']={k:budget['actual'][k]-budget['historical_actual'][k]for k in zero}
             dump(root/'budget.json',budget)
     try:
         for g in scope.probe_groups(c):
+            if seed and g['id']in decisions:continue
             serial=[];traces={};reps=g['representatives']
             for n,r in enumerate(reps):
                 v=wave(g,'serial',[r],n);serial.append(v)
                 if not wave_passed(v):raise RuntimeError('serial technical gate failed; no fallback')
-                tr=json.loads((root/g['id']/'serial'/r/'trajectory.json').read_text())
-                if tr.get('finite')is not True or not compare(c,task_by_id(c,r),tr,tr)['passed']:raise ValueError('serial finite/state gate')
+                key=g['id']+'/serial/'+str(n)
+                path=root/g['id']/'serial'/r/'trajectory.json'
+                if seed and key in seed['evidence']:path=Path(seed['evidence'][key]['process']['path']).parent.parent/r/'trajectory.json'
+                tr=json.loads(path.read_text())
+                if tr.get('finite')is not True or (not(seed and key in seed['evidence']) and not compare(c,task_by_id(c,r),tr,tr)['passed']):raise ValueError('serial finite/state gate')
                 traces[r]=tr
             q=1;attempts=[];parallel=[];comparisons=[]
             if g['planned_q']>1:
@@ -318,6 +337,7 @@ def run_probe(c,a):
             decisions[g['id']]=dict(status='Passed',concurrency=q,serial=serial,parallel=parallel,attempts=attempts,numerical_comparisons=comparisons,coverage=g.get('coverage'),makespan_scope='captured synthetic short package; not formal training speedup')
             dump(root/'progress.json',dict(decisions=decisions,budget=budget))
         report=dict(purpose='native_successor_probe_complete_v1',execution_complete=True,reviewed=False,manual_review=False,admission_granted=False,scope=ctx['probe_scope'],plan=scope.plan(c),approval=source.ref(root/'approval.json'),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,**{k:a[k] for k in ('commit','protocol_sha','code','environment','hardware')})
+        if seed:report['probe_recovery_ref']=a['probe_recovery_ref']
         # Recovery, unified and type1 retain immediate group gates; one final
         # saved-evidence replay belongs to their AUTO_AUDIT. Legacy behavior stays.
         if not a.get('recovery_scope') and not a.get('unified_scope') and not a.get('type1_scope'):validate_probe_completion(c,report)
@@ -337,6 +357,8 @@ def validate_probe_completion(c,r):
     if (root/'STOP').exists() or (root/'failure.json').exists():raise ValueError('retained probe failure/STOP')
     if r['approval']!=source.ref(root/'approval.json'):raise ValueError('actual probe permit path/SHA')
     a=source.bound(r['approval'])
+    from utils import ch3_probe_schema_recovery as recovery
+    readonly=recovery.retained_refs(r)
     for k in ('commit','protocol_sha','code','environment','hardware'):
         if r[k]!=a[k]:raise ValueError('probe actual source mismatch')
     expected={};reserved=dict(adam=0,forward=0,backward=0);actual=dict(reserved)
@@ -357,15 +379,16 @@ def validate_probe_completion(c,r):
     if set(r['evidence'])!=set(expected):raise ValueError('attempted exact evidence coverage')
     required_artifacts=set()
     for key,ids in expected.items():
-        group,phase,n=key.split('/');entry=r['evidence'][key];p=root/group/phase/('wave-'+n)
+        group,phase,n=key.split('/');entry=r['evidence'][key];p=recovery.location(r,key,root/group/phase/('wave-'+n))
+        producer=recovery.producer(r,key,a)
         if entry!=dict(process=source.ref(p/'process.json'),task_ids=ids):raise ValueError('process/task evidence binding')
         v=source.bound(entry['process'])
         if not wave_passed(v) and not resource_fallback(v):raise ValueError('failed nonresource evidence')
         memory=p/'memory.jsonl';required_artifacts.add(str(memory))
         for run in ids:
-            out=root/group/phase/run;t=task_by_id(c,run);counts=scope.worker_counts(c,t)
+            out=p.parent/run;t=task_by_id(c,run);counts=scope.worker_counts(c,t)
             cfg=source.bound(r['artifacts'][str(out/'config.json')]);b=source.bound(r['artifacts'][str(out/'budget.json')])
-            if cfg['task']!=run or cfg['output']!=str(out) or cfg['approval']!=a or cfg['protocol_sha']!=digest(c) or cfg['successor_scope']!=ctx['probe_scope'] or cfg['successor_phase']!=phase or cfg['prefix_files'] or cfg['limits']!=dict(**counts,seconds=1800):raise ValueError('actual worker scope/permit/config')
+            if cfg['task']!=run or cfg['output']!=str(out) or cfg['approval']!=producer or cfg['protocol_sha']!=digest(c) or cfg['successor_scope']!=ctx['probe_scope'] or cfg['successor_phase']!=phase or cfg['prefix_files'] or cfg['limits']!=dict(**counts,seconds=1800):raise ValueError('actual worker scope/permit/config')
             for name in ('config.json','budget.json'):required_artifacts.add(str(out/name))
             if set(b['counts'])!=set(counts) or any(type(b['counts'][k])is not int or not 0<=b['counts'][k]<=counts[k] for k in counts):raise ValueError('actual count range')
             for k in counts:reserved[k]+=counts[k];actual[k]+=b['counts'][k]
@@ -373,7 +396,7 @@ def validate_probe_completion(c,r):
                 if b['counts']!=counts:raise ValueError('exact successful worker costs')
                 for name in ('trajectory.json','runtime.json','audit.jsonl'):required_artifacts.add(str(out/name))
                 tr=source.bound(r['artifacts'][str(out/'trajectory.json')])
-                if tr['id']!=run or tr['profile_sha']!=digest(profile(c,t)) or not tr['finite'] or tr.get('time_mark')!=profile(c,t).get('time_mark') or not compare(c,t,tr,tr)['passed']:raise ValueError('serial/self identity/finite')
+                if tr['id']!=run or tr['profile_sha']!=digest(profile(c,t)) or not tr['finite'] or tr.get('time_mark')!=profile(c,t).get('time_mark') or (not recovery.self_review(r,out/'trajectory.json') and not compare(c,t,tr,tr)['passed']):raise ValueError('serial/self identity/finite')
                 runtime=source.bound(r['artifacts'][str(out/'runtime.json')]);pid=str(runtime['pid'])
                 if runtime.get('task')!=run or runtime.get('error')is not None or b.get('by_pid')!={pid:counts}:raise ValueError('worker runtime/accounting ownership')
                 if v.get('exit_transitions_resolved')is not True or v.get('process_attribution')!='Measured' or v.get('returncodes')!=[0]*len(ids) or pid not in v.get('process_peaks',{}) or v['process_peaks'][pid]is None or not isinstance(v.get('cpu_peaks',{}).get(pid),(int,float)):raise ValueError('probe resource process attribution/exit')
@@ -393,10 +416,11 @@ def validate_probe_completion(c,r):
     for path in required_artifacts:
         if path not in r['artifacts'] or r['artifacts'][path]!=source.ref(path):raise ValueError('required actual payload/memory SHA missing')
     for path,value in r['artifacts'].items():
-        if Path(path).is_symlink() or not Path(path).resolve().is_relative_to(root) or value!=source.ref(path):raise ValueError('probe artifact changed')
+        if Path(path).is_symlink() or (not Path(path).resolve().is_relative_to(root) and readonly.get(path)!=value) or value!=source.ref(path):raise ValueError('probe artifact changed')
     for g in groups:
         d=r['decisions'][g['id']];reps=g['representatives'];serial=[source.bound(r['evidence'][g['id']+'/serial/'+str(n)]['process']) for n in range(len(reps))]
         if d['serial']!=serial or not all(wave_passed(v) for v in serial):raise ValueError('serial measured gates')
+        reviewed=recovery.group_review(r,g)
         comparisons=[]
         for attempt in d['attempts']:
             comparisons=[];phase='q'+str(attempt['q'])
@@ -405,7 +429,10 @@ def validate_probe_completion(c,r):
             for n,v in enumerate(actual_waves):
                 if not wave_passed(v):continue
                 for run in wave_ids(reps,attempt['q'])[n]:
-                    x=json.loads((root/g['id']/'serial'/run/'trajectory.json').read_text());y=json.loads((root/g['id']/phase/run/'trajectory.json').read_text());row=compare(c,task_by_id(c,run),x,y)
+                    if reviewed is not None:
+                        comparisons.append(reviewed[len(comparisons)]);continue
+                    serial_index=reps.index(run);serial_path=recovery.location(r,g['id']+'/serial/'+str(serial_index),root/g['id']/'serial'/('wave-'+str(serial_index))).parent/run/'trajectory.json'
+                    x=json.loads(serial_path.read_text());y=json.loads((root/g['id']/phase/run/'trajectory.json').read_text());row=compare(c,task_by_id(c,run),x,y)
                     if not row['passed']:raise ValueError('saved numeric gate failed')
                     comparisons.append(row)
         if d['numerical_comparisons']!=comparisons:raise ValueError('numeric summary not reproducible')

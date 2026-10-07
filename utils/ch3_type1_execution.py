@@ -7,6 +7,10 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive,sha
 
 
 def read_config(s):
+    if s.get('probe_schema_recovery_ref'):
+        from utils import ch3_probe_schema_recovery as recovery
+        if s['probe_schema_recovery_ref']!=recovery.REUSE_REF:raise PermissionError('registered worker recovery binding')
+        recovery.activate()
     stage=s.get('unified_stage')
     if stage not in scope.STAGES or s.get('type1_scope')!=scope.ID or s.get('protocol_file')!=str(scope.file(stage)):raise PermissionError('exact unified protocol/stage')
     c=scope.validate(json.loads(scope.file(stage).read_text()))
@@ -27,6 +31,9 @@ def metadata_files(c,a,runtime_ref=None):
     from utils.ch3_type1_chain import ENVIRONMENT_REF
     values=[scope.parent_ref(c['baseline_unified']['stage']),scope.AUTHOR_RECIPE,c['baseline_unified']['data_ref'],a['start_authorization_ref']]
     values.append(ENVIRONMENT_REF)
+    if a.get('probe_recovery_ref'):
+        from utils.ch3_probe_schema_recovery import SOURCE_REF,REUSE_REF
+        values += [SOURCE_REF,REUSE_REF]
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
     values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
     values += list(a.get('predecessor_boundaries',{}).values())
@@ -66,6 +73,7 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,ru
         budget_file=str(out/'budget.json'),output=str(out),limits=limits,bound_files=repository_files(),author_roots=[v['repository'] for v in c['sources'].values()],
         author_files=c['sources'].get(t['model'],{}).get('files',{}),prefix_files=prefix,metadata_files=metadata_files(c,approval,runtime_ref),
         forbidden_roots=[],device='cuda:0',artifact_root=str(out),resume=False,kernel_probe=False)
+    if approval.get('probe_recovery_ref'):s['probe_schema_recovery_ref']=approval['probe_recovery_ref']
     if probe:s['approval']=approval
     else:
         s['approval']=None;s['formal_permit_ref']=ref(ctx['control']/'formal-permit.json');s['runtime_admission_ref']=runtime_ref
@@ -83,6 +91,7 @@ def validate_worker(c,s):
     from utils.ch3_native_execution import exact_path
     from utils.ch3_type1_chain import validate_runtime,stop_check
     probe=s.get('purpose')=='ch3_probe';ctx=scope.context(c);t=task_by_id(c,s['task']);a=s.get('approval') if probe else bound(s['formal_permit_ref'])
+    if s.get('probe_schema_recovery_ref')!=a.get('probe_recovery_ref'):raise PermissionError('worker/permit recovery identity differs')
     stop_check()
     if s.get('purpose')not in ('ch3_probe','ch3_formal') or s.get('resume')is not False or s.get('kernel_probe')is not False or s.get('device')!='cuda:0':raise PermissionError('exact unified fresh GPU worker')
     if s['successor_scope']!=(ctx['probe_scope'] if probe else ctx['formal_scope']) or s['bound_files']!=repository_files() or s['ids']!=[t['id']]:raise ValueError('unified source/task/scope')

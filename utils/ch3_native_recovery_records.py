@@ -79,6 +79,8 @@ def project_summary(report, complete_ref, admission_ref, permit_ref):
 
 def manifest_projection(report, complete_ref, root, extra_refs=()):
     root = Path(root)
+    from utils.ch3_probe_schema_recovery import retained_refs
+    readonly=retained_refs(report)
     artifacts = dict(report.get('artifacts',{}))
     for value in extra_refs:
         if value['path'] in artifacts and artifacts[value['path']]!=value:raise ValueError('conflicting expected artifact reference')
@@ -88,7 +90,7 @@ def manifest_projection(report, complete_ref, root, extra_refs=()):
     rows = []
     for name, expected in sorted(artifacts.items()):
         p = Path(name)
-        if p.is_symlink() or p.resolve() != p or not p.is_relative_to(root):
+        if p.is_symlink() or p.resolve() != p or (not p.is_relative_to(root) and readonly.get(name)!=expected):
             raise ValueError('probe artifact path/symlink outside exact scope')
         if expected != dict(path=str(p), sha256=expected.get('sha256')):
             raise ValueError('original artifact reference identity')
@@ -98,9 +100,11 @@ def manifest_projection(report, complete_ref, root, extra_refs=()):
         rows.append(dict(path=str(p), expected_sha256=expected['sha256'],
                          verified_current_sha256=actual, size=p.stat().st_size,
                          artifact_role='numeric_payload' if p.suffix == '.bin' else 'probe_evidence'))
-    return dict(purpose='native_recovery_probe_manifest_v1', source_probe_complete_ref=complete_ref,
+    result=dict(purpose='native_recovery_probe_manifest_v1', source_probe_complete_ref=complete_ref,
                 rows=rows, artifact_count=len(rows), verified_bytes=sum(r['size'] for r in rows),
                 trust_basis='deterministic projection of fixed original complete artifact refs')
+    if report.get('probe_recovery_ref'):result['readonly_probe_recovery_ref']=report['probe_recovery_ref']
+    return result
 
 
 def process_refs(report):
@@ -124,9 +128,11 @@ def scan_manifest(manifest, source_ref, root, on_read=None):
     if manifest.get('purpose') != 'native_recovery_probe_manifest_v1' or manifest.get('source_probe_complete_ref') != source_ref:
         raise ValueError('manifest original source mismatch')
     root = Path(root); seen = set()
+    from utils.ch3_probe_schema_recovery import retained_refs
+    readonly=retained_refs(dict(probe_recovery_ref=manifest['readonly_probe_recovery_ref'])) if manifest.get('readonly_probe_recovery_ref') else {}
     for row in manifest['rows']:
         p = Path(row['path'])
-        if str(p) in seen or p.is_symlink() or p.resolve() != p or not p.is_relative_to(root):
+        if str(p) in seen or p.is_symlink() or p.resolve() != p or (not p.is_relative_to(root) and readonly.get(str(p))!=dict(path=str(p),sha256=row['expected_sha256'])):
             raise ValueError('manifest duplicate/path/link')
         seen.add(str(p))
         if row['verified_current_sha256'] != row['expected_sha256'] or p.stat().st_size != row['size']:
