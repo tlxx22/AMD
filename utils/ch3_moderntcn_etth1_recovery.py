@@ -23,12 +23,14 @@ LEGACY_POLICY_REFS=(
     dict(path=str(PACKAGE/'moderntcn-all-m-policy-v1/policy-extension.json'),sha256='17f4ca6c24ef6abff43259490e24b296dbd9f89b5f6b011f90ef119d8aa0c179'),
     dict(path=str(PACKAGE/'moderntcn-all-m-policy-v2/policy-extension.json'),sha256='805069ff11623c2f1158fcebbe62d32bbc47a6e795c2a8dfe89e37cba45165d1'))
 OLD_RESULT=ROOT.parent/'amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified-v3-ms-seal-m128-recovery1-probe-schema-r1'
-RESULT=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-moderntcn-etth1-numeric-r1')
-ATTEMPT='M_BASE-ModernTCN-ETTh1-numeric-r1'
+RESULT=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-moderntcn-etth1-numeric-r2')
+ATTEMPT='M_BASE-ModernTCN-ETTh1-numeric-r2'
 ENTRY=ROOT/'m6_moderntcn_etth1_recovery_entry.py'
 WRAPPER=ROOT/'scripts/ch3/start_moderntcn_etth1_recovery.sh'
-SESSION='ch3-m6-m128-moderntcn-etth1-numeric-r1'
-LOG=PACKAGE/'followup-launcher.log'
+SESSION='ch3-m6-m128-moderntcn-etth1-numeric-r2'
+REPAIR_PACKAGE=POLICY_PACKAGE/'import-path-repair-v1'
+LOG=REPAIR_PACKAGE/'followup-launcher.log'
+PARENT_TECHNICAL_FAILURE_REF=dict(path=str(REPAIR_PACKAGE/'r1-technical-failure-anchors.json'),sha256='3f22526dbcb544e6bc47caa5fd9de8296a4cf1f8b6d325c1f17962389aa2b989')
 ACTIVE=False
 
 def validate_revision(c):
@@ -73,7 +75,8 @@ def activate():
 def anchors():
     return dict(recovery='specific_ModernTCN_ETTh1_M_numeric_failure',source_anchors_ref=SOURCE_REF,probe_reuse_ref=REUSE_REF,
         policy_revision_ref=POLICY_REF,all_m_policy_ref=ALL_M_POLICY_REF,candidate_config_refs=CONFIG_REFS,original_training_commit='df6a16403e10d51097db8c88829909c533d15652',
-        retained_producer_commit=BASE,expected_runs=dict(MS=203,M=84,total=287),expected_remaining_formal=427)
+        retained_producer_commit=BASE,expected_runs=dict(MS=203,M=84,total=287),expected_remaining_formal=427,
+        execution_attempt=ATTEMPT,parent_technical_failure_ref=PARENT_TECHNICAL_FAILURE_REF)
 
 def evidence():
     v=bound(REUSE_REF);policy=bound(POLICY_REF);confirmation=bound(v['confirmation_ref'])
@@ -184,7 +187,7 @@ def verify_production_inheritance(permit):
         p=ROOT/name
         if sha(p)==h:continue
         if name=='tools/restricted_regression/bundle.sha256':
-            from run_restricted import verify_bundle
+            from tools.restricted_regression.run_restricted import verify_bundle
             verify_bundle();continue
         if name not in allowed:raise ValueError('unreviewed producer delta: '+name)
         old=subprocess.check_output(['git','-C',str(ROOT),'show',permit['commit']+':'+name],text=True)
@@ -213,7 +216,10 @@ def verify_registered_source():
     return records
 
 def status():
-    verify_registered_source()
+    records=verify_registered_source()
+    try:verify_production_inheritance(records['producer_permit'])
+    except (ImportError,RuntimeError) as exc:
+        raise ValueError('parent-controller producer/bundle verification failed: '+str(exc)[:300]) from exc
     return dict(state='MS203_SEAL_AND_SCOPED_NUMERIC_PREFIX_REUSE_AWAITING_START',READY_FOR_GPU_EXECUTION=False,anchors=anchors(),result_review='pending')
 
 def import_ms():

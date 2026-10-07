@@ -50,9 +50,9 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，常规数值准入统一默认政策候选）**：MS203已导入并恢复封存，旧训练/test来源保持。M_BASE已有15组局部有效probe，第16组ModernTCN–ETTh1在原数值界失败；固定算子诊断及一次四H短确认完成，其测量与失败均保留。用户最新决定将常规baseline probe统一为本节下方的默认浮点政策，包括原None/exact条目；当前正在准备完整候选，全部21组M准入和正式M84尚未完成。三轮组织、科学profile和预算不变：第二轮修订后371有效格、399次计划正式运行；第三轮231项；余下新正式427项。固定顺序仍为MS203来源复用→补齐M_BASE probe及一次AUTO_AUDIT→M84→混合来源基础287→补做112→有效371边界→第三轮231，不另设第四轮，不按test逐格择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)。
+**当前总览（M6，统一政策closure后首次启动导入故障的repair候选）**：`baseline_numeric_admission_v1`的29项实现已审核并closure于`3c837ba6dd82043cb2dcffdd5263e55d5588444a`。第一次r1真实启动在MS203来源复用首步发生父控制器包导入故障，新增probe为0/40、新正式任务为0/427；当前准备r2窄修，全部21组M准入和正式M84尚未完成。MS203旧封存、128份原短轨迹及8份独立确认保持，原数值失败及诊断不倒改。下方默认政策、三轮科学profile和预算不变：第二轮修订后371有效格、399次计划正式运行；第三轮231项；余下新正式427项。固定顺序仍为MS203来源复用→补齐M_BASE probe及一次AUTO_AUDIT→M84→混合来源基础287→补做112→有效371边界→第三轮231，不另设第四轮，不按test逐格择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)，本次窄修见[M6导入路径repair](milestones/M6_formal_experiments.md#m6-import-path-repair-v1)。
 
-当前N执行锚点为`e73545ecfb717284023bc14f00993b91b2c75bf1`，沿ModernTCN未提交候选增量实现统一政策；旧schema/PID修复及其closure、原失败/诊断/停止事实依各自记录保留。本轮未stage/commit/push、未生成可执行新许可、未arm/start或执行新模型/GPU/probe/正式validation/test。旧MS203、128份原短轨迹及8份独立确认只读保留生产版本；严格证据包含于新政策时，以单独采用记录复用，不把它们改写为采用新政策采集。完整候选待ChatGPT实际字节审核，技术完成和result_review仍分别报告。
+当前N执行锚点为`3c837ba6dd82043cb2dcffdd5263e55d5588444a`。r1于北京时间2026-10-07 19:21在`VERIFY_IMPORT_MS203_AND_SEAL`因`ModuleNotFoundError("No module named 'run_restricted'")`退出；原failure、controller、日志、launch/claimed及许可永久保留，此次不是numeric、resource或科学失败。r2仅修正包路径导入、补齐preflight父控制器生产继承检查，并采用独立attempt/result/log/session；科学scope与protocol不变。旧schema/PID修复及其closure、原失败/诊断/停止事实依各自记录保留。旧MS203、128份原短轨迹及8份独立确认只读保留生产版本，不重训/retest或重复派发；仍只补剩余5组名义40份测量。本轮repair未stage/commit/push、未生成可执行新许可、未arm/start或执行新模型/GPU/probe/正式validation/test，修后候选待ChatGPT实际字节审核；技术完成和result_review分别报告。
 
 <a id="baseline-numeric-admission-defaults"></a>
 ### 常规数值准入默认政策

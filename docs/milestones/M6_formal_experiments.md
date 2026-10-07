@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — MS203已恢复封存并保留旧训练来源；M_BASE前15组有效probe和第16组ModernTCN–ETTh1的原数值失败、固定算子诊断及一次短确认保留。用户最新决定从ModernTCN扩展为全部baseline常规probe统一默认政策，覆盖五阶段427项、133条有效政策，原exact也转换；科学profile/任务/预算不变。当前为未提交完整候选，已完成16组的采用依据需与剩余5组实际准入区分，全部21组M准入及M84、补做112、第三轮231正式计算尚未完成。本轮未stage/commit/push、未生成可执行新许可、未arm/start或新增真实GPU计算，候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[统一默认政策](#m6-baseline-numeric-admission-v1)；旧小节按各自时点保留。**
+**In Progress — 统一数值政策29项实现已审核并closure于3c837ba6dd82043cb2dcffdd5263e55d5588444a；第一次r1真实启动在VERIFY_IMPORT_MS203_AND_SEAL因父控制器run_restricted包导入故障退出，新增probe 0/40、正式0/427。原MS203封存、128份原轨迹及8份确认和r1失败现场保留；当前为r2包导入/preflight覆盖/独立attempt接线的未提交repair候选。五阶段427项、133条政策、科学profile及预算不变；16组采用依据仍须与剩余5组实际准入区分，全部21组M准入及M84、补做112、第三轮231正式计算尚未完成。本轮未stage/commit/push、未物化新许可、未arm/start或创建真实r2输出/session，repair候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[导入路径repair](#m6-import-path-repair-v1)；旧小节按各自时点保留。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
@@ -810,3 +810,18 @@ MAE及归一化聚合检查同样在1e-6内；对应资源、进程归属、退�
 全部正式仍427 fresh/最多5110 run-epochs，Adam/backward/forward为2215920/2215920/2596937；五阶段必要probe总cap7674/7674/10256，均与原合同逐项相等。历史实际816/824/1112不清零；名义新增240/240/320，补齐后1056/1064/1432，预登记resource回退保持，本轮真实新增消耗0。顺序仍MS203来源复用→M_BASE剩余probe/AUTO_AUDIT→M84→基础287→补做112→第二轮有效371→第三轮231；第二轮399次计划运行不与427个余下正式任务混淆，效果不控制派发，result_review另行。
 
 完整候选当前17 modified+12 untracked=29、index空，沿N同一HEAD/分支，不先closure旧22项。新增七项相对原范围为统一合同模块、既有schema测试夹具、专门测试、两个MS配置和canonical/AGENTS；其余文件继承既有候选或在授权范围增量。未来入口/session/结果根沿上一候选，只使用新统一政策包内经后续审核closure物化的许可；目前只有不可执行模板。dry-run exit0展示427项但blocked，模板preflight exit2正确拒绝未审核/dirty/未closure，两READY为false。AST/JSON/bash-n/bundle/diff及patch检查、全文件修前/修后SHA见本增量送审材料。W/R、作者源码/数据/环境/tag及旧artifact不改，本轮真实model/GPU/forward/backward/Adam/正式validation/test均0；未stage/commit/push、未生成可执行新许可、未arm/start或创建真实新结果/session，候选尚待ChatGPT实际字节审核。
+
+<a id="m6-import-path-repair-v1"></a>
+#### 统一政策closure后r1父控制器包导入故障与r2窄修候选
+
+上节29项统一政策候选已实际closure为N `3c837ba6dd82043cb2dcffdd5263e55d5588444a`。用户随后首次启动r1，在2026-10-07 19:21:40（UTC+8）停于`VERIFY_IMPORT_MS203_AND_SEAL`，错误为`ModuleNotFoundError("No module named 'run_restricted'")`。本次失败新增M_BASE测量0/40、新正式任务0/427；不是numeric、resource或科学失败。旧MS203封存、原128份短轨迹与独立8份确认未改写。r1 controller、wrapper、pane的PID/start_ticks登记与当前/proc观测核验均已退出，原session不存在，未发送信号；旧failure/progress/controller/log/launch/claimed/result及许可永久保留。
+
+根因为`verify_production_inheritance()`使用顶层`from run_restricted import verify_bundle`，实际模块位于`tools/restricted_regression/run_restricted.py`；父控制器没有probe-child的restricted目录sys.path注入。仅改为`from tools.restricted_regression.run_restricted import verify_bundle`，不改run_restricted、sys.path、bundle封印或计算生产端。`status()`在只读`verify_registered_source()`之后增加同一生产继承检查，使公开dry-run/preflight提前覆盖父控制器实际第一步。ImportError/RuntimeError转为保留原cause的有界ValueError诊断，由既有preflight返回blocked；生产delta错误仍拒绝，不捕获后视为成功，不调用会物化边界的import_ms。
+
+新技术attempt为`M_BASE-ModernTCN-ETTh1-numeric-r2`，结果根为E `baseline-unified-v3-ms-seal-m128-recovery1-moderntcn-etth1-numeric-r2/`，session为`ch3-m6-m128-moderntcn-etth1-numeric-r2`。日志及本次增量位于P `moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/import-path-repair-v1/`。科学scope仍为`m6-baseline-type1-followup-v3-recovery1`，scientific_protocol仍为`baseline-type1-followup-v3-recovery1`，不是第四轮。启动模板增加精确execution_attempt与`r1-technical-failure-anchors.json`引用，绑定r1七份保留产物及失败身份；其余source/config/plan/政策/预算不变。r1许可不能授权r2，未来许可须绑定实际修后closure，不覆盖旧许可或原送审索引。
+
+正式Python从repo root、去掉PYTHONPATH且未手工注入restricted目录的独立进程中，实际包导入与verify_bundle返回`e3ff46b98d4752f2f94cb1b6822e37b4b08b7585942fa9ca2ad55d03ac8096d9`，torch未导入；真实冻结来源的status只读检查通过。新增11项永久回归加11项受影响既有定向回归，共22/22 Passed，0 failure/error/skip，115.420秒，本轮无失败测试尝试。真实公开CLI由合成来源/许可驱动，实际status、生产继承、bundle、readiness和validate_start均执行；bundle导入失败、错误封印和非法producer delta均在preflight blocked。检查没有创建result/controller/upstream boundary/probe/formal，真实恢复run和MS checkpoint扫描禁止。原71项及更早证据保留有效范围，不机械全量重跑。
+
+定向回归同时核对五阶段133政策、427任务、TimeMixer–Weather loss例外、全部effective科学profile/data/metadata/source/顺序和预算diff=0；原生产数学AST保持。合成实际恢复入口不再派发128份旧轨迹或8份确认，只补5组名义40份，21组全部通过后一次AUTO_AUDIT，formal完整probe回放0、运行期远端调用0；继续M84→基础287→补做112→第二轮有效371→第三轮231。原失败和历史实际消耗保留，不因新attempt清零或扣减原任务完成额度。
+
+本轮仅四份已跟踪文件及一份新增测试的候选变更，index空、HEAD仍为上述3c837版本。AGENTS、W/R、作者源码、数据、环境、tag、统一政策及旧原始证据保持；完整前后SHA、只读保护核验、测试日志及patch见本次repair增量。不stage/commit/push，不物化可执行start-review，不arm/start，不创建真实r2结果根/controller/session；真实model/GPU/forward/backward/Adam/validation/test和信号操作均0。当前修后字节待ChatGPT服务器实际直读审核，未声称整个M准入、正式结果或效果通过。
