@@ -24,6 +24,9 @@ def inside(path,root):return path==root or path.startswith(root+os.sep)
 
 
 def execution_profiles(s):
+    if s.get('purpose')=='ch3_moderntcn_etth1_diagnostic':
+        from utils.ch3_moderntcn_etth1_diagnostic import read_profile
+        return read_profile()
     if s.get('successor_scope'):
         from utils.ch3_native_execution import read_config
         return read_config(s)
@@ -38,6 +41,9 @@ def repository_files():
 def validate_config(s):
     from run_restricted import verify_bundle,ensure_unique_exact
     verify_bundle();c=validate_manifest(execution_profiles(s))
+    if s.get('purpose')=='ch3_moderntcn_etth1_diagnostic':
+        from utils.ch3_moderntcn_etth1_diagnostic import validate_worker
+        validate_worker(c,s);return
     if s.get('successor_scope'):
         from utils.ch3_native_execution import validate_worker
         validate_worker(c,s);return
@@ -180,7 +186,7 @@ def bootstrap(s):
             torch.optim.Optimizer.__init__=forbidden;torch.cuda._lazy_init=forbidden;torch.autograd.grad=forbidden
         instrument_module_calls(torch.nn.Module)
         torch.autograd.backward=counted('backward','backward',torch.autograd.backward)
-        if s['purpose']=='ch3_step_diagnostic' and s.get('kernel_probe'):
+        if s['purpose'] in ('ch3_step_diagnostic','ch3_moderntcn_etth1_diagnostic') and s.get('kernel_probe'):
             torch.autograd.grad=counted('backward','frozen_conv_gradient',torch.autograd.grad)
         torch.optim.Adam.step=counted('adam','Adam',torch.optim.Adam.step)
         if s.get('device')=='cuda:0':
@@ -386,7 +392,11 @@ def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
     formal=all(c['purpose']=='ch3_formal' for c in configs)
     stop_file=Path(configs[0]['artifact_root']).parent/'STOP' if formal else Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
-    if configs and configs[0].get('successor_scope'):
+    if configs and configs[0]['purpose']=='ch3_moderntcn_etth1_diagnostic':
+        from utils.ch3_moderntcn_etth1_diagnostic import validate_wave
+        stop_file=validate_wave(execution_profiles(configs[0]),configs,out)
+        if stop_file.exists():raise InterruptedError('diagnostic STOP before launch')
+    elif configs and configs[0].get('successor_scope'):
         from utils.ch3_native_execution import validate_wave
         stop_file=validate_wave(execution_profiles(configs[0]),configs,out)
         if stop_file.exists():raise InterruptedError('successor STOP before launch')
@@ -541,7 +551,10 @@ def audit_prefixes(c,out):
 def worker():
     from restricted_io_guard import require_installed
     s=require_installed();c=execution_profiles(s);out=Path(s['output']);purpose=s['purpose']
-    if purpose in ('ch3_cpu','ch3_model_acceptance','ch3_m_cpu_shapes'):
+    if purpose=='ch3_moderntcn_etth1_diagnostic':
+        from utils.ch3_moderntcn_etth1_diagnostic import worker as diagnostic_worker
+        diagnostic_worker(c,s)
+    elif purpose in ('ch3_cpu','ch3_model_acceptance','ch3_m_cpu_shapes'):
         import unittest
         from run_restricted import execute_cases,flatten
         tests=list(flatten(unittest.defaultTestLoader.loadTestsFromNames(s['ids'])))

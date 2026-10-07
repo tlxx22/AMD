@@ -50,9 +50,29 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，MS封存修复与M128恢复候选）**：第一轮为初始全量方案及已接受补做/修订；第二轮为v3统一OneCycle体系，修订完成后371有效格；第三轮为衰减学习率续接231项。原v3已完成203项MS训练/test，但在MS封存因重复`protocol_sha`传参失败，M84尚未probe或训练；本次用户批准M84的train/eval batch统一128，属于科学修订，区别于封存技术修复。固定顺序改为只读验证旧MS203及退出身份→恢复封存→fresh M128的84项→混合来源基础287边界→第二轮112项补齐/Weather20修订→371格来源边界→第三轮231项，不另设第四轮。第二轮最终所有M域batch128，Weather主结果采用20轮OneCycle；新增ETT84及第三轮231科学合同保持。371有效格区别于第二轮287＋112＝399次计划正式运行，余下总链84＋112＋231＝427项；来源固定、不按test择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)。
+**当前总览（M6，常规数值准入统一默认政策候选）**：MS203已导入并恢复封存，旧训练/test来源保持。M_BASE已有15组局部有效probe，第16组ModernTCN–ETTh1在原数值界失败；固定算子诊断及一次四H短确认完成，其测量与失败均保留。用户最新决定将常规baseline probe统一为本节下方的默认浮点政策，包括原None/exact条目；当前正在准备完整候选，全部21组M准入和正式M84尚未完成。三轮组织、科学profile和预算不变：第二轮修订后371有效格、399次计划正式运行；第三轮231项；余下新正式427项。固定顺序仍为MS203来源复用→补齐M_BASE probe及一次AUTO_AUDIT→M84→混合来源基础287→补做112→有效371边界→第三轮231，不另设第四轮，不按test逐格择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)。
 
-此前实现、文档及两次窄修已closure，本轮从N实际版本`1134611cd52e4cedb7418d8a9f8a7f6e76512617`开发恢复候选。W原失败代码、failure/controller/许可/probe及203项MS产物只读保留，原等待续接链因上游failure退出且零计算；恢复封存记录旧训练来源与未来实际封存执行版本，不伪造旧链正常完成。新恢复包`baseline-unified-v3-ms-seal-m128-recovery1`隔离输出与许可；本轮未提交、未生成可执行许可、未启动真实恢复/probe/训练/test，新字节待ChatGPT实际读取审核。
+当前N执行锚点为`e73545ecfb717284023bc14f00993b91b2c75bf1`，沿ModernTCN未提交候选增量实现统一政策；旧schema/PID修复及其closure、原失败/诊断/停止事实依各自记录保留。本轮未stage/commit/push、未生成可执行新许可、未arm/start或执行新模型/GPU/probe/正式validation/test。旧MS203、128份原短轨迹及8份独立确认只读保留生产版本；严格证据包含于新政策时，以单独采用记录复用，不把它们改写为采用新政策采集。完整候选待ChatGPT实际字节审核，技术完成和result_review仍分别报告。
+
+<a id="baseline-numeric-admission-defaults"></a>
+### 常规数值准入默认政策
+
+用户本次批准`baseline_numeric_admission_v1`为当前后续实验及以后获准同类baseline常规probe的项目工程准入约定；不再以先发生exact失败作为采用浮点容差的前置。统一实现表位于`utils/ch3_contract.py`，配置生成时显式物化，运行时按真实M/MS任务、数据类别、模型及已登记H核验；未知类别、缺失条目或None不能回退为exact或宽松默认。历史配置未启用此版本时，仍按原合同解析。
+
+| 常规任务类别 | 浮点state_atol | metric_atol | 默认loss_atol / loss_rtol |
+|---|---:|---:|---|
+| baseline M | 2e-4 | 1e-6 | 1e-6 / 0 |
+| UrbanEV-MS | 1e-4 | 1e-6 | 1e-6 / 0 |
+| 五市场EPF-MS，除ModernTCN | 1e-4 | 1e-6 | 1e-6 / 0 |
+| ModernTCN五市场EPF-MS | 5e-4 | 1e-6 | 1e-6 / 0 |
+
+state及metric的rtol均0、equal_nan=false。唯一当前有效loss例外是TimeMixer–Weather M，在M_BASE/M_AMEND/M_ALL保持loss_atol=1e-6、loss_rtol=1e-5，其state同样为2e-4、metric仍1e-6，不传播至其他模型/数据。loss允许差为`loss_atol + loss_rtol * max(abs(serial_loss), abs(parallel_loss))`。M当前六域为ETTh1/ETTh2/ETTm1/ETTm2/Weather/Exchange；EPF为PJM/NP/BE/FR/DE。
+
+常规浮点比较使用full_float_state，覆盖全部参数、buffer、gradient和Adam moments；MSE/MAE及同elements归一后的SSE/SAE使用metric界，不将其直接套给原始SSE/SAE。保留严格初始化/RNG/batch/order、optimizer step、scheduler配置/step/LR/beta1、非浮点状态、参数组、shape/dtype和任务/profile/source/data身份。NaN/Inf拒绝；窗口、通道顺序、elements、mask、schema及聚合正确性不靠容差掩盖。M0/冻结AMD等价、增强关闭等价、checkpoint保存恢复、文件checksum及数据接口等专门exact合同保持，不能全局替换equal断言。
+
+这不是作者推荐阈值，也不表示全部模型/任务已证明长期数值稳定。未测组仍须独立serial reference及实际数值/资源准入；不同精度、设备/后端或计算形状检查适用性，不外推并发Passed。已在批准界内且身份/finite/资源等全部通过时可自动技术准入，无须额外算子根因实验；超界停止诊断，不自动加界、不把numeric改称resource失败、不反复重跑择优。只保留预登记resource-only降并发，不改batch/精度/模型。训练、best/early-stop、正式test和效果gate均不改变，原始指标不截断或四舍五入。
+
+旧结果、政策、失败及Closed历史不倒改；旧采集和新评价身份分别绑定。相同科学/资源条件下，由完整旧exact或更严格浮点证据证明包含关系后可复用，不能仅凭bitwise_equal字段猜测完整覆盖；存在真实覆盖缺口才有界补查。详细本次五阶段范围、证据和未完成项见[M6统一政策候选](milestones/M6_formal_experiments.md#m6-baseline-numeric-admission-v1)。
 
 <a id="experiment-authorization-and-technical-failures"></a>
 ### 实验授权、必要检查与技术失败处理

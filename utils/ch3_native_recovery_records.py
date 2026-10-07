@@ -79,8 +79,8 @@ def project_summary(report, complete_ref, admission_ref, permit_ref):
 
 def manifest_projection(report, complete_ref, root, extra_refs=()):
     root = Path(root)
-    from utils.ch3_probe_schema_recovery import retained_refs
-    readonly=retained_refs(report)
+    from utils.ch3_probe_schema_recovery import current_recovery
+    readonly=current_recovery().retained_refs(report)
     artifacts = dict(report.get('artifacts',{}))
     for value in extra_refs:
         if value['path'] in artifacts and artifacts[value['path']]!=value:raise ValueError('conflicting expected artifact reference')
@@ -128,8 +128,8 @@ def scan_manifest(manifest, source_ref, root, on_read=None):
     if manifest.get('purpose') != 'native_recovery_probe_manifest_v1' or manifest.get('source_probe_complete_ref') != source_ref:
         raise ValueError('manifest original source mismatch')
     root = Path(root); seen = set()
-    from utils.ch3_probe_schema_recovery import retained_refs
-    readonly=retained_refs(dict(probe_recovery_ref=manifest['readonly_probe_recovery_ref'])) if manifest.get('readonly_probe_recovery_ref') else {}
+    from utils.ch3_probe_schema_recovery import current_recovery
+    readonly=current_recovery().retained_refs(dict(probe_recovery_ref=manifest['readonly_probe_recovery_ref'])) if manifest.get('readonly_probe_recovery_ref') else {}
     for row in manifest['rows']:
         p = Path(row['path'])
         if str(p) in seen or p.is_symlink() or p.resolve() != p or (not p.is_relative_to(root) and readonly.get(str(p))!=dict(path=str(p),sha256=row['expected_sha256'])):

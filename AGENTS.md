@@ -21,3 +21,5 @@
 10. 每次最终回复独立设置“本次文档变更与 ChatGPT Project 同步提醒”。对变化文档逐份报告相对路径、增/改/删、完整 SHA-256、摘要/用途及 Project 操作。canonical/current milestone 默认“无需上传（ChatGPT通过服务器直读核验）”，此为核验渠道，不代表修后版本已被读取；AGENTS、代码、测试和工具默认“无需操作（仅服务器端）”。无变化时写：“本次未新增、修改或删除任何文档，无需同步 ChatGPT Project。”
 
 用户决定研究做什么及重要科学取舍。必要技术检查、准入文件、SHA和执行计数由Codex落实、ChatGPT审核，不逐项交给用户批准。详细证据保留，日常回执优先报告结论、实质变化、异常和需要用户决定的事项。
+
+常规probe浮点比较使用[canonical的统一默认政策](docs/AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md#baseline-numeric-admission-defaults)，不先以exact失败作为取得容差的前置；专门等价和身份断言保持。

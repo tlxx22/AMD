@@ -1,8 +1,8 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — PID身份归并修复已closure于fe3def16a3e19928e7c538e223d766751721cbe2并由用户启动。MS203已成功只读导入封存；M_BASE probe前12组局部Passed，第13组TimeMixer-ETTh1-H96已生成serial六步轨迹，在自比较时因validation schema兼容问题失败，所属supervisor/child/97个worker实例均已退出。M84、补做112及第三轮231正式计算尚未开始。本轮仅修比较器与精确证据复用接线、完成无模型验收；候选未提交、未物化新可执行许可、未启动新恢复attempt，待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，本次增量见[probe schema恢复小节](#m6-probe-schema-repair)。**
+**In Progress — MS203已恢复封存并保留旧训练来源；M_BASE前15组有效probe和第16组ModernTCN–ETTh1的原数值失败、固定算子诊断及一次短确认保留。用户最新决定从ModernTCN扩展为全部baseline常规probe统一默认政策，覆盖五阶段427项、133条有效政策，原exact也转换；科学profile/任务/预算不变。当前为未提交完整候选，已完成16组的采用依据需与剩余5组实际准入区分，全部21组M准入及M84、补做112、第三轮231正式计算尚未完成。本轮未stage/commit/push、未生成可执行新许可、未arm/start或新增真实GPU计算，候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[统一默认政策](#m6-baseline-numeric-admission-v1)；旧小节按各自时点保留。**
 
-原开篇“尚未运行任何正式训练或正式test评价”属于初次启动准备时的历史快照，不代表当前实际进度。
+原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 <a id="m6-three-rounds"></a>
 ## 0. 三轮正式实验组织与最终结果采用规则
@@ -723,3 +723,90 @@ PID窄修已closure于`fe3def16a3e19928e7c538e223d766751721cbe2`并经用户启�
 实际接线复用旧MS封存，通过新的owned生命周期记录引用，原训练与封存执行版本都保持；不机械复查MS checkpoint或重训/retest。probe预算以历史实际582/582/776初始化，另记new_actual；12组不再派发，已完整TimeMixer-H96 serial不再派发，名义仅71份新增短轨迹（426/426/568）。原12组及该serial的离线复核在最终AUTO_AUDIT消费绑定结论，不重复数值比较；其余新/混合成员按原比较器验证。probe尾部完整审计0、最终AUTO_AUDIT1，manifest及每阶段生命周期完整性扫描保持，formal仅消费紧凑summary/permit/runtime引用。原caps1512/1512/2016不增加，预登记resource-only回退不改；本次可证最坏新增107份worker（642/642/856），合旧最多1224/1224/1632，技术失败仍停止，不自动降低batch/精度/模型或放宽容差。
 
 顺序保持：复用MS203封存→补齐M_BASE probe→21组AUTO_AUDIT/准入→M84→基础287封存→补做112→有效371封存→第三轮231。未完成21组不能生成整个M阶段准入，效果不改变后续派发。正式Python最终定向45/45 Passed、0 failure/error/skip：25项schema/恢复/准入接线及20项既有PID/结果来源回归；合成现场驱动实际run_probe、AUTO_AUDIT、manifest、permit/runtime/config/worker、封存与整链入口，验证97份旧证据不派发、71份名义新测量、21组完整报告、AUTO_AUDIT一次、formal数值回放0，及numeric/finite/identity失败立即停止。新入口marker的合成tmux生命周期与owned安全停止仅操作本轮夹具进程，未signal历史或无关实例。首次23项2error为测试夹具的历史named_tensor调用层和type1状态字段错误；第二次23项1error由测试期间文件清单变化触发worker来源保护；第一次45项1failure为历史preflight夹具误读当前真实失败输出。只修测试夹具并隔离历史输出，旧断言不删、不skip、不放宽容差；所有失败日志保留，最终稳定字节独立复验。原62/45等证据保留其未受影响范围，不拼接成新版本Passed。AST/JSON/bash-n/bundle/diff-check通过；不可执行模板dry-run exit0展示427项，preflight exit2按未审核/未closure保护拒绝，两个READY均false。本轮未stage/commit/push、未物化可执行新许可、未arm/start、无新真实模型/GPU/probe/formal/validation/test，候选待ChatGPT实际字节审核。
+
+
+<a id="m6-moderntcn-etth1-numeric"></a>
+#### ModernTCN–ETTh1–M数值失败诊断与2e-4政策候选
+
+本次父版本为N `e73545ecfb717284023bc14f00993b91b2c75bf1`。schema恢复已经用户启动，MS203封存保持；M_BASE前15组实际Passed，第16组ModernTCN–ETTh1的四H串并发比较在原full_float_state、state_atol=1e-4下真实失败，未改称resource failure。当前失败链的128份短轨迹与768 Adam／768 backward／1024 forward全部保留，owner/child及登记worker共130个进程实例以PID/start_ticks/namespace核验退出，没有向旧链发送信号。M84、补做112和第三轮231正式训练未开始。
+
+独立逐张量复核四H全部六步浮点state、gradient、Adam moments及exact项：初始/RNG/batch/order/OneCycle配置、step、LR/beta1和非浮点状态一致，均finite。原最大state差依H96/192/336/720为1.2704776600003242e-4、9.125238284468651e-5、1.0902760550379753e-4、3.3357180655002594e-5；H96及H336仅第6步stem Conv1d bias第63号元素超原阈值。第1步差异限于stem weight及其gradient/Adam moments。普通probe的保存validation来自第2步，不能当作第6步末端评价。原失败路径、坐标、值和差值在`moderntcn-etth1-numeric-diagnosis-v1/offline-state-review.json`逐项保存。
+
+本次用户明确授权固定算子诊断及一次短确认。仅在隔离诊断worker中使用FrozenConvReplay：输入[896,1,100]、stride[100,100,1]、weight[64,1,8]、上游梯度[896,64,24]和dtype/逐次operand SHA固定；当前cuDNN enabled=true、benchmark=false、deterministic=false、allow_tf32=true。当前模式4次反向weight梯度最大差5.587935447692871e-9、forward完全相同；仅改deterministic=true的对照4次梯度完全相同。flags全部恢复，训练模型/optimizer/RNG before==after；不将后端改动写回生产设置。该固定输入实测证实此Conv1d反向存在有限浮点非确定性，不仅依据警告推断。保存的近零bias梯度、weight_decay=1e-7及原Adam moments按原eps=1e-8、OneCycle动态beta1作binary64重建，bias更新残差最多约2.32e-10，与差异放大相符；重建不是独立 optimizer运行，也不宣称证明所有后续差异的唯一原因。
+
+独立确认只有一次固定seed2024、四H serial+q4，共8个六步worker。第6步评价重用第2步两份合成batch，核验model/optimizer/RNG和batch SHA及train/eval模式均保持；没有真实数据validation/test、正式checkpoint访问或额外整epoch。四H完整state/gradient/Adam、原loss界和第2/6步全通道指标得到：
+
+| H | state最大绝对差 | loss最大绝对差 | 第2步MSE差 | 第6步MSE差 |
+|---:|---:|---:|---:|---:|
+| 96 | 1.591164618730545e-4 | 1.1920928955078125e-7 | 1.2218957334830804e-7 | 1.5537624253880722e-7 |
+| 192 | 6.704777479171753e-5 | 1.1920928955078125e-7 | 3.745490140261154e-8 | 5.9583270539675937e-8 |
+| 336 | 6.018020212650299e-5 | 0 | 9.267338008100978e-10 | 4.547595899850876e-8 |
+| 720 | 6.423145532608032e-5 | 1.1920928955078125e-7 | 5.7828080102240165e-9 | 9.255777078109872e-8 |
+
+MAE及归一化聚合检查同样在1e-6内；对应资源、进程归属、退出和q4收益通过。q4为73.325秒，即使保守排除含算子重放的H96 serial，其余三个serial合计139.486秒仍更长。短检查不能外推全训练逐位一致或科学效果。既有restricted guard、SharedBudget、组锁和资源监控实际执行；新增48 Adam／56 backward／88 forward（含8次隔离卷积反向和8次卷积forward）独立记账，8个worker已退出，无重试或择优。
+
+条件成立后只生成M_BASE/ModernTCN/ETTh1/M四H的项目技术政策候选`moderntcn-etth1-M-full-state-2e4-diagnostic-r1`。state_atol仅1e-4→2e-4；loss/metric_atol=1e-6、rtol/loss_rtol=0、equal_nan=false，其他finite/exact/覆盖要求不变。这不是作者推荐阈值。独立配置`configs/ch3_round2_m_batch128_etth1_numeric_r1.json`保留84项全部effective科学profile、数据metadata、来源、batch128、OneCycle、seed及预算；原配置原字节不改。M_AMEND、第三轮M_ALL、新三个ETT及所有其他numeric政策diff=0，不经ETTh1模板传播。
+
+采用证据精确保留15组原决定、ModernTCN原8份及独立确认8份，不从两组测量中挑最好值；原采集policy_sha/policy_id/producer commit原样保存，候选采用记录另列新评价policy及确认来源。前12组复用已有效48次离线复核；其余3组及当前组完成必要源码/来源/完整状态核验，数值复核本轮40次，原failure仍为失败。原MS203封存只读引用，不重训/retest或重复checksum其全部checkpoint。
+
+新的受控恢复入口是N `scripts/ch3/start_moderntcn_etth1_recovery.sh`；准备包仍在原P的`moderntcn-etth1-numeric-diagnosis-v1/`，新结果根为E `baseline-unified-v3-ms-seal-m128-recovery1-moderntcn-etth1-numeric-r1/`，session `ch3-m6-m128-moderntcn-etth1-numeric-r1`。这是同一恢复链的执行attempt，非新实验轮次。旧许可不能授权它，当前仅不可执行模板；审核closure后才生成绑定实际HEAD和新来源/政策/计划的许可。
+
+128份旧probe不再派发；原16组采用候选仍不等于M阶段准入，剩余5组名义40份六步轨迹必须实际完成。历史probe768/768/1024与独立诊断48/56/88不清零；种子实际816/824/1112，名义补齐后1056/1064/1432，计量继续受既有1512/1512/2016 cap保护。resource-only预登记回退、batch/精度/梯度累积/结构不改。最终AUTO_AUDIT一次，紧凑summary/manifest/runtime-admission串联formal，逐任务不重放旧张量或联网。全链仍MS203引用→21组M准入→M84→基础287→补做112→有效371→第三轮231；新正式427、第二轮计划399及有效371不变，技术完成与result_review=pending分开。
+
+无模型定向复验最终57/57 Passed，0 failure/error/skip：覆盖范围与旧阈值拒绝、2e-4界内/超界、loss/metric/NaN/identity、128份复用与40份真实合成派发、21组完整审计/混合manifest、正式runtime零数值回放、阶段封存、精确permit、PID与运行期零联网、总链顺序及新scope合成tmux退出。CPU测试真实model/GPU/forward/backward/Adam为0，和上述已授权短诊断消耗分开。首次56项1failure+1error为历史AST测试误读current runner和None exact-policy反例夹具错误；历史断言保留并固定原closure版本，当前数学另用AST及真实调用路径验证，未删断言/skip/放宽容差，失败日志保留。证据准备首尝试把已继承字典键顺序当成执行顺序而拒绝；按精确组集合、任务/wave记录及来源核验后通过，原失败记录保留。canonical/AGENTS及W/R保持。本轮未stage/commit/push、未生成可执行正式许可、未arm新恢复总链、无新正式训练/test，修后字节尚待ChatGPT实际审核。
+
+
+<a id="m6-moderntcn-M-policy-extension"></a>
+#### 用户授权ModernTCN M政策扩展，Exchange保持exact（未提交候选）
+
+用户在上述ETTh1诊断候选之后要求所有ModernTCN M任务统一新阈值，随后明确纠正：Exchange保持exact不变。本次最新采用范围因此为ETTh1、ETTh2、ETTm1、ETTm2、Weather及H96/192/336/720，覆盖M_BASE 8项、M_AMEND 16项、第三轮M_ALL 20项，共44项、11个stage/model/dataset政策条目。M_BASE及M_ALL的ModernTCN–Exchange共8项继续原exact，不转换为full_float_state。此范围取代上节仅M_BASE/ETTh1的候选采用范围，旧文按当时事实保留。
+
+五域统一kind=full_float_state、state_atol=2e-4、loss_atol=metric_atol=1e-6、loss_rtol=rtol=0、equal_nan=false，完整浮点state/gradient/Adam moments及初始化/RNG/batch/scheduler/LR/beta1/非浮点exact要求保持。ModernTCN–UrbanEV仍exact，五EPF市场仍原5e-4；其他模型政策不变。统一阈值是用户明确批准的项目技术政策选择，不冒称作者阈值或已在全部五域证明同一算子原因。已有一次短确认只覆盖M_BASE/ETTh1；Weather、新ETT及第三轮对应组仍须在自己的数据/调度/实际并发条件下通过准入，未被登记为Passed。
+
+在N继续同一未启动候选，M_BASE候选更新政策，M_AMEND及M_ALL使用两个独立numeric-r1配置以保留旧冻结配置和历史许可绑定。effective科学profile、task ID/集合、data/metadata/source、batch/optimizer/scheduler/seed/test合同与formal/probe计量均逐项不变。总链427、第二轮计划399及有效371保持。公共validator仅为固定SHA登记的M政策修订增加明确分支，Exchange/MS/其他模型或超2e-4变更仍拒绝，未扩大通用ignore_failure或版本平台。
+
+新绑定及不可执行模板集中于原诊断包内`moderntcn-all-m-policy-v1/`。原诊断、前57项验收、旧failure、128份轨迹、独立8份确认与原15组决定保持；新采用证据仅刷新config/policy/计划引用，另绑定上版采用证明，不重新数值回放、GPU派发或把旧数据标成新producer。当前入口/session/未来结果根沿原候选；未来许可需在审核closure后精确绑定新HEAD和三份M配置/新政策，原仅ETTh1模板不能授权扩展候选。仍须21组完整准入，probe尾部完整审计0、AUTO_AUDIT1、formal完整probe回放0，MS不训练/retest。
+
+正式Python无模型定向复验本版63/63 Passed，0 failure/error/skip，108.096秒；覆盖11政策/44项矩阵、Exchange两处exact与非法传播拒绝、各新域真实共享比较器1.5e-4接受及2.1e-4拒绝、原loss界、legacy配置/旧许可保护、compact worker绑定、实际合成40worker断点恢复/21组审计/manifest/正式准入/顺序及owned生命周期。前版57/57及其失败记录保留各自版本范围，不拼接新Passed。本轮新增真实model/GPU/forward/backward/Adam/validation/test全部0，未重跑已完成短确认、旧MS或原probe。本次范围较前候选增加两个M配置和两个既有validator文件，理由仅为三阶段政策绑定及旧合同保留。canonical/AGENTS、W/R不改；未stage/commit/push、未物化可执行许可、未arm/start，修后完整候选待ChatGPT实际字节审核。
+
+
+<a id="m6-moderntcn-M-Exchange-alignment"></a>
+#### 用户最新决定：Exchange也与ETTh1对齐（未提交候选）
+
+用户在上节明确保留Exchange exact后，再次明确要求Exchange阈值也与ETTh1等域对齐。本次最新采用范围为ModernTCN全部M数据集：ETTh1、ETTh2、ETTm1、ETTm2、Weather、Exchange及四H。M_BASE 12项、M_AMEND 16项、第三轮M_ALL 24项，共52项、13个stage/model/dataset政策条目。本次新增适用范围是M_BASE/M_ALL的Exchange共8项：从原exact改为full_float_state，state_atol=2e-4，loss_atol=metric_atol=1e-6，loss_rtol=rtol=0，equal_nan=false；其他44项保持上版规则。完整参数/buffer、gradient及Adam moments覆盖，初始化/RNG/batch、optimizer step、scheduler配置/推进/LR/beta1、非浮点exact及finite要求保持。ModernTCN MS UrbanEV/五EPF及其他模型政策不改，不将M政策传播到MS。
+
+旧冻结配置及上节Exchange-exact候选/日志/证据完整保留。本次在原诊断包内新增`moderntcn-all-m-policy-v2/`增量，刷新三份M候选配置及相应policy/config/plan/不可执行许可模板绑定；没有新科学协议或worktree。M_AMEND没有Exchange任务，它的数值规则不再变化，仅修订证据引用随最新总链绑定更新。原全部effective scientific profile、task ID/集合/顺序、data/metadata/source、batch/epoch/optimizer/OneCycle/type1/seed/best/test合同及formal/probe预算不变；427个新正式任务、第二轮399次计划正式运行和371个有效格保持。旧仅ETTh1及Exchange-exact五域模板不能授权新候选。
+
+阈值统一是本次用户批准的项目技术准入政策，不冒称作者阈值或已证实所有域都因同一算子非确定导致差异。既有算子诊断和一次独立短确认只实测M_BASE/ETTh1；Exchange及其余未实测适用组仍须通过自己的独立serial reference、实际并发、numeric/finite/identity/scheduler和资源gate，不登记为Passed。原15组Passed决定、原128份短轨迹、独立8份ETTh1确认、原1e-4失败及生产版本/policy_sha/消耗均不改写；本次仅刷新明确采用关系的不可变绑定，没有重放真实数值sidecar或再执行GPU诊断。
+
+正式Python无模型定向复验本版64/64 Passed，0 failure/error/skip，112.174秒。新增Exchange两个阶段四H及旧例外来源断言；复验13政策/52项矩阵、真实共享比较器1.5e-4接受/2.1e-4拒绝/loss超限拒绝、MS隔离、旧冻结配置和旧模板拒绝、科学字段及预算不变、compact worker绑定、合成真实40worker断点恢复/21组最终AUTO_AUDIT/manifest/准入/顺序、封存、PID身份、运行期不联网及合成owned生命周期。上版63/63、原57/57及历史失败继续保留各自证据范围，不拼接为新Passed；本轮测试没有失败尝试。完整审计仍probe尾部0、AUTO_AUDIT1、formal完整probe回放0，全部21组完成才可M84。
+
+本轮真实model construction、GPU初始化、forward/backward/Adam、validation/test均0；未读取训练checkpoint、未重训/retest MS203。仓库增量仅三份M候选配置、恢复绑定模块、对应测试及本M6共六文件；完整候选仍13 modified+9 untracked=22、index空，HEAD仍e73545ecfb717284023bc14f00993b91b2c75bf1。canonical/AGENTS、W/R和历史artifact保持。AST/JSON/bash-n/bundle/diff-check及完整/增量patch检查见新增验收材料。未stage/commit/push、未物化可执行正式许可、未arm/start、未创建真实新session/结果根，修后完整候选待ChatGPT实际字节审核。
+
+<a id="m6-baseline-numeric-admission-v1"></a>
+#### 用户批准全部baseline常规数值准入统一默认政策（未提交候选）
+
+本次用户将上一节ModernTCN全部M候选扩展为全部七baseline常规probe默认政策，原None/exact条目也必须转换，不以先出现exact失败或逐模型算子诊断作为采用容差的前置。默认表及唯一当前loss例外见[canonical常规数值准入政策](../AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md#baseline-numeric-admission-defaults)，统一实现由`utils/ch3_contract.py`物化并校验。项目技术政策不冒称作者推荐阈值或全训练长期稳定证明；旧原始政策、采集schema/producer、失败/诊断和Closed历史原样保留。
+
+| 当前阶段 | 正式任务数 | stage/model/dataset政策数 | 实际probe组数 |
+|---|---:|---:|---:|
+| M_BASE | 84 | 21 | 21 |
+| M_AMEND | 112 | 28 | 28 |
+| URBAN_SUBSET | 28 | 7 | 7 |
+| EPF_ALL | 35 | 35 | 8 |
+| M_ALL | 168 | 42 | 42 |
+| 合计 | 427 | 133 | 106 |
+
+133条全部full_float_state，M类91条、UrbanEV-MS7条、EPF-MS35条；TimeMixer–Weather相对loss例外只在三个M阶段保留，ModernTCN五EPF的例外不传播到M或UrbanEV。相对本次起点22项候选的84条None/exact全部转换；从五份未修订冻结配置审计则为86条（两条ModernTCN–Exchange已在上一候选转换），两个比较口径分别登记。resolved科学profile、task ID/集合/顺序、data/metadata/source、batch/epoch/LR/seed/best/test合同及全部formal/probe预算逐项diff=0。额外两个MS配置为必要numeric revision，只改政策及绑定，不覆盖已执行/历史许可引用的原配置。
+
+证据增量集中于原诊断包`baseline-numeric-admission-v1/`；上版`moderntcn-all-m-policy-v2/`的inventory/patch/acceptance及全部原诊断保留。按登记wave引用只读核验原128份trajectory和完整schema：参数/buffer、gradient、Adam moments覆盖和严格初始化/RNG/batch/order/scheduler/LR/beta1/非浮点身份无缺口；前15组旧exact或更严格浮点界包含于新默认，建立`policy-inclusion.json`，无需再读数值payload比较。ModernTCN–ETTh1原1e-4失败仍保留，采用原完整轨迹在2e-4下的有效复核及独立8份确认两份依据，不从多次测量择优。新采用记录分别绑定旧collection和新evaluation政策/引用，未改写producer、原trajectory或policy_sha。本轮没有再运行算子重放、短确认或旧MS checkpoint全面checksum。
+
+已有16组采用依据仍非整个M准入；恢复只补后5组名义40份六步测量，全部21组完成后一次AUTO_AUDIT，probe尾部0次完整审计、formal零完整回放。运行期closure/permit/config/group/worker只做本地绑定，公开preflight远端核验一次；必要runtime manifest扫描按生命周期一次。严格schema、finite、Adam step、非浮点/参数组和初始化/RNG/batch/scheduler等保护保持；界内非零浮点差可以Passed且bitwise_equal=false，下游不将bitwise_equal作为隐含通过条件。同一generic/full M payload只比较一次，TimeMixer–UrbanEV已有第2/6步端点保护保留，不增加其他模型评价次数。
+
+正式Python本次最终定向71/71 Passed，0 failure/error/skip，156.834秒：统一政策专门20项（17个新增方法及3个继承真实formal/runtime入口回归），相关51项覆盖旧政策/科学字段/来源、真实合成断点恢复和21组AUTO_AUDIT、compact summary/manifest/permit/runtime/group/wave/worker、MS封存、PID实例、整链顺序和历史exact/named/full兼容。实际run_probe保留128份不派发、只派40份；新q4夹具用界内非零state差且bitwise_equal=false仍通过最终21组审计；正式运行路径审计0、远端调用0、runtime扫描1。实际writer用纯合成tensor/container/optimizer数据替身验证完整capture及结构/非finite拒绝，无真实模型或Adam计算。
+
+本轮失败完整保留：首轮40项1failure/2error分别为冻结配置与当前候选exact计数口径、NaN异常类型和测试夹具schema修改未登记；第二轮71项1failure为历史PID公共preflight夹具仍指向真实旧失败输出，生产fresh保护正确拒绝。只修夹具隔离和准确断言，保留所有原方法/保护断言，无skip/删断言/再放宽阈值。一次单项诊断复现相同输出阻塞后纳入修正，最终同一版本71项重新完整通过，不拼接不同版本Passed。来源审计还有wave定位同时命中独立确认、以及将Markdown/patch引用误作JSON的两次辅助脚本失败，校正为精确登记wave和文件类型后通过，未改科学/原artifact。之前57/63/64及更早证据保持各自有效范围，未机械全量重跑。
+
+全部正式仍427 fresh/最多5110 run-epochs，Adam/backward/forward为2215920/2215920/2596937；五阶段必要probe总cap7674/7674/10256，均与原合同逐项相等。历史实际816/824/1112不清零；名义新增240/240/320，补齐后1056/1064/1432，预登记resource回退保持，本轮真实新增消耗0。顺序仍MS203来源复用→M_BASE剩余probe/AUTO_AUDIT→M84→基础287→补做112→第二轮有效371→第三轮231；第二轮399次计划运行不与427个余下正式任务混淆，效果不控制派发，result_review另行。
+
+完整候选当前17 modified+12 untracked=29、index空，沿N同一HEAD/分支，不先closure旧22项。新增七项相对原范围为统一合同模块、既有schema测试夹具、专门测试、两个MS配置和canonical/AGENTS；其余文件继承既有候选或在授权范围增量。未来入口/session/结果根沿上一候选，只使用新统一政策包内经后续审核closure物化的许可；目前只有不可执行模板。dry-run exit0展示427项但blocked，模板preflight exit2正确拒绝未审核/dirty/未closure，两READY为false。AST/JSON/bash-n/bundle/diff及patch检查、全文件修前/修后SHA见本增量送审材料。W/R、作者源码/数据/环境/tag及旧artifact不改，本轮真实model/GPU/forward/backward/Adam/正式validation/test均0；未stage/commit/push、未生成可执行新许可、未arm/start或创建真实新结果/session，候选尚待ChatGPT实际字节审核。

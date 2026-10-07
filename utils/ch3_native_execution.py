@@ -258,8 +258,8 @@ def run_probe(c,a):
     budget=dict(caps=ctx['caps'],reserved=dict(zero),actual=dict(zero),refund=False);decisions={};evidence={};artifacts={}
     seed=None
     if a.get('probe_recovery_ref') and c['baseline_unified']['stage']=='M_BASE':
-        from utils.ch3_probe_schema_recovery import load_seed
-        seed=load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
+        from utils.ch3_probe_schema_recovery import current_recovery
+        seed=current_recovery().load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
     def wave(g,phase,ids,n):
         key=g['id']+'/'+phase+'/'+str(n)
         if seed and key in seed['evidence']:
@@ -357,7 +357,8 @@ def validate_probe_completion(c,r):
     if (root/'STOP').exists() or (root/'failure.json').exists():raise ValueError('retained probe failure/STOP')
     if r['approval']!=source.ref(root/'approval.json'):raise ValueError('actual probe permit path/SHA')
     a=source.bound(r['approval'])
-    from utils import ch3_probe_schema_recovery as recovery
+    from utils.ch3_probe_schema_recovery import current_recovery
+    recovery=current_recovery()
     readonly=recovery.retained_refs(r)
     for k in ('commit','protocol_sha','code','environment','hardware'):
         if r[k]!=a[k]:raise ValueError('probe actual source mismatch')
@@ -388,7 +389,7 @@ def validate_probe_completion(c,r):
         for run in ids:
             out=p.parent/run;t=task_by_id(c,run);counts=scope.worker_counts(c,t)
             cfg=source.bound(r['artifacts'][str(out/'config.json')]);b=source.bound(r['artifacts'][str(out/'budget.json')])
-            if cfg['task']!=run or cfg['output']!=str(out) or cfg['approval']!=producer or cfg['protocol_sha']!=digest(c) or cfg['successor_scope']!=ctx['probe_scope'] or cfg['successor_phase']!=phase or cfg['prefix_files'] or cfg['limits']!=dict(**counts,seconds=1800):raise ValueError('actual worker scope/permit/config')
+            if cfg['task']!=run or cfg['output']!=str(out) or cfg['approval']!=producer or cfg['protocol_sha']!=producer['protocol_sha'] or cfg['successor_scope']!=ctx['probe_scope'] or cfg['successor_phase']!=phase or cfg['prefix_files'] or cfg['limits']!=dict(**counts,seconds=1800):raise ValueError('actual worker scope/permit/config')
             for name in ('config.json','budget.json'):required_artifacts.add(str(out/name))
             if set(b['counts'])!=set(counts) or any(type(b['counts'][k])is not int or not 0<=b['counts'][k]<=counts[k] for k in counts):raise ValueError('actual count range')
             for k in counts:reserved[k]+=counts[k];actual[k]+=b['counts'][k]
@@ -437,7 +438,10 @@ def validate_probe_completion(c,r):
                     comparisons.append(row)
         if d['numerical_comparisons']!=comparisons:raise ValueError('numeric summary not reproducible')
         if d['concurrency']>1 and (not all(wave_passed(v) for v in d['parallel']) or sum(v['elapsed'] for v in d['parallel'])>=sum(v['elapsed'] for v in serial)):raise ValueError('actual parallel resource/makespan')
+    extra=recovery.extra_actual(r)if hasattr(recovery,'extra_actual')else dict(adam=0,backward=0,forward=0)
+    for k in actual:actual[k]+=extra[k];reserved[k]+=extra[k]
     b=r['budget']
+    if any(extra.values())and b.get('diagnostic_actual')!=extra:raise ValueError('registered diagnostic consumption cannot be hidden/reset')
     if b!=json.loads((root/'budget.json').read_text()) or b.get('caps')!=ctx['caps'] or b.get('reserved')!=reserved or b.get('actual')!=actual or b.get('refund')is not False or any(reserved[k]>ctx['caps'][k] or actual[k]>reserved[k] for k in actual):raise ValueError('saved budget/reserved/actual/caps')
     return r
 

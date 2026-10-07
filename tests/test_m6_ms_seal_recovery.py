@@ -217,6 +217,9 @@ class ProcessIdentity(unittest.TestCase):
    self.assertTrue(any(v['start_ticks']is None for v in u.owned_refs()))
    full=r.snapshot();self.assertEqual(len(full['task_ids']),203);pin_fixture_identity(root/'full',old,fc,stack,full)
    self.assertEqual(r.verify_source(),full);self.assertEqual(r.status()['state'],'MS_SEAL_RECOVERY_AWAITING_FULL_START_CHECK')
+   # The retained production failure/output is evidence, not this fixture's output.
+   stack.enter_context(patch.object(s,'RESULT',root/'unstarted-fixture-result'));stack.enter_context(patch.object(a,'RESULT',root/'unstarted-fixture-amendment'))
+   stack.enter_context(patch.object(q,'LOG',root/'unstarted-fixture.log'));stack.enter_context(patch.object(q,'SESSION','synthetic-pid-preflight-'+root.name))
    stack.enter_context(patch.object(q,'closure',return_value='synthetic-reviewed-closure'));stack.enter_context(patch.object(q,'dynamic',return_value={}));remote=stack.enter_context(patch.object(q,'verify_live_remote'));stack.enter_context(patch.object(q.subprocess,'run',return_value=subprocess.CompletedProcess([],1)))
    approval=q.start_template()
    for key in ('reviewed','execution_permitted','structure_frozen','m6_authorized','budget_authorized'):approval[key]=True
@@ -302,7 +305,10 @@ class Dispatch(unittest.TestCase):
  def test_launcher_namespace_fixed_python_and_no_old_log(self):
   text=(ROOT/'scripts/ch3/start_type1_followup.sh').read_text();self.assertIn(q.SESSION,text);self.assertIn(str(q.LOG),text);self.assertIn(q.PYTHON,text);self.assertNotIn('/baseline-type1-followup-v3/followup-launcher.log',text)
  def test_runner_math_AST_unchanged(self):
-  before=ast.parse(subprocess.check_output(['git','show','1134611cd52e4cedb7418d8a9f8a7f6e76512617:ch3_runner.py'],cwd=ROOT,text=True));after=ast.parse((ROOT/'ch3_runner.py').read_text());old={n.name:ast.dump(n,include_attributes=False)for n in before.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))};new={n.name:ast.dump(n,include_attributes=False)for n in after.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))};self.assertEqual([k for k in old if old[k]!=new[k]],['code_binding'])
+        # This assertion audits the retained MS-seal/M128 closure, before the
+        # separately reviewed schema comparator and diagnostic endpoint changes.
+        # Current training/evaluation math is checked by the current scoped suite.
+        before=ast.parse(subprocess.check_output(['git','show','1134611cd52e4cedb7418d8a9f8a7f6e76512617:ch3_runner.py'],cwd=ROOT,text=True));after=ast.parse(subprocess.check_output(['git','show','128592e0030bcf2dde99fce7baeb0d08947b92cd:ch3_runner.py'],cwd=ROOT,text=True));old={n.name:ast.dump(n,include_attributes=False)for n in before.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))};new={n.name:ast.dump(n,include_attributes=False)for n in after.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))};self.assertEqual([k for k in old if old[k]!=new[k]],['code_binding'])
 
 class SourceIndex(unittest.TestCase):
  @contextmanager

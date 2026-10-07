@@ -8,9 +8,8 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive,sha
 
 def read_config(s):
     if s.get('probe_schema_recovery_ref'):
-        from utils import ch3_probe_schema_recovery as recovery
-        if s['probe_schema_recovery_ref']!=recovery.REUSE_REF:raise PermissionError('registered worker recovery binding')
-        recovery.activate()
+        from utils.ch3_probe_schema_recovery import activate_worker
+        activate_worker(s['probe_schema_recovery_ref'])
     stage=s.get('unified_stage')
     if stage not in scope.STAGES or s.get('type1_scope')!=scope.ID or s.get('protocol_file')!=str(scope.file(stage)):raise PermissionError('exact unified protocol/stage')
     c=scope.validate(json.loads(scope.file(stage).read_text()))
@@ -32,8 +31,10 @@ def metadata_files(c,a,runtime_ref=None):
     values=[scope.parent_ref(c['baseline_unified']['stage']),scope.AUTHOR_RECIPE,c['baseline_unified']['data_ref'],a['start_authorization_ref']]
     values.append(ENVIRONMENT_REF)
     if a.get('probe_recovery_ref'):
-        from utils.ch3_probe_schema_recovery import SOURCE_REF,REUSE_REF
-        values += [SOURCE_REF,REUSE_REF]
+        from utils.ch3_probe_schema_recovery import current_recovery
+        recovery=current_recovery();values += [recovery.SOURCE_REF,recovery.REUSE_REF]
+        for name in ('POLICY_REF','ALL_M_POLICY_REF','PRIOR_REUSE_REF','INCLUSION_REF'):
+            if hasattr(recovery,name):values.append(getattr(recovery,name))
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
     values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
     values += list(a.get('predecessor_boundaries',{}).values())

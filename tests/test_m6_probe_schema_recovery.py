@@ -17,7 +17,7 @@ def validation(p,tail=1):
 def trajectory(c,t,out,rule=None):
     p=profile(c,t);out=Path(out);out.mkdir(parents=True,exist_ok=True);points=[]
     entries=[dict(path=name,dtype='torch.float64',shape=[1],mode=mode,offset=i*8,nbytes=8,numel=1)for i,(name,mode)in enumerate([('model/parameter/w','bounded'),('model/buffer/b','bounded'),('gradient/w','bounded'),('optimizer/w/exp_avg','bounded'),('optimizer/w/exp_avg_sq','bounded'),('optimizer/w/step','exact')])]
-    schema=exclusive(out/'schema.json',dict(entries=entries,optimizer_groups=[{'params':['w']}],optimizer_non_tensor_state={},total_bytes=48))
+    schema=exclusive(out/'schema.json',dict(policy_id=rule['id']if rule else t['group']+'-exact-full-state',entries=entries,optimizer_groups=[{'params':['w']}],optimizer_non_tensor_state={},total_bytes=48))
     for i in range(1,7):
         path=out/(str(i)+'.bin');path.write_bytes(struct.pack('<6d',1.,1.,1.,1.,1.,float(i)));points.append(dict(step=i,schema_file=schema['path'],schema_sha=schema['sha256'],data_file=str(path),data_sha=ref(path)['sha256'],bytes=48))
     cfg=p['training']['scheduler'];trace=[]

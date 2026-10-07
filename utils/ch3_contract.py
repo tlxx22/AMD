@@ -64,8 +64,111 @@ RSS_PROBE_POLICY = dict(id='rss-material-growth-platform-v1', short_window=4,
     plateau_range_bytes=8*1024**2, plateau_abs_slope_bytes_per_step=256*1024)
 
 
+# Opt-in, materialized routine admission; legacy/equivalence contracts stay frozen.
+BASELINE_NUMERIC_ADMISSION_ID = 'baseline_numeric_admission_v1'
+BASELINE_NUMERIC_DEFAULTS = dict(
+    M=dict(state_atol=2e-4, metric_atol=1e-6, loss_atol=1e-6, loss_rtol=0),
+    UrbanEV_MS=dict(state_atol=1e-4, metric_atol=1e-6, loss_atol=1e-6, loss_rtol=0),
+    EPF_MS=dict(state_atol=1e-4, metric_atol=1e-6, loss_atol=1e-6, loss_rtol=0),
+    exceptions={'M/TimeMixer/Weather':dict(loss_rtol=1e-5),
+                'EPF_MS/ModernTCN':dict(state_atol=5e-4)})
+
+def baseline_numeric_admission_policy(c, task):
+    """Resolve only registered baseline M/UrbanEV-MS/EPF-MS task identities."""
+    model,name,kind=task.get('model'),task.get('dataset'),task.get('task')
+    if model not in tuple(m for m in MODELS if m not in ('J','N','S')) or task not in c['tasks']:
+        raise ValueError('routine numeric admission: unregistered baseline/task')
+    p=c['resolved_profiles'][task['id']];d=c['datasets'][name];C=p['C']
+    if type(C)is not int or C<=0 or p['features']!=d['features'] or len(p['features'])!=C:
+        raise ValueError('routine numeric admission: channel/feature identity')
+    if kind=='M' and name in ('ETTh1','ETTh2','ETTm1','ETTm2','Weather','Exchange'):
+        scope='M';allowed=(96,192,336,720)
+        if (p.get('task')!='M' or task.get('input_variant')!='M' or task.get('metric_scope')!='all_channels'
+                or p.get('metric_scope')!='all_channels' or p.get('supervised_channels')!=list(range(C))
+                or p.get('output_order')!=d['features'] or p['pred_len']!=task['h']):
+            raise ValueError('routine numeric admission: exact M supervision/output identity')
+    elif kind=='MS' and name=='UrbanEV':
+        scope='UrbanEV_MS';allowed=(3,6,9,12)
+        if p['pred_len']!=1 or task.get('input_variant')!='F4':raise ValueError('routine numeric admission: UrbanEV label identity')
+    elif kind=='MS' and name in ('PJM','NP','BE','FR','DE'):
+        scope='EPF_MS';allowed=(24,)
+        if p['pred_len']!=24 or task.get('input_variant')!='MS':raise ValueError('routine numeric admission: EPF horizon identity')
+    else:raise ValueError('routine numeric admission: undefined task/data category; no exact fallback')
+    if kind=='MS' and (p.get('task','MS')!='MS' or task.get('metric_scope')!='target_only'
+            or p.get('metric_scope','target_only')!='target_only'):
+        raise ValueError('routine numeric admission: MS/M identity conflict')
+    horizons=sorted({t['h']for t in c['tasks']if (t['model'],t['dataset'],t['task'])==(model,name,kind)})
+    if any(type(h)is not int or h not in allowed or h not in d['horizons']for h in horizons):
+        raise ValueError('routine numeric admission: unregistered horizon')
+    fields=dict(BASELINE_NUMERIC_DEFAULTS[scope])
+    for key in (scope+'/'+model,scope+'/'+model+'/'+name):fields.update(BASELINE_NUMERIC_DEFAULTS['exceptions'].get(key,{}))
+    return dict(fields,id=BASELINE_NUMERIC_ADMISSION_ID+'/'+scope+'/'+model+'/'+name,
+        admission_version=BASELINE_NUMERIC_ADMISSION_ID,kind='full_float_state',task=kind,
+        model=model,dataset=name,horizons=horizons,rtol=0,equal_nan=False,
+        floating_state='all model parameters/buffers, gradients and Adam moments',
+        exact_state='initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure',
+        capture='preallocated raw sidecar v1')
+
+def materialize_baseline_numeric_admission(c):
+    """Explicit new config generation, never a mutation of historical input."""
+    import copy
+    value=copy.deepcopy(c);policies={}
+    for task in value['tasks']:
+        key=task['model']+'-'+task['dataset'];rule=baseline_numeric_admission_policy(value,task)
+        if key in policies and policies[key]!=rule:raise ValueError('routine numeric admission: overlapping task modes')
+        policies[key]=rule
+    value['baseline_unified'].update(numeric_admission_version=BASELINE_NUMERIC_ADMISSION_ID,numeric_policies=policies)
+    return value
+
+def validate_baseline_numeric_registry(c):
+    b=c['baseline_unified']
+    if b.get('numeric_admission_version')!=BASELINE_NUMERIC_ADMISSION_ID:raise ValueError('unsupported routine numeric admission version')
+    expected=materialize_baseline_numeric_admission(c)['baseline_unified']['numeric_policies']
+    if b.get('numeric_policies')!=expected:raise ValueError('routine numeric admission: explicit complete registry required; no None/exact fallback')
+    return expected
+
+def validate_baseline_full_schema(schema, rule):
+    """Complete captured state structure, separate from floating tolerances."""
+    import math
+    if set(schema)!={'policy_id','entries','optimizer_groups','optimizer_non_tensor_state','total_bytes'} or schema['policy_id']!=rule['id']:
+        raise ValueError('routine full state schema/policy identity')
+    sizes={'torch.float16':2,'torch.float32':4,'torch.float64':8,'torch.int8':1,'torch.uint8':1,'torch.int16':2,'torch.int32':4,'torch.int64':8,'torch.bool':1}
+    paths={};offset=0;parameters=set();gradients=set();states={}
+    if not isinstance(schema['entries'],list)or not isinstance(schema['optimizer_groups'],list)or not isinstance(schema['optimizer_non_tensor_state'],dict):raise ValueError('routine full state schema types')
+    for e in schema['entries']:
+        if set(e)!={'path','dtype','shape','mode','offset','nbytes','numel'}or e['path']in paths:raise ValueError('routine full state entry coverage/schema')
+        if e['dtype']not in sizes or not isinstance(e['shape'],list)or any(type(x)is not int or x<0 for x in e['shape']):raise ValueError('routine full state shape/dtype')
+        if any(type(e[x])is not int for x in ('offset','nbytes','numel'))or e['offset']!=offset or e['numel']!=math.prod(e['shape'])or e['nbytes']!=e['numel']*sizes[e['dtype']]:raise ValueError('routine full state contiguous shape/byte coverage')
+        floating=e['dtype'].startswith('torch.float');name=e['path']
+        if name.startswith('model/parameter/'):parameters.add(name[len('model/parameter/'):])
+        elif name.startswith('model/buffer/'):pass
+        elif name.startswith('gradient/'):gradients.add(name[len('gradient/'):])
+        elif name.startswith('optimizer/'):
+            parameter,field=name[len('optimizer/'):].rsplit('/',1)
+            if field not in ('step','exp_avg','exp_avg_sq','max_exp_avg_sq'):raise ValueError('routine full state Adam field')
+            states.setdefault(parameter,set()).add(field)
+        else:raise ValueError('routine full state unknown path')
+        mode='exact'if name.startswith('optimizer/')and name.endswith('/step')or not floating else 'bounded'
+        if e['mode']!=mode:raise ValueError('routine full state floating/nonfloating/optimizer-step mode')
+        paths[name]=e;offset+=e['nbytes']
+    optimizer_names=[]
+    for group in schema['optimizer_groups']:
+        if not isinstance(group,dict)or not isinstance(group.get('params'),list):raise ValueError('routine full state parameter groups')
+        optimizer_names.extend(group['params'])
+    if not parameters or len(set(optimizer_names))!=len(optimizer_names)or set(optimizer_names)!=parameters or not gradients<=parameters or not set(states)<=parameters:
+        raise ValueError('routine full state parameter/gradient/Adam coverage')
+    if any(not {'step','exp_avg','exp_avg_sq'}<=fields for fields in states.values())or gradients!=set(states):raise ValueError('routine full state gradients/Adam moments missing')
+    if type(schema['total_bytes'])is not int or schema['total_bytes']!=offset:raise ValueError('routine full state total byte coverage')
+    return schema
+
 
 def numeric_probe_policy(c, task):
+    if c.get('baseline_unified',{}).get('numeric_admission_version')is not None:
+        b=c['baseline_unified']
+        if b['numeric_admission_version']!=BASELINE_NUMERIC_ADMISSION_ID:raise ValueError('unsupported routine numeric admission version')
+        rule=baseline_numeric_admission_policy(c,task)
+        if b['numeric_policies'].get(task['model']+'-'+task['dataset'])!=rule:raise ValueError('routine numeric admission: missing/foreign explicit policy')
+        return rule
     if c.get('type1_followup'):
         from utils.ch3_type1_tasks import numeric_policy as type1_handler
         return type1_handler(c,task)

@@ -71,6 +71,9 @@ def validate(c):
     expected_refs=dict(source=ett.SOURCE_REF,paper=ett.PAPER_REF,onecycle=RECIPE_REF)
     if c['baseline_unified'].get('extension_refs')!=expected_refs: raise ValueError('amendment source/recipe bindings')
     expected_policies={m+'-'+d:policy(m,d) for m in MODELS for d in DATASETS}
+    if c['baseline_unified'].get('numeric_revision_ref'):
+        from utils.ch3_moderntcn_etth1_recovery import validate_revision
+        expected_policies=validate_revision(c)
     if c['baseline_unified']['numeric_policies']!=expected_policies: raise ValueError('M-only inherited numerical policies')
     data=bound(c['baseline_unified']['data_ref'])
     from utils.ch3_time_marks import metadata

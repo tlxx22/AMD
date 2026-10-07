@@ -240,7 +240,7 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
         data_binding_ref=c['baseline_unified']['data_ref'],caps=s.probe_budget(c)['caps'] if probe else s.formal_budget(c)['total'],
         budget_refund=False,additional_search=0,from_scratch=True,result_review='pending',upstream_boundary_ref=ref(CONTROL/'upstream-technical-boundary.json'),authorization_basis='user pre-authorized full training iff preregistered technical gates pass')
     a['predecessor_boundaries']=boundary_ref or {}
-    if PROBE_RECOVERY:a.update(execution_attempt='M_BASE-probe-schema-r1',probe_recovery_ref=PROBE_RECOVERY.REUSE_REF)
+    if PROBE_RECOVERY:a.update(execution_attempt=getattr(PROBE_RECOVERY,'ATTEMPT','M_BASE-probe-schema-r1'),probe_recovery_ref=PROBE_RECOVERY.REUSE_REF)
     a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'else None
     a['round2_boundary_ref']=round2_ref
     if not probe:

@@ -98,6 +98,9 @@ def validate(c):
     if c['baseline_unified']['direct_parent_ref']!=parent_ref(stage) or c['baseline_unified']['recipe_ref']!=AUTHOR_RECIPE:raise ValueError('fixed reviewed parent/recipe')
     bound(AUTHOR_RECIPE)
     expected_policies={t['model']+'-'+t['dataset']:(ett.numeric_policy(t['model'],t['dataset'])if t['dataset']in ett.NEW_DATASETS else old['baseline_unified']['numeric_policies'][t['model']+'-'+t['dataset']]) for t in selected(stage)}
+    if c['baseline_unified'].get('numeric_revision_ref'):
+        from utils.ch3_moderntcn_etth1_recovery import validate_revision
+        expected_policies=validate_revision(c)
     if c['baseline_unified']['numeric_policies']!=expected_policies or c['sources']!=old['sources'] or c['urban_folds']!=old['urban_folds'] or c['urban_input_variants']!=old['urban_input_variants']:raise ValueError('source/policy/features/split changed')
     domains={'UrbanEV'} if stage=='URBAN_SUBSET' else set(ett.M_DATASETS) if stage=='M_ALL' else {'PJM','NP','BE','FR','DE'}
     if set(c['datasets'])!=domains or len(c['tasks'])!={'URBAN_SUBSET':28,'EPF_ALL':35,'M_ALL':168}[stage] or len({t['id']for t in c['tasks']})!=len(c['tasks']):raise ValueError('231 unique runs; J/N/S/ECL excluded')

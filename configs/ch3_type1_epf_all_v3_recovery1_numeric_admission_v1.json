@@ -1,0 +1,5781 @@
+{
+  "baseline_unified": {
+    "data_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified-v3-ms-seal-m128-recovery1/epf_all-data-bindings.json",
+      "sha256": "ac890e7eab6dd43bca298cb1dff5a0ed233c27c2a6d1b9ff716077887f7be88c"
+    },
+    "direct_parent_ref": {
+      "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+      "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+    },
+    "id": "baseline-type1-followup-v3-recovery1",
+    "numeric_admission_version": "baseline_numeric_admission_v1",
+    "numeric_policies": {
+      "AMD-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/AMD/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "AMD",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "AMD-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/AMD/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "AMD",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "AMD-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/AMD/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "AMD",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "AMD-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/AMD/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "AMD",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "AMD-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/AMD/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "AMD",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "DLinear-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/DLinear/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "DLinear",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "DLinear-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/DLinear/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "DLinear",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "DLinear-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/DLinear/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "DLinear",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "DLinear-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/DLinear/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "DLinear",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "DLinear-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/DLinear/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "DLinear",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "ModernTCN-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/ModernTCN/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "ModernTCN",
+        "rtol": 0,
+        "state_atol": 0.0005,
+        "task": "MS"
+      },
+      "ModernTCN-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/ModernTCN/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "ModernTCN",
+        "rtol": 0,
+        "state_atol": 0.0005,
+        "task": "MS"
+      },
+      "ModernTCN-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/ModernTCN/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "ModernTCN",
+        "rtol": 0,
+        "state_atol": 0.0005,
+        "task": "MS"
+      },
+      "ModernTCN-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/ModernTCN/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "ModernTCN",
+        "rtol": 0,
+        "state_atol": 0.0005,
+        "task": "MS"
+      },
+      "ModernTCN-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/ModernTCN/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "ModernTCN",
+        "rtol": 0,
+        "state_atol": 0.0005,
+        "task": "MS"
+      },
+      "PatchTST-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/PatchTST/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "PatchTST",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "PatchTST-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/PatchTST/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "PatchTST",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "PatchTST-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/PatchTST/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "PatchTST",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "PatchTST-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/PatchTST/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "PatchTST",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "PatchTST-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/PatchTST/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "PatchTST",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeMixer-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeMixer/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeMixer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeMixer-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeMixer/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeMixer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeMixer-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeMixer/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeMixer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeMixer-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeMixer/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeMixer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeMixer-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeMixer/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeMixer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeXer-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeXer/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeXer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeXer-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeXer/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeXer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeXer-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeXer/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeXer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeXer-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeXer/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeXer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "TimeXer-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/TimeXer/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "TimeXer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "iTransformer-BE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "BE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/iTransformer/BE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "iTransformer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "iTransformer-DE": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "DE",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/iTransformer/DE",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "iTransformer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "iTransformer-FR": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "FR",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/iTransformer/FR",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "iTransformer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "iTransformer-NP": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "NP",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/iTransformer/NP",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "iTransformer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      },
+      "iTransformer-PJM": {
+        "admission_version": "baseline_numeric_admission_v1",
+        "capture": "preallocated raw sidecar v1",
+        "dataset": "PJM",
+        "equal_nan": false,
+        "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+        "floating_state": "all model parameters/buffers, gradients and Adam moments",
+        "horizons": [
+          24
+        ],
+        "id": "baseline_numeric_admission_v1/EPF_MS/iTransformer/PJM",
+        "kind": "full_float_state",
+        "loss_atol": 1e-06,
+        "loss_rtol": 0,
+        "metric_atol": 1e-06,
+        "model": "iTransformer",
+        "rtol": 0,
+        "state_atol": 0.0001,
+        "task": "MS"
+      }
+    },
+    "numeric_revision_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified-v3-ms-seal-m128-recovery1/moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/policy-extension.json",
+      "sha256": "5c62a148ba9e7c76d3d159fcf5a30718f536f6e2552c2ccac6d252a2ac33bf90"
+    },
+    "parent_refs": {
+      "AMD-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "e527fe9b74e0869fb918821b369959b5f9bedb1eeaf38075e62e737d8e32cb48",
+        "task_id": "AMD-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "AMD-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "ce3e6e7527688c842b677186fe9642f25289377ba4ec8221adede30ca1c9391b",
+        "task_id": "AMD-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "AMD-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "6e4cf0e2a51017a1225d5b1579756dd4f23a4f8f5dee3a1f6ef92e9002821065",
+        "task_id": "AMD-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "AMD-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "29ab077db473f574a559154c1a3592c0f5432155c6fa713131d4e78bc2d557d4",
+        "task_id": "AMD-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "AMD-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "ebd27abccc839cb4ca8121794e56b9b5be6756951488165a8ff8752dce65feb8",
+        "task_id": "AMD-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "DLinear-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "6b438fc3d6a98c69819ba71f641e037b0300a474569fa37a9c4d380f0f0461b4",
+        "task_id": "DLinear-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "DLinear-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "773557dfbd5b374851316e3a9cc288ce7c6ba57c5008230d5fcd203f584337d2",
+        "task_id": "DLinear-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "DLinear-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "443a1a72d14edc29781e9ed65f6caf2244d47a7d95d7ebea808020c0353e19b7",
+        "task_id": "DLinear-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "DLinear-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "0a00cb8c261dc6f447ab282ee25c2812a4013d71aa03df37e660eac5ba670ab4",
+        "task_id": "DLinear-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "DLinear-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "3762893d0e523093f6f4667d3438fd8275bc64222d9eea2a750fafa6c81c108a",
+        "task_id": "DLinear-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "ModernTCN-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "43e9258e5fa59cc6dd13dec5a27398801152038a337514bc8f86fdb1a318fc4a",
+        "task_id": "ModernTCN-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "ModernTCN-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "fbc7a70d841e952d6ff406c0c1c1e0da4a3a79098df98a422da501e838a48071",
+        "task_id": "ModernTCN-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "ModernTCN-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "d2c29b7932a0b6cb48f58a4f1454047bee4ea48446b16acabe9bfa3b2e50e6e9",
+        "task_id": "ModernTCN-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "ModernTCN-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "954189a9b8dbb53247ba57e8e75af837688a0a24efc285d3e96b57e139726395",
+        "task_id": "ModernTCN-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "ModernTCN-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "43d4c7daf6d1a7957b7c0127fa3071d847941c7142383b38b1f4cf27b56fea25",
+        "task_id": "ModernTCN-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "PatchTST-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "8240d12e0c836efbb6e0b5d82c8bff5c40ddd290ae45270f8bf9af1936bed9cb",
+        "task_id": "PatchTST-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "PatchTST-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "59ad0f6bc472f89f49b684445706d9ec6b9b7869b20d8928f787794d9214935b",
+        "task_id": "PatchTST-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "PatchTST-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "572729d7403f97383fa5b2ff78281aa755bf1e40b21cd5063d5835709e66dc2b",
+        "task_id": "PatchTST-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "PatchTST-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "06774f79cce4623ba86e2daa1e0ae895475f29a04cb1cf1bc340aadf1b79c029",
+        "task_id": "PatchTST-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "PatchTST-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "31dec4b758cfa1fc9fe7224b38c03f5d47ebbc34f037cacea8bd93ecba0eb451",
+        "task_id": "PatchTST-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeMixer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "344fb5a933079f47f01d641c141f7de3753bf9befab30bd5ca71899cc4e399cf",
+        "task_id": "TimeMixer-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeMixer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "05aad03fc9f53d83c48fd97b64aadf27c39d416c5aa2427c459c03f21c08f5b3",
+        "task_id": "TimeMixer-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeMixer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "068de4ed74c86c01785c064795c444306b8423c114d1f331ca27ac254e257279",
+        "task_id": "TimeMixer-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeMixer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "1dec5e57b5cfce36ca9b3e3275fe0f0a94473c5d1cd53ca9a0c369e30a473169",
+        "task_id": "TimeMixer-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeMixer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "49a88b0cb52b9872d9a0b4ecbab58fa08d2584b54719086f48a2bf7625344202",
+        "task_id": "TimeMixer-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeXer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "05e142b37e9e2d5c8cf2cdd0fcdc34137e56f8b868a8d7bb1913e8018d0ecbd8",
+        "task_id": "TimeXer-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeXer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "2326a0ab9d144e58b1528656db8c33a9f2e5307c54ce45e9965e414232d77ce9",
+        "task_id": "TimeXer-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeXer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "b0f59d5de424a873d46e6aa347cadec8b54f87e15d26bfcfcd49e20a021976b0",
+        "task_id": "TimeXer-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeXer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "23a1c07f03f729ed0324a4dd02801add1a12ce1a18392ba6951025e46922862c",
+        "task_id": "TimeXer-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "TimeXer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "badfb7e4130475f63d192b51f96a1effd672b0dc35760063a16a84aadfaee309",
+        "task_id": "TimeXer-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "iTransformer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "c3aaa21122e0996b65dba18dbb9397be56a293a9361dce22a60124e6a2fe5d67",
+        "task_id": "iTransformer-BE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "iTransformer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "79e1fc65ed4e2ee3a848a6691c4ba9510b3c024af6a3d6be042631001d516d54",
+        "task_id": "iTransformer-DE-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "iTransformer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "48b848da2dcd0206fec6cedd374eed24f74573386da726b3159dcb7296561c35",
+        "task_id": "iTransformer-FR-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "iTransformer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "3ba6245758ba190a6e7e7aa7f83e6c4658e7aec1b5182e5bea7e7245b67bab29",
+        "task_id": "iTransformer-NP-MS-u96-oc01-v3-f1-h24-s2024"
+      },
+      "iTransformer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+        "config_ref": {
+          "path": "/public/home/yueweiting/大论文/AMD-type1-followup-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+          "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+        },
+        "profile_sha": "4184bbeb29eefb609946787f09878eba42b12677423f78561d79d24b19c5d738",
+        "task_id": "iTransformer-PJM-MS-u96-oc01-v3-f1-h24-s2024"
+      }
+    },
+    "project_lock": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/project-gpu0.lock",
+    "recipe_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-type1-followup-v2/type1-author-recipe.json",
+      "sha256": "fc1081b5acaef98181bc4edd0d5bcbab7ca7620e69eff4a1b97850833cf3da71"
+    },
+    "scope": "m6-baseline-type1-followup-v3-recovery1",
+    "stage": "EPF_ALL"
+  },
+  "contract": "ch3-target-ms-formal-v2",
+  "datasets": {
+    "BE": {
+      "T": 168,
+      "amd_patch": 24,
+      "declared_rows": 52416,
+      "endpoints": [
+        36691,
+        41933,
+        52416
+      ],
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "horizons": [
+        24
+      ],
+      "mandatory_blockers": [],
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/data/timexer-76011909357972bd55a27adba2e1be994d81b327/BE.csv",
+      "policy": "single fit; train=floor(.7n), test=floor(.2n), val=n-train-test",
+      "source_admission": {
+        "accepted_scope": "M6 user-approved historical-only project EPF extension; standardized target metrics",
+        "endpoint_status": "quote-aware record framing; no test numerical parse",
+        "field_order_status": "original header preserved; target OT index2",
+        "local_sha256_inherited": "93ca5ab6614adef1e93e561d5fd6868588c035ea68a676c9423462113303e8ab",
+        "local_state": {
+          "ctime_ns": 1790531872000000000,
+          "device": 41,
+          "inode": 1350992144,
+          "mtime_ns": 1790531872000000000,
+          "size": 1793351
+        },
+        "source_availability": "EPF section4.1 documented assumption, not record-level vintage audit",
+        "unverified_explanation": [
+          "record-level vintage unverified",
+          "TimeXer-to-original-source conversion not reconstructed",
+          "TimeXer repo has no license file at locked commit; Zenodo records other-open",
+          "TimeXer vs EPF narrative discrepancy retained for BE geography / FR dates / DE wind+solar"
+        ],
+        "version_status": "fixed TimeXer Git object raw byte equality"
+      },
+      "target": "OT",
+      "training": {
+        "batch": 128,
+        "epochs": 20,
+        "eval_batch": 128,
+        "lr": 5e-05,
+        "patience": 5
+      }
+    },
+    "DE": {
+      "T": 168,
+      "amd_patch": 24,
+      "declared_rows": 52416,
+      "endpoints": [
+        36691,
+        41933,
+        52416
+      ],
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "horizons": [
+        24
+      ],
+      "mandatory_blockers": [],
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/data/timexer-76011909357972bd55a27adba2e1be994d81b327/DE.csv",
+      "policy": "single fit; train=floor(.7n), test=floor(.2n), val=n-train-test",
+      "source_admission": {
+        "accepted_scope": "M6 user-approved historical-only project EPF extension; standardized target metrics",
+        "endpoint_status": "quote-aware record framing; no test numerical parse",
+        "field_order_status": "original header preserved; target OT index2",
+        "local_sha256_inherited": "8cdf1e3f52a9c3530bb36432d5f956a287f951cff696f20478e5be069505388c",
+        "local_state": {
+          "ctime_ns": 1790531873000000000,
+          "device": 41,
+          "inode": 1340947722,
+          "mtime_ns": 1790531873000000000,
+          "size": 1862211
+        },
+        "source_availability": "EPF section4.1 documented assumption, not record-level vintage audit",
+        "unverified_explanation": [
+          "record-level vintage unverified",
+          "TimeXer-to-original-source conversion not reconstructed",
+          "TimeXer repo has no license file at locked commit; Zenodo records other-open",
+          "TimeXer vs EPF narrative discrepancy retained for BE geography / FR dates / DE wind+solar"
+        ],
+        "version_status": "fixed TimeXer Git object raw byte equality"
+      },
+      "target": "OT",
+      "training": {
+        "batch": 128,
+        "epochs": 20,
+        "eval_batch": 128,
+        "lr": 5e-05,
+        "patience": 5
+      }
+    },
+    "FR": {
+      "T": 168,
+      "amd_patch": 24,
+      "declared_rows": 52416,
+      "endpoints": [
+        36691,
+        41933,
+        52416
+      ],
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "horizons": [
+        24
+      ],
+      "mandatory_blockers": [],
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/data/timexer-76011909357972bd55a27adba2e1be994d81b327/FR.csv",
+      "policy": "single fit; train=floor(.7n), test=floor(.2n), val=n-train-test",
+      "source_admission": {
+        "accepted_scope": "M6 user-approved historical-only project EPF extension; standardized target metrics",
+        "endpoint_status": "quote-aware record framing; no test numerical parse",
+        "field_order_status": "original header preserved; target OT index2",
+        "local_sha256_inherited": "ac400691243cc3aac32a4680d5f428f720da61385277813083b9fe61e642bd0c",
+        "local_state": {
+          "ctime_ns": 1790531873000000000,
+          "device": 41,
+          "inode": 1340947466,
+          "mtime_ns": 1790531873000000000,
+          "size": 1763250
+        },
+        "source_availability": "EPF section4.1 documented assumption, not record-level vintage audit",
+        "unverified_explanation": [
+          "record-level vintage unverified",
+          "TimeXer-to-original-source conversion not reconstructed",
+          "TimeXer repo has no license file at locked commit; Zenodo records other-open",
+          "TimeXer vs EPF narrative discrepancy retained for BE geography / FR dates / DE wind+solar"
+        ],
+        "version_status": "fixed TimeXer Git object raw byte equality"
+      },
+      "target": "OT",
+      "training": {
+        "batch": 128,
+        "epochs": 20,
+        "eval_batch": 128,
+        "lr": 5e-05,
+        "patience": 5
+      }
+    },
+    "NP": {
+      "T": 168,
+      "amd_patch": 24,
+      "declared_rows": 52416,
+      "endpoints": [
+        36691,
+        41933,
+        52416
+      ],
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "horizons": [
+        24
+      ],
+      "mandatory_blockers": [],
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/data/timexer-76011909357972bd55a27adba2e1be994d81b327/NP.csv",
+      "policy": "single fit; train=floor(.7n), test=floor(.2n), val=n-train-test",
+      "source_admission": {
+        "accepted_scope": "M6 user-approved historical-only project EPF extension; standardized target metrics",
+        "endpoint_status": "quote-aware record framing; no test numerical parse",
+        "field_order_status": "original header preserved; target OT index2",
+        "local_sha256_inherited": "cbba6af8cf505d6d1fcadf87e86b6651abdae4a1adf616ee4956f6c1cd039fb8",
+        "local_state": {
+          "ctime_ns": 1790531833000000000,
+          "device": 41,
+          "inode": 1350991888,
+          "mtime_ns": 1790531833000000000,
+          "size": 1674177
+        },
+        "source_availability": "EPF section4.1 documented assumption, not record-level vintage audit",
+        "unverified_explanation": [
+          "record-level vintage unverified",
+          "TimeXer-to-original-source conversion not reconstructed",
+          "TimeXer repo has no license file at locked commit; Zenodo records other-open",
+          "TimeXer vs EPF narrative discrepancy retained for BE geography / FR dates / DE wind+solar"
+        ],
+        "version_status": "fixed TimeXer Git object raw byte equality"
+      },
+      "target": "OT",
+      "training": {
+        "batch": 128,
+        "epochs": 20,
+        "eval_batch": 128,
+        "lr": 5e-05,
+        "patience": 5
+      }
+    },
+    "PJM": {
+      "T": 168,
+      "amd_patch": 24,
+      "declared_rows": 52416,
+      "endpoints": [
+        36691,
+        41933,
+        52416
+      ],
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "horizons": [
+        24
+      ],
+      "mandatory_blockers": [],
+      "path": "/public/home/yueweiting/大论文/TimeXer/dataset/EPF/PJM.csv",
+      "policy": "single fit; train=floor(.7n), test=floor(.2n), val=n-train-test",
+      "source_admission": {
+        "accepted_scope": "user confirmed M5 section 16; train-standardized target evaluation; fixed historical input only",
+        "endpoint_status": "verified record count with registered project split",
+        "evidence": {
+          "comparison-results.json": {
+            "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f/comparison-results.json",
+            "sha256": "bfcfc2adb157750bbbab434b4f8cba7f65b0fcb48ed14d2fa9a2f8bf57ab8ae1"
+          },
+          "independent-cmp.json": {
+            "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f/independent-cmp.json",
+            "sha256": "4c1f01ff4ce871f973ccabcac62fd021547af714a0af0ca5a6de117c34dfa88d"
+          },
+          "published-object-manifest.json": {
+            "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f/published-object-manifest.json",
+            "sha256": "ea9fa63671080ae1dc4d45defb57ba8106495bd6f548852819468a99f021fdbc"
+          }
+        },
+        "field_order_status": "verified against the bound author object",
+        "local_sha256_inherited": "58cc0ad32e22e61d9e183b0dc8201747f8c2ef822e469832c5beea8d88251cc0",
+        "local_state": {
+          "ctime_ns": 1787314620000000000,
+          "device": 41,
+          "inode": 1616382219,
+          "mtime_ns": 1787314620000000000,
+          "size": 1960359
+        },
+        "source_availability": "documented source assumption: original EPF section 4.1 day-d forecasts available d-1; not record-level vintage audit",
+        "unverified_explanation": [
+          "record-level forecast vintage audit Not evaluated",
+          "TimeXer-to-original-EPF full value conversion not reconstructed",
+          "two forecast physical units not independently verified"
+        ],
+        "version_status": "author object raw byte equality"
+      },
+      "target": "OT",
+      "training": {
+        "batch": 128,
+        "epochs": 20,
+        "eval_batch": 128,
+        "lr": 5e-05,
+        "patience": 5
+      }
+    }
+  },
+  "execution": {
+    "cpu_first_methods": 16,
+    "cpu_retry_methods": 16,
+    "diagnostics": {
+      "actual_cost": {
+        "adam": 180,
+        "backward": 252,
+        "forward": 294,
+        "mechanical_remaining": 108,
+        "worker_instances": 21
+      },
+      "cases": {
+        "num_modern_ecl": {
+          "capture_states": false,
+          "conv_name": "model.downsample_layers.0.0",
+          "kind": "numeric6",
+          "run_id": "ModernTCN-ECL-MS-f1-h96-s2024"
+        },
+        "num_modern_weather": {
+          "capture_states": false,
+          "conv_name": "model.downsample_layers.0.0",
+          "kind": "numeric6",
+          "run_id": "ModernTCN-Weather-MS-f1-h96-s2024"
+        },
+        "num_tm_exchange": {
+          "capture_states": false,
+          "conv_name": "enc_embedding.value_embedding.tokenConv",
+          "kind": "numeric6",
+          "run_id": "TimeMixer-Exchange-MS-f1-h96-s2024"
+        },
+        "num_tm_weather": {
+          "capture_states": false,
+          "conv_name": "enc_embedding.value_embedding.tokenConv",
+          "kernel_repetitions": 4,
+          "kind": "numeric6",
+          "run_id": "TimeMixer-Weather-MS-f1-h96-s2024"
+        },
+        "rss_amd": {
+          "capture_states": false,
+          "kind": "rss24",
+          "run_id": "AMD-ECL-MS-f1-h336-s2024"
+        },
+        "rss_itransformer": {
+          "capture_states": false,
+          "kind": "rss24",
+          "run_id": "iTransformer-ECL-MS-f1-h336-s2024"
+        },
+        "rss_j": {
+          "capture_states": false,
+          "kind": "rss24",
+          "run_id": "J-Exchange-MS-f1-h720-s2024"
+        }
+      },
+      "cpu_methods_first": 16,
+      "cpu_methods_retry": 16,
+      "max_worker_instances": 21,
+      "total_limits": {
+        "adam": 192,
+        "backward": 256,
+        "forward": 296
+      }
+    },
+    "evidence": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-type1-followup-v3",
+    "fixture": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-type1-followup-v3/fixtures",
+    "followup": {
+      "Q": 40,
+      "additional_first_adam_proposed": 0,
+      "approval_basis": "Existing594 balance only. Serial and one admitted candidate per group <=480; optional resource-only q2 fallback consumes residual quota, reserves core for later groups. No numeric masking or extra budget.",
+      "approved_extra_adam": 0,
+      "budget_history": {
+        "first_spent": 1183,
+        "latest_extra_approved": 144,
+        "latest_spent": 846,
+        "new_extra_requested": 144,
+        "original_first": 3510,
+        "previous_extra_approved": 709,
+        "previous_retest_spent": 1740,
+        "remaining": 594
+      },
+      "core_adam_max": 480,
+      "inherit_groups": [
+        "AMD-UrbanEV-F1",
+        "AMD-UrbanEV-F2",
+        "AMD-UrbanEV-F3",
+        "AMD-UrbanEV-F4",
+        "AMD-PJM-MS",
+        "AMD-ETTh1-MS",
+        "AMD-Weather-MS",
+        "AMD-Exchange-MS",
+        "J-UrbanEV-F1",
+        "J-UrbanEV-F2",
+        "J-UrbanEV-F3",
+        "J-UrbanEV-F4",
+        "J-PJM-MS",
+        "J-Weather-MS",
+        "J-ECL-MS",
+        "DLinear-UrbanEV-F4",
+        "DLinear-PJM-MS",
+        "DLinear-ETTh1-MS",
+        "DLinear-Weather-MS",
+        "DLinear-ECL-MS",
+        "DLinear-Exchange-MS",
+        "PatchTST-UrbanEV-F4",
+        "PatchTST-PJM-MS",
+        "PatchTST-ETTh1-MS",
+        "PatchTST-Exchange-MS",
+        "iTransformer-UrbanEV-F4",
+        "iTransformer-PJM-MS",
+        "iTransformer-ETTh1-MS",
+        "iTransformer-Weather-MS",
+        "iTransformer-Exchange-MS",
+        "TimeMixer-ETTh1-MS",
+        "TimeMixer-ECL-MS",
+        "ModernTCN-UrbanEV-F4",
+        "ModernTCN-PJM-MS",
+        "ModernTCN-ETTh1-MS",
+        "ModernTCN-Exchange-MS",
+        "TimeXer-UrbanEV-F4",
+        "TimeXer-PJM-MS",
+        "TimeXer-ETTh1-MS",
+        "TimeXer-Weather-MS",
+        "TimeXer-ECL-MS",
+        "TimeXer-Exchange-MS",
+        "N-UrbanEV-F4",
+        "S-UrbanEV-F4"
+      ],
+      "mechanical_pool": 512,
+      "mechanical_remaining_before_current": 288,
+      "parent_complete": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-three-scope-numeric-znYE96/probe/complete.json",
+      "parent_first_adam_spent": 3769,
+      "parent_sha256": "4e9ceb09b6631b1086e3502915d88e836510ecd7f59f976be312c652ffaa49f2",
+      "planned_adam": 594,
+      "planned_backward": 594,
+      "planned_forward": 792,
+      "planned_validation": 198,
+      "remaining_first_adam": 594,
+      "retest_groups": [
+        "AMD-ECL-MS",
+        "J-ETTh1-MS",
+        "J-Exchange-MS",
+        "PatchTST-Weather-MS",
+        "PatchTST-ECL-MS",
+        "iTransformer-ECL-MS",
+        "TimeMixer-Weather-MS",
+        "TimeMixer-Exchange-MS",
+        "ModernTCN-Weather-MS",
+        "ModernTCN-ECL-MS"
+      ],
+      "scheduling_budget_policy": "fixed-order-capped-resource-fallback-v1",
+      "short_diagnostic_max": {
+        "adam": 32,
+        "backward": 32,
+        "forward": 48
+      }
+    },
+    "formal_approval": null,
+    "m6_preparation": {
+      "cpu_first": 16,
+      "cpu_repair": 16,
+      "model_updates": 0,
+      "prefix_policy": "train_validation_only"
+    },
+    "model_first": {
+      "adam": 32,
+      "backward": 32,
+      "forward": 48
+    },
+    "model_retry": {
+      "adam": 0,
+      "backward": 0,
+      "forward": 0
+    },
+    "phase": "M6",
+    "probe": {
+      "allow_full_probe_now": false,
+      "first_adam_max": 3510,
+      "first_steps_per_Q": 18,
+      "headroom_fraction": 0.1,
+      "headroom_gib": 8,
+      "kernel_admission": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-rss-kernel-t9a2njbt/conditional-kernel-admission.json",
+        "sha256": "64b4e836ca20f57931f8cce714408d8acc09d654895536fd6a831005bbf5bd02"
+      },
+      "mandatory_blockers": [],
+      "max_Q": 195,
+      "numeric_equivalence": [
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "ETTh1",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "timemixer-etth1-fullfloat-atol1e-4-v1",
+          "kind": "full_float_state",
+          "metric_atol": 1e-06,
+          "model": "TimeMixer",
+          "rtol": 0.0,
+          "state_atol": 0.0001
+        },
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "ECL",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "timemixer-ecl-fullfloat-atol1e-4-v1",
+          "kind": "full_float_state",
+          "metric_atol": 1e-06,
+          "model": "TimeMixer",
+          "rtol": 0.0,
+          "state_atol": 0.0001
+        },
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "ETTh1",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "moderntcn-etth1-fullfloat-atol1e-4-v1",
+          "kind": "full_float_state",
+          "metric_atol": 1e-06,
+          "model": "ModernTCN",
+          "rtol": 0.0,
+          "state_atol": 0.0001
+        },
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "Exchange",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "timemixer-exchange-fullfloat-atol1e-4-kernel-v1",
+          "kind": "full_float_state",
+          "metric_atol": 1e-06,
+          "model": "TimeMixer",
+          "rtol": 0.0,
+          "state_atol": 0.0001
+        },
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "Weather",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "moderntcn-weather-fullfloat-atol1e-4-kernel-v1",
+          "kind": "full_float_state",
+          "metric_atol": 1e-06,
+          "model": "ModernTCN",
+          "rtol": 0.0,
+          "state_atol": 0.0001
+        },
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "ECL",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "moderntcn-ecl-fullfloat-atol1e-3-loss-scaled-kernel-v1",
+          "kind": "full_float_state",
+          "loss_atol": 1e-06,
+          "loss_rtol": 1e-05,
+          "metric_atol": 1e-06,
+          "model": "ModernTCN",
+          "rtol": 0.0,
+          "state_atol": 0.001
+        },
+        {
+          "capture": "preallocated raw sidecar v1",
+          "dataset": "Weather",
+          "equal_nan": false,
+          "exact_state": "initial identity/RNG/batch, optimizer step, nonfloating state and param-group structure",
+          "floating_state": "all model parameters/buffers, gradients and Adam moments",
+          "horizons": [
+            96,
+            192,
+            336,
+            720
+          ],
+          "id": "timemixer-weather-fullfloat-atol1e-4-loss-scaled-kernel-v1",
+          "kind": "full_float_state",
+          "loss_atol": 1e-06,
+          "loss_rtol": 1e-05,
+          "metric_atol": 1e-06,
+          "model": "TimeMixer",
+          "rtol": 0.0,
+          "state_atol": 0.0001
+        }
+      ],
+      "repair_steps": 512,
+      "resource_diagnostic_evidence": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-nvml-admission-dl_e40l_/resource-diagnostic-attempt1/result.json",
+        "sha256": "bc791666929dcf7e981c3d871de455198bcb428eca616bcf93bb26da8610fbe4"
+      },
+      "resource_diagnostic_status": "Material RSS screen plus 24-step plateau confirmation implemented; three long representatives passed. Four conditional kernel/numeric scopes reviewed; actual10 group retest still required.",
+      "rss_policy": {
+        "id": "rss-material-growth-platform-v1",
+        "long_total_updates": 24,
+        "min_average_bytes_per_step": 1048576,
+        "min_cumulative_bytes": 33554432,
+        "plateau_abs_slope_bytes_per_step": 262144,
+        "plateau_range_bytes": 8388608,
+        "plateau_window": 8,
+        "short_window": 4,
+        "warmup_updates": 6
+      },
+      "sample_seconds": 0.1,
+      "steps": 6,
+      "trajectory_rule": "Exact except seven explicit policies; same-operand CUDA kernel attribution required for four newest scopes. State/metric/loss thresholds per immutable policy.",
+      "validation_batches": 2,
+      "warmup": 2
+    },
+    "probe_review": null,
+    "python": "/public/home/yueweiting/大论文/amd-execution-envs/m5-source-smoke-8sr2d3d_/bin/python"
+  },
+  "groups": [
+    {
+      "id": "AMD-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "AMD-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "AMD-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "AMD-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "AMD-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "AMD-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "AMD-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "AMD-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "AMD-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "AMD-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "DLinear-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "DLinear-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "DLinear-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "DLinear-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "DLinear-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "DLinear-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "DLinear-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "DLinear-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "DLinear-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "DLinear-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "PatchTST-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "PatchTST-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "PatchTST-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "PatchTST-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "PatchTST-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "PatchTST-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "PatchTST-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "PatchTST-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "PatchTST-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "PatchTST-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "iTransformer-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "iTransformer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "iTransformer-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "iTransformer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "iTransformer-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "iTransformer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "iTransformer-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "iTransformer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "iTransformer-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "iTransformer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeMixer-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeMixer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeMixer-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeMixer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeMixer-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeMixer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeMixer-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeMixer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeMixer-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeMixer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "ModernTCN-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "ModernTCN-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "ModernTCN-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "ModernTCN-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "ModernTCN-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "ModernTCN-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "ModernTCN-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "ModernTCN-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "ModernTCN-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "ModernTCN-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeXer-PJM-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeXer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeXer-NP-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeXer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeXer-BE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeXer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeXer-FR-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeXer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    },
+    {
+      "id": "TimeXer-DE-MS-type1-followup-v3-recovery1",
+      "task_ids": [
+        "TimeXer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024"
+      ]
+    }
+  ],
+  "native_time_mark": {
+    "business_C_unchanged": true,
+    "data_binding_artifact": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-type1-followup-v3/epf_all-data-bindings.json",
+      "sha256": "9fcce4dd29d066323fe613088ff6daa345971b1d5c164d88dcdc4359935e49bf"
+    },
+    "freq_policy": "preserve frozen author/profile freq; all scoped profiles h",
+    "future": false,
+    "id": "native_time_mark_v1",
+    "mark_scaler": false,
+    "models": [
+      "iTransformer",
+      "TimeMixer",
+      "TimeXer"
+    ],
+    "source": "bound historical timestamp window only"
+  },
+  "resolved_profiles": {
+    "AMD-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "AMD",
+      "pred_len": 24,
+      "structure": {
+        "alpha": 0,
+        "aux_loss_coefficient": 1,
+        "c": 2,
+        "dropout": 0.1,
+        "k": 3,
+        "kernel_large": 31,
+        "kernel_small": 5,
+        "layernorm": true,
+        "moe_experts": 8,
+        "moe_hidden": 2048,
+        "moe_top_k": 2,
+        "n_block": 1,
+        "norm": true,
+        "patch": 24,
+        "s2": {
+          "alpha": 0.5,
+          "d_model": 64,
+          "dropout": 0.1,
+          "gamma": 0.001,
+          "n_atoms": 8,
+          "seed": 2024
+        },
+        "thls": {
+          "dropout": 0.1,
+          "eta": 0.001,
+          "feature_layernorm": true,
+          "ffn_ratio": 2,
+          "hidden": 8,
+          "seed": 2024
+        }
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "AMD-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "AMD",
+      "pred_len": 24,
+      "structure": {
+        "alpha": 0,
+        "aux_loss_coefficient": 1,
+        "c": 2,
+        "dropout": 0.1,
+        "k": 3,
+        "kernel_large": 31,
+        "kernel_small": 5,
+        "layernorm": true,
+        "moe_experts": 8,
+        "moe_hidden": 2048,
+        "moe_top_k": 2,
+        "n_block": 1,
+        "norm": true,
+        "patch": 24,
+        "s2": {
+          "alpha": 0.5,
+          "d_model": 64,
+          "dropout": 0.1,
+          "gamma": 0.001,
+          "n_atoms": 8,
+          "seed": 2024
+        },
+        "thls": {
+          "dropout": 0.1,
+          "eta": 0.001,
+          "feature_layernorm": true,
+          "ffn_ratio": 2,
+          "hidden": 8,
+          "seed": 2024
+        }
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "AMD-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "AMD",
+      "pred_len": 24,
+      "structure": {
+        "alpha": 0,
+        "aux_loss_coefficient": 1,
+        "c": 2,
+        "dropout": 0.1,
+        "k": 3,
+        "kernel_large": 31,
+        "kernel_small": 5,
+        "layernorm": true,
+        "moe_experts": 8,
+        "moe_hidden": 2048,
+        "moe_top_k": 2,
+        "n_block": 1,
+        "norm": true,
+        "patch": 24,
+        "s2": {
+          "alpha": 0.5,
+          "d_model": 64,
+          "dropout": 0.1,
+          "gamma": 0.001,
+          "n_atoms": 8,
+          "seed": 2024
+        },
+        "thls": {
+          "dropout": 0.1,
+          "eta": 0.001,
+          "feature_layernorm": true,
+          "ffn_ratio": 2,
+          "hidden": 8,
+          "seed": 2024
+        }
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "AMD-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "AMD",
+      "pred_len": 24,
+      "structure": {
+        "alpha": 0,
+        "aux_loss_coefficient": 1,
+        "c": 2,
+        "dropout": 0.1,
+        "k": 3,
+        "kernel_large": 31,
+        "kernel_small": 5,
+        "layernorm": true,
+        "moe_experts": 8,
+        "moe_hidden": 2048,
+        "moe_top_k": 2,
+        "n_block": 1,
+        "norm": true,
+        "patch": 24,
+        "s2": {
+          "alpha": 0.5,
+          "d_model": 64,
+          "dropout": 0.1,
+          "gamma": 0.001,
+          "n_atoms": 8,
+          "seed": 2024
+        },
+        "thls": {
+          "dropout": 0.1,
+          "eta": 0.001,
+          "feature_layernorm": true,
+          "ffn_ratio": 2,
+          "hidden": 8,
+          "seed": 2024
+        }
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "AMD-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "AMD",
+      "pred_len": 24,
+      "structure": {
+        "alpha": 0,
+        "aux_loss_coefficient": 1,
+        "c": 2,
+        "dropout": 0.1,
+        "k": 3,
+        "kernel_large": 31,
+        "kernel_small": 5,
+        "layernorm": true,
+        "moe_experts": 8,
+        "moe_hidden": 2048,
+        "moe_top_k": 2,
+        "n_block": 1,
+        "norm": true,
+        "patch": 24,
+        "s2": {
+          "alpha": 0.5,
+          "d_model": 64,
+          "dropout": 0.1,
+          "gamma": 0.001,
+          "n_atoms": 8,
+          "seed": 2024
+        },
+        "thls": {
+          "dropout": 0.1,
+          "eta": 0.001,
+          "feature_layernorm": true,
+          "ffn_ratio": 2,
+          "hidden": 8,
+          "seed": 2024
+        }
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "DLinear-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "DLinear",
+      "pred_len": 24,
+      "structure": {
+        "individual": false,
+        "moving_avg": 25
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "DLinear-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "DLinear",
+      "pred_len": 24,
+      "structure": {
+        "individual": false,
+        "moving_avg": 25
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "DLinear-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "DLinear",
+      "pred_len": 24,
+      "structure": {
+        "individual": false,
+        "moving_avg": 25
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "DLinear-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "DLinear",
+      "pred_len": 24,
+      "structure": {
+        "individual": false,
+        "moving_avg": 25
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "DLinear-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "DLinear",
+      "pred_len": 24,
+      "structure": {
+        "individual": false,
+        "moving_avg": 25
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "ModernTCN-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "ModernTCN",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomposition": 0,
+        "dims": [
+          64,
+          64,
+          64,
+          64
+        ],
+        "downsample_ratio": 2,
+        "dropout": 0.3,
+        "dw_dims": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "ffn_ratio": 1,
+        "freq": "h",
+        "head_dropout": 0,
+        "individual": 0,
+        "kernel_size": 25,
+        "large_size": [
+          51
+        ],
+        "moving_avg": 25,
+        "n_heads": 8,
+        "num_blocks": [
+          1
+        ],
+        "padding_patch": "end",
+        "patch_len": 16,
+        "patch_size": 8,
+        "patch_stride": 4,
+        "revin": 1,
+        "small_kernel_merged": false,
+        "small_size": [
+          5
+        ],
+        "stem_ratio": 6,
+        "stride": 8,
+        "subtract_last": 0,
+        "use_multi_scale": false
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "ModernTCN-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "ModernTCN",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomposition": 0,
+        "dims": [
+          64,
+          64,
+          64,
+          64
+        ],
+        "downsample_ratio": 2,
+        "dropout": 0.3,
+        "dw_dims": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "ffn_ratio": 1,
+        "freq": "h",
+        "head_dropout": 0,
+        "individual": 0,
+        "kernel_size": 25,
+        "large_size": [
+          51
+        ],
+        "moving_avg": 25,
+        "n_heads": 8,
+        "num_blocks": [
+          1
+        ],
+        "padding_patch": "end",
+        "patch_len": 16,
+        "patch_size": 8,
+        "patch_stride": 4,
+        "revin": 1,
+        "small_kernel_merged": false,
+        "small_size": [
+          5
+        ],
+        "stem_ratio": 6,
+        "stride": 8,
+        "subtract_last": 0,
+        "use_multi_scale": false
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "ModernTCN-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "ModernTCN",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomposition": 0,
+        "dims": [
+          64,
+          64,
+          64,
+          64
+        ],
+        "downsample_ratio": 2,
+        "dropout": 0.3,
+        "dw_dims": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "ffn_ratio": 1,
+        "freq": "h",
+        "head_dropout": 0,
+        "individual": 0,
+        "kernel_size": 25,
+        "large_size": [
+          51
+        ],
+        "moving_avg": 25,
+        "n_heads": 8,
+        "num_blocks": [
+          1
+        ],
+        "padding_patch": "end",
+        "patch_len": 16,
+        "patch_size": 8,
+        "patch_stride": 4,
+        "revin": 1,
+        "small_kernel_merged": false,
+        "small_size": [
+          5
+        ],
+        "stem_ratio": 6,
+        "stride": 8,
+        "subtract_last": 0,
+        "use_multi_scale": false
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "ModernTCN-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "ModernTCN",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomposition": 0,
+        "dims": [
+          64,
+          64,
+          64,
+          64
+        ],
+        "downsample_ratio": 2,
+        "dropout": 0.3,
+        "dw_dims": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "ffn_ratio": 1,
+        "freq": "h",
+        "head_dropout": 0,
+        "individual": 0,
+        "kernel_size": 25,
+        "large_size": [
+          51
+        ],
+        "moving_avg": 25,
+        "n_heads": 8,
+        "num_blocks": [
+          1
+        ],
+        "padding_patch": "end",
+        "patch_len": 16,
+        "patch_size": 8,
+        "patch_stride": 4,
+        "revin": 1,
+        "small_kernel_merged": false,
+        "small_size": [
+          5
+        ],
+        "stem_ratio": 6,
+        "stride": 8,
+        "subtract_last": 0,
+        "use_multi_scale": false
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "ModernTCN-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "ModernTCN",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomposition": 0,
+        "dims": [
+          64,
+          64,
+          64,
+          64
+        ],
+        "downsample_ratio": 2,
+        "dropout": 0.3,
+        "dw_dims": [
+          256,
+          256,
+          256,
+          256
+        ],
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "ffn_ratio": 1,
+        "freq": "h",
+        "head_dropout": 0,
+        "individual": 0,
+        "kernel_size": 25,
+        "large_size": [
+          51
+        ],
+        "moving_avg": 25,
+        "n_heads": 8,
+        "num_blocks": [
+          1
+        ],
+        "padding_patch": "end",
+        "patch_len": 16,
+        "patch_size": 8,
+        "patch_stride": 4,
+        "revin": 1,
+        "small_kernel_merged": false,
+        "small_size": [
+          5
+        ],
+        "stem_ratio": 6,
+        "stride": 8,
+        "subtract_last": 0,
+        "use_multi_scale": false
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "PatchTST-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "PatchTST",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomposition": 0,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "freq": "h",
+        "head_dropout": 0.0,
+        "individual": 0,
+        "kernel_size": 25,
+        "moving_avg": 25,
+        "n_heads": 4,
+        "padding_patch": "end",
+        "patch_len": 24,
+        "revin": 1,
+        "stride": 12,
+        "subtract_last": 0
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "PatchTST-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "PatchTST",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomposition": 0,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "freq": "h",
+        "head_dropout": 0.0,
+        "individual": 0,
+        "kernel_size": 25,
+        "moving_avg": 25,
+        "n_heads": 4,
+        "padding_patch": "end",
+        "patch_len": 24,
+        "revin": 1,
+        "stride": 12,
+        "subtract_last": 0
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "PatchTST-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "PatchTST",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomposition": 0,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "freq": "h",
+        "head_dropout": 0.0,
+        "individual": 0,
+        "kernel_size": 25,
+        "moving_avg": 25,
+        "n_heads": 4,
+        "padding_patch": "end",
+        "patch_len": 24,
+        "revin": 1,
+        "stride": 12,
+        "subtract_last": 0
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "PatchTST-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "PatchTST",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomposition": 0,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "freq": "h",
+        "head_dropout": 0.0,
+        "individual": 0,
+        "kernel_size": 25,
+        "moving_avg": 25,
+        "n_heads": 4,
+        "padding_patch": "end",
+        "patch_len": 24,
+        "revin": 1,
+        "stride": 12,
+        "subtract_last": 0
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "PatchTST-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "PatchTST",
+      "pred_len": 24,
+      "structure": {
+        "activation": "gelu",
+        "affine": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomposition": 0,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "fc_dropout": 0.05,
+        "freq": "h",
+        "head_dropout": 0.0,
+        "individual": 0,
+        "kernel_size": 25,
+        "moving_avg": 25,
+        "n_heads": 4,
+        "padding_patch": "end",
+        "patch_len": 24,
+        "revin": 1,
+        "stride": 12,
+        "subtract_last": 0
+      },
+      "target_idx": 2,
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeMixer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeMixer",
+      "parent_profile_sha": "a19a23cbdbeb2b6f5b287a17c6b36b83e90d1c08e29aaba189773db545704586",
+      "parent_run_id": "TimeMixer-BE-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 3,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 2,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeMixer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeMixer",
+      "parent_profile_sha": "73faa7ed19a5bb20522177f942cf9a5fce8c03ee95d7bb4e30ede72dba07a642",
+      "parent_run_id": "TimeMixer-DE-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 3,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 2,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeMixer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeMixer",
+      "parent_profile_sha": "092fe6b33460b4d6eb767a22afa82408bdb8de652cb65a5c42fe4816e299e020",
+      "parent_run_id": "TimeMixer-FR-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 3,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 2,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeMixer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeMixer",
+      "parent_profile_sha": "043d9917569c7f5eb732c888ae583bace0b15b86b3156080c5261f0b81f1f1fb",
+      "parent_run_id": "TimeMixer-NP-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 3,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 2,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeMixer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeMixer",
+      "parent_profile_sha": "244bfea69572f67e1368a12591946ed5c0cd4b03a33a0f76972afd628f6f5969",
+      "parent_run_id": "TimeMixer-PJM-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 0,
+        "d_ff": 128,
+        "d_layers": 1,
+        "d_model": 64,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 3,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 2,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeXer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeXer",
+      "parent_profile_sha": "5d02a176805d10c2b8c76e02f33d3efd8f40f2c7c90381d576edff7f1a0017cd",
+      "parent_run_id": "TimeXer-BE-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": null,
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "patch_len": 24,
+        "top_k": 5,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeXer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeXer",
+      "parent_profile_sha": "b8230e2041f9e7f30be706d608eedc78308e5e5f0c9dc44c6f18c4943d0103e2",
+      "parent_run_id": "TimeXer-DE-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": null,
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "patch_len": 24,
+        "top_k": 5,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeXer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeXer",
+      "parent_profile_sha": "61e78f541d0e0971ea4b7707eafa8d6709bd2c7e0bf20430151f00abf731973b",
+      "parent_run_id": "TimeXer-FR-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": null,
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "patch_len": 24,
+        "top_k": 5,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeXer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeXer",
+      "parent_profile_sha": "155c601fea5c7096ad7718e37bfa6e6ea66452056bd3747466f7b9292dd18bd6",
+      "parent_run_id": "TimeXer-NP-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": null,
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "patch_len": 24,
+        "top_k": 5,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "TimeXer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "TimeXer",
+      "parent_profile_sha": "7fe32b8cdc0250415fa59866699d73ba5ccf938b50c9cbef3474963132e052d4",
+      "parent_run_id": "TimeXer-PJM-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 2048,
+        "d_layers": 1,
+        "d_model": 512,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": null,
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 3,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "patch_len": 24,
+        "top_k": 5,
+        "use_norm": 1
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "iTransformer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "BE",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "iTransformer",
+      "parent_profile_sha": "4299d969a0a6b9d164b9117bbef9e565353cbf52daf7e4923f946f9bde3a59b7",
+      "parent_run_id": "iTransformer-BE-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": false,
+        "class_strategy": "projection",
+        "d_ff": 256,
+        "d_layers": 1,
+        "d_model": 128,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 4,
+        "use_norm": true
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "iTransformer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "DE",
+      "features": [
+        " Wind power forecast",
+        " Ampirion zonal load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "iTransformer",
+      "parent_profile_sha": "b71b0a65b1bfec19ebd7322685df58a012518a1e8fce3e242da837750c835465",
+      "parent_run_id": "iTransformer-DE-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": false,
+        "class_strategy": "projection",
+        "d_ff": 256,
+        "d_layers": 1,
+        "d_model": 128,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 4,
+        "use_norm": true
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "iTransformer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "FR",
+      "features": [
+        " Generation forecast",
+        " System load forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "iTransformer",
+      "parent_profile_sha": "989202e11cd047fd25e7d44271a63abd67b35d1b98c9caefa499b533a45b61c7",
+      "parent_run_id": "iTransformer-FR-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": false,
+        "class_strategy": "projection",
+        "d_ff": 256,
+        "d_layers": 1,
+        "d_model": 128,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 4,
+        "use_norm": true
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "iTransformer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "NP",
+      "features": [
+        " Grid load forecast",
+        " Wind power forecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "iTransformer",
+      "parent_profile_sha": "5e0fb7e0bb8dbeb4fd20fc59d474cbbc90be65210c6bc4f4ec3f740c6edfa30c",
+      "parent_run_id": "iTransformer-NP-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": false,
+        "class_strategy": "projection",
+        "d_ff": 256,
+        "d_layers": 1,
+        "d_model": 128,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 4,
+        "use_norm": true
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    },
+    "iTransformer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024": {
+      "C": 3,
+      "H": 24,
+      "T": 168,
+      "aux_idx": [
+        0,
+        1
+      ],
+      "contract": "ch3-target-ms-formal-v2",
+      "dataset": "PJM",
+      "features": [
+        " System load forecast",
+        " Zonal COMED load foecast",
+        "OT"
+      ],
+      "input_variant": "MS",
+      "model": "iTransformer",
+      "parent_profile_sha": "373ab78af7831ba486c3399c77ecd490a8db899238a02e48ef5fb4c5c8c2a5d1",
+      "parent_run_id": "iTransformer-PJM-MS-f1-h24-s2024",
+      "pred_len": 24,
+      "revision": "native-time-mark-v1",
+      "structure": {
+        "activation": "gelu",
+        "channel_independence": false,
+        "class_strategy": "projection",
+        "d_ff": 256,
+        "d_layers": 1,
+        "d_model": 128,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 4,
+        "use_norm": true
+      },
+      "target_idx": 2,
+      "time_mark": {
+        "K": 4,
+        "business_channels_added": 0,
+        "features": [
+          "HourOfDay",
+          "DayOfWeek",
+          "DayOfMonth",
+          "DayOfYear"
+        ],
+        "fitted": false,
+        "freq": "h",
+        "future": false,
+        "mode": "native_time_mark_v1",
+        "source": "bound timestamp column, exact historical x window"
+      },
+      "training": {
+        "accumulation": 1,
+        "batch": 32,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 10,
+        "eps": 1e-08,
+        "eval_batch": 32,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.0001,
+        "optimizer": "Adam",
+        "patience": 3,
+        "scheduler": {
+          "adjustment": "after_validation_best_update_before_checkpoint_if_continuing",
+          "coefficient": 1.0,
+          "epochs": 10,
+          "factor": 0.5,
+          "first_decay_training_epoch": 3,
+          "formula_version": "max(e-2,0)*c(E); c=1 if E<=10 else 8/(E-2)",
+          "initial_lr": 0.0001,
+          "name": "type1_horizon_scaled_v1",
+          "steps_per_epoch": 1140
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      }
+    }
+  },
+  "sources": {
+    "DLinear": {
+      "class": "Model",
+      "commit": "0c113668a3b88c4c4ee586b8c5ec3e539c4de5a6",
+      "defaults_source": {
+        "path": "/public/home/yueweiting/大论文/LTSF-Linear/run_longExp.py",
+        "sha256": "7519b8f95f06768da5f2faae5c10ae23855015df764298e79c7d85cd1396ab2b",
+        "values": {
+          "activation": "gelu",
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "dropout": 0.05,
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "freq": "h",
+          "individual": false,
+          "moving_avg": 25,
+          "n_heads": 8
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/LTSF-Linear/models/DLinear.py",
+      "files": {
+        "/public/home/yueweiting/大论文/LTSF-Linear/models/DLinear.py": "0893b53cb6473d6bdca7aeca514cb3ee12efa6df227c29c4469571c9711451cc"
+      },
+      "four_arg": false,
+      "module": "models.DLinear",
+      "modules": {
+        "models.DLinear": "/public/home/yueweiting/大论文/LTSF-Linear/models/DLinear.py"
+      },
+      "repository": "/public/home/yueweiting/大论文/LTSF-Linear",
+      "root": "/public/home/yueweiting/大论文/LTSF-Linear",
+      "url": "https://github.com/cure-lab/LTSF-Linear.git"
+    },
+    "ModernTCN": {
+      "class": "Model",
+      "commit": "56a9a2c018385cd5acef015378cae7f084d1b11c",
+      "defaults_source": {
+        "path": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/run.py",
+        "sha256": "e08dc1fd5fe38851a085c3fe6f54085cc0d207233910fa5d71f00341cb724e75",
+        "values": {
+          "activation": "gelu",
+          "affine": 0,
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "decomposition": 0,
+          "dims": [
+            256,
+            256,
+            256,
+            256
+          ],
+          "downsample_ratio": 2,
+          "dropout": 0.05,
+          "dw_dims": [
+            256,
+            256,
+            256,
+            256
+          ],
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "fc_dropout": 0.05,
+          "ffn_ratio": 2,
+          "freq": "h",
+          "head_dropout": 0.0,
+          "individual": 0,
+          "kernel_size": 25,
+          "large_size": [
+            31,
+            29,
+            27,
+            13
+          ],
+          "moving_avg": 25,
+          "n_heads": 8,
+          "num_blocks": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "padding_patch": "end",
+          "patch_len": 16,
+          "revin": 1,
+          "small_kernel_merged": false,
+          "small_size": [
+            5,
+            5,
+            5,
+            5
+          ],
+          "stem_ratio": 6,
+          "stride": 8,
+          "subtract_last": 0,
+          "use_multi_scale": true
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py",
+      "files": {
+        "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/layers/RevIN.py": "1e08d0b3679f4ef79ac7f98a7f719f8d7f8a04595022ed34f702c7d70c0c4d90",
+        "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py": "daf74722e40d928e5ed6bc871b528a5d5d2c9090f30cafb89110cc88dc60fa30",
+        "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN_Layer.py": "b2291534c6a11ebd80882bed89f7cf8c76c721b8e0495294659f2c5b0fe88cea"
+      },
+      "four_arg": false,
+      "module": "models.ModernTCN",
+      "modules": {
+        "layers.RevIN": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/layers/RevIN.py",
+        "models.ModernTCN": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py",
+        "models.ModernTCN_Layer": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN_Layer.py"
+      },
+      "repository": "/public/home/yueweiting/大论文/ModernTCN",
+      "root": "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting",
+      "url": "https://github.com/luodhhh/ModernTCN.git"
+    },
+    "PatchTST": {
+      "class": "Model",
+      "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+      "defaults_source": {
+        "path": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/run_longExp.py",
+        "sha256": "44345cb6c6a5e7a6ff95b8e95c988aef3386d9fff7ddd23cb5fee5d3a151bdfc",
+        "values": {
+          "activation": "gelu",
+          "affine": 0,
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "decomposition": 0,
+          "dropout": 0.05,
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "fc_dropout": 0.05,
+          "freq": "h",
+          "head_dropout": 0.0,
+          "individual": 0,
+          "kernel_size": 25,
+          "moving_avg": 25,
+          "n_heads": 8,
+          "padding_patch": "end",
+          "patch_len": 16,
+          "revin": 1,
+          "stride": 8,
+          "subtract_last": 0
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/models/PatchTST.py",
+      "files": {
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_backbone.py": "df67173153787c2356bdfb6491159cd754332ef7382986efe879e1fbea8ebf26",
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_layers.py": "21c06c70a90c60ee2a269b5c600c702834dea22cdfd72915e6b0f8b4a28db3f6",
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/RevIN.py": "e64c0ccded9228b347134e7368420d3fb10f70c75145b5ff2d8bdd8c3af59df6",
+        "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/models/PatchTST.py": "49d8bb865e1226d6338842f4b33c4bc6992cefb048dc2a4a5a8c410ca708586b"
+      },
+      "four_arg": false,
+      "module": "models.PatchTST",
+      "modules": {
+        "layers.PatchTST_backbone": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_backbone.py",
+        "layers.PatchTST_layers": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/PatchTST_layers.py",
+        "layers.RevIN": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/layers/RevIN.py",
+        "models.PatchTST": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised/models/PatchTST.py"
+      },
+      "repository": "/public/home/yueweiting/大论文/PatchTST",
+      "root": "/public/home/yueweiting/大论文/PatchTST/PatchTST_supervised",
+      "url": "https://github.com/yuqinie98/PatchTST.git"
+    },
+    "TimeMixer": {
+      "class": "Model",
+      "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+      "defaults_source": {
+        "path": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+        "sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024",
+        "values": {
+          "activation": "gelu",
+          "channel_independence": 1,
+          "d_ff": 32,
+          "d_layers": 1,
+          "d_model": 16,
+          "decomp_method": "moving_avg",
+          "down_sampling_layers": 0,
+          "down_sampling_method": "avg",
+          "down_sampling_window": 1,
+          "dropout": 0.1,
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "freq": "h",
+          "moving_avg": 25,
+          "n_heads": 8,
+          "top_k": 5,
+          "use_future_temporal_feature": 0,
+          "use_norm": 1
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py",
+      "files": {
+        "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py": "48745b4bb647355e9845792a855df9c59fd7df7fcc664c765351fec390c4073e",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py": "ab492ea2f68459bbcf3cbffdd1beb75b24d0d70248d017a313a3b470316aaa2b",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py": "cc1c0bc65b7b094bbe83f988fb05b86272a59638c030c3781aa52ce8880379df",
+        "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py": "817d62f4aac54c8566e560f6d3785856e31c8ee51460279ee3d0a4823f11d4be",
+        "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "four_arg": true,
+      "module": "models.TimeMixer",
+      "modules": {
+        "layers": "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py",
+        "layers.Autoformer_EncDec": "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py",
+        "layers.Embed": "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py",
+        "layers.StandardNorm": "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py",
+        "models": "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py",
+        "models.TimeMixer": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py"
+      },
+      "repository": "/public/home/yueweiting/大论文/TimeMixer",
+      "root": "/public/home/yueweiting/大论文/TimeMixer",
+      "url": "https://github.com/kwuking/TimeMixer.git"
+    },
+    "TimeXer": {
+      "class": "Model",
+      "commit": "76011909357972bd55a27adba2e1be994d81b327",
+      "defaults_source": {
+        "path": "/public/home/yueweiting/大论文/TimeXer/run.py",
+        "sha256": "55e3ec417d876049d39eda74e48108076ac145be2b2999834eeae53500e85b1e",
+        "values": {
+          "activation": "gelu",
+          "channel_independence": 1,
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "decomp_method": "moving_avg",
+          "down_sampling_layers": 0,
+          "down_sampling_method": null,
+          "down_sampling_window": 1,
+          "dropout": 0.1,
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "freq": "h",
+          "moving_avg": 25,
+          "n_heads": 8,
+          "patch_len": 16,
+          "top_k": 5,
+          "use_norm": 1
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/TimeXer/models/TimeXer.py",
+      "files": {
+        "/public/home/yueweiting/大论文/TimeXer/layers/Embed.py": "17e7c3577324c41a0da427a199c955b782fde905aabb1f7cbc3c4e15ebd4ae35",
+        "/public/home/yueweiting/大论文/TimeXer/layers/SelfAttention_Family.py": "6f6592aed0753e342fc04c01db70528c2eb191eeb067cd5fd4c8d348fddcb794",
+        "/public/home/yueweiting/大论文/TimeXer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeXer/models/TimeXer.py": "b334d7869544d0a5de7a35501d0342d7bd0be4ebda06ccc045855a42819728c0",
+        "/public/home/yueweiting/大论文/TimeXer/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeXer/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/TimeXer/utils/masking.py": "5976ac3dc84915d0d294c1761573bc18434751f29ec421bcca5a9b280de46bae"
+      },
+      "four_arg": true,
+      "module": "models.TimeXer",
+      "modules": {
+        "layers": "/public/home/yueweiting/大论文/TimeXer/layers/__init__.py",
+        "layers.Embed": "/public/home/yueweiting/大论文/TimeXer/layers/Embed.py",
+        "layers.SelfAttention_Family": "/public/home/yueweiting/大论文/TimeXer/layers/SelfAttention_Family.py",
+        "models": "/public/home/yueweiting/大论文/TimeXer/models/__init__.py",
+        "models.TimeXer": "/public/home/yueweiting/大论文/TimeXer/models/TimeXer.py",
+        "utils": "/public/home/yueweiting/大论文/TimeXer/utils/__init__.py",
+        "utils.masking": "/public/home/yueweiting/大论文/TimeXer/utils/masking.py"
+      },
+      "repository": "/public/home/yueweiting/大论文/TimeXer",
+      "root": "/public/home/yueweiting/大论文/TimeXer",
+      "url": "https://github.com/thuml/TimeXer.git"
+    },
+    "iTransformer": {
+      "class": "Model",
+      "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+      "defaults_source": {
+        "path": "/public/home/yueweiting/大论文/iTransformer/run.py",
+        "sha256": "650873cfd6fee1f0415d4e8fd69943ad736fd1bab6495b640aa27b1a769f59f9",
+        "values": {
+          "activation": "gelu",
+          "channel_independence": false,
+          "class_strategy": "projection",
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "dropout": 0.1,
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "freq": "h",
+          "moving_avg": 25,
+          "n_heads": 8,
+          "use_norm": true
+        }
+      },
+      "entry": "/public/home/yueweiting/大论文/iTransformer/model/iTransformer.py",
+      "files": {
+        "/public/home/yueweiting/大论文/iTransformer/layers/Embed.py": "2de7e5049a696d320a23a8bdb6e08e823cf7fa3f246a0a49555fcd729c5c8398",
+        "/public/home/yueweiting/大论文/iTransformer/layers/SelfAttention_Family.py": "38ac67428d528b8e145e4944ca059b40629a8446c891142602d5aaadc38dfd9e",
+        "/public/home/yueweiting/大论文/iTransformer/layers/Transformer_EncDec.py": "985c31f4ae187b08afaa9663dc960a40544b2ec33ab55389ceab3930edc1ce02",
+        "/public/home/yueweiting/大论文/iTransformer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/iTransformer/model/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/iTransformer/model/iTransformer.py": "6f34777a5a12c253a293f79e7e1fd5b6f79ac100b443951e051e269e7e2542db",
+        "/public/home/yueweiting/大论文/iTransformer/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/public/home/yueweiting/大论文/iTransformer/utils/masking.py": "02f453e52cfaec65e34132923add80e7132f188706680fa86d7bd884976e09ef"
+      },
+      "four_arg": true,
+      "module": "model.iTransformer",
+      "modules": {
+        "layers": "/public/home/yueweiting/大论文/iTransformer/layers/__init__.py",
+        "layers.Embed": "/public/home/yueweiting/大论文/iTransformer/layers/Embed.py",
+        "layers.SelfAttention_Family": "/public/home/yueweiting/大论文/iTransformer/layers/SelfAttention_Family.py",
+        "layers.Transformer_EncDec": "/public/home/yueweiting/大论文/iTransformer/layers/Transformer_EncDec.py",
+        "model": "/public/home/yueweiting/大论文/iTransformer/model/__init__.py",
+        "model.iTransformer": "/public/home/yueweiting/大论文/iTransformer/model/iTransformer.py",
+        "utils": "/public/home/yueweiting/大论文/iTransformer/utils/__init__.py",
+        "utils.masking": "/public/home/yueweiting/大论文/iTransformer/utils/masking.py"
+      },
+      "repository": "/public/home/yueweiting/大论文/iTransformer",
+      "root": "/public/home/yueweiting/大论文/iTransformer",
+      "url": "https://github.com/thuml/iTransformer.git"
+    }
+  },
+  "tasks": [
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "AMD-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "AMD-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "AMD",
+      "profile": "AMD-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "AMD-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "AMD-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "AMD",
+      "profile": "AMD-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "AMD-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "AMD-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "AMD",
+      "profile": "AMD-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "AMD-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "AMD-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "AMD",
+      "profile": "AMD-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "AMD-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "AMD-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "AMD",
+      "profile": "AMD-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "DLinear-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "DLinear-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "DLinear",
+      "profile": "DLinear-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "DLinear-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "DLinear-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "DLinear",
+      "profile": "DLinear-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "DLinear-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "DLinear-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "DLinear",
+      "profile": "DLinear-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "DLinear-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "DLinear-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "DLinear",
+      "profile": "DLinear-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "DLinear-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "DLinear-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "DLinear",
+      "profile": "DLinear-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "PatchTST-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "PatchTST-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "PatchTST",
+      "profile": "PatchTST-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "PatchTST-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "PatchTST-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "PatchTST",
+      "profile": "PatchTST-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "PatchTST-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "PatchTST-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "PatchTST",
+      "profile": "PatchTST-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "PatchTST-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "PatchTST-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "PatchTST",
+      "profile": "PatchTST-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "PatchTST-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "PatchTST-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "PatchTST",
+      "profile": "PatchTST-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "iTransformer-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "iTransformer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "iTransformer",
+      "profile": "iTransformer-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "iTransformer-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "iTransformer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "iTransformer",
+      "profile": "iTransformer-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "iTransformer-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "iTransformer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "iTransformer",
+      "profile": "iTransformer-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "iTransformer-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "iTransformer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "iTransformer",
+      "profile": "iTransformer-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "iTransformer-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "iTransformer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "iTransformer",
+      "profile": "iTransformer-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "TimeMixer-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeMixer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeMixer",
+      "profile": "TimeMixer-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "TimeMixer-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeMixer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeMixer",
+      "profile": "TimeMixer-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "TimeMixer-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeMixer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeMixer",
+      "profile": "TimeMixer-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "TimeMixer-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeMixer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeMixer",
+      "profile": "TimeMixer-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "TimeMixer-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeMixer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeMixer",
+      "profile": "TimeMixer-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "ModernTCN-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "ModernTCN-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "ModernTCN",
+      "profile": "ModernTCN-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "ModernTCN-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "ModernTCN-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "ModernTCN",
+      "profile": "ModernTCN-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "ModernTCN-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "ModernTCN-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "ModernTCN",
+      "profile": "ModernTCN-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "ModernTCN-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "ModernTCN-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "ModernTCN",
+      "profile": "ModernTCN-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "ModernTCN-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "ModernTCN-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "ModernTCN",
+      "profile": "ModernTCN-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "PJM",
+      "fold": 1,
+      "group": "TimeXer-PJM-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeXer-PJM-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeXer",
+      "profile": "TimeXer-PJM-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "NP",
+      "fold": 1,
+      "group": "TimeXer-NP-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeXer-NP-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeXer",
+      "profile": "TimeXer-NP-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "BE",
+      "fold": 1,
+      "group": "TimeXer-BE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeXer-BE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeXer",
+      "profile": "TimeXer-BE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "FR",
+      "fold": 1,
+      "group": "TimeXer-FR-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeXer-FR-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeXer",
+      "profile": "TimeXer-FR-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    },
+    {
+      "dataset": "DE",
+      "fold": 1,
+      "group": "TimeXer-DE-MS-type1-followup-v3-recovery1",
+      "h": 24,
+      "id": "TimeXer-DE-MS-type1-followup-v3-recovery1-f1-h24-s2024",
+      "input_variant": "MS",
+      "metric_scope": "target_only",
+      "model": "TimeXer",
+      "profile": "TimeXer-DE-MS-type1-followup-v3-recovery1-h24",
+      "seed": 2024,
+      "task": "MS"
+    }
+  ],
+  "training_common": {
+    "accumulation": 1,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "dtype": "float32",
+    "eps": 1e-08,
+    "eval_drop_last": false,
+    "from_scratch": true,
+    "optimizer": "Adam",
+    "scheduler": null,
+    "search": 0,
+    "seed": 2024,
+    "threads": 4,
+    "train_drop_last": true,
+    "train_shuffle": true,
+    "weight_decay": 1e-07,
+    "workers": 0
+  },
+  "type1_followup": "m6-baseline-type1-followup-v3-recovery1",
+  "urban_folds": [
+    [
+      576,
+      648,
+      720
+    ],
+    [
+      1171,
+      1317,
+      1464
+    ],
+    [
+      1747,
+      1965,
+      2184
+    ],
+    [
+      2342,
+      2634,
+      2928
+    ],
+    [
+      2937,
+      3304,
+      3672
+    ],
+    [
+      3475,
+      3909,
+      4344
+    ]
+  ],
+  "urban_input_variants": {
+    "F0": [
+      "volume"
+    ],
+    "F1": [
+      "volume",
+      "hour_sin",
+      "hour_cos",
+      "weekday_sin",
+      "weekday_cos",
+      "is_weekend"
+    ],
+    "F2": [
+      "volume",
+      "e_price",
+      "s_price",
+      "hour_sin",
+      "hour_cos",
+      "weekday_sin",
+      "weekday_cos",
+      "is_weekend"
+    ],
+    "F3": [
+      "volume",
+      "Ta",
+      "P",
+      "h",
+      "hour_sin",
+      "hour_cos",
+      "weekday_sin",
+      "weekday_cos",
+      "is_weekend"
+    ],
+    "F4": [
+      "volume",
+      "e_price",
+      "s_price",
+      "Ta",
+      "P",
+      "h",
+      "hour_sin",
+      "hour_cos",
+      "weekday_sin",
+      "weekday_cos",
+      "is_weekend"
+    ]
+  }
+}

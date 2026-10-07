@@ -35,7 +35,11 @@ def validate_m(c):
     p=m_parent();b=c['baseline_unified']
     if c.get('type1_followup')!=s.ID or b['stage']!='M_BASE' or b['id']!=M_PROTOCOL or c['tasks']!=m_tasks():raise ValueError('exact fresh 84-task M128 continuation')
     if b['direct_parent_ref']!=M_PARENT or b['recipe_ref']!=__import__('utils.ch3_round2_amendment',fromlist=['RECIPE_REF']).RECIPE_REF:raise ValueError('M128 frozen parent/OneCycle recipe')
-    if any(c[k]!=p[k]for k in ('sources','datasets','urban_folds','urban_input_variants'))or b['numeric_policies']!=p['baseline_unified']['numeric_policies']:raise ValueError('M128 data/source/policy changed')
+    policies=p['baseline_unified']['numeric_policies']
+    if b.get('numeric_revision_ref'):
+        from utils.ch3_moderntcn_etth1_recovery import validate_revision
+        policies=validate_revision(c)
+    if any(c[k]!=p[k]for k in ('sources','datasets','urban_folds','urban_input_variants'))or b['numeric_policies']!=policies:raise ValueError('M128 data/source/policy changed')
     data=bound(b['data_ref'])
     for t in c['tasks']:
         prior=old_task(t);resolved=m_profile(t);expected=dict(task_id=prior['id'],profile_sha=digest(p['resolved_profiles'][prior['id']]),config_ref=M_PARENT)

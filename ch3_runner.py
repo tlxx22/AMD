@@ -89,6 +89,14 @@ def code_binding():
     if (ROOT/'utils/ch3_probe_schema_recovery.py').exists():
         files += ['utils/ch3_probe_schema_recovery.py','m6_probe_schema_recovery_entry.py',
                   'scripts/ch3/start_probe_schema_recovery.sh','tests/test_m6_probe_schema_recovery.py']
+    if (ROOT/'utils/ch3_moderntcn_etth1_recovery.py').exists():
+        files += ['utils/ch3_moderntcn_etth1_recovery.py','utils/ch3_moderntcn_etth1_diagnostic.py',
+                  'configs/ch3_round2_m_batch128_etth1_numeric_r1.json',
+                  'configs/ch3_round2_m_amend1_recovery1_moderntcn2e4_r1.json','configs/ch3_type1_m_all_v3_recovery1_moderntcn2e4_r1.json',
+                  'configs/ch3_type1_urban_subset_v3_recovery1_numeric_admission_v1.json','configs/ch3_type1_epf_all_v3_recovery1_numeric_admission_v1.json',
+                  'm6_moderntcn_etth1_recovery_entry.py',
+                  'scripts/ch3/start_moderntcn_etth1_recovery.sh','tests/test_m6_moderntcn_etth1_diagnostic.py',
+                  'tests/test_m6_moderntcn_etth1_recovery.py','tests/test_m6_numeric_admission_defaults.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -403,13 +411,21 @@ def _compare_full_numeric_files(rule,reference,actual):
         if dp.stat().st_size!=row['bytes']:raise ValueError('numeric sidecar length mismatch')
     sa=json.loads(Path(reference['schema_file']).read_text());sb=json.loads(Path(actual['schema_file']).read_text())
     if sa!=sb:return dict(passed=False,state_max_abs=float('inf'),exact=False,failures=['schema content mismatch'],compared_elements=0)
+    routine=rule.get('admission_version')is not None
+    if routine:
+        from utils.ch3_contract import BASELINE_NUMERIC_ADMISSION_ID,validate_baseline_full_schema
+        if rule['admission_version']!=BASELINE_NUMERIC_ADMISSION_ID:raise ValueError('unsupported full-state admission version')
+        validate_baseline_full_schema(sa,rule)
+        if any(row['bytes']!=sa['total_bytes']for row in (reference,actual)):raise ValueError('routine full state complete payload length')
     dtype_map={'torch.float16':np.dtype('<f2'),'torch.float32':np.dtype('<f4'),'torch.float64':np.dtype('<f8')}
     maxima=0.0;count=0;failures=[];exact=True
     with Path(reference['data_file']).open('rb') as fa,Path(actual['data_file']).open('rb') as fb:
         for e in sa['entries']:
             off,n=e['offset'],e['nbytes'];fa.seek(off);fb.seek(off)
             if e['mode']=='exact':
-                if hashlib.sha256(fa.read(n)).digest()!=hashlib.sha256(fb.read(n)).digest():exact=False;failures.append('exact '+e['path'])
+                aa,bb=fa.read(n),fb.read(n)
+                if routine and e['dtype']in dtype_map and (not np.isfinite(np.frombuffer(aa,dtype=dtype_map[e['dtype']])).all()or not np.isfinite(np.frombuffer(bb,dtype=dtype_map[e['dtype']])).all()):raise ValueError('nonfinite exact optimizer/state tensor')
+                if hashlib.sha256(aa).digest()!=hashlib.sha256(bb).digest():exact=False;failures.append('exact '+e['path'])
                 continue
             if e['mode']!='bounded' or e['dtype'] not in dtype_map:raise ValueError('unsupported bounded numeric dtype/mode')
             dt=dtype_map[e['dtype']];remaining=e['numel'];local=0.0
@@ -758,14 +774,17 @@ class FrozenConvReplay:
                       deterministic=torch.backends.cudnn.deterministic,allow_tf32=torch.backends.cudnn.allow_tf32)
         identity=tensor_digest(v);w=v['w'].requires_grad_(True);results={}
         for label,det in [('current',original['deterministic']),('deterministic',True)]:
-            grads=[];outs=[]
+            grads=[];outs=[];operands=[]
             with torch.backends.cudnn.flags(enabled=original['enabled'],benchmark=original['benchmark'],deterministic=det,allow_tf32=original['allow_tf32']):
                 for _ in range(self.repetitions):
+                    operands.append(tensor_digest(v))
+                    if operands[-1]!=identity:raise ValueError('frozen operands changed before replay')
                     INSTANCE.sample(torch);INSTANCE.charge('forward','frozen-Conv1d-replay')
                     y=self.module._conv_forward(v['x'],w,v['b'])
                     g=torch.autograd.grad(y,w,grad_outputs=v['g'])[0];torch.cuda.synchronize();finite(g);finite(y)
                     grads.append(g.detach().cpu());outs.append(tensor_digest(y))
             results[label]=dict(gradient_hashes=[tensor_digest(g) for g in grads],forward_hashes=outs,
+                operand_hashes=operands,
                 repeated_gradient_max_abs=max(float((g.double()-grads[0].double()).abs().max()) for g in grads[1:]),
                 all_finite=True)
         restored=dict(enabled=torch.backends.cudnn.enabled,benchmark=torch.backends.cudnn.benchmark,
@@ -775,6 +794,7 @@ class FrozenConvReplay:
         deterministic_exact=len(set(results['deterministic']['gradient_hashes']))==1
         return dict(repetitions_per_mode=self.repetitions,conv_name=self.name,input_shape=list(v['x'].shape),input_stride=list(v['x'].stride()),
             weight_shape=list(w.shape),upstream_shape=list(v['g'].shape),operand_sha=identity,
+            operands={k:dict(sha=tensor_digest(x),shape=list(x.shape),stride=list(x.stride()),dtype=str(x.dtype))if x is not None else None for k,x in v.items()},
             original_flags=original,restored_flags=restored,results=results,
             backend_nondeterminism_demonstrated=current_varies and deterministic_exact,
             scope='frozen operands Conv1d backward; no concurrent optimizer or RNG; no global training setting changed')
@@ -800,7 +820,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
     if review['blocked'] or review['needs_long_window']:raise RuntimeError('material RSS growth still has no plateau')
     return result
 
-def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False):
+def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False,m_confirmation=False):
     import torch
     m_clock=time.monotonic()if task.get('task')=='M' or c.get('native_time_mark') else None
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
@@ -825,6 +845,10 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     if urban_confirmation:
         from utils.ch3_urban_confirmation import policy
         if policy(c,task) is None:raise ValueError('foreign confirmation task')
+    if m_confirmation:
+        from utils.ch3_moderntcn_etth1_diagnostic import target_profile
+        target_profile(c,task)
+        if urban_diagnostic or urban_confirmation:raise ValueError('mixed diagnostic endpoints')
     if urban_diagnostic or urban_confirmation:
         from utils.ch3_urban_capture import DiagnosticCapture
         diagnostic=DiagnosticCapture(model,opt,out,state_digest,generator)
@@ -857,7 +881,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         after=rss()
         if step==1:
             if m_timing is not None:m_validation_start=time.monotonic()
-            if urban_confirmation:
+            if urban_confirmation or m_confirmation:
                 validation_batches=[batch(v),batch(tail or v)]
                 validation_batch_ids=[tensor_digest(pair)for pair in validation_batches]
                 validation=evaluate(model,validation_batches,p,device)
@@ -890,8 +914,21 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         result['numeric_policy_sha']=digest(numeric_rule)
         if numeric_trace is not None:result['numeric_trace']=numeric_trace
         if full_trace is not None:result['full_numeric_trace']=full_trace
+    if m_confirmation:
+        from utils.ch3_urban_confirmation import cached_endpoint
+        endpoint=cached_endpoint(model,validation_batches,lambda bs:evaluate(model,bs,p,device),
+            lambda:dict(rng=rng(),model=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict())),tensor_digest)
+        result['M_confirmation']=dict(evaluations={'2':dict(metrics=validation,batch_ids=validation_batch_ids),'6':endpoint},
+            scope='synthetic cached all-channel M endpoint; no test or new RNG sampling')
     dump(out/'trajectory.json',result)
-    if kernel_replay:dump(out/'kernel-replay.json',kernel_replay.run())
+    if kernel_replay:
+        before=dict(rng=rng(),model=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict()))if m_confirmation else None
+        replay=kernel_replay.run()
+        if m_confirmation:
+            after=dict(rng=rng(),model=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict()))
+            if before!=after:raise ValueError('frozen replay changed persistent model/optimizer/RNG')
+            replay.update(before=before,after=after)
+        dump(out/'kernel-replay.json',replay)
     if result['memory_review']['blocked']:raise RuntimeError('material long-window memory growth or GPU allocation growth')
     if result['memory_review']['needs_long_window']:raise RuntimeError('RSS requires 24-update confirmation; not evidence of a leak')
     return result

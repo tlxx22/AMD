@@ -17,6 +17,17 @@ SOURCE_REF=dict(path=str(PACKAGE/'source-anchors.json'),sha256='70f9fae3b8aa3587
 REUSE_REF=dict(path=str(PACKAGE/'probe-reuse-evidence.final.json'),sha256='c4478689612d3b6b1820daeaa01fbb4543a34ce3c4b2e0c8ef77a65146f103e3')
 ACTIVE=False
 
+def current_recovery():
+    """Explicit public/worker activation selects one fixed, SHA-bound attempt."""
+    from utils.ch3_type1_chain import PROBE_RECOVERY
+    return PROBE_RECOVERY or sys.modules[__name__]
+
+def activate_worker(value):
+    from utils import ch3_moderntcn_etth1_recovery as numeric
+    if value==numeric.REUSE_REF:numeric.activate();return numeric
+    if value==REUSE_REF:activate();return sys.modules[__name__]
+    raise PermissionError('unregistered worker recovery identity')
+
 def activate():
     """Select this fixed attempt in its own entry/worker process, never in W."""
     global ACTIVE
@@ -123,6 +134,8 @@ def retained_refs(report):
     v=evidence();return dict(v['artifacts'],**{r['path']:r for r in [v['producer_permit_ref']]+[e['process']for e in v['evidence'].values()]})
 
 def retained_payload(c,point):
+    current=current_recovery()
+    if current is not sys.modules[__name__]:return current.retained_payload(c,point)
     if not ACTIVE or c['baseline_unified']['stage']!='M_BASE':return False
     allowed=retained_refs(dict(probe_recovery_ref=REUSE_REF))
     for key,hkey in (('schema_file','schema_sha'),('data_file','data_sha')):
