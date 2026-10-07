@@ -1,5 +1,6 @@
 """Fixed round-two amendment and source selection; no model/test execution."""
 import copy
+from pathlib import Path
 from functools import lru_cache
 from utils.ch3_contract import ROOT, digest, step_arithmetic
 from utils.ch3_native_recovery_records import bound, ref
@@ -120,15 +121,28 @@ def artifact_rows(boundary_ref):
 def build_index(old_boundaries,amendment_ref,c):
     from utils.ch3_type1_upstream import records,OLD_RESULT,OLD_PROTOCOL,BASE
     start,_=records(); old={'MS':bound(start['config_refs']['MS']),'M':parent()}
+    sealed_m=bound(old_boundaries['M'])
+    if sealed_m.get('protocol_sha') and sealed_m['protocol_sha']!=digest(old['M']):
+        from utils.ch3_type1_chain import configs
+        actual=configs()['M_BASE']
+        if sealed_m['protocol_sha']!=digest(actual) or any(actual[k]!=old['M'][k] for k in ('tasks','resolved_profiles','datasets','sources')):raise ValueError('exact retained M producer config, unchanged science')
+        old['M']=actual
     banks={stage:artifact_rows(old_boundaries[stage]) for stage in old}; new=artifact_rows(amendment_ref)
     if set(new)!={t['id'] for t in c['tasks']}: raise ValueError('all 112 amendment results must be sealed before selection')
     cells=[]
     def add(config,t,files,origin,supersedes=None):
         r=bound(files['result.json']);m=bound(files['manifest.json']);p=config['resolved_profiles'][t['id']]
-        science=config['baseline_unified']['id'];root=(OLD_RESULT/'MS' if origin=='original_v3' else recovery.RESULT/'M_BASE' if origin=='base_m128' else RESULT/STAGE)/('formal-'+t['model'])/t['id']
+        science=config['baseline_unified']['id']
+        sealed=bound(old_boundaries['MS' if origin=='original_v3' else 'M']) if origin!='amend1' else bound(amendment_ref)
+        source_root=recovery.RESULT/'M_BASE' if origin=='base_m128' else OLD_RESULT/'MS' if origin=='original_v3' else RESULT/STAGE
+        if sealed.get('adopted_source_ref') and origin=='base_m128':
+            producer=bound(sealed['adopted_source_ref'])
+            if any(sealed.get(k)!=v for k,v in producer.items()):raise ValueError('adopted M boundary changed original producer identity')
+            source_root=Path(sealed['adopted_source_ref']['path']).parents[2]/'M_BASE'
+        root=source_root/('formal-'+t['model'])/t['id']
         if files['result.json']['path']!=str(root/'result.json') or files['manifest.json']['path']!=str(root/'manifest.json') or m['task']!=t or m['profile']!=p or r['id']!=t['id'] or r['profile_sha']!=digest(p) or r['protocol_sha']!=digest(config) or r['scientific_protocol']!=science or r['commit']!=m['identity']['commit'] or r.get('final_test',{}).get('calls')!=1: raise ValueError('exact source/config/execution/test-once provenance')
         if origin=='original_v3' and r['commit']!=BASE: raise ValueError('original execution commit must remain original')
-        if origin!='original_v3' and r['commit']!=bound(old_boundaries['M'])['commit']:raise ValueError('new M/amendment current actual execution commit')
+        if origin!='original_v3' and r['commit']!=sealed['commit']:raise ValueError('actual stage producer commit; adoption cannot relabel training')
         cells.append(dict(cell_id=key(t),task=t['task'],model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=t['seed'],origin=origin,scientific_protocol=science,execution_commit=r['commit'],profile_sha=r['profile_sha'],protocol_sha=r['protocol_sha'],result_ref=files['result.json'],manifest_ref=files['manifest.json'],runtime_ref=files['runtime.json'],mse=r['mse'],mae=r['mae'],supersedes=supersedes,std='N/A'))
     for stage,config in old.items():
         for t in config['tasks']:

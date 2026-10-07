@@ -58,6 +58,19 @@ def wait_upstream():
 def configs():return {stage:s.validate(json.loads(s.file(stage).read_text())) for stage in s.STAGES}
 
 
+def validate_amd_configs(cs):
+    """Pure declaration admission once at explicit preparation, never worker scan."""
+    from utils.ch3_contract import validate_amd_declaration
+    for c in cs.values():
+        for t in c['tasks']:
+            if t['model']!='AMD' or t.get('task')!='M':continue
+            p=profile(c,t)
+            validate_amd_declaration(p,input_shape=(p['T'],p['C']),pred_len=p['pred_len'],
+                patch=p['structure']['patch'],layernorm=p['structure']['layernorm'],target_idx=p['target_idx'],
+                aux_idx=p['aux_idx'],norm=True,task_mode='parallel_multivariate',s2=False,thls=False)
+    return cs
+
+
 def owner(pid=None):
     row=identity(os.getpid() if pid is None else pid)
     if not row:raise ValueError('owned instance absent')
@@ -94,7 +107,9 @@ def dynamic(c,worker=False):
         if {t['id'] for t in c['tasks'] if t['dataset']==name}!=set(rows) or any(digest(m)!=data['data_bindings'][name][r] for r,m in rows.items()):raise ValueError('exact data metadata projection coverage')
     for src in (() if worker else c['sources'].values()):
         if subprocess.check_output(['git','-C',src['repository'],'rev-parse','HEAD'],text=True).strip()!=src['commit'] or any(__import__('utils.ch3_native_recovery_records',fromlist=['sha']).sha(p)!=h for p,h in src['files'].items()):raise ValueError('locked author source changed')
-    return dict(commit=git('rev-parse','HEAD'),protocol_sha=digest(c),code=code_binding(),environment=environment_binding(),hardware=hardware_binding(),source_states=data['source_states'])
+    code=code_binding()
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'code_binding'):code.update(PROBE_RECOVERY.code_binding())
+    return dict(commit=git('rev-parse','HEAD'),protocol_sha=digest(c),code=code,environment=environment_binding(),hardware=hardware_binding(),source_states=data['source_states'])
 
 
 def closure():
@@ -207,6 +222,7 @@ def validate_boundary_light(value,stage='URBAN_SUBSET'):
     b=bound(value);c=configs()[stage]
     if value['path']!=str(s.context(c)['control']/'technical-boundary.json'):raise ValueError('exact sealed ring boundary path')
     if b.get('purpose')!='baseline_type1_'+stage+'_boundary_v1' or b.get('scope')!=s.ID or b.get('technical_complete')is not True or b.get('result_review')!='pending' or b['task_ids']!=[t['id'] for t in c['tasks']] or b['protocol_sha']!=digest(c):raise ValueError('sealed MS boundary scope')
+    if stage=='M_BASE' and PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False):PROBE_RECOVERY.validate_adopted_boundary(value)
     return b
 
 def validate_round2_boundary_light(value):
@@ -293,7 +309,7 @@ def readiness(a=None,launch=False,live_remote=False):
     if not a or a.get('reviewed')is not True or a.get('execution_permitted')is not True:reasons.append('reviewed followup start record not materialized')
     if not a or a.get('budget_authorized')is not True:reasons.append('user-authorized fixed caps await reviewed closure/start-record binding')
     try:
-        configs();upstream_status();validate_start(a)
+        validate_amd_configs(configs());upstream_status();validate_start(a)
         if live_remote:verify_live_remote(a['closure_commit'])
     except (OSError,KeyError,ValueError,PermissionError,subprocess.CalledProcessError) as exc:reasons.append(str(exc))
     for stage,c in configs().items():
@@ -312,7 +328,8 @@ def readiness_report(a=None):
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
     return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,
         registered_ms203_recovery_requires_full_source_check_and_owned_exit=True,
-        remaining_formal_runs=427,base287_requires_imported_MS203_and_fresh_M128_84=True)
+        remaining_formal_runs=343 if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False) else 427,
+        base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)))
 
 
 def wrapper_command(pid):
@@ -394,10 +411,10 @@ def seal_boundary(c,receipts):
         task_ids=[t['id'] for t in c['tasks']],receipts=receipts,technical_complete=True,result_review='pending',**binding))
 
 
-def drive(actions,update,check):
+def drive(actions,update,check,initial=None,states=None):
     """Sequential synchronous state machine, deliberately independent of effect metrics."""
-    receipts={}
-    for state in STATES:
+    receipts=dict(initial or {})
+    for state in STATES if states is None else states:
         check();update(state)
         if state!='COMPLETE':receipts[state]=actions[state](receipts)
         check()
@@ -429,9 +446,16 @@ def run(start_ref):
         actions[audit_state]=lambda r,stage=stage:audit_probe(cs[stage])
         actions[formal_state]=lambda r,stage=stage:formal(stage,r)
         actions[seal_state]=lambda r,stage=stage:seal_boundary(cs[stage],r[STAGE_STATES[stage][2]])
-    receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check)
+    initial=None;states=None
+    if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False):
+        stop_check();validate_start(bound(start_ref))
+        dump(CONTROL/'progress.json',dict(state='VERIFY_ADOPT_COMPLETED_BASE287',scope=s.ID,result_review='pending'))
+        initial=PROBE_RECOVERY.adopt_prefix()
+        skipped={'VERIFY_IMPORT_MS203_AND_SEAL','SEAL_BASE_287_BOUNDARY',*STAGE_STATES['M_BASE']}
+        states=[state for state in STATES if state not in skipped]
+    receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check,initial,states)
     stop_check()
-    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],total_runs=427,imported_ms_runs=203,base_round2_runs=287,third_round_runs=231,round2_effective_runs=371))
+    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],total_runs=427,imported_ms_runs=203,base_round2_runs=287,third_round_runs=231,round2_effective_runs=371,adopted_new_formal_runs=84 if initial else 0,executed_new_formal_runs=343 if initial else 427))
 
 
 def start(start_ref,token):

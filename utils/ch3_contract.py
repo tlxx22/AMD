@@ -406,7 +406,7 @@ def validate_amd_declaration(declaration, *, input_shape, pred_len, patch, layer
                              target_idx, aux_idx, norm, task_mode, s2, thls):
     if isinstance(declaration,dict) and declaration.get('task')=='M':
         p=declaration
-        if (p['model']!='AMD' or p['dataset']not in ('ETTh1','Weather','Exchange') or
+        if (p['model']!='AMD' or p['dataset']not in ('ETTh1','Weather','Exchange','ETTh2','ETTm1','ETTm2') or
             tuple(input_shape)!=(p['T'],p['C'])or pred_len!=p['pred_len']or patch!=p['structure']['patch']or
             layernorm!=p['structure']['layernorm']or target_idx!=p['target_idx']or tuple(aux_idx) or
             not norm or task_mode!='parallel_multivariate'or s2 or thls):raise ValueError('M AMD native all-channel identity')

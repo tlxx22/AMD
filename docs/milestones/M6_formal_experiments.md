@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 统一数值政策29项实现已审核并closure于3c837ba6dd82043cb2dcffdd5263e55d5588444a；第一次r1真实启动在VERIFY_IMPORT_MS203_AND_SEAL因父控制器run_restricted包导入故障退出，新增probe 0/40、正式0/427。原MS203封存、128份原轨迹及8份确认和r1失败现场保留；当前为r2包导入/preflight覆盖/独立attempt接线的未提交repair候选。五阶段427项、133条政策、科学profile及预算不变；16组采用依据仍须与剩余5组实际准入区分，全部21组M准入及M84、补做112、第三轮231正式计算尚未完成。本轮未stage/commit/push、未物化新许可、未arm/start或创建真实r2输出/session，repair候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[导入路径repair](#m6-import-path-repair-v1)；旧小节按各自时点保留。**
+**In Progress — N实际closure/旧r2执行版本为760b9dd7162d200c11b8836a7c9ece41822dfcf1。M_BASE 21/21技术准入、M84及混合来源基础287已完成；M_AMEND首个AMD–ETTh2 serial worker因M声明旧三域允许名单拒绝而退出，补做正式0/112、第三轮正式0/231。当前为新增ETT声明窄修及完成前缀采用候选，只继续剩余343项；统一133政策、五阶段科学profile和原预算保持，旧来源/失败/许可/结果保留，result_review仍pending。真实CPU构造/合成输出检查已完成；本轮未stage/commit/push、未生成可执行新许可、未arm/start或执行新GPU probe/正式训练，候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[新增ETT声明repair](#m6-amend-ett-identity-repair-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
@@ -825,3 +825,27 @@ MAE及归一化聚合检查同样在1e-6内；对应资源、进程归属、退�
 定向回归同时核对五阶段133政策、427任务、TimeMixer–Weather loss例外、全部effective科学profile/data/metadata/source/顺序和预算diff=0；原生产数学AST保持。合成实际恢复入口不再派发128份旧轨迹或8份确认，只补5组名义40份，21组全部通过后一次AUTO_AUDIT，formal完整probe回放0、运行期远端调用0；继续M84→基础287→补做112→第二轮有效371→第三轮231。原失败和历史实际消耗保留，不因新attempt清零或扣减原任务完成额度。
 
 本轮仅四份已跟踪文件及一份新增测试的候选变更，index空、HEAD仍为上述3c837版本。AGENTS、W/R、作者源码、数据、环境、tag、统一政策及旧原始证据保持；完整前后SHA、只读保护核验、测试日志及patch见本次repair增量。不stage/commit/push，不物化可执行start-review，不arm/start，不创建真实r2结果根/controller/session；真实model/GPU/forward/backward/Adam/validation/test和信号操作均0。当前修后字节待ChatGPT服务器实际直读审核，未声称整个M准入、正式结果或效果通过。
+
+
+<a id="m6-amend-ett-identity-repair-v1"></a>
+## AMD新增ETT的M声明准入及基础287后恢复候选（2026-10-07）
+
+上节导入路径repair已closure为`760b9dd7162d200c11b8836a7c9ece41822dfcf1`并由用户启动r2。实际M_BASE complete有21个Passed组，七份正式模型组完成收据各12项，共84项；基础287封存将原MS203与该版本M84明确分开引用。随后补做首个`AMD-ETTh2-M-oc01-v3-amend1-m128-recovery1-f1-h96-s2024`在真实adapter→AMDEnhanced→validate_amd_declaration入口失败：旧允许名单仅ETTh1/Weather/Exchange，遗漏已批准ETTh2/ETTm1/ETTm2。该声明的L96/C7、H96、patch16、layernorm、target_idx6、aux空、norm开启、parallel_multivariate及S2/THLS关闭均符合合同；它是固定声明准入漏接，不是numeric/resource失败，也不是增加科学任务。
+
+仅扩充该M域元组到六域，其余contract AST逐节点保持。全部新增AMD声明24项（M_AMEND12＋M_ALL12）与既有28项AMD M声明定向检查；未授权域/模型、错误shape/pred_len/patch/target_idx/模式/aux/norm/layernorm、启用S2/THLS继续拒绝，历史MS分支保持。公开准备readiness单次检查52个AMD M声明，不构造模型；本地worker许可检查不重新扫描声明矩阵。数值默认表、special exact合同及模型/训练/评价数学未改。
+
+真实CPU工程smoke经过现有models.ch3_adapter.build与AMDEnhanced，不mock构造入口：AMD三个新增ETT×四H共12次构造/前向；其余六baseline×三域各H96最小代表共18次构造/前向，作者模型独立子进程导入。合计30次构造、30次合成前向；小时/分钟历史marks维度、七通道输出及两阶段build profile映射适用。小batch2只用于形状检查，正式batch128未改，不作为q4证据；backward、Adam、GPU初始化、真实数据validation/test和checkpoint加载均0。TimeMixer ETTm2仍为已冻结d_model16，未顺带追齐论文结构。
+
+恢复增量集中于P的`moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/amend-ett-identity-repair-v1/`。旧r2 controller/probe-child/所属worker退出证据按PID＋start_ticks核验，旧session不存在，不发送信号；旧failure/controller/progress/log/launch/claimed/许可及所有完成结果永久保留。首个失败worker保留runtime、构造尝试和日志，记录Adam/backward/forward均0，不抹除真实尝试。
+
+新技术attempt为`M_AMEND-AMD-ETT-identity-r1`，result根为E的`baseline-unified-v3-ms-seal-m128-recovery1-amend-ett-identity-r1/`，session为`ch3-m6-amend-ett-identity-r1`，log位于本增量`followup-launcher.log`。继续沿现有共享入口、permit/AUTO_AUDIT/runtime/summary机制；科学scope/protocol保持，不复制五份配置，不另设实验轮或工作区。启动后一次有界采用核验检查旧七份M收据、精确84任务和非checkpoint产物SHA、历史best/test调用事实；checkpoint只核对既有sealed SHA引用和已登记stat，不重新全面checksum、不反序列化。MS203复用原封存及来源核验，不重训/retest，不重放probe。
+
+新的M_BASE采用记录保留旧训练commit、protocol、code及receipts，另记新adoption commit/owner/MAC；旧MAC与许可不充当新生命周期授权。生产继承证明精确绑定旧760b9dd字节与本次修后字节，AMD contract只允许上述域元组AST差异，其他计算生产文件不得变化。公开preflight检查旧来源/退出与该精确生产继承、qualified verify_bundle，纯只读；完整前缀采用在受控启动路径执行一次，不进入逐任务checkpoint扫描。运行期无远端查询，启动前保持一次实际live remote检查。
+
+新总链固定为：基础287来源采用→M_AMEND必要probe及一次AUTO_AUDIT→112项fresh正式训练/test→371有效格来源封存→第三轮Urban28→EPF35→M168→technical_complete。不重新派发M_BASE的21组或已完成40份测量，不重训M84、不等待旧失败owner；本次输出343项与已完成84项合计原批准427。第二轮计划399、有效371及第三轮231不变；M84 Weather10保留，Weather20全部28项完成后整批替换默认来源，不按指标择优。第二轮索引分别记录MS旧版本、M84实际760b9dd版本及补做的新实际版本；complete不要求新目录重复产生427份结果。
+
+合成混合来源索引检查还定位到旧M父配置digest与实际统一政策M84配置digest不同的接线遗漏。修后从封存绑定解析实际M_BASE配置，并要求tasks、resolved_profiles、datasets和sources逐项保持；M84与补做分别核对各自封存的真实producer commit，不将采用版本冒作训练版本。此项仅修正已批准来源的索引绑定，不改科学profile或数值政策。
+
+最终当前版本无模型定向套件22/22 Passed（419.204秒），覆盖前缀采用、混合来源371、真实permit/runtime/worker接线、四个剩余阶段各一次AUTO_AUDIT、formal完整probe replay为0、运行期远端查询为0、公开preflight查询一次、失败停止及新入口合成tmux owned safe-stop。适用的真实CPU smoke3/3及受影响既有保护50/50分别登记；三项历史四阶段fixture另在冻结1134611版本3/3核验，不拼为当前单次验收。六次失败测试尝试及修正依据保留在failure-ledger与原日志，没有删除断言、加skip或放宽容差。五阶段427项scientific profile和133政策逐项不变；剩余343项最多4270 run-epochs、85个准入组，正式及probe派生上限见scientific-invariance，原预算不改。
+
+当前修后只是12文件候选（8 modified＋4 untracked），尚未stage/commit/push、生成新可执行start-review或启动新链；已有效历史证据按适用范围复用，不机械重跑全部历史milestone。后续需ChatGPT实际字节审核、精确closure及实际许可/preflight，然后由用户最后一次arm。未来操作材料见本增量operations.sh，已语法检查并标明审核closure及许可就绪后启用，不预填未来commit或许可SHA。

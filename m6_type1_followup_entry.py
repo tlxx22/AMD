@@ -58,6 +58,8 @@ def cli():
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
         if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=427 or complete.get('imported_ms_runs')!=203 or complete.get('base_round2_runs')!=287 or complete.get('third_round_runs')!=231 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
+        if q.PROBE_RECOVERY and getattr(q.PROBE_RECOVERY,'COMPLETED_PREFIX',False):
+            if complete.get('adopted_new_formal_runs')!=84 or complete.get('executed_new_formal_runs')!=343:raise ValueError('completed prefix84 plus this attempt343, not427 new outputs')
         q.validate_boundary_light(complete['M_BASE_boundary'],'M_BASE')
         base=bound(complete['base287_boundary']);ms=bound(complete['MS_import_boundary'])
         from utils.ch3_ms_seal_recovery import SOURCE_REF

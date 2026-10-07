@@ -33,7 +33,7 @@ def metadata_files(c,a,runtime_ref=None):
     if a.get('probe_recovery_ref'):
         from utils.ch3_probe_schema_recovery import current_recovery
         recovery=current_recovery();values += [recovery.SOURCE_REF,recovery.REUSE_REF]
-        for name in ('POLICY_REF','ALL_M_POLICY_REF','PRIOR_REUSE_REF','INCLUSION_REF'):
+        for name in ('POLICY_REF','ALL_M_POLICY_REF','PRIOR_REUSE_REF','INCLUSION_REF','DELTA_REF'):
             if hasattr(recovery,name):values.append(getattr(recovery,name))
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
     values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]

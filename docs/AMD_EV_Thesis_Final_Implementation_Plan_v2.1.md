@@ -50,9 +50,9 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，统一政策closure后首次启动导入故障的repair候选）**：`baseline_numeric_admission_v1`的29项实现已审核并closure于`3c837ba6dd82043cb2dcffdd5263e55d5588444a`。第一次r1真实启动在MS203来源复用首步发生父控制器包导入故障，新增probe为0/40、新正式任务为0/427；当前准备r2窄修，全部21组M准入和正式M84尚未完成。MS203旧封存、128份原短轨迹及8份独立确认保持，原数值失败及诊断不倒改。下方默认政策、三轮科学profile和预算不变：第二轮修订后371有效格、399次计划正式运行；第三轮231项；余下新正式427项。固定顺序仍为MS203来源复用→补齐M_BASE probe及一次AUTO_AUDIT→M84→混合来源基础287→补做112→有效371边界→第三轮231，不另设第四轮，不按test逐格择优。详细矩阵、第一轮TimeMixer来源及评价边界见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)，本次窄修见[M6导入路径repair](milestones/M6_formal_experiments.md#m6-import-path-repair-v1)。
+**当前总览（M6，基础287完成后的AMD新增ETT声明repair候选）**：统一数值政策已closure；包导入修复实际closure及r2执行版本为`760b9dd7162d200c11b8836a7c9ece41822dfcf1`。r2已完成M_BASE 21/21技术准入、84项M正式训练/test与混合来源基础287封存；MS203继续引用原冻结来源。随后M_AMEND首个AMD–ETTh2 serial worker在构造入口被旧三域允许名单拒绝，新增补做正式0/112、第三轮正式0/231。当前修复仅补齐已批准ETTh2/ETTm1/ETTm2的M声明准入，并准备从基础287之后采用旧完成前缀继续343项；不重派M_BASE probe、不重训/retest MS203或M84。下方默认政策、五阶段科学profile及原预算保持；原总链427＝已完成84＋剩余343，第二轮399次计划运行、371有效格及第三轮231不变。详细矩阵见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)，本次修复、CPU真实构造和恢复证据见[M6新增ETT声明repair](milestones/M6_formal_experiments.md#m6-amend-ett-identity-repair-v1)。
 
-当前N执行锚点为`3c837ba6dd82043cb2dcffdd5263e55d5588444a`。r1于北京时间2026-10-07 19:21在`VERIFY_IMPORT_MS203_AND_SEAL`因`ModuleNotFoundError("No module named 'run_restricted'")`退出；原failure、controller、日志、launch/claimed及许可永久保留，此次不是numeric、resource或科学失败。r2仅修正包路径导入、补齐preflight父控制器生产继承检查，并采用独立attempt/result/log/session；科学scope与protocol不变。旧schema/PID修复及其closure、原失败/诊断/停止事实依各自记录保留。旧MS203、128份原短轨迹及8份独立确认只读保留生产版本，不重训/retest或重复派发；仍只补剩余5组名义40份测量。本轮repair未stage/commit/push、未生成可执行新许可、未arm/start或执行新模型/GPU/probe/正式validation/test，修后候选待ChatGPT实际字节审核；技术完成和result_review分别报告。
+旧r1导入失败、r2本次声明失败及全部历史许可、controller、日志、轨迹和结果按真实版本保留。原剩余5组/40份测量已经在r2完成，本次不会再次派发；旧M84的producer commit仍为`760b9dd...`，新恢复版本只记录采用动作和新生命周期。未来单次用户启动顺序为基础287来源采用→M_AMEND准入/112项→第二轮371来源封存→第三轮Urban28/EPF35/M168。此次候选尚未stage/commit/push、未物化可执行新许可、未arm/start；仅进行了获准的CPU构造及合成前向，没有新增GPU probe、训练、backward/Adam或真实validation/test，result_review仍pending。历史小节继续表示各自记录时点，不倒改事实。
 
 <a id="baseline-numeric-admission-defaults"></a>
 ### 常规数值准入默认政策

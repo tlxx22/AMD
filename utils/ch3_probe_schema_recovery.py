@@ -23,6 +23,8 @@ def current_recovery():
     return PROBE_RECOVERY or sys.modules[__name__]
 
 def activate_worker(value):
+    from utils import ch3_amend_ett_identity_recovery as prefix
+    if value==prefix.REUSE_REF:prefix.activate();return prefix
     from utils import ch3_moderntcn_etth1_recovery as numeric
     if value==numeric.REUSE_REF:numeric.activate();return numeric
     if value==REUSE_REF:activate();return sys.modules[__name__]
