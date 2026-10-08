@@ -30,7 +30,11 @@ class ExitCases(unittest.TestCase):
         observation=ExitObservation(bound(v['retained_failed']['process_ref'])['baseline'])
         pid='14330'
         for row in rows[:-1]:observation.classify(row,[pid],[pid])
-        self.assertEqual(observation.classify(rows[-1],[pid],[]),['14956']);self.assertFalse(observation.final_clean)
+        with self.assertRaises(ValueError):observation.classify(rows[-1],[pid],[])
+        # The historical ambiguous read remains rejected; only this explicitly
+        # synthetic, proven disappearance exercises residual-to-clean settling.
+        synthetic=copy.deepcopy(rows[-1]);synthetic['owned_pid_metadata']={pid:dict(pid=int(pid),host_pid=None,state='exited_during_sample')}
+        self.assertEqual(observation.classify(synthetic,[pid],[]),['14956']);self.assertFalse(observation.final_clean)
         tail=copy.deepcopy(rows[-1]);tail.update(time=tail['time']+10,nvml_processes={},process_gpu={},owned_host_pids=[],owned_pid_metadata={pid:dict(pid=14330,host_pid=None,state='exited_during_sample')})
         self.assertEqual(observation.classify(tail,[pid],[]),[]);self.assertTrue(observation.final_clean)
         self.assertIn('failure',source['refs'])
@@ -58,7 +62,7 @@ class ExitCases(unittest.TestCase):
 
     def test_inactive_permission_or_unstable_read_cannot_admit(self):
         v=ExitObservation(sample(0));v.classify(sample(1),[10],[10])
-        v.classify(sample(2,False,False,owned_pid_metadata={'10':dict(host_pid=None,state='metadata_unavailable')}),[10],[])
+        with self.assertRaises(ValueError):v.classify(sample(2,False,False,owned_pid_metadata={'10':dict(host_pid=None,state='metadata_unavailable')}),[10],[])
         self.assertFalse(v.final_clean)
         with self.assertRaises(ValueError):v.classify(sample(63,False,False),[10],[])
 
@@ -253,7 +257,7 @@ class PrefixAndReuse(unittest.TestCase):
             with self.assertRaises(ValueError):r.verify_source_light()
 
     def test_only_valid_H3_is_seeded_H12_failure_cost_preserved(self):
-        c=q.configs()['URBAN_SUBSET'];a=dict(execution_attempt=r.ATTEMPT,probe_recovery_ref=r.REUSE_REF)
+        c=q.configs()['URBAN_SUBSET'];a=dict(execution_attempt=r.ATTEMPT,probe_recovery_ref=r.REUSE_REF,round2_boundary_ref=dict(path=str(r.main_boundary_path())))
         seed=r.load_seed(c,a);self.assertEqual(len(seed['evidence']),1);self.assertEqual(len(seed['decisions']),0)
         self.assertEqual(seed['budget']['historical_actual'],dict(adam=12,backward=12,forward=16))
         self.assertEqual(seed['budget']['diagnostic_actual'],dict(adam=6,backward=6,forward=8))

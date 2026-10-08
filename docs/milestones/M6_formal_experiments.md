@@ -1,12 +1,29 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — Weather20/10版本已closure于b97392a179b55b4bffb2bf0e3b85267bb0b07750。MS203、M84、M_AMEND112和原第二轮371格已技术完成，result_review仍pending。第三轮已发生两份AMD串行probe，但正式尚未开始；当前失败是退出观测/采样衔接。用户新增PatchTST encoder1/2独立M补做48项、Urban六fold且H仅3/12共84项，并在新增结果产生前固定第三章M主表PatchTST为enc2，不因结果改选。第二轮待enc2全部24项技术完成后另建371索引，第三轮PatchTST M24同步enc2，MS保持。第三轮287、本次待执行335、扩展后新正式总531。当前增量仍为未提交候选，未生成可执行许可或启动新链。必要CPU构造/合成前向另记，未运行真实GPU probe/正式训练/真实评价。最新范围及复验见[本次增量](#m6-patchtst-depth-urban6-repair-v1)。**
+**In Progress — 固定enc2主表/Urban六fold已closure于e051b96e416433b8940d9ef6b71192033fa07a89。已完成第二轮371格与196项新增正式结果保持。r1已启动，首个PATCH_ENC1/ETTh1/H96六步串行probe计算成功，但资源观测失败退出；新增正式0/335。当前r2仅为观测与恢复接线候选，未stage/commit/push、未物化新可执行许可或启动，result_review仍pending。见[本次观测修复](#m6-patch-enc1-observation-repair-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+<a id="m6-patch-enc1-observation-repair-v1"></a>
+## PATCH_ENC1首个串行波的身份观测修复候选
+
+固定enc2/Urban六fold候选已closure于`e051b96e416433b8940d9ef6b71192033fa07a89`；真实r1 attempt为`PATCHTST-depth-Urban6-exit-r1`。本轮只修该批准任务中的观测故障，不新增科学任务，也不改baseline_numeric_admission_v1、模型、训练/评价或test合同。
+
+旧失败位于enc1/ETTh1/H96首个serial wave-0。worker PID4385/start_ticks211021095、host PID26191及namespace `pid:[4026534934]`在最后成功采样中可靠；owner4106/211008825和probe-child4313/211017804均已退出，旧session不存在。worker退出码0、runtime.error=None，六步finite及实际Adam6/backward6/forward8保持。process记录`failure_kind=observation`、`resource_admission=false`，没有任何组Passed。失败采样未落盘，现有七份成功采样和异常字符串不足以区分退出竞态、读取异常或解析失败；不能凭后来PID不存在认定当时退出已核验，也不能把本故障称OOM或数值超限。
+
+本轮在受限监控器内增加读取阶段/失败类别及稳定start_ticks检查，并核对查询前后poll和必要namespace身份。可靠旧身份与明确退出中间态仅允许最长60秒的新鲜复采样；查询每次最多10秒且受剩余期限约束。不因退出码0直接放行，也不按缓存身份授予资源许可。权限/解析失败、身份冲突/复用、未知占用、UUID变化、不可靠采样、查询失败和超时保持阻塞。失败时独立落盘有SHA引用的观测快照，包含失败样本（如已取得）、查询前后状态、读取阶段及状态机状态；其不算成功采样或Passed资源证据。
+
+新attempt为`PATCHTST-depth-Urban6-exit-r2`，session为`ch3-m6-patchtst-depth-urban6-r2`，result为原r1结果根同级的`...patchtst-depth-urban6-r2`；日志及本轮增量集中于`patchtst-enc2-adoption-v1/patch-enc1-observation-repair-v1/`。旧r1许可、日志、launch/claimed、controller/failure、七份采样及六步产物全部只读保留。新许可必须绑定修后实际closure及精确父失败引用；旧许可不能启动r2。本轮不生成可执行新许可。
+
+r2只采用已完成第二轮来源，保留各自原producer；不重训MS203/M84/M_AMEND112、不增加test访问。失败enc1轨迹不作为有效资源波种子或Passed决定，仅将真实6/6/8历史成本带入账本，和本次新增量分开。补足首个缺失测量并执行原未完成准入；enc1当前没有可跳过的Passed组。原Urban有效H3来源复用，H12负向证据保留。PATCH_ENC1 probe硬上限仍Adam432/backward432/forward576，历史消费不清零也不自动扩大；正式任务完成额度不因技术失败扣减。
+
+正常顺序仍为第二轮371来源采用→enc1 M24准入/正式→enc2 M24准入/正式→固定enc2新版371（24格切换、347格保持）→Urban84→EPF35→M168。已采用196、待执行335、总531及原4550最大run-epochs保持；按预冻结enc2采用，不按指标改选。每阶段AUTO_AUDIT一次，正式任务不完整回放probe或重复联网。
+
+本轮最终同一代码版本定向56/56通过（`tests/attempt-4.log`），覆盖真实受限状态机、CPU子进程退出、慢采样/残留、读取与解析失败快照、严格身份反例、旧失败计量和恢复审计接线；首轮6处测试错误及后续复验日志保留。完整候选SHA见同包的`acceptance.json`、`workspace-change-inventory.json`与`workspace.patch`。真实模型/GPU/probe/正式训练/validation/test为0；CPU合成子进程和保存证据的只读核验另记。技术通过不表示新GPU准入或科学效果Passed。当前停在未提交、待ChatGPT实际字节审核点，不声称修后候选已经审核。
 
 <a id="m6-patchtst-depth-urban6-repair-v1"></a>
 ## 当前增量：PatchTST固定层数补做、Urban六fold与退出观测修复

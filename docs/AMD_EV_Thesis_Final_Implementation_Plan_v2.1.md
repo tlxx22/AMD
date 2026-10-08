@@ -50,9 +50,15 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，PatchTST固定enc2主表/Urban六fold及退出观测修订候选）**：Weather20/patience10已closure于`b97392a179b55b4bffb2bf0e3b85267bb0b07750`；MS203、M84、M_AMEND112及原第二轮371格已技术完成，原第二轮399次计划运行和固定Weather20整批采用事实保持。第三轮已经产生两份AMD串行短轨迹，尚无正式训练；退出观测失败不能称为“从未启动”、OOM或数值失败。用户批准第二轮协议下PatchTST encoder1/2各24项独立补做，以及第三轮Urban扩至六fold、H仅3/12共84项；并在新增结果产生前固定第三章M主表PatchTST为enc2，不因结果改选。第二轮enc2技术完成后另建371格索引，只切换24格，其余347格及旧371索引保持；第三轮M_ALL的PatchTST24项改为enc2，所有MS保持。第三轮287项、本次待执行335项、扩展后531项及新增104项数量不变。统一数值政策不变，结果review及效果结论另行进行。详情见唯一[M6最新增量](milestones/M6_formal_experiments.md#m6-patchtst-depth-urban6-repair-v1)。
+**当前总览（M6，PATCH_ENC1观测技术修复候选）**：固定PatchTST enc2主表及Urban六fold范围已精确closure于`e051b96e416433b8940d9ef6b71192033fa07a89`。已完成MS203、M84、M_AMEND112及原第二轮371格保持；旧196项新增正式结果不重训/retest。新r1已实际启动，在enc1/ETTh1/H96首个六步串行probe之后因`active owned process identity unavailable`退出，新增正式为0/335。worker退出码0、六步finite不能替代资源准入；失败采样未落盘，无法据旧记录裁定退出竞态、读取异常或解析失败中的具体原因。当前r2仅修身份一致性、有界退出新鲜复采样和失败快照，科学profile、统一数值政策、335项任务与原硬上限均保持。尚未提交、物化r2可执行许可或启动。详情见唯一[M6本次观测修复](milestones/M6_formal_experiments.md#m6-patch-enc1-observation-repair-v1)。
 
-旧失败、完成结果、许可及准备记录按真实版本保留。旧M84仍绑定实际`760b9dd7162d200c11b8836a7c9ece41822dfcf1`训练版本，补做112保留实际Weather修订执行版本，新的采用动作与旧训练来源分开。本轮只形成候选，未stage/commit/push、未生成可执行许可或启动恢复链；必要真实CPU构造/合成前向与GPU probe、正式训练及真实评价分开报告。历史小节仍表示各自记录时点，特别是第三轮原231项及Urban28矩阵不倒改。
+旧失败、完成结果、许可及准备记录按真实版本保留。旧M84仍绑定实际`760b9dd7162d200c11b8836a7c9ece41822dfcf1`训练版本，补做112保留Weather修订执行版本；本次新生命周期只采用已完成来源，不冒充旧训练producer。r1许可、launch/claimed、failure、memory及六步轨迹均只读保留；r2使用独立attempt/result/log/session，并分开记录旧6/6/8成本和本次新增计算。每阶段一次AUTO_AUDIT，正式worker不完整回放probe。历史小节的候选、第三轮231/Urban28等均为当时事实，不倒写。
+
+### PATCH_ENC1资源观测技术恢复（r2候选）
+
+本次不是新增科学实验或数值阈值调整。监控器将采样前后poll结果与PID/start_ticks/namespace一起核对；只有有依据的退出中间态才能进入最长60秒的有界等待，之后仍需新鲜、完整、无未知占用的退出/GPU样本。权限/解析失败、身份冲突或复用、UUID变化、查询失败及超时均阻塞，不按resource-only降并发。失败快照记录读取阶段、采样前后状态、必要身份与状态转移，不打印环境或无关进程命令。
+
+r2不采用失败资源收据为Passed。原enc1六步产物和成本完整保留，只补该缺失资源证明所需的测量并继续其余原定准入；Urban已有有效H3按原绑定复用，H12历史失败保持。M_BASE/M_AMEND及第二轮371不重做，后续仍为enc1 M24→enc2 M24→固定enc2新版371→Urban84→EPF35→M168，335项与原最大4550 run-epochs不变。所有配置/科学profile及numeric policy不变；正常早停和效果差不触发重跑。
 
 ### PatchTST固定层数补做与第三轮Urban扩展（当前候选）
 
