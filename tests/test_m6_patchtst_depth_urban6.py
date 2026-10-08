@@ -256,6 +256,12 @@ class PrefixAndReuse(unittest.TestCase):
         with patch.object(r,'bound',side_effect=lambda value:source if value==r.SOURCE_REF else original(value)):
             with self.assertRaises(ValueError):r.verify_source_light()
 
+    def test_r3_retains_two_failed_waves_and_only_original_335_tasks(self):
+        value=r.verify_observation_source();self.assertEqual(value['retained_actual'],dict(adam=12,backward=12,forward=16))
+        self.assertEqual(value['retained_failed_workers'],2);self.assertFalse(bound(value['refs']['process'])['resource_admission'])
+        counts=q.completion_counts();self.assertEqual(counts['adopted_new_formal_runs'],196);self.assertEqual(counts['executed_new_formal_runs'],335)
+        self.assertEqual(sum(len(q.configs()[k]['tasks'])for k in s.STAGES[2:]),335)
+
     def test_only_valid_H3_is_seeded_H12_failure_cost_preserved(self):
         c=q.configs()['URBAN_SUBSET'];a=dict(execution_attempt=r.ATTEMPT,probe_recovery_ref=r.REUSE_REF,round2_boundary_ref=dict(path=str(r.main_boundary_path())))
         seed=r.load_seed(c,a);self.assertEqual(len(seed['evidence']),1);self.assertEqual(len(seed['decisions']),0)

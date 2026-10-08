@@ -1,12 +1,31 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 固定enc2主表/Urban六fold已closure于e051b96e416433b8940d9ef6b71192033fa07a89。已完成第二轮371格与196项新增正式结果保持。r1已启动，首个PATCH_ENC1/ETTh1/H96六步串行probe计算成功，但资源观测失败退出；新增正式0/335。当前r2仅为观测与恢复接线候选，未stage/commit/push、未物化新可执行许可或启动，result_review仍pending。见[本次观测修复](#m6-patch-enc1-observation-repair-v1)。**
+**In Progress — r2已closure于d852398c7949a2feea9b572ee793c1e793ecd06c并启动，首个PATCH_ENC1串行波在退出窗口namespace PermissionError后观测失败。第二轮371格及196项新增正式结果保持，后续新增正式0/335；r1/r2累计失败短计算12/12/16保留。当前r3为精确退出过渡窄修候选，未stage/commit/push、未物化可执行许可或启动，result_review仍pending。见[本轮r3窄修](#m6-patch-enc1-namespace-exit-repair-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+<a id="m6-patch-enc1-namespace-exit-repair-v1"></a>
+## r2首个PATCH_ENC1串行波：退出窗口namespace读取窄修候选
+
+开发起点N `d852398c7949a2feea9b572ee793c1e793ecd06c`，N/W/R三端0/0且clean，旧r2 controller22479/211655344、probe-child22687/211664339、worker22760/211667661均已退出，session不存在；不发送信号。只读核验process SHA `898c2495e079b7a3e575d04e377d1f4e6b9cca3f56110915c34efa0a70d43664`及失败快照SHA `1aec6160c3d423f7f99cd2dba848edc220f8d5d4ca58b666183cc0587aa730f3`与用户锚点一致。
+
+八份成功采样及查询前记录稳定绑定PID22760/host13636/start_ticks211667661/namespace `pid:[4026534934]`。失败样本active_before=[22760]、active_after=[]，仅post-query namespace读取PermissionError，stat_before ticks仍一致；记录失败时poll=0、/proc条目缺失，NVML表为空且可靠。旧实现对metadata_unavailable统一立即拒绝，未进入后续新鲜采样；这是可定位的观测接线问题。快照未保存底层errno，不能进一步断言内核权限原因，更不能以事后消失或空GPU表改记当次Passed。
+
+修后仅这个精确类型允许记录为未解决过渡。必须有早前完整可信身份和本次查询前一致身份，同一受控worker查询后poll确认退出，namespace阶段PermissionError且stat-before ticks相同；错误样本仍不可信，标记admission_deferred=true、assessment.admission=false。后续独立新鲜采样须在两次身份读取中均确认/proc已消失，时间严格晚于过渡，并核对无新生命周期、可靠GPU UUID/进程表和资源状态；NVML短暂残留继续有界等待。权限持续、活跃进程权限错误、其他阶段/解析异常、ticks/host/namespace冲突、PID复用、缺历史身份、未知占用和查询失败均拒绝。原60秒尾部和单次10秒查询上限、显存余量与failure分类保持；观测失败不按resource-only回退。
+
+成功的过渡样本记录前后poll、原失败分类、历史身份及读取阶段；后续采样记录新鲜缺失证据和最终裁决，process追加状态快照。失败仍保留observation-failure.json的SHA引用，不把旧snapshot或负向资源收据改成Passed。restricted bundle只为监测字节更新，生产继承证明确认训练/评价数学未变；旧封印及producer保持。
+
+r3身份为`PATCHTST-depth-Urban6-exit-r3`，session `ch3-m6-patchtst-depth-urban6-r3`，result为原r2同级`...patchtst-depth-urban6-r3`；log和未来AUTH集中于`patchtst-enc2-adoption-v1/patch-enc1-namespace-exit-repair-v1/`。r1/r2许可、launch/claimed、失败、采用边界、日志、八份r2成功采样、失败快照与两份六步轨迹保留原SHA。两次各Adam6/backward6/forward8，累计12/12/16、不退款，PATCH_ENC1 caps仍432/432/576；仅导入历史成本，不生成Passed种子，新worker必须绑定未来r3许可。
+
+第二轮371及MS203/M84/M_AMEND112来源保持，不重训/retest。采用196＋待执行335＝531，待执行最大4550 run-epochs；顺序仍为371来源采用→enc1 M24准入/正式→enc2 M24准入/正式→固定enc2新版371→Urban84→EPF35→M168。PatchTST M固定enc2、Urban六fold/H3/H12、Weather20/10、133原数值政策、额外12个层数政策及全部配置/任务/seed/test边界不改；Urban有效H3按原精确证据复用。每阶段AUTO_AUDIT一次，formal不完整回放probe或重复联网。
+
+最终同一代码版本定向70/70 Passed（新包`tests/attempt-2.log`），无skip。旧状态机从保存r2快照复现原PermissionError拒绝；修后该样本仅defer，真实CPU短子进程在namespace故障注入后必须经历新鲜双重缺失采样才能完成资源准入，持续权限异常仍保留SHA绑定失败快照。覆盖原身份/未知占用/60秒与查询上限反例、335项混合来源恢复、许可隔离、一次AUTO_AUDIT及formal紧凑准入。首轮70项的4处错误均为新r3包尚未物化PATCH_ENC1计划；日志和当次绑定保留，补齐独立计划后复验，不删除断言或降低门槛。
+
+本轮仅CPU合成子进程、真实监控状态机和无模型恢复夹具，未导入torch。真实模型构造/GPU/probe/正式训练/validation/test为0，不读训练checkpoint或重新比较数值sidecar。语法、bundle、diff、范围及SHA检查见同包acceptance/inventory。候选停在未提交、未生成可执行许可、未arm/start的ChatGPT审核点，不声称修后字节已获审核。
 
 <a id="m6-patch-enc1-observation-repair-v1"></a>
 ## PATCH_ENC1首个串行波的身份观测修复候选

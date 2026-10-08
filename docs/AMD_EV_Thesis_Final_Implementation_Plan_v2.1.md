@@ -50,9 +50,15 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，PATCH_ENC1观测技术修复候选）**：固定PatchTST enc2主表及Urban六fold范围已精确closure于`e051b96e416433b8940d9ef6b71192033fa07a89`。已完成MS203、M84、M_AMEND112及原第二轮371格保持；旧196项新增正式结果不重训/retest。新r1已实际启动，在enc1/ETTh1/H96首个六步串行probe之后因`active owned process identity unavailable`退出，新增正式为0/335。worker退出码0、六步finite不能替代资源准入；失败采样未落盘，无法据旧记录裁定退出竞态、读取异常或解析失败中的具体原因。当前r2仅修身份一致性、有界退出新鲜复采样和失败快照，科学profile、统一数值政策、335项任务与原硬上限均保持。尚未提交、物化r2可执行许可或启动。详情见唯一[M6本次观测修复](milestones/M6_formal_experiments.md#m6-patch-enc1-observation-repair-v1)。
+**当前总览（M6，r2退出窗口namespace观测窄修候选）**：r2观测修复已closure于`d852398c7949a2feea9b572ee793c1e793ecd06c`并实际启动；首个PATCH_ENC1/ETTh1/H96串行六步后，查询前身份稳定、查询后poll确认退出，但namespace读取PermissionError导致资源观测失败。失败快照和原失败判定保留；底层errno未记录，具体内核原因仍未证实。MS203、M84、M_AMEND112、第二轮371格及196项新增正式结果保持，后续新增正式仍0/335。当前r3只允许这一精确退出过渡进入原60秒内的新鲜独立观测，错误样本不授予准入；权限持续、活跃进程权限错误、身份冲突、未知占用及查询失败仍拒绝。科学profile、统一数值政策、335项任务及probe硬上限不变。候选未stage/commit/push、未生成可执行许可或启动，result_review仍pending。见[M6本轮窄修](milestones/M6_formal_experiments.md#m6-patch-enc1-namespace-exit-repair-v1)。
 
-旧失败、完成结果、许可及准备记录按真实版本保留。旧M84仍绑定实际`760b9dd7162d200c11b8836a7c9ece41822dfcf1`训练版本，补做112保留Weather修订执行版本；本次新生命周期只采用已完成来源，不冒充旧训练producer。r1许可、launch/claimed、failure、memory及六步轨迹均只读保留；r2使用独立attempt/result/log/session，并分开记录旧6/6/8成本和本次新增计算。每阶段一次AUTO_AUDIT，正式worker不完整回放probe。历史小节的候选、第三轮231/Urban28等均为当时事实，不倒写。
+旧失败、完成结果、许可及准备记录按真实版本保留。旧M84仍绑定实际`760b9dd7162d200c11b8836a7c9ece41822dfcf1`训练版本，补做112保留Weather修订执行版本；本次新生命周期只采用已完成来源，不冒充旧训练producer。r1/r2许可、launch/claimed、failure、memory及各六步轨迹均只读保留，累计Adam12/backward12/forward16、不退款且不当作Passed资源种子；r3使用独立attempt/result/log/session，新增量另记。每阶段一次AUTO_AUDIT，正式worker不完整回放probe。历史小节的候选、第三轮231/Urban28等均为当时事实，不倒写。
+
+### PATCH_ENC1退出窗口namespace窄修（r3候选）
+
+只对有历史可信PID/host PID/start_ticks/namespace且查询前再次一致、同一受控worker在查询后poll已退出、仅namespace读取PermissionError并保留相同stat-before ticks的样本，记录为未解决过渡。错误读数仍为metadata_unavailable，不改写成进程已退出或Passed。下一独立采样必须在查询前后两次都确认/proc条目缺失，时间晚于错误样本，身份无复用，GPU UUID/进程表及资源状态可靠、无未知占用，才能完成退出判定；NVML短暂残留仍等待，不能提前准入。总等待仍60秒，单次NVML查询最多10秒；持续权限错误、解析/身份冲突、活跃权限失败、PID复用、未知占用、查询失败/超时均拒绝，不进入resource-only回退。
+
+本轮增量集中在`patchtst-enc2-adoption-v1/patch-enc1-namespace-exit-repair-v1/`，新身份`PATCHTST-depth-Urban6-exit-r3`。新许可须在审核closure后绑定实际新commit、r1/r2负向来源、完成第二轮和新的监控bundle；本轮仅提供不可执行模板。原配置、数字政策、335项与最大4550 run-epochs均不改，PATCH_ENC1 caps仍432/432/576。只补缺失工程准入，保留Urban有效H3的既有复用范围；不重派196项已完成正式任务或新增test。
 
 ### PATCH_ENC1资源观测技术恢复（r2候选）
 

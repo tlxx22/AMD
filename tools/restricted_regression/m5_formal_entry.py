@@ -286,6 +286,7 @@ class ExitObservation:
     TAIL_SECONDS=60.0
     def __init__(self, baseline):
         self.uuid=baseline['uuid'];self.baseline_hosts=set(baseline.get('nvml_processes',{}));self.known={};self.pending={};self.transitions={};self.tail_deadline=None;self.final_clean=False
+        self.namespace_exits={};self.last_events=[]
     def query_timeout(self,now):
         deadlines=list(self.pending.values())+list(self.transitions.values())+([self.tail_deadline]if self.tail_deadline is not None else [])
         remaining=min(deadlines)-now if deadlines else self.TAIL_SECONDS
@@ -295,7 +296,8 @@ class ExitObservation:
     def snapshot(self):
         return dict(uuid=self.uuid,known={p:dict(host_pid=v[0],start_ticks=v[1],namespace=v[2])for p,v in self.known.items()},
                     pending=[dict(pid=k[0],host_pid=k[1],start_ticks=k[2],namespace=k[3],deadline=v)for k,v in self.pending.items()],
-                    identity_transitions=dict(self.transitions),tail_deadline=self.tail_deadline,final_clean=self.final_clean)
+                    identity_transitions=dict(self.transitions),namespace_exits=dict(self.namespace_exits),
+                    last_identity_verdict=self.last_events,tail_deadline=self.tail_deadline,final_clean=self.final_clean)
     def classify(self,sample,owned,active,before=None):
         self.final_clean=False
         if sample['uuid']!=self.uuid:raise ValueError('GPU UUID changed')
@@ -304,10 +306,28 @@ class ExitObservation:
         if not active<=owned or (previous is not None and(not previous<=owned or not active<=previous)):raise ValueError('owned process state changed inconsistently')
         if not active and self.tail_deadline is None:self.tail_deadline=now+self.TAIL_SECONDS
         if self.tail_deadline is not None and now>self.tail_deadline:raise ValueError('owned exit observation exceeded bounded 60-second tail')
-        for bank in (sample.get('owned_before_metadata',{}),sample.get('owned_pid_metadata',{})):
+        historical=dict(self.known);before_bank=sample.get('owned_before_metadata',{});after_bank=sample.get('owned_pid_metadata',{});namespace_transition=set()
+        for field,expected in (('active_before',previous),('active_after',active)):
+            if field in sample and expected is not None and {str(p)for p in sample[field]}!=expected:raise ValueError('sample/poll ownership mismatch')
+        for bank in (before_bank,after_bank):
             for pid,m in bank.items():
                 if pid not in owned:raise ValueError('foreign PID metadata')
-                if m.get('state')=='metadata_unavailable':raise ValueError('owned process identity read/parse failed: '+pid+'; '+str(m.get('error_kind','unknown'))+'; '+str(m.get('phase','unknown')))
+                if m.get('state')=='metadata_unavailable':
+                    prior=before_bank.get(pid,{})
+                    identity=(str(prior.get('host_pid')),str(prior.get('start_ticks')),prior.get('namespace'))
+                    # Only this post-query namespace read can be unresolved.
+                    # The failed sample NEVER grants admission or becomes gone.
+                    permitted=(bank is after_bank and pid in historical and pid not in self.namespace_exits
+                        and previous is not None and pid in previous and pid not in active
+                        and prior.get('pid')==int(pid) and m.get('pid')==int(pid) and identity==historical[pid]
+                        and prior.get('host_pid')is not None and prior.get('start_ticks')and prior.get('namespace')
+                        and m.get('host_pid')is None and m.get('error_kind')=='PermissionError' and m.get('phase')=='namespace'
+                        and str(m.get('start_ticks_before'))==historical[pid][1] and m.get('start_ticks_after')is None
+                        and sample.get('process_table_reliable')is True)
+                    if not permitted:raise ValueError('owned process identity read/parse failed: '+pid+'; '+str(m.get('error_kind','unknown'))+'; '+str(m.get('phase','unknown')))
+                    namespace_transition.add(pid)
+                    self.namespace_exits[pid]=dict(observed_at=now,historical_identity=dict(host_pid=historical[pid][0],start_ticks=historical[pid][1],namespace=historical[pid][2]),read_failure=dict(m))
+                    continue
                 if m.get('host_pid') is not None:
                     if not m.get('start_ticks') or not m.get('namespace'):raise ValueError('incomplete owned process identity')
                     identity=(str(m['host_pid']),str(m['start_ticks']),m['namespace'])
@@ -319,6 +339,19 @@ class ExitObservation:
         events=[]
         for pid in owned:
             m=sample.get('owned_pid_metadata',{}).get(pid,{})
+            resolved=None
+            if pid in self.namespace_exits and pid not in namespace_transition:
+                pending=self.namespace_exits[pid]
+                def absent(row):
+                    return (row.get('pid')==int(pid) and row.get('state')=='exited_during_sample' and row.get('host_pid')is None
+                        and row.get('phase')=='stat_before' and row.get('error_kind')in ('FileNotFoundError','ProcessLookupError') and row.get('start_ticks')is None)
+                # Both independent reads must find /proc absent, after the
+                # previous poll-confirmed exit. Empty NVML alone is insufficient.
+                if now>self.transitions[pid]:raise ValueError('owned identity transition exceeded bounded 60-second tail')
+                if previous is None or pid in previous or pid in active or now<=pending['observed_at'] or not absent(before_bank.get(pid,{})) or not absent(m):
+                    raise ValueError('namespace exit requires independent fresh disappearance evidence: '+pid)
+                resolved=dict(pending,fresh_time=now,before_metadata=dict(before_bank[pid]),after_metadata=dict(m))
+                del self.namespace_exits[pid]
             disappearing=m.get('state')=='exited_during_sample'
             if disappearing and pid not in self.known:raise ValueError('exit has no proven historical process identity: '+pid)
             transition=(pid in active and disappearing)or(pid not in active and m.get('host_pid')is not None)or(previous is not None and pid in previous and pid not in active)
@@ -326,10 +359,11 @@ class ExitObservation:
                 if previous is None:raise ValueError('active owned process identity unavailable')
                 deadline=self.transitions.setdefault(pid,now+self.TAIL_SECONDS)
                 if now>deadline:raise ValueError('owned identity transition exceeded bounded 60-second tail')
-                events.append(dict(pid=pid,state='await_fresh_exit_identity',deadline=deadline))
+                events.append(dict(pid=pid,state='await_namespace_exit_fresh_sample'if pid in namespace_transition else'await_fresh_exit_identity',deadline=deadline,
+                    unresolved_read=self.namespace_exits.get(pid)))
             else:
                 self.transitions.pop(pid,None)
-                events.append(dict(pid=pid,state='active_identity_verified'if pid in active else'exit_identity_verified'))
+                events.append(dict(pid=pid,state='active_identity_verified'if pid in active else'exit_identity_verified',fresh_namespace_exit=resolved))
         observed=set(sample.get('nvml_processes',{}));waiting=[]
         if observed-self.baseline_hosts-{v[0]for v in self.known.values()}:raise ValueError('unknown GPU process ownership during observation')
         for pid,(host,start,namespace) in self.known.items():
@@ -346,7 +380,8 @@ class ExitObservation:
         # a cached last active sample. Remaining unknowns are checked by caller.
         sample['identity_state_transitions']=events
         sample['identity_transition_pending']=sorted(self.transitions)
-        self.final_clean=not active and not waiting and not self.transitions and sample.get('process_table_reliable')is True
+        self.last_events=events
+        self.final_clean=not active and not waiting and not self.transitions and not self.namespace_exits and sample.get('process_table_reliable')is True
         return waiting
 
 
@@ -561,6 +596,7 @@ def run_configs(configs,out,monitor=False):
     result['whole_card_peak']=max((s['used'] for s in samples),default=None)
     settled=[s for s in samples if not s.get('admission_deferred')]
     result['exit_transitions_resolved']=exit_observation is not None and exit_observation.final_clean and not exit_observation.pending
+    result['exit_observation']=exit_observation.snapshot()if exit_observation else None
     result['resource_admission']=bool(settled) and not failure and result['exit_transitions_resolved'] and all(s['assessment']['admission'] for s in settled)
     if formal:
         result.update(process_peaks={str(p.pid):aggregate['process_peaks'].get(str(p.pid)) for p,_ in children},

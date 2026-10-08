@@ -16,12 +16,13 @@ from utils import ch3_amend_ett_identity_recovery as prefix
 
 PACKAGE = prefix.numeric.POLICY_PACKAGE / 'patchtst-depth-urban6-repair-v1'
 REVISION_PACKAGE = PACKAGE / 'patchtst-enc2-adoption-v1'
-OBSERVATION_PACKAGE = REVISION_PACKAGE / 'patch-enc1-observation-repair-v1'
-OBSERVATION_REF = dict(path=str(OBSERVATION_PACKAGE / 'observation-source.json'), sha256='99ee6307fe9888988447ef52ece1fe74eab913aeb746aa865db63928a084dab1')
+PRIOR_OBSERVATION_REF = dict(path=str(REVISION_PACKAGE / 'patch-enc1-observation-repair-v1' / 'observation-source.json'), sha256='99ee6307fe9888988447ef52ece1fe74eab913aeb746aa865db63928a084dab1')
+OBSERVATION_PACKAGE = REVISION_PACKAGE / 'patch-enc1-namespace-exit-repair-v1'
+OBSERVATION_REF = dict(path=str(OBSERVATION_PACKAGE / 'observation-source.json'), sha256='e3df66225062d89a330a3daf67f9c5a6654d1566a6ba730b5ae31832dc7fdf45')
 OLD_RESULT = prefix.RESULT
-RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r2')
-ATTEMPT = 'PATCHTST-depth-Urban6-exit-r2'
-SESSION = 'ch3-m6-patchtst-depth-urban6-r2'
+RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r3')
+ATTEMPT = 'PATCHTST-depth-Urban6-exit-r3'
+SESSION = 'ch3-m6-patchtst-depth-urban6-r3'
 LOG = OBSERVATION_PACKAGE / 'followup-launcher.log'
 ENTRY = ROOT / 'm6_patchtst_depth_urban6_recovery_entry.py'
 WRAPPER = ROOT / 'scripts/ch3/start_patchtst_depth_urban6_recovery.sh'
@@ -154,7 +155,7 @@ def activate():
         if c['baseline_unified']['stage']=='PATCH_ENC1':
             actual=bound(OBSERVATION_REF)['retained_actual']
             for k in actual:v['nominal'][k]+=actual[k]
-            v['nominal_workers']+=1
+            v['nominal_workers']+=bound(OBSERVATION_REF)['retained_failed_workers']
             v.update(retained_historical_actual=actual,new_nominal_workers=48,observation_failure_cost_retained=True)
         if c['baseline_unified']['stage']=='URBAN_SUBSET':
             failed=bound(REUSE_REF)['failed_actual']
@@ -187,7 +188,7 @@ def delta_ref():return ref(OBSERVATION_PACKAGE/'producer-delta-proof.json')
 
 
 def worker_metadata(c):
-    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],OBSERVATION_REF]
+    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,OBSERVATION_REF]
     values += list(config_refs().values())
     for value in config_refs().values():
         parent=bound(value);values.append(parent['baseline_unified']['data_ref'])
@@ -266,9 +267,9 @@ def verify_source_light():
     return rows
 
 
-def verify_observation_source():
+def verify_prior_observation_source():
     """Specific r1 observation failure; never an arbitrary ignore-failure path."""
-    value=bound(OBSERVATION_REF)
+    value=bound(PRIOR_OBSERVATION_REF)
     old_result=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r1')
     if (value.get('purpose')!='exact_PATCH_ENC1_active_identity_observation_failure_v1' or value['producer_commit']!='e051b96e416433b8940d9ef6b71192033fa07a89'
         or value['old_attempt']!='PATCHTST-depth-Urban6-exit-r1' or value['old_result']!=str(old_result)
@@ -289,6 +290,48 @@ def verify_observation_source():
     assert_owned_exited(value['exit_instances'])
     if subprocess.run(['tmux','has-session','-t',value['old_session']],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('old observation attempt session still exists')
     if any((old_result/stage).exists()for stage in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET','EPF_ALL','M_ALL')) or (old_result/'probe/PATCH_ENC1/complete.json').exists():raise ValueError('unexpected completed work in registered failed r1')
+    return value
+
+
+def verify_observation_source():
+    """Two exact failed lifecycles, retained cost only; neither is a Passed seed."""
+    prior=verify_prior_observation_source();value=bound(OBSERVATION_REF)
+    old_result=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r2')
+    if (value.get('purpose')!='exact_PATCH_ENC1_namespace_exit_observation_failure_v1' or value['producer_commit']!='d852398c7949a2feea9b572ee793c1e793ecd06c'
+        or value['old_attempt']!='PATCHTST-depth-Urban6-exit-r2' or value['old_result']!=str(old_result)
+        or value['prior_observation_ref']!=PRIOR_OBSERVATION_REF or value['config_ref']!=config_refs()['PATCH_ENC1']
+        or value['completed_round2_source_ref']!=SOURCE_REF or value['task_id']!=prior['task_id']):raise ValueError('exact r2 namespace failure and prior r1/source binding')
+    refs=value['refs']
+    for item in refs.values():
+        if ref(item['path'])!=item:raise ValueError('r2 negative observation evidence changed: '+item['path'])
+    failure=bound(refs['queue/controller/failure.json']);probe=bound(refs['probe/PATCH_ENC1/failure.json']);process=bound(refs['process'])
+    auth=bound(refs['start_authorization']);permit=bound(refs['probe/PATCH_ENC1/approval.json']);snapshot=bound(refs['observation_failure'])
+    expected=dict(adam=12,backward=12,forward=16);attempt=dict(adam=6,backward=6,forward=8)
+    if (failure.get('error')!="RuntimeError('owned child technical failure: PATCH_ENC1-probe')" or probe.get('error')!="RuntimeError('serial technical gate failed; no fallback')"
+        or process.get('failure')!='whole-card sampling failed: owned process identity read/parse failed: 22760; PermissionError; namespace'
+        or process.get('failure_kind')!='observation' or process.get('returncodes')!=[0] or process.get('resource_admission')is not False
+        or process.get('observation_failure_ref')!=refs['observation_failure'] or probe.get('decisions')
+        or value['retained_actual']!=expected or value['attempt_actual']!=attempt or value['retained_failed_workers']!=2
+        or probe['budget']['actual']!=expected or probe['budget']['historical_actual']!=prior['retained_actual'] or probe['budget']['new_actual']!=attempt
+        or value['old_caps']!=prior['old_caps'] or value['new_formal_runs']!=0 or auth['closure_commit']!=value['producer_commit']
+        or permit['commit']!=value['producer_commit'] or permit.get('execution_attempt')!=value['old_attempt']
+        or permit.get('start_authorization_ref')!=refs['start_authorization']):raise ValueError('exact r2 failed lifecycle, unchanged caps and cumulative true cost')
+    identity=value['worker_identity'];pid=str(identity['pid']);before=snapshot['context']['before_metadata'][pid];after=snapshot['sample']['owned_pid_metadata'][pid]
+    known=snapshot['state']['known'][pid]
+    if (identity!=dict(pid=22760,host_pid=13636,start_ticks='211667661',namespace='pid:[4026534934]')
+        or snapshot['context']['active_before']!=[identity['pid']] or snapshot['context']['active_after']!=[]
+        or any(before.get(k)!=v for k,v in identity.items()) or known!=dict(host_pid=str(identity['host_pid']),start_ticks=identity['start_ticks'],namespace=identity['namespace'])
+        or after.get('state')!='metadata_unavailable' or after.get('error_kind')!='PermissionError' or after.get('phase')!='namespace'
+        or after.get('start_ticks_before')!=identity['start_ticks'] or after.get('start_ticks_after')is not None
+        or snapshot['sample']['nvml_processes']!={} or snapshot['sample']['process_table_reliable']is not True
+        or snapshot['current_owned'][0]['returncode']!=0 or snapshot['current_owned'][0]['metadata']['state']!='exited_during_sample'):
+        raise ValueError('exact registered failed namespace sample, never a fresh exit grant')
+    runtime=bound(refs['runtime'])
+    if runtime['pid']!=identity['pid'] or runtime['error']is not None or bound(refs['worker_budget'])['counts']!=attempt:raise ValueError('registered r2 worker accounting')
+    from utils.ch3_type1_upstream import assert_owned_exited
+    assert_owned_exited(value['exit_instances'])
+    if subprocess.run(['tmux','has-session','-t',value['old_session']],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('old r2 session still exists')
+    if any((old_result/stage).exists()for stage in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET','EPF_ALL','M_ALL')) or (old_result/'probe/PATCH_ENC1/complete.json').exists():raise ValueError('unexpected completed work in failed r2')
     return value
 
 
@@ -529,7 +572,7 @@ def load_seed(c,a):
     validate_permit_link(c,a,True)
     if c['baseline_unified']['stage']=='PATCH_ENC1':
         value=verify_observation_source()
-        for item in value['artifact_refs'].values():
+        for item in list(bound(PRIOR_OBSERVATION_REF)['artifact_refs'].values())+list(value['artifact_refs'].values()):
             if ref(item['path'])!=item:raise ValueError('failed six-step artifact changed; never reclassify resource failure')
         from utils import ch3_type1_tasks as s
         actual=value['retained_actual']
