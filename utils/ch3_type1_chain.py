@@ -109,7 +109,9 @@ def dynamic(c,worker=False):
         if subprocess.check_output(['git','-C',src['repository'],'rev-parse','HEAD'],text=True).strip()!=src['commit'] or any(__import__('utils.ch3_native_recovery_records',fromlist=['sha']).sha(p)!=h for p,h in src['files'].items()):raise ValueError('locked author source changed')
     code=code_binding()
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'code_binding'):code.update(PROBE_RECOVERY.code_binding())
-    return dict(commit=git('rev-parse','HEAD'),protocol_sha=digest(c),code=code,environment=environment_binding(),hardware=hardware_binding(),source_states=data['source_states'])
+    value=dict(commit=git('rev-parse','HEAD'),protocol_sha=digest(c),code=code,environment=environment_binding(),hardware=hardware_binding(),source_states=data['source_states'])
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):value.update(PROBE_RECOVERY.resource_binding())
+    return value
 
 
 def closure():
@@ -204,6 +206,7 @@ def seal_base287_boundary(m_ref):
 
 def validate_summary_light(c,value):
     v=bound(value);ctx=s.context(c)
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(v.get(k)!=x for k,x in PROBE_RECOVERY.resource_binding().items()):raise ValueError('summary exclusive resource binding')
     secret=os.environ.get(SECRET,'');body={k:x for k,x in v.items() if k!='mac'}
     if value['path']!=str(ctx['control']/'admission-summary.json') or not secret or not hmac.compare_digest(v.get('mac',''),hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()) or not same(v.get('owner')):raise PermissionError('admission not sealed by this current owned lifecycle')
     if v['owner']!=json.loads((CONTROL/'controller.json').read_text())['owner'] or v['complete_ref']['path']!=str(ctx['probe_root']/'complete.json') or v['manifest_ref']['path']!=str(ctx['control']/'probe-artifact-manifest.json'):raise ValueError('exact AUTO_AUDIT source refs')
@@ -220,6 +223,7 @@ def validate_summary_light(c,value):
 
 def validate_boundary_light(value,stage='URBAN_SUBSET'):
     b=bound(value);c=configs()[stage]
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and stage not in PROBE_RECOVERY.COMPLETED_STAGES and any(b.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise ValueError('new boundary exclusive resource binding')
     if value['path']!=str(s.context(c)['control']/'technical-boundary.json'):raise ValueError('exact sealed ring boundary path')
     if b.get('purpose')!='baseline_type1_'+stage+'_boundary_v1' or b.get('scope')!=s.ID or b.get('technical_complete')is not True or b.get('result_review')!='pending' or b['task_ids']!=[t['id'] for t in c['tasks']] or b['protocol_sha']!=digest(c):raise ValueError('sealed MS boundary scope')
     if PROBE_RECOVERY and stage in getattr(PROBE_RECOVERY,'COMPLETED_STAGES',('M_BASE',)if getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)else()):PROBE_RECOVERY.validate_adopted_boundary(value)
@@ -250,7 +254,13 @@ def seal_round2_boundary(amendment_ref):
 def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_ref=None):
     stop_check();validate_start(bound(start_ref));ctx=s.context(c)
     from utils.ch3_native_recovery import resource_check
-    resource_check(c)
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):
+        from tools.restricted_regression.m5_formal_entry import gpu_sample,resource_assessment
+        mode=PROBE_RECOVERY.resource_binding()['resource_mode']
+        from ch3_runner import GPULock
+        with GPULock(c):
+            if not resource_assessment(gpu_sample([],resource_mode=mode),[],resource_mode=mode)['admission']:raise ValueError('exclusive whole-card headroom unavailable')
+    else:resource_check(c)
     a=dict(purpose='baseline_type1_probe_permit_v1' if probe else 'baseline_type1_formal_permit_v1',type1_scope=s.ID,
         successor_scope=ctx['probe_scope'] if probe else ctx['formal_scope'],**dynamic(c),start_authorization_ref=start_ref,
         reviewed=False,manual_review=False,review_mode='preauthorized_machine_gate',execution_permitted=True,
@@ -279,6 +289,7 @@ def audit_probe(c):
         complete_ref=complete_ref,manifest_ref=manifest_ref,protocol_sha=digest(c),policy_sha=digest(c['baseline_unified']['numeric_policies']),
         profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},decisions=compact_decisions(report),budget=report['budget'],
         owner=owner(),**{k:report[k] for k in ('commit','code','environment','hardware')})
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):summary.update(PROBE_RECOVERY.resource_binding())
     secret=os.environ.get(SECRET)
     if not secret:raise PermissionError('AUTO_AUDIT controlled lifecycle absent')
     summary['mac']=hmac.new(secret.encode(),digest(summary).encode(),hashlib.sha256).hexdigest()
@@ -287,11 +298,13 @@ def audit_probe(c):
 
 def seal_runtime(c,permit_ref):
     ctx=s.context(c);a=validate_permit(c,bound(permit_ref));summary=validate_summary_light(c,a['summary_ref']);manifest=bound(a['manifest_ref'])
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(manifest.get(k)!=x for k,x in PROBE_RECOVERY.resource_binding().items()):raise ValueError('manifest exclusive resource binding')
     # Exactly one integrity scan per stage supervisor lifecycle. Child processes consume HMAC-bound refs only.
     scan_manifest(manifest,summary['complete_ref'],ctx['probe_root']);stop_check()
     body=dict(purpose='baseline_type1_runtime_v1',scope=s.ID,stage=ctx['stage'],owner=owner(),permit_ref=permit_ref,
         summary_ref=a['summary_ref'],manifest_ref=a['manifest_ref'],protocol_sha=digest(c),commit=a['commit'],code=a['code'],
         integrity_scan_passed=True,full_scans=1,result_review='pending',upstream_boundary_ref=a['upstream_boundary_ref'],science_protocol=c['baseline_unified']['id'])
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):body.update(PROBE_RECOVERY.resource_binding())
     secret=os.environ.get(SECRET)
     if not secret:raise PermissionError('owned runtime secret absent')
     body['mac']=hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()
@@ -300,6 +313,7 @@ def seal_runtime(c,permit_ref):
 
 def validate_runtime(c,value,permit_ref):
     stop_check();v=bound(value);body={k:x for k,x in v.items() if k!='mac'};secret=os.environ.get(SECRET,'')
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(v.get(k)!=x for k,x in PROBE_RECOVERY.resource_binding().items()):raise ValueError('runtime exclusive resource binding')
     if not secret or not hmac.compare_digest(v.get('mac',''),hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()):raise PermissionError('runtime not from current controlled chain')
     if v.get('scope')!=s.ID or v.get('stage')!=s.context(c)['stage'] or v['permit_ref']!=permit_ref or v['protocol_sha']!=digest(c) or v['integrity_scan_passed']is not True or v['full_scans']!=1 or not same(v['owner']):raise ValueError('current formal lifecycle binding')
     if v['owner']!=json.loads((CONTROL/'controller.json').read_text())['owner'] or v.get('science_protocol')!=c['baseline_unified']['id']:raise ValueError('different supervisor lifecycle/protocol')
@@ -408,6 +422,7 @@ def seal_boundary(c,receipts):
     for m in s.context(c)['models']:
         r=bound(receipts[m])
         if r.get('technical_complete')is not True or r['model']!=m or r['task_ids']!=[t['id'] for t in c['tasks'] if t['model']==m]:raise ValueError('exact successful model receipt')
+        if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(r.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise ValueError('group receipt exclusive resource binding')
     binding=dynamic(c)
     if binding.get('protocol_sha')!=digest(c):raise ValueError('seal protocol binding differs from exact configuration')
     return exclusive(s.context(c)['control']/'technical-boundary.json',dict(purpose='baseline_type1_'+s.context(c)['stage']+'_boundary_v1',scope=s.ID,
@@ -467,6 +482,7 @@ def run(start_ref):
     for stage in ('PATCH_ENC1','PATCH_ENC2'):
         if stage in cs:complete[stage+'_boundary']=receipts[STAGE_STATES[stage][3]]
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'completion_fields'):complete.update(PROBE_RECOVERY.completion_fields(receipts))
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):complete.update(PROBE_RECOVERY.resource_binding())
     exclusive(CONTROL/'complete.json',complete)
 
 

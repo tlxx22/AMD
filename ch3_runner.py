@@ -499,6 +499,11 @@ def formal_identity(c, task, metadata, approval):
     if approval.get('recovery_scope'):
         result.update(**{k:approval[k] for k in ('science_baseline_commit','controller_execution_commit','worker_execution_commit','science_computation_fingerprint')},
                       recovery_scope=approval['recovery_scope'])
+    if approval.get('resource_mode')is not None:
+        from utils.ch3_patchtst_depth_urban6_recovery import resource_binding
+        binding=resource_binding()
+        if any(approval.get(k)!=v for k,v in binding.items()):raise ValueError('formal identity resource binding')
+        result.update(binding)
     return result
 
 
@@ -729,16 +734,35 @@ def compare_probe_trajectories(c, task, reference, actual):
         return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),state_atol=rule['state_atol'],metric_atol=metric_limit,rtol=0.0,equal_nan=False,bitwise_equal=raw_equal and state_max==0 and exact,state_max_abs=state_max,scalar_normalized_max_abs=scalar_max,validation_max_abs=validation_max,loss_max_abs=loss_max,loss_error_ratio=loss_ratio,loss_atol=rule.get('loss_atol',metric_limit),loss_rtol=rule.get('loss_rtol',0.0),compared_elements=count,exact_residual_state=exact and not any(f.startswith('step') and 'exact ' in f for f in failures),failures=failures)
     raise ValueError('unknown numeric policy kind')
 
-def memory_growth_review(memory):
+def probe_resource_binding(c):
+    """Select capture policy only from the activated, bound execution context."""
+    from utils import ch3_type1_chain as chain
+    recovery=chain.PROBE_RECOVERY
+    if recovery is None or not hasattr(recovery,'resource_binding'):return {}
+    stage=c.get('baseline_unified',{}).get('stage')
+    if chain.configs().get(stage)!=c:raise PermissionError('probe resource configuration binding')
+    return recovery.resource_binding()
+
+
+def probe_gpu_memory(cuda,device,kind,resource_mode=None):
+    if resource_mode=='exclusive_gpu_whole_card_v1':return None
+    if resource_mode is not None:raise ValueError('unknown probe resource mode')
+    return getattr(cuda,kind)()if str(device).startswith('cuda')else 0
+
+
+def memory_growth_review(memory,resource_mode=None):
     """Material growth AND rate AND no longer-window plateau, not mere monotonic RSS."""
     import math
     from utils.ch3_contract import RSS_PROBE_POLICY as rule
-    needed=('allocated','rss_before_hash','rss_after_hash')
+    if resource_mode not in(None,'exclusive_gpu_whole_card_v1'):raise ValueError('unknown memory review mode')
+    whole=resource_mode=='exclusive_gpu_whole_card_v1'
+    if whole and any(r.get('resource_mode')!=resource_mode or not {'allocated','reserved'}.issubset(r) or r['allocated']is not None or r['reserved']is not None for r in memory):raise ValueError('whole-card probe must not record worker GPU memory')
+    needed=('rss_before_hash','rss_after_hash')if whole else('allocated','rss_before_hash','rss_after_hash')
     if any(any(k not in r or not isinstance(r[k],(int,float)) or not math.isfinite(r[k]) or r[k]<0 for k in needed) for r in memory):
         raise ValueError('invalid memory observation')
     if len(memory)<4:return dict(blocked=False,needs_long_window=True,triggers=[],scope='insufficient memory observations')
     recent=memory[-4:]
-    gpu_growth=all(b['allocated']>a['allocated'] for a,b in zip(recent,recent[1:]))
+    gpu_growth=False if whole else all(b['allocated']>a['allocated'] for a,b in zip(recent,recent[1:]))
     long_enough=len(memory)>=rule['long_total_updates']
     window=memory[rule['warmup_updates']:] if long_enough else recent
     rss=[r['rss_before_hash'] for r in window];net=max(0,rss[-1]-rss[0]);rate=net/(len(rss)-1)
@@ -827,6 +851,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
 
 def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False,m_confirmation=False):
     import torch
+    resource_binding=probe_resource_binding(c);resource_mode=resource_binding.get('resource_mode')
     m_clock=time.monotonic()if task.get('task')=='M' or c.get('native_time_mark') else None
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     from utils.ch3_onecycle import build
@@ -878,7 +903,7 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
             scheduler.after_successful_update();scheduler_trace.append(scheduler.state_dict())
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         if m_timing is not None:m_timing['update_seconds'].append(time.monotonic()-m_update_start)
-        before=rss();allocated=torch.cuda.memory_allocated() if str(device).startswith('cuda') else 0
+        before=rss();allocated=probe_gpu_memory(torch.cuda,device,'memory_allocated',resource_mode)
         trajectory[step]=dict(step=step+1,loss=loss,state=state_digest(model.state_dict()),optimizer=state_digest(opt.state_dict()))
         if numeric_trace is not None:numeric_trace[step]=numeric_probe_snapshot(model,opt,numeric_rule,step+1,state_digest)
         if full_writer is not None:full_trace[step]=full_writer.capture(step+1)
@@ -894,10 +919,12 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         del x,y,mark,current_batch
         if str(device).startswith('cuda'):torch.cuda.synchronize()
         if step==1 and m_timing is not None:m_timing['validation_seconds']=time.monotonic()-m_validation_start
-        memory[step]=dict(step=step+1,allocated=allocated,reserved=torch.cuda.memory_reserved() if str(device).startswith('cuda') else 0,rss_before_hash=before,rss_after_hash=after,rss=rss())
+        memory[step]=dict(step=step+1,allocated=allocated,reserved=probe_gpu_memory(torch.cuda,device,'memory_reserved',resource_mode),rss_before_hash=before,rss_after_hash=after,rss=rss())
+        if resource_mode:memory[step]['resource_mode']=resource_mode
         capture('step-'+str(step+1))
         if diagnostic is not None:diagnostic.capture(step+1)
-    result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,allocated=torch.cuda.max_memory_allocated() if str(device).startswith('cuda') else 0,reserved=torch.cuda.max_memory_reserved() if str(device).startswith('cuda') else 0,affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory),state_digest_storage_bytes=state_digest.storage_bytes,state_digest_buffer_allocations=state_digest.buffer_allocations,state_digest_policy='preallocated-per-dtype-v1; original digest byte semantics')
+    result=dict(id=task['id'],profile_sha=digest(p),initial=initial,initial_rng=initial_rng,batch_ids=batch_ids,trajectory=trajectory,validation=validation,validation_tail=tail,steps=6,final=state_digest(model.state_dict()),final_rng=rng(),memory=memory,allocated=probe_gpu_memory(torch.cuda,device,'max_memory_allocated',resource_mode),reserved=probe_gpu_memory(torch.cuda,device,'max_memory_reserved',resource_mode),affinity=sorted(os.sched_getaffinity(0)),threads=torch.get_num_threads(),finite=True,diagnostic_state_capture=capture_states,memory_review=memory_growth_review(memory,resource_mode),state_digest_storage_bytes=state_digest.storage_bytes,state_digest_buffer_allocations=state_digest.buffer_allocations,state_digest_policy='preallocated-per-dtype-v1; original digest byte semantics')
+    result.update(resource_binding)
     if diagnostic is not None:result['urban_diagnostic_trace']=diagnostic.rows
     if urban_confirmation:
         from utils.ch3_urban_confirmation import cached_endpoint,policy
@@ -907,9 +934,9 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
         endpoint['target']=target
         result['urban_confirmation']=dict(policy_sha=digest(policy(c,task)),evaluations={'2':dict(metrics=validation,batch_ids=validation_batch_ids,target=target),'6':endpoint})
         if str(device).startswith('cuda'):torch.cuda.synchronize()
-        result['endpoint_resources']=dict(allocated=torch.cuda.memory_allocated()if str(device).startswith('cuda')else 0,rss=rss())
-        result['allocated']=torch.cuda.max_memory_allocated()if str(device).startswith('cuda')else 0
-        result['reserved']=torch.cuda.max_memory_reserved()if str(device).startswith('cuda')else 0
+        result['endpoint_resources']=dict(allocated=probe_gpu_memory(torch.cuda,device,'memory_allocated',resource_mode),rss=rss())
+        result['allocated']=probe_gpu_memory(torch.cuda,device,'max_memory_allocated',resource_mode)
+        result['reserved']=probe_gpu_memory(torch.cuda,device,'max_memory_reserved',resource_mode)
     if p.get('task')=='M' or p.get('time_mark') or scheduler is not None:
         result['M_full_state_trace']=full_trace if full_trace else M_full_trace
         result['M_timing']=m_timing

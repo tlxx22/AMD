@@ -50,9 +50,29 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，r2退出窗口namespace观测窄修候选）**：r2观测修复已closure于`d852398c7949a2feea9b572ee793c1e793ecd06c`并实际启动；首个PATCH_ENC1/ETTh1/H96串行六步后，查询前身份稳定、查询后poll确认退出，但namespace读取PermissionError导致资源观测失败。失败快照和原失败判定保留；底层errno未记录，具体内核原因仍未证实。MS203、M84、M_AMEND112、第二轮371格及196项新增正式结果保持，后续新增正式仍0/335。当前r3只允许这一精确退出过渡进入原60秒内的新鲜独立观测，错误样本不授予准入；权限持续、活跃进程权限错误、身份冲突、未知占用及查询失败仍拒绝。科学profile、统一数值政策、335项任务及probe硬上限不变。候选未stage/commit/push、未生成可执行许可或启动，result_review仍pending。见[M6本轮窄修](milestones/M6_formal_experiments.md#m6-patch-enc1-namespace-exit-repair-v1)。
+**当前总览（M6，用户独占条件下的整卡资源候选）**：r3已closure于`0abc95542f28c000d0366ad43a29e0b85867e38c`并启动，首个PATCH_ENC1六步serial因namespace读取失败而停止；底层内核权限原因仍未证实。用户现明确声明服务器/GPU独占、仅本实验队列运行，要求当前及后续相同条件的M6取消worker级GPU归属采集。当前未提交r4候选因此改用`exclusive_gpu_whole_card_v1`，不先closure旧方向、不另开r5。MS203、M84、M_AMEND112、原371格及已完成196项保持；待执行335、总531、最大4550 run-epochs及r1–r3失败成本18/18/24不变，旧资源失败不追认为Passed。科学与数值政策不改，真实短验收和主链均未启动，result_review仍pending。
 
-旧失败、完成结果、许可及准备记录按真实版本保留。旧M84仍绑定实际`760b9dd7162d200c11b8836a7c9ece41822dfcf1`训练版本，补做112保留Weather修订执行版本；本次新生命周期只采用已完成来源，不冒充旧训练producer。r1/r2许可、launch/claimed、failure、memory及各六步轨迹均只读保留，累计Adam12/backward12/forward16、不退款且不当作Passed资源种子；r3使用独立attempt/result/log/session，新增量另记。每阶段一次AUTO_AUDIT，正式worker不完整回放probe。历史小节的候选、第三轮231/Urban28等均为当时事实，不倒写。
+旧失败、结果、许可、轨迹和日志原字节保留；采用版本不冒充原训练producer。r4仅补工程准入，原probe硬上限不扩大。审核closure后先以单独受控生命周期执行一次相同batch128/六步真实serial验收，失败即停，不循环重试；成功且全部绑定一致时复用，随后由用户一次arm主链。当前仅候选与无模型CPU复验，未stage/commit/push、未生成可执行许可、未进行真实GPU验收或完整恢复启动。
+
+### 用户独占条件下的整卡资源合同（r4候选）
+
+独占前提来自用户声明，不是工具证明整机没有其他使用者。当前及以后明确满足同样独占、单实验队列条件的M6执行包，绑定`resource_mode=exclusive_gpu_whole_card_v1`及精确资源合同引用；共享GPU或条件改变时须重新评估，不静默沿用此模式。
+
+q1/q2/q4统一只采集固定cuda:0的整卡UUID、total/used/free/driver_reserved、单调采样时间和查询耗时；GPU查询仍最多10秒。有限、非负、内存会计一致性、固定UUID/设备和安全余量`max(8 GiB,10% total)`继续严格检查。取消容器/宿主GPU PID映射、namespace/sched读取、GPU进程表查询、逐worker显存峰值和归属状态机；新采样日志不含这些遥测。兼容字段明确null/N/A，不填零峰值、Measured或已核实无外部占用。整卡足够并不证明无其他进程。
+
+启动器Popen/poll/wait、退出码、任务ID、日志、超时、STOP和安全停止保留；PID/start_ticks仅作为启动/退出/停止所需的最少控制身份，并严格配对任务。整波必须等自有worker正常退出，再取得新鲜安全整卡样本；不等宿主GPU PID消失，不要求显存归零或回到基线。安全停止只能处理合法持有或可靠核验的自有实例。查询/观测异常不伪装resource-only失败，明确资源不足和既有CUDA OOM分类按原规则处理。
+
+新模式在许可、worker配置、单串行收据、probe审计、manifest、紧凑准入/runtime、formal完成收据、结果来源汇总及complete中绑定；错误模式、未绑定许可或不完整生命周期拒绝。新probe也不调用PyTorch逐worker allocated/reserved/peak统计，相应轨迹字段为null/N/A；CPU/RSS检查保留。历史Urban H3按其原模式/producer完整证据采用；r1–r3失败与旧bundle封印不改。初始化/RNG/order/scheduler、完整浮点state、finite、数值阈值、makespan收益、并发上限、单队列锁、科学profile和所有运行保护上限保持。
+
+本次材料集中于原r4包的`whole-card-monitor-v1/`；保留父包13文件候选、85/85日志及旧失败。仍先在审核closure及新许可就绪后执行一次PatchTST enc1/ETTh1/H96、batch128、原六步真实串行验收。成功证据精确复用一次；未成功时主链阻塞，失败不循环重试。长链最后由用户arm一次，正常顺序和每阶段一次AUTO_AUDIT不变。本轮只做无模型CPU/合成复验，未生成可执行许可、未运行真实GPU验收，尚待ChatGPT审核新字节。
+
+### PATCH_ENC1统一有界身份核实（此前r4未提交方向，已由上节替代）
+
+身份分为可靠、待核实、冲突/超时拒绝。已有可靠Popen/PID/host PID/start_ticks/namespace绑定时，namespace阶段暂时PermissionError或符合退出的缺失可在查询前后、活跃或退出状态进入统一核实；当前可读字段必须无冲突。不将其他权限/解析/I/O错误忽略，也不要求只异常一次。首次不确定起60秒期限不因重复失读、poll变化、NVML残留或跨worker交接重置；同一待核实段完全解决后才结束该期限；单次GPU查询最多10秒，受剩余期限约束。独立新样本须证明原实例完整身份恢复，或确认受控子进程已终止且双重读取PID消失并完成GPU残留核验，才能解除不确定。整波仍需正常退出、完整资源和原数值gate。
+
+待核实host PID单独登记为pending_owned_unverified，原unknown列表和原始读数保留，错误样本始终不准入、不是Measured，缺失显存不填0；其他未知进程仍拒绝，整卡余量实时检查。身份/host/namespace冲突、PID复用、无历史身份、不可靠查询、持续失读到期等拒绝，不按resource-only降并发。失败快照保留errno、阶段、单调时间、前后poll、可读proc状态与ticks及裁决。
+
+增量集中`patchtst-enc2-adoption-v1/patch-enc1-identity-settle-repair-v1/`。正常顺序仍371来源采用→enc1 M24→enc2 M24→固定enc2新版371（24格替换、347格保持）→Urban84→EPF35→M168。最小验收通过不等于q4、整个阶段或效果通过；AUTO_AUDIT仍每阶段一次，formal只消费紧凑准入。工程复验、失败日志、精确保护和待审核字节见唯一M6与本包，尚未获本轮ChatGPT新字节审核。
 
 ### PATCH_ENC1退出窗口namespace窄修（r3候选）
 

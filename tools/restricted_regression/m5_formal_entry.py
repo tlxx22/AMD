@@ -195,9 +195,19 @@ def bootstrap(s):
             torch.cuda.set_per_process_memory_fraction(min(.95,(free-reserve)/total),0)
 
 
-def resource_assessment(sample, pids, baseline=None):
+def resource_assessment(sample, pids, baseline=None, pending_hosts=(),resource_mode=None):
     """Fail closed on unknown competitors; N/A process memory never becomes zero."""
     import math
+    if resource_mode is not None:
+        if resource_mode!='exclusive_gpu_whole_card_v1' or sample.get('resource_mode')!=resource_mode:raise ValueError('exact whole-card resource mode')
+        reliable=(sample.get('device')=='cuda:0' and isinstance(sample.get('uuid'),str) and bool(sample['uuid'])
+            and all(type(sample.get(k))in(int,float) and math.isfinite(sample[k]) and sample[k]>=0 for k in('time','total','used','free','driver_reserved','query_elapsed'))
+            and sample['total']>0 and abs(sample['total']-sample['used']-sample['free']-sample['driver_reserved'])<=2*1024**2
+            and 0<sample.get('query_timeout',0)<=10 and sample['query_elapsed']<=sample['query_timeout']
+            and (baseline is None or(sample['uuid']==baseline['uuid'] and sample['total']==baseline['total'])))
+        reserve=max(8*1024**3,.1*sample.get('total',0))
+        return dict(resource_mode=resource_mode,card_reliable=bool(reliable),admission=bool(reliable and sample['free']>=reserve),reserve=reserve,
+            measurement='whole-card',process_attribution=None,external_occupancy_known=None,unknown_pids=None)
     reliable=(sample.get('uuid') and all(isinstance(sample.get(k),(int,float)) and math.isfinite(sample[k]) and sample[k]>=0
               for k in ('total','used','free','driver_reserved')) and sample['total']>0
               and abs(sample['total']-sample['used']-sample['free']-sample['driver_reserved'])<=2*1024**2
@@ -205,16 +215,20 @@ def resource_assessment(sample, pids, baseline=None):
     processes=sample.get('nvml_processes',{});matched=set(sample.get('owned_host_pids',[]))
     initial=baseline.get('nvml_processes',{}) if baseline else {}
     unknown=set(processes)-matched-set(initial)
+    pending=set(pending_hosts)
+    unresolved=unknown&pending
     # With no owned processes this is an observed external-occupancy baseline.
     own=sample.get('process_gpu',{})
     mapped=sample.get('owned_pid_metadata',{})
     external_known=not pids or (baseline is not None and not unknown and baseline.get('uuid')==sample.get('uuid')
                                and all(str(p) in own or mapped.get(str(p),{}).get('host_pid') is not None for p in pids))
-    attribution='Measured' if pids and all(own.get(str(p)) is not None for p in pids) else 'Not verified'
+    attribution='Measured' if pids and not pending and all(own.get(str(p)) is not None for p in pids) else 'Not verified'
     reserve=max(8*1024**3,.1*sample.get('total',0))
     return dict(card_reliable=bool(reliable),external_occupancy_known=external_known,
                 process_attribution=attribution,unknown_pids=sorted(unknown) if pids else [],
-                admission=bool(reliable and external_known and sample['free']>=reserve),
+                pending_owned_unverified=sorted(unresolved),unexpected_pids=sorted(unknown-pending),
+                identity_measurement_valid=not pending,
+                admission=bool(reliable and external_known and not pending and sample['free']>=reserve),
                 measurement='process' if attribution=='Measured' else 'whole-card only',reserve=reserve)
 
 
@@ -225,30 +239,39 @@ def owned_pid_metadata(pid):
     table entry or from a memory delta. Missing metadata remains unknown.
     """
     root=Path(f'/proc/{pid}')
-    phase='stat_before';before=None;after=None
+    phase='stat_before';before=None;after=None;proc_state=None;observed_host=None;namespace=None
     try:
         fields=(root/'stat').read_text().rsplit(')',1)[1].split();before=fields[19];proc_state=fields[0]
         phase='status';status=(root/'status').read_text()
         phase='sched';sched=(root/'sched').read_text().splitlines()[0]
+        match=re.search(r'\((\d+), #threads: \d+\)$',sched)
+        if not match:return dict(pid=pid,host_pid=None,state='metadata_unavailable',error_kind='sched_parse',phase='sched',start_ticks=before,proc_state=proc_state)
+        observed_host=int(match[1])
         phase='namespace';namespace=os.readlink(root/'ns/pid')
         phase='stat_after';after=(root/'stat').read_text().rsplit(')',1)[1].split()[19]
-        match=re.search(r'\((\d+), #threads: \d+\)$',sched)
         if before!=after:raise ValueError('PID lifetime changed during sampling')
-        if not match:return dict(pid=pid,host_pid=None,state='metadata_unavailable',error_kind='sched_parse',phase='sched',start_ticks=before,namespace=namespace)
         return dict(pid=pid,host_pid=int(match[1]),start_ticks=before,sched=sched,proc_state=proc_state,
                     nspid=next((x.split()[1:] for x in status.splitlines() if x.startswith('NSpid:')),[]),
                     namespace=namespace,
                     rss=next((int(x.split()[1])*1024 for x in status.splitlines() if x.startswith('VmRSS:')),None))
     except (FileNotFoundError,ProcessLookupError)as exc:
-        return dict(pid=pid,host_pid=None,state='exited_during_sample',error_kind=type(exc).__name__,phase=phase,start_ticks=before)
+        return dict(pid=pid,host_pid=None,state='exited_during_sample',error_kind=type(exc).__name__,errno=exc.errno,phase=phase,start_ticks=before,
+                    observed_host_pid=observed_host,observed_namespace=namespace,proc_state=proc_state,observed_at=time.monotonic())
     except (OSError,ValueError,IndexError)as exc:
-        return dict(pid=pid,host_pid=None,state='metadata_unavailable',error_kind='identity_conflict'if before is not None and after is not None and before!=after else type(exc).__name__,phase=phase,start_ticks_before=before,start_ticks_after=after)
+        return dict(pid=pid,host_pid=None,state='metadata_unavailable',error_kind='identity_conflict'if before is not None and after is not None and before!=after else type(exc).__name__,errno=getattr(exc,'errno',None),phase=phase,start_ticks_before=before,start_ticks_after=after,
+                    observed_host_pid=observed_host,observed_namespace=namespace,proc_state=proc_state,observed_at=time.monotonic())
 
 
-def gpu_sample(pids,query_timeout=10.0):
+def gpu_sample(pids,query_timeout=10.0,resource_mode=None):
     if not 0 < query_timeout <= 10.0:raise ValueError('bounded GPU query timeout required')
+    if resource_mode not in(None,'exclusive_gpu_whole_card_v1'):raise ValueError('unknown resource mode')
+    started=time.monotonic()
     raw=subprocess.check_output(['nvidia-smi','-i','0','--query-gpu=uuid,memory.total,memory.used,memory.free,memory.reserved','--format=csv,noheader,nounits'],text=True,timeout=query_timeout)
     uuid,*memory=raw.strip().split(',');total,used,free,driver_reserved=[float(x.strip())*1024**2 for x in memory]
+    if resource_mode:
+        finished=time.monotonic()
+        return dict(time=finished,uuid=uuid.strip(),device='cuda:0',total=total,used=used,free=free,driver_reserved=driver_reserved,
+            resource_mode=resource_mode,query_timeout=query_timeout,query_elapsed=finished-started)
     processes=subprocess.check_output(['nvidia-smi','-i','0','--query-compute-apps=pid,used_memory','--format=csv,noheader,nounits'],text=True,timeout=query_timeout)
     own={};all_processes={};pid_candidates={};matched=[];table_reliable=True
     metadata={str(pid):owned_pid_metadata(pid) for pid in pids}
@@ -278,109 +301,118 @@ def gpu_sample(pids,query_timeout=10.0):
 
 
 class ExitObservation:
-    """A bounded wait for observed own exits, never a cached ownership grant.
+    """Bounded identity reconciliation for owned Popen lifecycles only.
 
-    No sample containing a stale PID can grant admission. A later clean sample
-    must resolve it; PID reuse, UUID change and unrelated competitors fail closed.
+    Cached identities identify what must be resolved, never a measurement or
+    resource grant. Every unresolved episode has one non-renewable deadline.
     """
     TAIL_SECONDS=60.0
     def __init__(self, baseline):
         self.uuid=baseline['uuid'];self.baseline_hosts=set(baseline.get('nvml_processes',{}));self.known={};self.pending={};self.transitions={};self.tail_deadline=None;self.final_clean=False
-        self.namespace_exits={};self.last_events=[]
+        self.namespace_exits={};self.last_events=[];self.workers={};self.last_time=None;self.pending_episode_deadline=None
+    def bind_workers(self,workers):
+        if self.workers:raise ValueError('owned Popen binding cannot be replaced')
+        self.workers={str(p.pid):p for p in workers}
+        if len(self.workers)!=len(workers):raise ValueError('duplicate owned Popen PID')
     def query_timeout(self,now):
         deadlines=list(self.pending.values())+list(self.transitions.values())+([self.tail_deadline]if self.tail_deadline is not None else [])
+        if self.pending_episode_deadline is not None:deadlines.append(self.pending_episode_deadline)
         remaining=min(deadlines)-now if deadlines else self.TAIL_SECONDS
         if remaining<=0:raise ValueError('owned exit observation exceeded bounded 60-second tail')
-        # Two NVML queries together cannot exhaust an unbounded tail.
         return min(10.0,remaining/2)
     def snapshot(self):
         return dict(uuid=self.uuid,known={p:dict(host_pid=v[0],start_ticks=v[1],namespace=v[2])for p,v in self.known.items()},
                     pending=[dict(pid=k[0],host_pid=k[1],start_ticks=k[2],namespace=k[3],deadline=v)for k,v in self.pending.items()],
                     identity_transitions=dict(self.transitions),namespace_exits=dict(self.namespace_exits),
-                    last_identity_verdict=self.last_events,tail_deadline=self.tail_deadline,final_clean=self.final_clean)
+                    bound_worker_pids=sorted(self.workers),last_identity_verdict=self.last_events,tail_deadline=self.tail_deadline,pending_episode_deadline=self.pending_episode_deadline,final_clean=self.final_clean)
+    @staticmethod
+    def absent(pid,row):
+        return (row.get('pid')==int(pid) and row.get('state')=='exited_during_sample' and row.get('host_pid')is None
+                and row.get('phase')=='stat_before' and row.get('error_kind')in ('FileNotFoundError','ProcessLookupError') and row.get('start_ticks')is None)
     def classify(self,sample,owned,active,before=None):
         self.final_clean=False
         if sample['uuid']!=self.uuid:raise ValueError('GPU UUID changed')
         now=sample['time'];active={str(p) for p in active};owned={str(p) for p in owned}
         previous={str(p)for p in before}if before is not None else None
+        if self.last_time is not None and now<self.last_time:raise ValueError('observation monotonic time reversed')
+        self.last_time=now
+        if self.workers and (owned!=set(self.workers) or any(str(p.pid)!=pid for pid,p in self.workers.items())):raise ValueError('owned Popen lifecycle binding changed')
         if not active<=owned or (previous is not None and(not previous<=owned or not active<=previous)):raise ValueError('owned process state changed inconsistently')
         if not active and self.tail_deadline is None:self.tail_deadline=now+self.TAIL_SECONDS
-        if self.tail_deadline is not None and now>self.tail_deadline:raise ValueError('owned exit observation exceeded bounded 60-second tail')
-        historical=dict(self.known);before_bank=sample.get('owned_before_metadata',{});after_bank=sample.get('owned_pid_metadata',{});namespace_transition=set()
+        self.query_timeout(now)
+        historical=dict(self.known);before_bank=sample.get('owned_before_metadata',{});after_bank=sample.get('owned_pid_metadata',{})
         for field,expected in (('active_before',previous),('active_after',active)):
             if field in sample and expected is not None and {str(p)for p in sample[field]}!=expected:raise ValueError('sample/poll ownership mismatch')
+        uncertain=set();events=[]
         for bank in (before_bank,after_bank):
             for pid,m in bank.items():
-                if pid not in owned:raise ValueError('foreign PID metadata')
+                if pid not in owned or m.get('pid',int(pid))!=int(pid):raise ValueError('foreign PID metadata')
+                known=self.known.get(pid)
+                for field,index in (('observed_host_pid',0),('start_ticks_before',1),('start_ticks_after',1),('start_ticks',1),('observed_namespace',2)):
+                    if known and m.get(field)is not None and str(m[field])!=known[index]:raise ValueError('owned PID lifetime changed during partial read')
                 if m.get('state')=='metadata_unavailable':
-                    prior=before_bank.get(pid,{})
-                    identity=(str(prior.get('host_pid')),str(prior.get('start_ticks')),prior.get('namespace'))
-                    # Only this post-query namespace read can be unresolved.
-                    # The failed sample NEVER grants admission or becomes gone.
-                    permitted=(bank is after_bank and pid in historical and pid not in self.namespace_exits
-                        and previous is not None and pid in previous and pid not in active
-                        and prior.get('pid')==int(pid) and m.get('pid')==int(pid) and identity==historical[pid]
-                        and prior.get('host_pid')is not None and prior.get('start_ticks')and prior.get('namespace')
-                        and m.get('host_pid')is None and m.get('error_kind')=='PermissionError' and m.get('phase')=='namespace'
-                        and str(m.get('start_ticks_before'))==historical[pid][1] and m.get('start_ticks_after')is None
-                        and sample.get('process_table_reliable')is True)
+                    permitted=(pid in historical and previous is not None and m.get('error_kind')=='PermissionError'
+                        and m.get('phase')=='namespace' and str(m.get('start_ticks_before'))==historical[pid][1]
+                        and m.get('start_ticks_after')is None and m.get('host_pid')is None and sample.get('process_table_reliable')is True)
                     if not permitted:raise ValueError('owned process identity read/parse failed: '+pid+'; '+str(m.get('error_kind','unknown'))+'; '+str(m.get('phase','unknown')))
-                    namespace_transition.add(pid)
-                    self.namespace_exits[pid]=dict(observed_at=now,historical_identity=dict(host_pid=historical[pid][0],start_ticks=historical[pid][1],namespace=historical[pid][2]),read_failure=dict(m))
+                    first_read=m.get('observed_at',now)
+                    if not isinstance(first_read,(int,float)) or not math.isfinite(first_read) or first_read>now:raise ValueError('namespace read monotonic timestamp invalid')
+                    deadline=first_read+self.TAIL_SECONDS
+                    self.pending_episode_deadline=deadline if self.pending_episode_deadline is None else min(self.pending_episode_deadline,deadline)
+                    self.transitions.setdefault(pid,self.pending_episode_deadline)
+                    uncertain.add(pid)
+                    self.namespace_exits.setdefault(pid,dict(observed_at=now,historical_identity=dict(host_pid=historical[pid][0],start_ticks=historical[pid][1],namespace=historical[pid][2]),read_failure=dict(m)))
+                    self.namespace_exits[pid]['last_read_failure']=dict(m)
                     continue
-                if m.get('host_pid') is not None:
-                    if not m.get('start_ticks') or not m.get('namespace'):raise ValueError('incomplete owned process identity')
+                if m.get('host_pid')is not None:
+                    if not m.get('start_ticks')or not m.get('namespace'):raise ValueError('incomplete owned process identity')
                     identity=(str(m['host_pid']),str(m['start_ticks']),m['namespace'])
-                    if pid in self.known and self.known[pid]!=identity:raise ValueError('owned PID lifetime changed')
+                    if known and known!=identity:raise ValueError('owned PID lifetime changed')
+                    if any(other!=pid and value[0]==identity[0]for other,value in self.known.items()):raise ValueError('owned host PID attribution conflict')
                     self.known[pid]=identity
                 elif m.get('state')!='exited_during_sample':raise ValueError('owned process identity unavailable: '+pid)
-                elif m.get('start_ticks')is not None and pid in self.known and str(m['start_ticks'])!=self.known[pid][1]:raise ValueError('owned PID lifetime changed during disappearance')
-        if active-set(sample.get('owned_pid_metadata',{})):raise ValueError('active owned process metadata missing')
-        events=[]
+                elif pid not in self.known:raise ValueError('exit has no proven historical process identity: '+pid)
+        if owned-set(after_bank):raise ValueError('owned process metadata missing')
+        if 'owned_before_metadata'in sample and set(before_bank)!=owned:raise ValueError('before-query owned process metadata missing')
+        observed=set(sample.get('nvml_processes',{}));waiting=[];pending_hosts=set()
+        if observed-self.baseline_hosts-{v[0]for v in self.known.values()}:raise ValueError('unknown GPU process ownership during observation')
         for pid in owned:
-            m=sample.get('owned_pid_metadata',{}).get(pid,{})
-            resolved=None
-            if pid in self.namespace_exits and pid not in namespace_transition:
-                pending=self.namespace_exits[pid]
-                def absent(row):
-                    return (row.get('pid')==int(pid) and row.get('state')=='exited_during_sample' and row.get('host_pid')is None
-                        and row.get('phase')=='stat_before' and row.get('error_kind')in ('FileNotFoundError','ProcessLookupError') and row.get('start_ticks')is None)
-                # Both independent reads must find /proc absent, after the
-                # previous poll-confirmed exit. Empty NVML alone is insufficient.
-                if now>self.transitions[pid]:raise ValueError('owned identity transition exceeded bounded 60-second tail')
-                if previous is None or pid in previous or pid in active or now<=pending['observed_at'] or not absent(before_bank.get(pid,{})) or not absent(m):
-                    raise ValueError('namespace exit requires independent fresh disappearance evidence: '+pid)
-                resolved=dict(pending,fresh_time=now,before_metadata=dict(before_bank[pid]),after_metadata=dict(m))
-                del self.namespace_exits[pid]
-            disappearing=m.get('state')=='exited_during_sample'
-            if disappearing and pid not in self.known:raise ValueError('exit has no proven historical process identity: '+pid)
-            transition=(pid in active and disappearing)or(pid not in active and m.get('host_pid')is not None)or(previous is not None and pid in previous and pid not in active)
-            if transition:
-                if previous is None:raise ValueError('active owned process identity unavailable')
-                deadline=self.transitions.setdefault(pid,now+self.TAIL_SECONDS)
-                if now>deadline:raise ValueError('owned identity transition exceeded bounded 60-second tail')
-                events.append(dict(pid=pid,state='await_namespace_exit_fresh_sample'if pid in namespace_transition else'await_fresh_exit_identity',deadline=deadline,
-                    unresolved_read=self.namespace_exits.get(pid)))
+            m=after_bank.get(pid,{});prior=before_bank.get(pid,{})
+            if pid not in self.known:raise ValueError('owned process has no complete identity: '+pid)
+            host,start,namespace=self.known[pid];resolved=None
+            transition=(pid in uncertain or (pid in active and m.get('state')=='exited_during_sample')
+                or(pid not in active and m.get('host_pid')is not None)or(previous is not None and pid in previous and pid not in active))
+            residual=pid not in active and host in observed
+            if pid in self.namespace_exits and pid not in uncertain:
+                record=self.namespace_exits[pid]
+                fresh=now>record['observed_at']
+                restored=(pid in active and m.get('host_pid')is not None and prior.get('host_pid')is not None
+                    and (str(prior['host_pid']),str(prior.get('start_ticks')),prior.get('namespace'))==self.known[pid]
+                    and (str(m['host_pid']),str(m.get('start_ticks')),m.get('namespace'))==self.known[pid])
+                disappeared=(previous is not None and pid not in previous and pid not in active and self.absent(pid,prior)and self.absent(pid,m))
+                if fresh and(restored or disappeared):
+                    resolved=dict(record,fresh_time=now,resolution='same_lifecycle_identity_restored'if restored else'fresh_double_disappearance',before_metadata=dict(prior),after_metadata=dict(m))
+                    del self.namespace_exits[pid]
+                else:transition=True
+            if transition or residual or pid in self.namespace_exits:
+                if self.pending_episode_deadline is None:self.pending_episode_deadline=now+self.TAIL_SECONDS
+                deadline=self.transitions.setdefault(pid,self.pending_episode_deadline)
+                if now>=deadline:raise ValueError('owned identity transition exceeded bounded 60-second tail')
+                pending_hosts.add(host)
+                events.append(dict(pid=pid,state='identity_pending_verification',deadline=deadline,unresolved_read=self.namespace_exits.get(pid),fresh_namespace_exit=resolved))
             else:
                 self.transitions.pop(pid,None)
                 events.append(dict(pid=pid,state='active_identity_verified'if pid in active else'exit_identity_verified',fresh_namespace_exit=resolved))
-        observed=set(sample.get('nvml_processes',{}));waiting=[]
-        if observed-self.baseline_hosts-{v[0]for v in self.known.values()}:raise ValueError('unknown GPU process ownership during observation')
-        for pid,(host,start,namespace) in self.known.items():
-            metadata=sample.get('owned_pid_metadata',{}).get(pid,{})
-            if pid not in active and host in observed:
-                deadline=self.pending.setdefault((pid,host,start,namespace),now+self.TAIL_SECONDS)
-                if now>deadline:raise ValueError('owned exit observation exceeded bounded 60-second tail')
-                waiting.append(host)
-            elif pid in active and metadata.get('start_ticks')==start:
-                self.pending.pop((pid,host,start,namespace),None)
-        for key in list(self.pending):
-            if key[1] not in observed:del self.pending[key]
-        # Admission needs a fresh post-exit sample, not a worker return code or
-        # a cached last active sample. Remaining unknowns are checked by caller.
-        sample['identity_state_transitions']=events
-        sample['identity_transition_pending']=sorted(self.transitions)
+            key=(pid,host,start,namespace)
+            if residual:
+                self.pending.setdefault(key,self.transitions[pid]);waiting.append(host)
+            else:self.pending.pop(key,None)
+        sample['identity_state_transitions']=events;sample['identity_transition_pending']=sorted(self.transitions)
+        sample['pending_owned_hosts']=sorted(pending_hosts)
+        sample['identity_measurement_valid']=not self.transitions and not self.namespace_exits
+        sample['invalid_identity_pids']=sorted(self.transitions)
         self.last_events=events
+        if not self.transitions and not self.namespace_exits and not waiting:self.pending_episode_deadline=None
         self.final_clean=not active and not waiting and not self.transitions and not self.namespace_exits and sample.get('process_table_reliable')is True
         return waiting
 
@@ -495,15 +527,26 @@ def run_configs(configs,out,monitor=False):
         if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1','urban-numeric-confirmation-v1'):stop_file=scope.validate_wave(read_profiles(),configs,out)
         else:stop_file=scope.ROOT/'STOP'
         if stop_file.exists():raise InterruptedError('probe STOP before monitor/worker launch')
+    whole=configs[0].get('resource_mode')=='exclusive_gpu_whole_card_v1';whole_clean=False;control_workers=[];exit_observed=None
+    if any(c.get('resource_mode')!=configs[0].get('resource_mode') or c.get('resource_contract_ref')!=configs[0].get('resource_contract_ref')for c in configs):raise ValueError('mixed resource contracts')
+    if configs[0].get('resource_mode')is not None:
+        if not whole:raise PermissionError('unsupported resource mode')
+        if not monitor:raise PermissionError('whole-card mode requires live resource sampling')
+        if (out/'process.json').exists()or(out/'memory.jsonl').exists():raise FileExistsError('retained whole-card wave; repeat forbidden')
+        from utils.ch3_patchtst_depth_urban6_recovery import monitor_binding
+        monitor_contract=monitor_binding(configs)
     aggregate=dict(process_peaks={},cpu_peaks={},whole_peak=None,last_time=None,min_interval=None,max_interval=None,settled_count=0,all_admitted=True,count=0)
     def terminate_owned(sig,frame):raise InterruptedError('safe-stop own process tree')
     previous=signal.signal(signal.SIGTERM,terminate_owned);exit_observation=None
     observation_context=dict(phase='baseline');sample=None;observation_failure=None
     try:
         if monitor:
-            baseline=gpu_sample([])
-            if not resource_assessment(baseline,[])['admission']:raise MemoryError('whole-card admission unavailable before launch')
-            exit_observation=ExitObservation(baseline)
+            baseline=gpu_sample([],resource_mode=configs[0]['resource_mode'])if whole else gpu_sample([])
+            if whole and baseline['uuid']!=monitor_contract['gpu_uuid']:raise ValueError('GPU UUID differs from fixed permit')
+            assessment=resource_assessment(baseline,[],resource_mode=configs[0]['resource_mode']if whole else None)
+            if whole and not assessment['card_reliable']:raise ValueError('whole-card baseline sampling unreliable')
+            if not assessment['admission']:raise MemoryError('whole-card headroom unavailable before launch'if whole else'whole-card admission unavailable before launch')
+            if not whole:exit_observation=ExitObservation(baseline)
         if 'm_experiment'in read_profiles() or (configs and configs[0].get('successor_scope')):
             # Retain each own child immediately, including a later spawn failure.
             import contextlib
@@ -520,27 +563,54 @@ def run_configs(configs,out,monitor=False):
             with guard:
                 for config in configs:children.append(spawn(config))
         else:children=[spawn(c) for c in configs]
+        if whole:
+            # Control identity once at launch, never GPU attribution telemetry.
+            for (p,_),cfg in zip(children,configs):
+                ticks=Path('/proc',str(p.pid),'stat').read_text().rsplit(')',1)[1].split()[19]
+                control_workers.append(dict(pid=p.pid,start_ticks=ticks,task_id=cfg['task']))
+        elif monitor:exit_observation.bind_workers([p for p,_ in children])
         with (out/'memory.jsonl').open('x',encoding='utf-8') as log:
-            while any(p.poll() is None for p,_ in children) or (monitor and not exit_observation.final_clean):
+            while any(p.poll() is None for p,_ in children) or (monitor and not(whole_clean if whole else exit_observation.final_clean)):
                 if stop_file.exists():raise InterruptedError('safe-stop; own workers only')
-                if formal and any(p.poll() not in (None,0) for p,_ in children):raise RuntimeError('formal worker failed; stop owned wave before further dispatch')
+                if any(p.poll() not in (None,0) for p,_ in children):raise RuntimeError('owned worker failed; stop wave before further dispatch')
                 if time.monotonic()-start>max(c['limits']['seconds'] or 1e12 for c in configs):raise TimeoutError('worker wall time limit')
+                if monitor and whole:
+                    if all(p.poll()is not None for p,_ in children) and exit_observed is None:exit_observed=time.monotonic()
+                    observation_context=dict(phase='whole_card_query',monotonic_started=time.monotonic(),query_timeout=10.0)
+                    sample=gpu_sample([],query_timeout=10.0,resource_mode=configs[0]['resource_mode'])
+                    if sample['uuid']!=baseline['uuid']:raise ValueError('GPU UUID changed')
+                    sample['assessment']=resource_assessment(sample,[],baseline,resource_mode=configs[0]['resource_mode'])
+                    if not sample['assessment']['card_reliable']:raise ValueError('whole-card sampling unreliable')
+                    log.write(json.dumps(sample)+'\n');log.flush()
+                    if formal:
+                        aggregate['count']+=1;aggregate['whole_peak']=max(aggregate['whole_peak'] or 0,sample['used'])
+                        if aggregate['last_time']is not None:
+                            interval=sample['time']-aggregate['last_time']
+                            aggregate['min_interval']=interval if aggregate['min_interval']is None else min(interval,aggregate['min_interval'])
+                            aggregate['max_interval']=interval if aggregate['max_interval']is None else max(interval,aggregate['max_interval'])
+                        aggregate['last_time']=sample['time'];aggregate['all_admitted']=aggregate['all_admitted']and sample['assessment']['admission'];samples[:]=[sample]
+                    else:samples.append(sample)
+                    if not sample['assessment']['admission']:raise MemoryError('whole-card headroom crossed')
+                    whole_clean=exit_observed is not None and sample['time']>=exit_observed and all(p.poll()is not None for p,_ in children)
+                    time.sleep(.1)
+                    continue
                 if monitor:
                     active=[p.pid for p,_ in children if p.poll() is None]
-                    observation_context=dict(phase='before_query',active_before=active,owned_pids=[p.pid for p,_ in children])
+                    observation_context=dict(phase='before_query',monotonic_started=time.monotonic(),active_before=active,owned_pids=[p.pid for p,_ in children],poll_before={str(p.pid):p.poll()for p,_ in children})
                     before_metadata={str(p.pid):owned_pid_metadata(p.pid)for p,_ in children}
                     observation_context['before_metadata']=before_metadata
                     observation_context['query_timeout']=exit_observation.query_timeout(time.monotonic())
                     observation_context['phase']='gpu_query';sample=None
                     sample=gpu_sample([p.pid for p,_ in children],query_timeout=observation_context['query_timeout'])
                     after=[p.pid for p,_ in children if p.poll() is None]
-                    observation_context.update(phase='identity_classification',active_after=after)
+                    observation_context.update(phase='identity_classification',active_after=after,poll_after={str(p.pid):p.poll()for p,_ in children})
                     sample.update(active_before=active,active_after=after,owned_before_metadata=before_metadata)
                     waiting=exit_observation.classify(sample,[p.pid for p,_ in children],after,before=active)
                     # Exited children are not silently reattributed. During this
                     # bounded transition, check the card and all OTHER unknowns.
-                    sample['assessment']=resource_assessment(sample,active or [p.pid for p,_ in children],baseline)
-                    unknown=set(sample['assessment']['unknown_pids'])-set(waiting)
+                    pending_hosts=sample['pending_owned_hosts']
+                    sample['assessment']=resource_assessment(sample,after or [p.pid for p,_ in children],baseline,pending_hosts=pending_hosts)
+                    unknown=set(sample['assessment']['unexpected_pids'])
                     transient=bool(waiting or active!=after or sample.get('identity_transition_pending'))
                     sample['exit_pending']=waiting;sample['admission_deferred']=transient
                     if transient:sample['assessment']['admission']=False
@@ -550,7 +620,7 @@ def run_configs(configs,out,monitor=False):
                         aggregate['count']+=1
                         for key,destination in [('process_gpu','process_peaks'),('cpu_rss','cpu_peaks')]:
                             for pid,value in sample.get(key,{}).items():
-                                if value is not None:aggregate[destination][pid]=max(aggregate[destination].get(pid,0),value)
+                                if value is not None and pid not in sample.get('invalid_identity_pids',[]):aggregate[destination][pid]=max(aggregate[destination].get(pid,0),value)
                         aggregate['whole_peak']=max(aggregate['whole_peak'] or 0,sample['used'])
                         if aggregate['last_time'] is not None:
                             interval=sample['time']-aggregate['last_time']
@@ -570,13 +640,21 @@ def run_configs(configs,out,monitor=False):
     except (MemoryError,TimeoutError,InterruptedError,subprocess.CalledProcessError,subprocess.TimeoutExpired,ValueError,RuntimeError,OSError) as exc:
         failure=('whole-card sampling failed: ' if isinstance(exc,(subprocess.CalledProcessError,ValueError)) else '')+str(exc)
         observation_failed=monitor and isinstance(exc,(subprocess.CalledProcessError,subprocess.TimeoutExpired,ValueError,OSError))
+        if whole and isinstance(exc,(TimeoutError,InterruptedError)):observation_failed=False
         if monitor:
             # Capture the failed sample BEFORE cleanup; it never becomes a
             # successful memory record or a resource-admission grant.
             observation_failure=dict(time=time.monotonic(),error_type=type(exc).__name__,error=str(exc)[:300],
-                context=observation_context,sample={k:v for k,v in(sample or {}).items()if k not in('raw_gpu','raw_processes')},
+                errno=getattr(exc,'errno',None),verdict='rejected_no_resource_admission',context=observation_context,sample={k:v for k,v in(sample or {}).items()if k not in('raw_gpu','raw_processes')},
                 state=exit_observation.snapshot()if exit_observation else None,
-                current_owned=[dict(pid=p.pid,returncode=p.poll(),metadata=owned_pid_metadata(p.pid))for p,_ in children])
+                current_owned=([dict(v,returncode=p.poll())for v,(p,_)in zip(control_workers,children)]if whole else[dict(pid=p.pid,returncode=p.poll(),metadata=owned_pid_metadata(p.pid))for p,_ in children]))
+            if whole:
+                def finite_record(value):
+                    if isinstance(value,float)and not math.isfinite(value):return dict(nonfinite=str(value))
+                    if isinstance(value,dict):return {k:finite_record(v)for k,v in value.items()}
+                    if isinstance(value,list):return [finite_record(v)for v in value]
+                    return value
+                observation_failure=finite_record(observation_failure)
             dump(out/'observation-failure.json',observation_failure)
     finally:
         for p,h in children:
@@ -584,10 +662,31 @@ def run_configs(configs,out,monitor=False):
             p.wait();h.close()
         signal.signal(signal.SIGTERM,previous)
     codes=[p.returncode for p,_ in children]
+    if whole:
+        intervals=[b['time']-a['time']for a,b in zip(samples,samples[1:])]
+        failed_logs=[(Path(c['output'])/'worker.log').read_text()for c,code in zip(configs,codes)if code]
+        result=dict(resource_mode=configs[0]['resource_mode'],resource_contract_ref=configs[0]['resource_contract_ref'],returncodes=codes,elapsed=time.monotonic()-start,failure=failure,
+            failure_kind='observation'if observation_failed else'resource'if(failure and 'headroom'in failure)or(failed_logs and all('CUDA out of memory'in text for text in failed_logs))else'business'if failure or any(codes)else None,
+            process_peaks=None,cpu_peaks=None,process_attribution=None,external_occupancy_known=None,exit_observation=None,exit_transitions_resolved=None,
+            worker_lifecycles=[dict(v,returncode=code)for v,code in zip(control_workers,codes)],owned_workers_exited=bool(children)and all(p.poll()is not None for p,_ in children),
+            lifecycle_exit_observed_at=exit_observed,fresh_post_exit_sample=samples[-1]if whole_clean else None,
+            resource_admission=bool(samples)and not failure and whole_clean and codes==[0]*len(configs)and all(v['assessment']['admission']for v in samples),
+            baseline=baseline,whole_card_peak=max((s['used']for s in samples),default=None),sampling='whole-card sampled peaks, not continuous maxima',sample_count=len(samples),requested_interval=.1,
+            actual_interval_min=min(intervals,default=None),actual_interval_max=max(intervals,default=None),
+            observation_failure_ref=dict(path=str(out/'observation-failure.json'),sha256=sha(out/'observation-failure.json'))if observation_failure else None)
+        if formal:result.update(sample_count=aggregate['count'],whole_card_peak=aggregate['whole_peak'],actual_interval_min=aggregate['min_interval'],actual_interval_max=aggregate['max_interval'],
+            resource_admission=result['resource_admission']and aggregate['all_admitted'],monitor_memory='streamed formal card records; one retained sample')
+        if observation_failure:result=finite_record(result)
+        dump(out/'process.json',result)
+        for c in configs:
+            audit=Path(c['audit_log'])
+            if audit.exists()and any(json.loads(l)['event']=='denied'for l in audit.read_text().splitlines()):raise RuntimeError('shared guard failure: stop all execution')
+        if any(code==86 for code in codes):raise RuntimeError('bootstrap/source identity failed: stop all execution')
+        return result
     intervals=[b['time']-a['time'] for a,b in zip(samples,samples[1:])]
     result=dict(returncodes=codes,elapsed=time.monotonic()-start,failure=failure,
-                process_peaks={str(p.pid):max((s['process_gpu'][str(p.pid)] for s in samples if s['process_gpu'].get(str(p.pid)) is not None),default=None) for p,_ in children},
-                cpu_peaks={str(p.pid):max((s['cpu_rss'].get(str(p.pid),0) for s in samples),default=None) for p,_ in children},
+                process_peaks={str(p.pid):max((s['process_gpu'][str(p.pid)] for s in samples if s['process_gpu'].get(str(p.pid)) is not None and str(p.pid) not in s.get('invalid_identity_pids',[])),default=None) for p,_ in children},
+                cpu_peaks={str(p.pid):max((s['cpu_rss'][str(p.pid)] for s in samples if s['cpu_rss'].get(str(p.pid)) is not None and str(p.pid) not in s.get('invalid_identity_pids',[])),default=None) for p,_ in children},
                 sampling='sampled peaks, not continuous maxima',requested_interval=.1,
                 actual_interval_min=min(intervals,default=None),actual_interval_max=max(intervals,default=None),
                 cpu_affinity=sorted(os.sched_getaffinity(0)),

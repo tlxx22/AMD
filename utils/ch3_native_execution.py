@@ -51,6 +51,27 @@ def group_for(c,run):
     raise ValueError('not an exact successor representative')
 
 
+def validate_probe_memory(tr,producer):
+    from ch3_runner import memory_growth_review
+    mode=producer.get('resource_mode')
+    if mode is not None:
+        if mode!='exclusive_gpu_whole_card_v1' or any(tr.get(k)!=producer[k]for k in('resource_mode','resource_contract_ref')):raise ValueError('probe memory resource binding')
+        if not {'allocated','reserved'}.issubset(tr) or tr['allocated']is not None or tr['reserved']is not None or tr.get('endpoint_resources',{}).get('allocated')is not None:raise ValueError('worker GPU memory is not collected')
+    review=memory_growth_review(tr['memory'],mode)
+    if tr.get('memory_review')!=review or review['blocked'] or review['needs_long_window']:raise ValueError('saved probe memory screen')
+    return review
+
+
+def wave_resource_identities(value,producer,memory,ids):
+    if producer.get('resource_mode')=='exclusive_gpu_whole_card_v1':
+        from utils.ch3_native_recovery_records import validate_whole_card_receipt
+        return validate_whole_card_receipt(value,memory,producer,ids)
+    if producer.get('resource_mode')is not None or value.get('resource_mode')is not None:raise ValueError('unbound resource mode')
+    if not wave_passed(value) or value.get('exit_transitions_resolved')is not True or value.get('process_attribution')!='Measured':raise ValueError('historical resource attribution/exit gate')
+    with Path(memory).open()as f:first=json.loads(next(f))
+    return {pid:dict(pid=int(pid),start_ticks=str(row['start_ticks']))for pid,row in first['owned_pid_metadata'].items()}
+
+
 def decision_for(c,report,t):
     if c.get('type1_followup'):
         from utils.ch3_type1_tasks import decision_for as handler
@@ -256,12 +277,14 @@ def run_probe(c,a):
     from m5_formal_entry import make_config,run_configs
     ctx=scope.context(c);root=ctx['probe_root'];zero=dict(adam=0,forward=0,backward=0)
     budget=dict(caps=ctx['caps'],reserved=dict(zero),actual=dict(zero),refund=False);decisions={};evidence={};artifacts={}
-    seed=None
+    seed=None;serial_check=False
     if a.get('probe_recovery_ref'):
         from utils.ch3_probe_schema_recovery import current_recovery
         recovery=current_recovery()
         if c['baseline_unified']['stage']=='M_BASE' or c['baseline_unified']['stage']in getattr(recovery,'SEED_STAGES',()):
             seed=recovery.load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
+            serial_check=getattr(recovery,'SERIAL_CHECK',False)
+            if serial_check and(c['baseline_unified']['stage']!='PATCH_ENC1' or a.get('execution_attempt')!='PATCHTST-depth-Urban6-exit-r4-serial-check'):raise PermissionError('precise single serial acceptance context')
     def wave(g,phase,ids,n):
         key=g['id']+'/'+phase+'/'+str(n)
         if seed and key in seed['evidence']:
@@ -310,14 +333,26 @@ def run_probe(c,a):
             if seed and g['id']in decisions:continue
             serial=[];traces={};reps=g['representatives']
             for n,r in enumerate(reps):
+                key=g['id']+'/serial/'+str(n);retained=bool(seed and key in seed['evidence'])
                 v=wave(g,'serial',[r],n);serial.append(v)
                 if not wave_passed(v):raise RuntimeError('serial technical gate failed; no fallback')
-                key=g['id']+'/serial/'+str(n)
                 path=root/g['id']/'serial'/r/'trajectory.json'
-                if seed and key in seed['evidence']:path=Path(seed['evidence'][key]['process']['path']).parent.parent/r/'trajectory.json'
+                if retained:path=Path(seed['evidence'][key]['process']['path']).parent.parent/r/'trajectory.json'
                 tr=json.loads(path.read_text())
-                if tr.get('finite')is not True or (not(seed and key in seed['evidence']) and not compare(c,task_by_id(c,r),tr,tr)['passed']):raise ValueError('serial finite/state gate')
+                self_check=None if retained else compare(c,task_by_id(c,r),tr,tr)
+                if tr.get('finite')is not True or(self_check is not None and not self_check['passed']):raise ValueError('serial finite/state gate')
                 traces[r]=tr
+                if serial_check:
+                    if g!=scope.probe_groups(c)[0] or n!=0 or r!=recovery.SERIAL_TASK or tr.get('steps')!=6 or profile(c,task_by_id(c,r))['training']['batch']!=128:raise ValueError('fixed one-worker six-step shape')
+                    known=wave_resource_identities(v,a,root/g['id']/'serial/wave-0/memory.jsonl',[r]);runtime=json.loads((path.parent/'runtime.json').read_text());pid=str(runtime['pid'])
+                    if pid not in known or runtime['error']is not None:raise ValueError('complete owned serial runtime')
+                    validate_probe_memory(tr,a)
+                    body=dict(purpose='native_single_serial_acceptance_v1',serial_check_passed=True,task_id=r,approval=source.ref(ctx['control']/'probe-permit.json'),scope=ctx['probe_scope'],budget=budget,evidence=evidence,artifacts=artifacts,decisions={},serial_self_check=self_check,worker_identity=dict(pid=int(pid),start_ticks=known[pid]['start_ticks']),probe_recovery_ref=a.get('probe_recovery_ref'),**{k:a[k]for k in ('commit','code','environment','hardware','source_states','protocol_sha')})
+                    for field in('resource_mode','resource_contract_ref'):
+                        if field in a:body[field]=a[field]
+                    if a.get('resource_mode')is not None:body['worker_identity']=known[pid]
+                    from utils.ch3_native_recovery_records import exclusive
+                    exclusive(root/'serial-check.json',body);return body
             q=1;attempts=[];parallel=[];comparisons=[]
             if g['planned_q']>1:
                 for q in scope.attempt_widths(g):
@@ -339,7 +374,11 @@ def run_probe(c,a):
             decisions[g['id']]=dict(status='Passed',concurrency=q,serial=serial,parallel=parallel,attempts=attempts,numerical_comparisons=comparisons,coverage=g.get('coverage'),makespan_scope='captured synthetic short package; not formal training speedup')
             dump(root/'progress.json',dict(decisions=decisions,budget=budget))
         report=dict(purpose='native_successor_probe_complete_v1',execution_complete=True,reviewed=False,manual_review=False,admission_granted=False,scope=ctx['probe_scope'],plan=scope.plan(c),approval=source.ref(root/'approval.json'),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,**{k:a[k] for k in ('commit','protocol_sha','code','environment','hardware')})
-        if seed:report['probe_recovery_ref']=a['probe_recovery_ref']
+        for field in('resource_mode','resource_contract_ref'):
+            if field in a:report[field]=a[field]
+        if seed:
+            report['probe_recovery_ref']=a['probe_recovery_ref']
+            if seed.get('single_serial_source'):report['single_serial_source']=seed['single_serial_source']
         # Recovery, unified and type1 retain immediate group gates; one final
         # saved-evidence replay belongs to their AUTO_AUDIT. Legacy behavior stays.
         if not a.get('recovery_scope') and not a.get('unified_scope') and not a.get('type1_scope'):validate_probe_completion(c,report)
@@ -359,6 +398,8 @@ def validate_probe_completion(c,r):
     if (root/'STOP').exists() or (root/'failure.json').exists():raise ValueError('retained probe failure/STOP')
     if r['approval']!=source.ref(root/'approval.json'):raise ValueError('actual probe permit path/SHA')
     a=source.bound(r['approval'])
+    for field in('resource_mode','resource_contract_ref'):
+        if r.get(field)!=a.get(field):raise ValueError('probe resource policy/permit binding')
     from utils.ch3_probe_schema_recovery import current_recovery
     recovery=current_recovery()
     readonly=recovery.retained_refs(r)
@@ -388,6 +429,7 @@ def validate_probe_completion(c,r):
         v=source.bound(entry['process'])
         if not wave_passed(v) and not resource_fallback(v):raise ValueError('failed nonresource evidence')
         memory=p/'memory.jsonl';required_artifacts.add(str(memory))
+        identities=wave_resource_identities(v,producer,memory,ids)if wave_passed(v)else None
         for run in ids:
             out=p.parent/run;t=task_by_id(c,run);counts=scope.worker_counts(c,t)
             cfg=source.bound(r['artifacts'][str(out/'config.json')]);b=source.bound(r['artifacts'][str(out/'budget.json')])
@@ -402,16 +444,16 @@ def validate_probe_completion(c,r):
                 if tr['id']!=run or tr['profile_sha']!=digest(profile(c,t)) or not tr['finite'] or tr.get('time_mark')!=profile(c,t).get('time_mark') or (not recovery.self_review(r,out/'trajectory.json') and not compare(c,t,tr,tr)['passed']):raise ValueError('serial/self identity/finite')
                 runtime=source.bound(r['artifacts'][str(out/'runtime.json')]);pid=str(runtime['pid'])
                 if runtime.get('task')!=run or runtime.get('error')is not None or b.get('by_pid')!={pid:counts}:raise ValueError('worker runtime/accounting ownership')
-                if v.get('exit_transitions_resolved')is not True or v.get('process_attribution')!='Measured' or v.get('returncodes')!=[0]*len(ids) or pid not in v.get('process_peaks',{}) or v['process_peaks'][pid]is None or not isinstance(v.get('cpu_peaks',{}).get(pid),(int,float)):raise ValueError('probe resource process attribution/exit')
-                with memory.open() as f:first=json.loads(next(f))
-                ticks=first['owned_pid_metadata'][pid]['start_ticks']
+                if pid not in identities:raise ValueError('probe owned control identity/runtime')
+                if producer.get('resource_mode')is not None and identities[pid]['task_id']!=run:raise ValueError('probe control PID/task pairing')
+                if producer.get('resource_mode')is not None and any(cfg.get(k)!=producer[k]for k in('resource_mode','resource_contract_ref')):raise ValueError('probe worker resource binding')
+                if producer.get('resource_mode')is None and(pid not in v.get('process_peaks',{})or v['process_peaks'][pid]is None or not isinstance(v.get('cpu_peaks',{}).get(pid),(int,float))):raise ValueError('historical measured peaks required')
+                ticks=identities[pid]['start_ticks']
                 from m6_remaining_entry import same
                 if same(dict(pid=int(pid),start_ticks=str(ticks))):raise ValueError('successful probe worker original still live')
                 if tr.get('threads')!=4 or tr.get('affinity')!=a['hardware']['cpu_affinity']:raise ValueError('probe thread/affinity identity')
                 if len(tr.get('trajectory',[]))!=6 or any(not math.isfinite(row['loss']) for row in tr['trajectory']) or any(not math.isfinite(tr['validation'][k]) for k in ('mse','mae','sse','sae')):raise ValueError('probe saved loss/validation finite')
-                from ch3_runner import memory_growth_review
-                review=memory_growth_review(tr['memory'])
-                if tr.get('memory_review')!=review or review['blocked'] or review['needs_long_window']:raise ValueError('saved RSS/allocated screen')
+                validate_probe_memory(tr,producer)
                 if any(json.loads(line).get('event')=='denied' for line in (out/'audit.jsonl').read_text().splitlines()):raise ValueError('guard denied access cannot be admission')
                 for point in tr['M_full_state_trace']+tr.get('urban_diagnostic_trace',[]):
                     for k in ('schema_file','data_file','meta_file'):
@@ -506,10 +548,12 @@ def technical_group(c,model,a):
     report=source.bound(a['resource_report']);waves=scope.formal_waves(c,report,model)
     for n,ids in enumerate(waves):
         d=root/('wave-'+str(n));pr=load(d/'process.json')
-        if not wave_passed(pr) or not pr['exit_transitions_resolved'] or set(pr['process_peaks'])!={workers[r] for r in ids}:raise ValueError('formal wave exit/ownership/resource')
-        with (d/'memory.jsonl').open() as f:first=json.loads(next(f))
+        identities=wave_resource_identities(pr,a,d/'memory.jsonl',ids)
+        if not wave_passed(pr) or set(identities)!={workers[r]for r in ids}:raise ValueError('formal wave lifecycle/resource')
+        if a.get('resource_mode')is None and set(pr['process_peaks'])!={workers[r]for r in ids}:raise ValueError('historical formal process peaks')
         for run in ids:
-            pid=workers[run];ticks=first['owned_pid_metadata'][pid]['start_ticks']
+            pid=workers[run];ticks=identities[pid]['start_ticks']
+            if a.get('resource_mode')is not None and identities[pid]['task_id']!=run:raise ValueError('formal control PID/task pairing')
             if same(dict(pid=int(pid),start_ticks=str(ticks))):raise ValueError('formal worker original still active')
     if totals['epochs']>sum(profile(c,t)['training']['epochs'] for t in tasks) or totals['adam']>sum(step_arithmetic(c,t)['max_optimizer_steps'] for t in tasks):raise ValueError('formal total budget')
     return dict(model=model,status='technical-complete',task_ids=[t['id'] for t in tasks],technical_complete=True,result_review='pending',totals=totals,sources=sources,checkpoint_audit='deferred; saved best byte selection bound, no weight load')

@@ -63,6 +63,34 @@ def compact_decisions(report):
     return result
 
 
+def validate_whole_card_receipt(value,memory,expected,task_ids):
+    """Saved card samples plus owned control lifecycle, never GPU attribution."""
+    from tools.restricted_regression.m5_formal_entry import resource_assessment
+    if expected.get('resource_mode')!='exclusive_gpu_whole_card_v1' or any(value.get(k)!=expected.get(k)for k in('resource_mode','resource_contract_ref')):raise ValueError('exact resource receipt/producer binding')
+    bound(expected['resource_contract_ref'])
+    if (value.get('failure')is not None or value.get('returncodes')!=[0]*len(task_ids) or not task_ids or value.get('resource_admission')is not True
+        or value.get('owned_workers_exited')is not True or any(value.get(k)is not None for k in('process_peaks','cpu_peaks','process_attribution','external_occupancy_known','exit_observation','exit_transitions_resolved'))):raise ValueError('whole-card resource/lifecycle receipt')
+    workers=value.get('worker_lifecycles',[])
+    if ([w.get('task_id')for w in workers]!=task_ids or len({w.get('pid')for w in workers})!=len(task_ids)
+        or any(set(w)!={'task_id','pid','start_ticks','returncode'}or type(w['pid'])is not int or not str(w['start_ticks']).isdigit()or w['returncode']!=0 for w in workers)):raise ValueError('owned control lifecycle/task identity')
+    baseline=value['baseline']
+    fields={'time','uuid','device','total','used','free','driver_reserved','resource_mode','query_timeout','query_elapsed'}
+    if set(baseline)!=fields or not resource_assessment(baseline,[],resource_mode=expected['resource_mode'])['admission']:raise ValueError('whole-card baseline safety')
+    gpu=expected.get('hardware',{}).get('gpu')
+    if not isinstance(gpu,str)or not gpu.strip()or baseline['uuid']!=gpu.splitlines()[0].split(',')[0].strip():raise ValueError('resource card differs from fixed producer GPU')
+    last=baseline['time'];last_row=None;count=0;peak=None
+    with Path(memory).open()as handle:
+        for line in handle:
+            row=json.loads(line);assessment=resource_assessment(row,[],baseline,resource_mode=expected['resource_mode'])
+            if set(row)!=fields|{'assessment'} or row.get('assessment')!=assessment or not assessment['admission']or row['time']<last:raise ValueError('whole-card sample integrity/safety')
+            last=row['time'];last_row=row;count+=1;peak=row['used']if peak is None else max(peak,row['used'])
+    if not count or value.get('sample_count')!=count:raise ValueError('complete whole-card samples required')
+    observed=value.get('lifecycle_exit_observed_at')
+    if (type(observed)not in(int,float)or not math.isfinite(observed)or observed<baseline['time']or observed>last
+        or value.get('fresh_post_exit_sample')!=last_row or value.get('whole_card_peak')!=peak):raise ValueError('fresh post-exit whole-card proof required')
+    return {str(w['pid']):dict(pid=w['pid'],start_ticks=str(w['start_ticks']),task_id=w['task_id'])for w in workers}
+
+
 def project_summary(report, complete_ref, admission_ref, permit_ref):
     """A deterministic projection, never a hand-authored Passed assertion."""
     if report.get('execution_complete') is not True or report.get('reviewed') is not False:
@@ -103,7 +131,12 @@ def manifest_projection(report, complete_ref, root, extra_refs=()):
     result=dict(purpose='native_recovery_probe_manifest_v1', source_probe_complete_ref=complete_ref,
                 rows=rows, artifact_count=len(rows), verified_bytes=sum(r['size'] for r in rows),
                 trust_basis='deterministic projection of fixed original complete artifact refs')
-    if report.get('probe_recovery_ref'):result['readonly_probe_recovery_ref']=report['probe_recovery_ref']
+    if report.get('probe_recovery_ref'):
+        result['readonly_probe_recovery_ref']=report['probe_recovery_ref']
+        result['readonly_probe_scope']=report.get('scope','')
+        if report.get('single_serial_source'):result['single_serial_source']=report['single_serial_source']
+    for name in('resource_mode','resource_contract_ref'):
+        if name in report:result[name]=report[name]
     return result
 
 
@@ -129,7 +162,9 @@ def scan_manifest(manifest, source_ref, root, on_read=None):
         raise ValueError('manifest original source mismatch')
     root = Path(root); seen = set()
     from utils.ch3_probe_schema_recovery import current_recovery
-    readonly=current_recovery().retained_refs(dict(probe_recovery_ref=manifest['readonly_probe_recovery_ref'])) if manifest.get('readonly_probe_recovery_ref') else {}
+    selector=dict(probe_recovery_ref=manifest.get('readonly_probe_recovery_ref'),scope=manifest.get('readonly_probe_scope',''))
+    if manifest.get('single_serial_source'):selector['single_serial_source']=manifest['single_serial_source']
+    readonly=current_recovery().retained_refs(selector) if manifest.get('readonly_probe_recovery_ref') else {}
     for row in manifest['rows']:
         p = Path(row['path'])
         if str(p) in seen or p.is_symlink() or p.resolve() != p or (not p.is_relative_to(root) and readonly.get(str(p))!=dict(path=str(p),sha256=row['expected_sha256'])):

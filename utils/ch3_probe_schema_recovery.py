@@ -22,9 +22,12 @@ def current_recovery():
     from utils.ch3_type1_chain import PROBE_RECOVERY
     return PROBE_RECOVERY or sys.modules[__name__]
 
-def activate_worker(value):
+def activate_worker(value,execution_attempt=None):
     from utils import ch3_patchtst_depth_urban6_recovery as expanded
-    if value==expanded.REUSE_REF:expanded.activate();return expanded
+    if value==expanded.REUSE_REF:
+        if execution_attempt=='PATCHTST-depth-Urban6-exit-r4-serial-check':expanded.activate_serial_check()
+        else:expanded.activate()
+        return expanded
     from utils import ch3_amend_ett_identity_recovery as prefix
     if value==prefix.REUSE_REF:prefix.activate();return prefix
     from utils import ch3_moderntcn_etth1_recovery as numeric

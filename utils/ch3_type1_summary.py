@@ -12,7 +12,9 @@ def observed(path,task_id=None,protocol=None,profile_sha=None):
     if path.is_symlink()or path.resolve()!=path:raise ValueError('no result aliases')
     r=bound(ref(path));m=bound(ref(path.with_name('manifest.json')))
     if r.get('id')!=m['task']['id'] or (task_id and r.get('id')!=task_id)or (protocol and r.get('scientific_protocol')!=protocol)or (profile_sha and r.get('profile_sha')!=profile_sha):raise ValueError('result source identity mismatch')
-    return dict(path=str(path),ref=ref(path),manifest_ref=ref(path.with_name('manifest.json')),task_id=r['id'],profile_sha=m['identity']['profile_sha'],science_execution_commit=m['identity']['commit'],mse=r['mse'],mae=r['mae'],status='complete',seed=r['seed'],std='N/A')
+    value=dict(path=str(path),ref=ref(path),manifest_ref=ref(path.with_name('manifest.json')),task_id=r['id'],profile_sha=m['identity']['profile_sha'],science_execution_commit=m['identity']['commit'],mse=r['mse'],mae=r['mae'],status='complete',seed=r['seed'],std='N/A')
+    if m['identity'].get('resource_mode')is not None:value.update(resource_mode=m['identity']['resource_mode'],resource_contract_ref=m['identity']['resource_contract_ref'])
+    return value
 def result_index(configs):
     from utils.ch3_round2_amendment import summary,key
     revision=summary();cell_bank={r['cell_id']:r for r in revision.get('cells',[])}
@@ -36,4 +38,7 @@ def result_index(configs):
             rows.append(row)
     urban=len(configs['URBAN_SUBSET']['tasks'])
     fixed=revision.get('adoption_policy_ref')
-    return dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV=('84/168: folds1–6 and H3,12 only'if urban==84 else'28/168: folds1,2 and H3,12 only'),EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=not bool(fixed),no_metric_based_layer_selection=True,main_table_policy_ref=fixed,fixed_encoder_adoption=revision.get('fixed_encoder_adoption','complete'if fixed else None),no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
+    value=dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV=('84/168: folds1–6 and H3,12 only'if urban==84 else'28/168: folds1,2 and H3,12 only'),EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=not bool(fixed),no_metric_based_layer_selection=True,main_table_policy_ref=fixed,fixed_encoder_adoption=revision.get('fixed_encoder_adoption','complete'if fixed else None),no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
+    from utils.ch3_type1_chain import PROBE_RECOVERY
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):value.update(PROBE_RECOVERY.resource_binding())
+    return value

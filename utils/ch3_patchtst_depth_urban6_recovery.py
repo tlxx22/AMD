@@ -17,13 +17,16 @@ from utils import ch3_amend_ett_identity_recovery as prefix
 PACKAGE = prefix.numeric.POLICY_PACKAGE / 'patchtst-depth-urban6-repair-v1'
 REVISION_PACKAGE = PACKAGE / 'patchtst-enc2-adoption-v1'
 PRIOR_OBSERVATION_REF = dict(path=str(REVISION_PACKAGE / 'patch-enc1-observation-repair-v1' / 'observation-source.json'), sha256='99ee6307fe9888988447ef52ece1fe74eab913aeb746aa865db63928a084dab1')
-OBSERVATION_PACKAGE = REVISION_PACKAGE / 'patch-enc1-namespace-exit-repair-v1'
-OBSERVATION_REF = dict(path=str(OBSERVATION_PACKAGE / 'observation-source.json'), sha256='e3df66225062d89a330a3daf67f9c5a6654d1566a6ba730b5ae31832dc7fdf45')
+NAMESPACE_OBSERVATION_REF = dict(path=str(REVISION_PACKAGE / 'patch-enc1-namespace-exit-repair-v1' / 'observation-source.json'), sha256='e3df66225062d89a330a3daf67f9c5a6654d1566a6ba730b5ae31832dc7fdf45')
+OBSERVATION_PACKAGE = REVISION_PACKAGE / 'patch-enc1-identity-settle-repair-v1'
+OBSERVATION_REF = dict(path=str(OBSERVATION_PACKAGE / 'observation-source.json'), sha256='0939eecb524ad65d71002ada47296b879f3967d16bc05a6150198df9882c0cd3')
+WHOLE_CARD_PACKAGE = OBSERVATION_PACKAGE / 'whole-card-monitor-v1'
+RESOURCE_CONTRACT_REF = dict(path=str(WHOLE_CARD_PACKAGE / 'resource-contract.json'), sha256='4b43a16d1fd3003ce35e4474141437635ba21a50d72f3f825c711750283b1f46')
 OLD_RESULT = prefix.RESULT
-RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r3')
-ATTEMPT = 'PATCHTST-depth-Urban6-exit-r3'
-SESSION = 'ch3-m6-patchtst-depth-urban6-r3'
-LOG = OBSERVATION_PACKAGE / 'followup-launcher.log'
+RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r4')
+ATTEMPT = 'PATCHTST-depth-Urban6-exit-r4'
+SESSION = 'ch3-m6-patchtst-depth-urban6-r4'
+LOG = WHOLE_CARD_PACKAGE / 'followup-launcher.log'
 ENTRY = ROOT / 'm6_patchtst_depth_urban6_recovery_entry.py'
 WRAPPER = ROOT / 'scripts/ch3/start_patchtst_depth_urban6_recovery.sh'
 PRODUCER = 'b97392a179b55b4bffb2bf0e3b85267bb0b07750'
@@ -35,6 +38,12 @@ COMPLETED_PREFIX = COMPLETED_ROUND2 = True
 COMPLETED_STAGES = ('M_BASE', 'M_AMEND')
 SEED_STAGES = ('PATCH_ENC1','URBAN_SUBSET')
 ACTIVE = False
+SERIAL_CHECK = False
+SERIAL_RESULT = RESULT.with_name(RESULT.name+'-serial-check')
+SERIAL_LOG = WHOLE_CARD_PACKAGE / 'serial-check-launcher.log'
+SERIAL_SESSION = SESSION+'-serial-check'
+SERIAL_ENTRY = ROOT / 'm6_patch_enc1_serial_check_entry.py'
+SERIAL_TASK = 'PatchTST-ETTh1-M-round2-enc1-v1-f1-h96-s2024'
 M_DATASETS = ('ETTh1', 'ETTh2', 'ETTm1', 'ETTm2', 'Weather', 'Exchange')
 MAIN_ADOPTION_STATE = 'SEAL_ROUND2_FIXED_PATCHTST_ENC2_BOUNDARY'
 
@@ -146,7 +155,7 @@ def activate():
     files = config_refs(); packages = {k:old_package(k) for k in s.STAGES}; spec = contract()
     s.STAGES = tuple(spec['stage_order'])
     s.file = lambda stage:Path(files[stage]['path'])
-    s.package = lambda stage:OBSERVATION_PACKAGE if stage=='PATCH_ENC1' else REVISION_PACKAGE if stage=='M_ALL' else PACKAGE if stage in spec['new_config_refs'] else packages[stage]
+    s.package = lambda stage:WHOLE_CARD_PACKAGE if stage=='PATCH_ENC1' else REVISION_PACKAGE if stage=='M_ALL' else PACKAGE if stage in spec['new_config_refs'] else packages[stage]
     s.validate = lambda c:validate_revision(c) if c['baseline_unified']['stage'] in spec['new_config_refs'] else old_validate(c)
     s.selected = lambda stage:[t for t in s.parent()['tasks'] if t['dataset']=='UrbanEV' and t['h'] in (3,12)] if stage=='URBAN_SUBSET' else old_selected(stage)
     s.probe_groups = lambda c:groups(c) if c['baseline_unified']['stage'] in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET') else old_groups(c)
@@ -167,7 +176,7 @@ def activate():
     s.RESULT=ms.RESULT=RESULT;amend.RESULT=RESULT/'round2-amendment'
     def context(c):
         v=old_context(c)
-        return dict(v,models=('PatchTST',) if c['baseline_unified']['stage'].startswith('PATCH_ENC') else s.MODELS,fixture=OBSERVATION_PACKAGE/c['baseline_unified']['stage']/'fixtures')
+        return dict(v,models=('PatchTST',) if c['baseline_unified']['stage'].startswith('PATCH_ENC') else s.MODELS,fixture=WHOLE_CARD_PACKAGE/c['baseline_unified']['stage']/'fixtures')
     s.context=context
     def plan(c):
         v=old_plan(c);models=list(context(c)['models']);v['models']=models;v['formal_waves']={m:v['formal_waves'][m] for m in models};return v
@@ -181,14 +190,114 @@ def activate():
 
 
 def code_binding():
-    return {str(p.relative_to(ROOT)):sha(p) for p in (Path(__file__),ENTRY,WRAPPER,ROOT/'tests/test_m6_patchtst_depth_urban6.py',ROOT/'tests/test_m6_patch_enc1_exit_observation.py')}
+    return {str(p.relative_to(ROOT)):sha(p) for p in (Path(__file__),ROOT/'m6_patchtst_depth_urban6_recovery_entry.py',SERIAL_ENTRY,WRAPPER,ROOT/'tests/test_m6_patchtst_depth_urban6.py',ROOT/'tests/test_m6_patch_enc1_exit_observation.py',ROOT/'tests/test_m6_whole_card_monitor.py')}
 
 
-def delta_ref():return ref(OBSERVATION_PACKAGE/'producer-delta-proof.json')
+def activate_serial_check():
+    """The same guards, separate lifecycle, no formal or second worker path."""
+    global SERIAL_CHECK,RESULT,LOG,SESSION,ENTRY,ATTEMPT
+    activate()
+    from utils import ch3_type1_chain as q,ch3_type1_tasks as s,ch3_round2_amendment as amend,ch3_ms_seal_recovery as ms
+    SERIAL_CHECK=True;RESULT=SERIAL_RESULT;LOG=SERIAL_LOG;SESSION=SERIAL_SESSION;ENTRY=SERIAL_ENTRY;ATTEMPT='PATCHTST-depth-Urban6-exit-r4-serial-check'
+    s.RESULT=ms.RESULT=RESULT;amend.RESULT=RESULT/'round2-amendment'
+    q.CONTROL=RESULT/'queue/controller';q.LOG,q.SESSION,q.ENTRY=LOG,SESSION,ENTRY
+    q.run=run_serial_check
+
+
+def run_serial_check(start_ref):
+    from utils import ch3_type1_chain as q
+    from ch3_runner import dump
+    if not SERIAL_CHECK:raise PermissionError('short acceptance requires its precise entry')
+    refs=adopt_prefix();c=q.configs()['PATCH_ENC1'];ctx=q.s.context(c);ctx['control'].mkdir(exist_ok=False,parents=True)
+    dump(q.CONTROL/'progress.json',dict(state='PATCH_ENC1_SINGLE_SERIAL_CHECK',scope=q.s.ID,result_review='pending'))
+    permit=q.create_permit(c,start_ref,True,boundary_ref={k:refs[q.STAGE_STATES[k][3]]for k in COMPLETED_STAGES},round2_ref=refs['SEAL_ROUND2_REVISED_BOUNDARY'])
+    q.wait_owned('PATCH_ENC1',permit,True)
+    receipt=ref(ctx['probe_root']/'serial-check.json');body=bound(receipt)
+    if body['task_id']!=SERIAL_TASK or body['approval']!=permit or body['serial_check_passed']is not True:raise ValueError('precise serial acceptance result required')
+    exclusive(q.CONTROL/'serial-check-complete.json',dict(purpose='PATCH_ENC1_single_serial_acceptance_v1',receipt_ref=receipt,closure_commit=q.closure(),owner=q.owner(),execution_attempt=ATTEMPT,formal_runs=0,whole_stage_admission=False))
+    dump(q.CONTROL/'progress.json',dict(state='SERIAL_CHECK_COMPLETE_AWAITING_MAIN_ARM',scope=q.s.ID,result_review='pending'))
+
+
+def guard_serial_task(c,purpose,task,phase):
+    if SERIAL_CHECK and(c['baseline_unified']['stage']!='PATCH_ENC1' or purpose!='ch3_probe' or task!=SERIAL_TASK or phase!='serial'):raise PermissionError('exact single serial task/phase only')
+
+
+def serial_check_evidence(c,required=False):
+    """Once at adoption/audit: exact prior lifecycle, never an old MAC grant."""
+    from utils import ch3_type1_chain as q
+    from utils.ch3_native_execution import wave_passed
+    root=SERIAL_RESULT;control=root/'queue/controller';done=control/'serial-check-complete.json'
+    if not done.exists():
+        if required or root.exists():raise ValueError('real single serial acceptance must complete before main arm; failed check is retained')
+        return None
+    v=bound(ref(done));report=bound(v['receipt_ref']);a=bound(report['approval']);owner=bound(ref(control/'controller.json'));auth=bound(owner['authorization'])
+    expected_attempt='PATCHTST-depth-Urban6-exit-r4-serial-check';expected_root=root/'probe/PATCH_ENC1'
+    expected_auth=q.start_template()
+    expected_auth['upstream_anchors']=dict(expected_auth['upstream_anchors'],execution_attempt=expected_attempt,execution_mode='single_serial_check')
+    mutable={'reviewed','execution_permitted','structure_frozen','m6_authorized','budget_authorized','closure_commit','authorization_basis'}
+    if ({k:v for k,v in auth.items()if k not in mutable}!={k:v for k,v in expected_auth.items()if k not in mutable}
+        or any(auth.get(k)is not True for k in mutable-{'closure_commit','authorization_basis'})
+        or not auth.get('authorization_basis') or 'non-executable'in auth['authorization_basis']):raise PermissionError('precise prior short-check authorization required')
+    if (v['purpose']!='PATCH_ENC1_single_serial_acceptance_v1' or v['closure_commit']!=q.closure() or v['execution_attempt']!=expected_attempt
+        or v['formal_runs']!=0 or v['whole_stage_admission']is not False or v['owner']!=owner['owner']
+        or report['task_id']!=SERIAL_TASK or report['purpose']!='native_single_serial_acceptance_v1' or report['serial_check_passed']is not True
+        or v['receipt_ref']['path']!=str(expected_root/'serial-check.json') or report['approval']!=ref(root/'queue/PATCH_ENC1/probe-permit.json')
+        or a['execution_attempt']!=expected_attempt or auth['closure_commit']!=q.closure() or a['start_authorization_ref']!=owner['authorization']
+        or auth['upstream_anchors'].get('single_serial_task')!=SERIAL_TASK or auth['upstream_anchors'].get('execution_mode')!='single_serial_check'
+        or a['protocol_sha']!=digest(c) or report['protocol_sha']!=digest(c)):raise ValueError('single serial lifecycle/config/closure binding mismatch')
+    current=q.dynamic(c)
+    for field,expected in resource_binding().items():
+        if report.get(field)!=expected or a.get(field)!=expected:raise ValueError('single serial exclusive resource binding')
+    for k in ('commit','code','environment','hardware','source_states','protocol_sha'):
+        if a[k]!=current[k] or report[k]!=a[k]:raise ValueError('single serial current production applicability: '+k)
+    if any((control/x).exists()for x in ('failure.json','STOP')) or (expected_root/'failure.json').exists() or (expected_root/'STOP').exists():raise ValueError('retained short-check failure/STOP')
+    if set(report['evidence'])!={groups(c)[0]['id']+'/serial/0'} or report['decisions'] or not isinstance(report.get('serial_self_check'),dict) or report['serial_self_check'].get('passed')is not True:raise ValueError('one valid serial wave is not whole-group admission')
+    key=next(iter(report['evidence']));entry=report['evidence'][key]
+    if entry['task_ids']!=[SERIAL_TASK] or not wave_passed(bound(entry['process'])):raise ValueError('single serial resource/exit receipt required')
+    from utils.ch3_native_execution import wave_resource_identities
+    identities=wave_resource_identities(bound(entry['process']),a,Path(entry['process']['path']).with_name('memory.jsonl'),[SERIAL_TASK])
+    if identities.get(str(report['worker_identity']['pid']))!=report['worker_identity']:raise ValueError('single serial owned control receipt')
+    for path,item in report['artifacts'].items():
+        if not Path(path).resolve().is_relative_to(expected_root) or ref(path)!=item:raise ValueError('exact read-only single serial artifact binding')
+    budget=report['budget'];historical=bound(OBSERVATION_REF)['retained_actual'];counts=dict(adam=6,backward=6,forward=8)
+    if budget['historical_actual']!=historical or budget['new_actual']!=counts or budget['actual']!={k:historical[k]+counts[k]for k in counts} or budget['caps']!=q.s.probe_budget(c)['caps']:raise ValueError('single serial historical/new cost binding')
+    from utils.ch3_type1_upstream import assert_owned_exited
+    assert_owned_exited([owner['owner'],bound(ref(expected_root/'controller.json'))['owner'],report['worker_identity']])
+    if subprocess.run(['tmux','has-session','-t',SERIAL_SESSION],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('single serial lifecycle still active')
+    return dict(report=report,key=key,entry=entry,producer=a,artifacts=report['artifacts'],counts=counts)
+
+
+def delta_ref():return ref(WHOLE_CARD_PACKAGE/'producer-delta-proof.json')
+
+
+def resource_binding():
+    value=bound(RESOURCE_CONTRACT_REF)
+    if (value.get('purpose')!='M6_exclusive_gpu_resource_contract_v1' or value.get('resource_mode')!='exclusive_gpu_whole_card_v1'
+        or value.get('exclusive_condition')!='user_declared_exclusive_server_GPU_single_experiment_queue' or value.get('tool_proved_exclusive')is not False
+        or value.get('device')!='cuda:0' or value.get('GPU_index')!=0 or value.get('reserve_bytes')!=8*1024**3
+        or value.get('reserve_fraction')!=.1 or value.get('query_timeout_seconds')!=10 or value.get('worker_GPU_attribution')!='not_collected'
+        or value.get('scientific_numeric_budget_changes')is not False):raise PermissionError('exact user-declared exclusive resource contract required')
+    return dict(resource_mode=value['resource_mode'],resource_contract_ref=RESOURCE_CONTRACT_REF)
+
+
+def monitor_binding(configs):
+    from utils import ch3_type1_chain as q
+    expected=resource_binding()
+    if not ACTIVE or q.PROBE_RECOVERY is not sys.modules[__name__]:raise PermissionError('bound exclusive recovery context required')
+    permits=[]
+    for cfg in configs:
+        a=cfg.get('approval')if cfg.get('purpose')=='ch3_probe'else bound(cfg['formal_permit_ref'])
+        if cfg.get('type1_scope')!=q.s.ID or cfg.get('probe_schema_recovery_ref')!=REUSE_REF or any(cfg.get(k)!=v or a.get(k)!=v for k,v in expected.items()):raise PermissionError('worker/permit exclusive resource binding mismatch')
+        permits.append(a)
+    if any(a!=permits[0]or cfg['unified_stage']!=configs[0]['unified_stage']or cfg['purpose']!=configs[0]['purpose']for cfg,a in zip(configs,permits)):raise PermissionError('one exact resource wave/permit required')
+    q.validate_permit(q.configs()[configs[0]['unified_stage']],permits[0],configs[0]['purpose']=='ch3_probe')
+    gpu=permits[0].get('hardware',{}).get('gpu')
+    if not isinstance(gpu,str)or not gpu.strip():raise PermissionError('fixed permit GPU identity absent')
+    return dict(expected,gpu_uuid=gpu.splitlines()[0].split(',')[0].strip())
 
 
 def worker_metadata(c):
-    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,OBSERVATION_REF]
+    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,NAMESPACE_OBSERVATION_REF,OBSERVATION_REF,RESOURCE_CONTRACT_REF]
     values += list(config_refs().values())
     for value in config_refs().values():
         parent=bound(value);values.append(parent['baseline_unified']['data_ref'])
@@ -204,7 +313,7 @@ def worker_metadata(c):
 
 def verify_production_inheritance():
     proof=bound(delta_ref())
-    if proof.get('purpose')!='exit_observer_depth_urban6_exact_delta_v1' or proof['producer_commit']!=PRODUCER or proof['contract_ref']!=CONTRACT_REF or proof['new_code']!=code_binding():raise ValueError('reviewed explicit continuation delta')
+    if proof.get('purpose')!='whole_card_depth_urban6_exact_delta_v1' or proof.get('resource_contract_ref')!=RESOURCE_CONTRACT_REF or proof['producer_commit']!=PRODUCER or proof['contract_ref']!=CONTRACT_REF or proof['new_code']!=code_binding():raise ValueError('reviewed explicit continuation delta')
     for name,row in proof['changes'].items():
         old=subprocess.check_output(['git','-C',str(ROOT),'show',PRODUCER+':'+name])
         if hashlib.sha256(old).hexdigest()!=row['before_sha256'] or sha(ROOT/name)!=row['after_sha256']:raise ValueError('exact producer delta bytes: '+name)
@@ -293,9 +402,9 @@ def verify_prior_observation_source():
     return value
 
 
-def verify_observation_source():
+def verify_namespace_exit_source():
     """Two exact failed lifecycles, retained cost only; neither is a Passed seed."""
-    prior=verify_prior_observation_source();value=bound(OBSERVATION_REF)
+    prior=verify_prior_observation_source();value=bound(NAMESPACE_OBSERVATION_REF)
     old_result=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r2')
     if (value.get('purpose')!='exact_PATCH_ENC1_namespace_exit_observation_failure_v1' or value['producer_commit']!='d852398c7949a2feea9b572ee793c1e793ecd06c'
         or value['old_attempt']!='PATCHTST-depth-Urban6-exit-r2' or value['old_result']!=str(old_result)
@@ -335,6 +444,45 @@ def verify_observation_source():
     return value
 
 
+def verify_observation_source():
+    """Three exact negative lifecycles: immutable costs, never Passed seeds."""
+    prior=verify_namespace_exit_source();value=bound(OBSERVATION_REF)
+    old_result=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r3')
+    if (value.get('purpose')!='exact_PATCH_ENC1_namespace_identity_pending_failure_v1'
+        or value['producer_commit']!='0abc95542f28c000d0366ad43a29e0b85867e38c'
+        or value['old_attempt']!='PATCHTST-depth-Urban6-exit-r3' or value['old_result']!=str(old_result)
+        or value['prior_observation_ref']!=NAMESPACE_OBSERVATION_REF or value['config_ref']!=config_refs()['PATCH_ENC1']
+        or value['completed_round2_source_ref']!=SOURCE_REF or value['task_id']!=prior['task_id']):raise ValueError('exact registered r3 source required')
+    refs=value['refs']
+    for item in refs.values():
+        if ref(item['path'])!=item:raise ValueError('r3 negative observation evidence changed: '+item['path'])
+    process=bound(refs['process']);snap=bound(refs['observation_failure']);failed=bound(refs['probe/PATCH_ENC1/failure.json'])
+    permit=bound(refs['probe/PATCH_ENC1/approval.json']);auth=bound(refs['start_authorization']);attempt=dict(adam=6,backward=6,forward=8)
+    identity=value['worker_identity'];pid=str(identity['pid'])
+    if (bound(refs['queue/controller/failure.json'])['error']!="RuntimeError('owned child technical failure: PATCH_ENC1-probe')"
+        or process['returncodes']!=[0] or process['resource_admission']is not False or process['failure_kind']!='observation'
+        or process['failure']!='whole-card sampling failed: owned process identity read/parse failed: 41212; PermissionError; namespace'
+        or process['observation_failure_ref']!=refs['observation_failure'] or failed['decisions']
+        or failed['budget']['historical_actual']!=prior['retained_actual'] or failed['budget']['new_actual']!=attempt
+        or failed['budget']['actual']!=value['retained_actual'] or value['retained_actual']!=dict(adam=18,backward=18,forward=24)
+        or value['attempt_actual']!=attempt or value['retained_failed_workers']!=3 or value['old_caps']!=prior['old_caps']
+        or value['new_formal_runs']!=0 or auth['closure_commit']!=value['producer_commit'] or permit['commit']!=value['producer_commit']
+        or permit.get('execution_attempt')!=value['old_attempt'] or permit.get('start_authorization_ref')!=refs['start_authorization']):raise ValueError('r3 failed lifecycle/cost/config mismatch')
+    m=snap['sample']['owned_pid_metadata'][pid]
+    if (identity!=dict(pid=41212,host_pid=49401,start_ticks='212094890',namespace='pid:[4026534934]')
+        or snap['context']['active_before']!=[identity['pid']] or snap['context']['active_after']!=[identity['pid']]
+        or any(snap['context']['before_metadata'][pid].get(k)!=v for k,v in identity.items())
+        or m.get('error_kind')!='PermissionError' or m.get('phase')!='namespace' or m.get('start_ticks_before')!=identity['start_ticks']
+        or snap['current_owned'][0]['returncode']is not None or snap['sample']['owned_host_pids']
+        or set(snap['sample']['nvml_processes'])!={str(identity['host_pid'])}):raise ValueError('exact saved r3 unresolved identity sample required')
+    if bound(refs['runtime'])['pid']!=identity['pid'] or bound(refs['runtime'])['error']is not None or bound(refs['worker_budget'])['counts']!=attempt:raise ValueError('r3 original six-step accounting')
+    from utils.ch3_type1_upstream import assert_owned_exited
+    assert_owned_exited(value['exit_instances'])
+    if subprocess.run(['tmux','has-session','-t',value['old_session']],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('old r3 session still exists')
+    if any((old_result/stage).exists()for stage in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET','EPF_ALL','M_ALL')) or (old_result/'probe/PATCH_ENC1/complete.json').exists():raise ValueError('unexpected old r3 completed work')
+    return value
+
+
 def verify_prefix():
     """Once on arm: saved JSON/histories, receipts and checkpoint STAT only."""
     rows=verify_source_light();evidence=bound(PREFIX_REF)
@@ -348,13 +496,16 @@ def verify_prefix():
 
 
 def anchors():
-    return dict(recovery='specific_PATCH_ENC1_observation_after_completed_round2_371',execution_attempt=ATTEMPT,parent_technical_failure_ref=OBSERVATION_REF,prior_Urban_failure_ref=SOURCE_REF,completed_round2_ref=SOURCE_REF,completed_prefix_ref=PREFIX_REF,probe_reuse_ref=REUSE_REF,contract_ref=CONTRACT_REF,fixed_encoder_policy_ref=contract()['fixed_encoder_policy_ref'],producer_delta_ref=delta_ref(),candidate_config_refs=config_refs(),completed_new_formal=196,expected_remaining_formal=335,approved_total_new_formal=531,third_round_runs=287,depth_supplement_runs=48,automatic_main_table_replacement=True,main_table_replacement_cells=24,chosen_M_encoder=2,metric_based_reselection=False)
+    return dict(recovery='specific_PATCH_ENC1_observation_after_completed_round2_371',execution_attempt=ATTEMPT,execution_mode='single_serial_check'if SERIAL_CHECK else'fixed_remaining_chain',single_serial_task=SERIAL_TASK,single_serial_result=str(SERIAL_RESULT),parent_technical_failure_ref=OBSERVATION_REF,prior_Urban_failure_ref=SOURCE_REF,completed_round2_ref=SOURCE_REF,completed_prefix_ref=PREFIX_REF,probe_reuse_ref=REUSE_REF,contract_ref=CONTRACT_REF,fixed_encoder_policy_ref=contract()['fixed_encoder_policy_ref'],producer_delta_ref=delta_ref(),candidate_config_refs=config_refs(),completed_new_formal=196,expected_remaining_formal=335,approved_total_new_formal=531,third_round_runs=287,depth_supplement_runs=48,automatic_main_table_replacement=True,main_table_replacement_cells=24,chosen_M_encoder=2,metric_based_reselection=False,**resource_binding())
 
 
 def status():
     verify_source_light()
     try:verify_production_inheritance()
     except (ImportError,RuntimeError)as exc:raise ValueError('completed371 producer/bundle verification failed: '+str(exc)[:300])from exc
+    if not SERIAL_CHECK:
+        from utils import ch3_type1_chain as q
+        serial_check_evidence(q.configs()['PATCH_ENC1'],required=True)
     return dict(state='COMPLETED_ROUND2_371_ADOPTION_AWAITING_START',READY_FOR_GPU_EXECUTION=False,anchors=anchors(),remaining_formal_runs=335,result_review='pending')
 
 
@@ -400,6 +551,7 @@ def validate_round2_adoption(body):
 def validate_permit_link(c,a,probe):
     stage=c['baseline_unified']['stage']
     if stage in COMPLETED_STAGES:raise PermissionError('completed MS/M_BASE/M_AMEND cannot be redispatched')
+    if SERIAL_CHECK and (stage!='PATCH_ENC1' or not probe):raise PermissionError('single serial mode cannot dispatch formal/other stages')
     if a.get('execution_attempt')!=ATTEMPT or a.get('probe_recovery_ref')!=REUSE_REF or c!=bound(config_refs()[stage]):raise PermissionError('exact new continuation attempt/profile/variant')
     if stage in ('URBAN_SUBSET','EPF_ALL','M_ALL') and a.get('round2_boundary_ref',{}).get('path')!=str(main_boundary_path()):raise PermissionError('third round requires the completed fixed-encoder2 main boundary')
 
@@ -476,7 +628,7 @@ def build_fixed_main_index(enc2_boundary_ref):
         cells=[copy.deepcopy(new.get(row['cell_id'],row))for row in old['cells']],technical_complete=True,result_review='pending',
         original_main_ref=original,enc2_boundary_ref=enc2_boundary_ref,adoption_policy_ref=policy,adoption_id=adoption_id,adopted_cells=adopted,
         replaced_cells=24,retained_cells=347,chosen_PatchTST_M_encoder=2,metric_based_reselection=False,
-        source_rule='user-frozen encoder2 before results; all24 PatchTST M switched together; all other347 sources retained',history_test_seen=True)
+        source_rule='user-frozen encoder2 before results; all24 PatchTST M switched together; all other347 sources retained',history_test_seen=True,**resource_binding())
 
 
 def validate_fixed_main_index(value):
@@ -494,7 +646,7 @@ def seal_fixed_main(receipts):
     body=dict(purpose='round2_fixed_patchtst_enc2_boundary_v1',scope=q.s.ID,owner=q.owner(),commit=q.closure(),
         original_boundary_ref=prior,original_main_ref=main['original_main_ref'],enc2_boundary_ref=enc2,main_index_ref=index,
         adoption_policy_ref=main['adoption_policy_ref'],adoption_id=main['adoption_id'],effective_counts=main['effective_counts'],
-        replaced_cells=24,retained_cells=347,chosen_PatchTST_M_encoder=2,metric_based_reselection=False,technical_complete=True,result_review='pending')
+        replaced_cells=24,retained_cells=347,chosen_PatchTST_M_encoder=2,metric_based_reselection=False,technical_complete=True,result_review='pending',**resource_binding())
     value=exclusive(main_boundary_path(),sign(body));validate_main_boundary(value);return value
 
 
@@ -502,6 +654,7 @@ def validate_main_boundary(value):
     """Compact sealed link for workers; the 371-cell adoption audit runs once."""
     from utils import ch3_type1_chain as q
     b=bound(value);content={k:v for k,v in b.items()if k!='mac'};secret=os.environ.get(q.SECRET)
+    if any(b.get(k)!=v for k,v in resource_binding().items()):raise ValueError('fixed main resource contract')
     if value['path']!=str(main_boundary_path())or not secret or not hmac.compare_digest(sign(content)['mac'],b.get('mac','')):raise PermissionError('fixed main source requires the current adoption lifecycle MAC')
     enc2=q.validate_boundary_light(b['enc2_boundary_ref'],'PATCH_ENC2')
     q.validate_round2_boundary_light(b['original_boundary_ref'])
@@ -523,6 +676,7 @@ def completion_fields(receipts):return dict(round2_fixed_enc2_boundary=receipts[
 
 
 def validate_complete(complete):
+    if any(complete.get(k)!=v for k,v in resource_binding().items()):raise ValueError('complete exclusive resource contract')
     value=complete.get('round2_fixed_enc2_boundary');b=bound(value)
     if value['path']!=str(main_boundary_path())or b['main_index_ref']['path']!=str(main_index_path())or b['original_boundary_ref']!=complete['round2_boundary']or b['enc2_boundary_ref']!=complete['PATCH_ENC2_boundary']or complete.get('chosen_PatchTST_M_encoder')!=2:raise ValueError('complete must include original and fixed-encoder2 main boundaries')
     main=validate_fixed_main_index(bound(b['main_index_ref']))
@@ -545,7 +699,7 @@ def depth_results():
                     value=observed(RESULT/('PATCH_ENC'+str(depth))/'formal-PatchTST'/t['id']/'result.json',t['id'],c['baseline_unified']['id'],digest(profile(c,t)))
                 rows.append(dict(encoder=depth,dataset=dataset,H=h,result=value));values.append(value)
             means.append(dict(encoder=depth,dataset=dataset,mse=sum(v['mse'] for v in values)/4 if all(v['status']=='complete' for v in values) else None,mae=sum(v['mae'] for v in values)/4 if all(v['status']=='complete' for v in values) else None))
-    return dict(rows=rows,dataset_four_H_means=means,main_table_selection='pre_results_fixed_encoder_2',adoption_policy_ref=contract()['fixed_encoder_policy_ref'],metric_based_reselection=False,enc1_retained_not_main=True,enc3_original_sources_retained=True,no_cross_dataset_raw_metric_mean=True,result_review='pending')
+    return dict(rows=rows,dataset_four_H_means=means,main_table_selection='pre_results_fixed_encoder_2',adoption_policy_ref=contract()['fixed_encoder_policy_ref'],metric_based_reselection=False,enc1_retained_not_main=True,enc3_original_sources_retained=True,no_cross_dataset_raw_metric_mean=True,result_review='pending',**resource_binding())
 
 
 def evidence():
@@ -557,12 +711,23 @@ def evidence():
 def retained_refs(report):
     if report.get('probe_recovery_ref') not in (None,REUSE_REF):raise PermissionError('unregistered retained probe evidence')
     if report.get('scope','').endswith('URBAN_SUBSET-probe'):return {p:r for v in evidence()['accepted'].values() for p,r in v['artifacts'].items()}
+    if report.get('single_serial_source'):
+        if not report.get('scope','').endswith('PATCH_ENC1-probe'):raise PermissionError('single serial evidence only belongs to PATCH_ENC1')
+        if report['single_serial_source']['path']!=str(SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json'):raise PermissionError('only the precise single serial readonly source')
+        saved=bound(report['single_serial_source'])
+        return dict(saved['artifacts'],**{item['path']:item for item in [saved['approval']]+[v['process']for v in saved['evidence'].values()]})
     return {}
 
 
 def retained_payload(c,point):
-    if c['baseline_unified']['stage']!='URBAN_SUBSET':return False
-    refs={p:r for v in evidence()['accepted'].values() for p,r in v['artifacts'].items()}
+    if c['baseline_unified']['stage']=='PATCH_ENC1':
+        saved=SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json'
+        if not saved.exists():return False
+        body=bound(ref(saved))
+        if body['protocol_sha']!=digest(c) or body['task_id']!=SERIAL_TASK or body['serial_check_passed']is not True:return False
+        refs=body['artifacts']
+    elif c['baseline_unified']['stage']=='URBAN_SUBSET':refs={p:r for v in evidence()['accepted'].values() for p,r in v['artifacts'].items()}
+    else:return False
     for k in ('schema_file','data_file','meta_file'):
         if k in point and (point[k] not in refs or ref(point[k])!=refs[point[k]]):return False
     return True
@@ -572,11 +737,19 @@ def load_seed(c,a):
     validate_permit_link(c,a,True)
     if c['baseline_unified']['stage']=='PATCH_ENC1':
         value=verify_observation_source()
-        for item in list(bound(PRIOR_OBSERVATION_REF)['artifact_refs'].values())+list(value['artifact_refs'].values()):
+        for item in list(bound(PRIOR_OBSERVATION_REF)['artifact_refs'].values())+list(bound(NAMESPACE_OBSERVATION_REF)['artifact_refs'].values())+list(value['artifact_refs'].values()):
             if ref(item['path'])!=item:raise ValueError('failed six-step artifact changed; never reclassify resource failure')
         from utils import ch3_type1_tasks as s
         actual=value['retained_actual']
-        return dict(budget=dict(caps=s.probe_budget(c)['caps'],reserved=dict(actual),actual=dict(actual),historical_actual=dict(actual),new_actual=dict(adam=0,backward=0,forward=0),diagnostic_actual=dict(actual),diagnostic_failure_ref=OBSERVATION_REF,refund=False),evidence={},decisions={},artifacts={})
+        seed=dict(budget=dict(caps=s.probe_budget(c)['caps'],reserved=dict(actual),actual=dict(actual),historical_actual=dict(actual),new_actual=dict(adam=0,backward=0,forward=0),diagnostic_actual=dict(actual),diagnostic_failure_ref=OBSERVATION_REF,refund=False),evidence={},decisions={},artifacts={})
+        if not SERIAL_CHECK:
+            saved=serial_check_evidence(c)
+            if saved:
+                for k,n in saved['counts'].items():
+                    for field in ('reserved','actual','historical_actual'):seed['budget'][field][k]+=n
+                seed['evidence'][saved['key']]=saved['entry'];seed['artifacts']=saved['artifacts']
+                seed['single_serial_source']=ref(SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json')
+        return seed
     v=evidence();artifacts={};entries={}
     for run,row in v['accepted'].items():
         t=next(t for t in c['tasks'] if t['id']==run)
@@ -595,6 +768,11 @@ def retained_wave(report,key):
     if not report.get('probe_recovery_ref'):return None
     entry=report.get('evidence',{}).get(key)
     if not entry:return None
+    if report.get('single_serial_source'):
+        if report['single_serial_source']['path']!=str(SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json'):raise PermissionError('only the precise single serial readonly source')
+        saved=bound(report['single_serial_source'])
+        if key in saved['evidence'] and entry==saved['evidence'][key]:
+            return dict(process=entry['process'],task_ids=entry['task_ids'],artifacts=saved['artifacts'],producer=bound(saved['approval']),self_comparison=saved['serial_self_check'])
     for row in evidence()['accepted'].values():
         if entry['process']==row['process'] and entry['task_ids']==row['task_ids']:return row
     return None

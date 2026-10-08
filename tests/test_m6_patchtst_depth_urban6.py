@@ -256,9 +256,9 @@ class PrefixAndReuse(unittest.TestCase):
         with patch.object(r,'bound',side_effect=lambda value:source if value==r.SOURCE_REF else original(value)):
             with self.assertRaises(ValueError):r.verify_source_light()
 
-    def test_r3_retains_two_failed_waves_and_only_original_335_tasks(self):
-        value=r.verify_observation_source();self.assertEqual(value['retained_actual'],dict(adam=12,backward=12,forward=16))
-        self.assertEqual(value['retained_failed_workers'],2);self.assertFalse(bound(value['refs']['process'])['resource_admission'])
+    def test_r4_retains_three_failed_waves_and_only_original_335_tasks(self):
+        value=r.verify_observation_source();self.assertEqual(value['retained_actual'],dict(adam=18,backward=18,forward=24))
+        self.assertEqual(value['retained_failed_workers'],3);self.assertFalse(bound(value['refs']['process'])['resource_admission'])
         counts=q.completion_counts();self.assertEqual(counts['adopted_new_formal_runs'],196);self.assertEqual(counts['executed_new_formal_runs'],335)
         self.assertEqual(sum(len(q.configs()[k]['tasks'])for k in s.STAGES[2:]),335)
 
@@ -332,7 +332,9 @@ class PrefixAndReuse(unittest.TestCase):
             stack.enter_context(patch.object(q,'closure',return_value='f'*40));stack.enter_context(patch.object(q,'dynamic',return_value={}))
             remote=stack.enter_context(patch.object(q,'verify_live_remote',return_value='f'*40))
             value=q.start_template();value.update(reviewed=True,execution_permitted=True,structure_frozen=True,m6_authorized=True,budget_authorized=True,closure_commit='f'*40,authorization_basis='temporary CPU-only preflight fixture')
-            result=q.readiness_report(value);self.assertEqual(result['blocked'],[]);self.assertTrue(result['READY_TO_ARM_HANDOFF']);self.assertFalse(result['READY_FOR_GPU_EXECUTION']);self.assertEqual(result['remaining_formal_runs'],335);self.assertEqual(remote.call_count,1)
+            result=q.readiness_report(value)
+            self.assertEqual(result['blocked'],['real single serial acceptance must complete before main arm; failed check is retained'])
+            self.assertFalse(result['READY_TO_ARM_HANDOFF']);self.assertFalse(result['READY_FOR_GPU_EXECUTION']);self.assertEqual(result['remaining_formal_runs'],335);self.assertEqual(remote.call_count,0)
             self.assertFalse((root/'future').exists());self.assertNotIn('torch',sys.modules)
             with patch('tools.restricted_regression.run_restricted.verify_bundle',side_effect=RuntimeError('synthetic seal mismatch')):
                 result=q.readiness_report(value);self.assertTrue(any('bundle verification failed'in x for x in result['blocked']));self.assertFalse(result['READY_TO_ARM_HANDOFF'])
@@ -351,8 +353,8 @@ class ActualProbeAudit(unittest.TestCase):
             for stage in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET','EPF_ALL','M_ALL'):
                 c=cs[stage];ctx=dict(s.context(c),control=Path(d)/stage);receipts={}
                 for model in ctx['models']:
-                    receipts[model]=exclusive(Path(d)/(stage+'-'+model+'.json'),dict(technical_complete=True,model=model,task_ids=[t['id']for t in c['tasks']if t['model']==model]))
-                binding=dict(protocol_sha=digest(c),commit='f'*40,code={},environment={},hardware={},source_states={})
+                    receipts[model]=exclusive(Path(d)/(stage+'-'+model+'.json'),dict(technical_complete=True,model=model,task_ids=[t['id']for t in c['tasks']if t['model']==model],**r.resource_binding()))
+                binding=dict(protocol_sha=digest(c),commit='f'*40,code={},environment={},hardware={},source_states={},**r.resource_binding())
                 with patch.object(s,'context',return_value=ctx),patch.object(q,'stop_check'),patch.object(q,'dynamic',return_value=binding)as call:
                     value=bound(q.seal_boundary(c,receipts));self.assertEqual(call.call_count,1)
                     for key,expected in binding.items():self.assertEqual(value[key],expected)
@@ -362,7 +364,7 @@ class ActualProbeAudit(unittest.TestCase):
     def test_enc1_real_compare_completion_audit_manifest_and_compact_summary(self):
         from tools.restricted_regression import m5_formal_entry as tool,resource_budget
         from utils import ch3_native_execution as native,ch3_round2_amendment as amend,ch3_type1_execution as execution
-        from tests.test_m6_probe_schema_recovery import trajectory
+        from tests.test_m6_whole_card_monitor import probe_fixture_trajectory as trajectory
         from utils.ch3_contract import task_by_id,numeric_probe_policy
         c=q.configs()['PATCH_ENC1'];events=[];counter=[10000000]
         with tempfile.TemporaryDirectory(prefix='m6-depth-probe-')as d,contextlib.ExitStack()as stack:
@@ -373,7 +375,9 @@ class ActualProbeAudit(unittest.TestCase):
             stack.enter_context(patch.object(s,'context',side_effect=lambda cc:ctx if cc==c else old_context(cc)));stack.enter_context(patch.object(q,'CONTROL',base/'controller'));stack.enter_context(patch.dict(os.environ,{q.SECRET:'CPU-synthetic-only'}));stack.enter_context(patch.dict(sys.modules,{'m5_formal_entry':tool,'resource_budget':resource_budget}))
             exclusive(q.CONTROL/'controller.json',dict(scope=s.ID,owner=q.owner()))
             stack.enter_context(patch.object(q,'closure',return_value='f'*40));stack.enter_context(patch.object(r,'verify_production_inheritance',return_value={}))
-            stack.enter_context(patch.object(q,'dynamic',side_effect=lambda cc,worker=False:dict(commit='f'*40,protocol_sha=digest(cc),code={},environment={},hardware={'cpu_affinity':[]},source_states={})))
+            stack.enter_context(patch.object(q,'dynamic',side_effect=lambda cc,worker=False:dict(commit='f'*40,protocol_sha=digest(cc),code={},environment={},hardware={'cpu_affinity':[],'gpu':'GPU-CPU-fixture, fixture only'},source_states={},**r.resource_binding())))
+            from tests.test_m6_whole_card_monitor import cpu_wave,gpu_queries
+            stack.enter_context(patch.object(tool.subprocess,'check_output',side_effect=gpu_queries));stack.enter_context(patch('ch3_runner.GPULock',side_effect=lambda cc:contextlib.nullcontext()))
             stack.enter_context(patch('utils.ch3_native_recovery.resource_check'));stack.enter_context(patch('utils.ch3_m_execution.gpu_environment_reasons',return_value=[]))
             remote=stack.enter_context(patch.object(q,'verify_live_remote',side_effect=AssertionError('runtime cannot query remote')))
             adopted=r.adopt_prefix();predecessors=dict(M_BASE=adopted['SEAL_M128_BOUNDARY'],M_AMEND=adopted['SEAL_AMEND_BOUNDARY'])
@@ -382,13 +386,12 @@ class ActualProbeAudit(unittest.TestCase):
             exclusive(ctx['probe_root']/'approval.json',a)
             def make(cc,purpose,out,*,task,approval):
                 t=task_by_id(c,task);out=Path(out);counts=s.worker_counts(c,t);counter[0]+=1;pid=counter[0]
-                cfg=dict(task=task,output=str(out),approval=approval,protocol_sha=digest(c),successor_scope=ctx['probe_scope'],successor_phase=out.parent.name,prefix_files={},limits=dict(**counts,seconds=1800))
+                cfg=dict(task=task,output=str(out),approval=approval,protocol_sha=digest(c),successor_scope=ctx['probe_scope'],successor_phase=out.parent.name,prefix_files={},limits=dict(**counts,seconds=1800),**r.resource_binding())
                 exclusive(out/'trajectory.json',trajectory(c,t,out,numeric_probe_policy(c,t)));exclusive(out/'config.json',cfg);exclusive(out/'budget.json',dict(counts=counts,by_pid={str(pid):counts}));exclusive(out/'runtime.json',dict(pid=pid,task=task,error=None));(out/'audit.jsonl').write_text('{"event":"CPU synthetic payload"}\n')
                 return dict(cfg,pid=pid,budget_file=str(out/'budget.json'))
             def launch(configs,out,monitor):
-                out=Path(out);out.mkdir();events.extend(x['task']for x in configs);peaks={str(x['pid']):1 for x in configs}
-                value=dict(failure=None,returncodes=[0]*len(configs),resource_admission=True,elapsed=2. if out.parent.name=='serial'else 1.,exit_transitions_resolved=True,process_attribution='Measured',process_peaks=peaks,cpu_peaks=peaks)
-                exclusive(out/'process.json',value);(out/'memory.jsonl').write_text(json.dumps(dict(owned_pid_metadata={pid:dict(pid=int(pid),start_ticks='1')for pid in peaks}))+'\n');return value
+                events.extend(x['task']for x in configs)
+                return cpu_wave(configs,out,c=c)
             stack.enter_context(patch.object(tool,'make_config',side_effect=make));stack.enter_context(patch.object(tool,'run_configs',side_effect=launch))
             compare=stack.enter_context(patch.object(native,'compare',wraps=native.compare));audit=stack.enter_context(patch.object(native,'validate_probe_completion',wraps=native.validate_probe_completion))
             report=native.run_probe(c,a);self.assertEqual(len(events),48);self.assertEqual(audit.call_count,0)
@@ -418,7 +421,7 @@ def fixed_main_fixture():
             stack.enter_context(patch.object(module,name,value))
         stack.enter_context(patch.dict(os.environ,{q.SECRET:'CPU-synthetic-only'}))
         stack.enter_context(patch.object(q,'closure',return_value='f'*40))
-        stack.enter_context(patch.object(q,'dynamic',side_effect=lambda c,worker=False:dict(commit='f'*40,protocol_sha=digest(c),code={},environment={},hardware={},source_states={})))
+        stack.enter_context(patch.object(q,'dynamic',side_effect=lambda c,worker=False:dict(commit='f'*40,protocol_sha=digest(c),code={},environment={},hardware={},source_states={},**r.resource_binding())))
         exclusive(q.CONTROL/'controller.json',dict(scope=s.ID,owner=q.owner()))
         adopted=r.adopt_prefix();c=q.configs()['PATCH_ENC2'];artifacts={}
         for i,t in enumerate(c['tasks']):
@@ -427,9 +430,142 @@ def fixed_main_fixture():
             result=dict(id=t['id'],task='M',input_variant='M',metric_scope='all_channels',profile_sha=digest(p),protocol_sha=digest(c),scientific_protocol=c['baseline_unified']['id'],commit='f'*40,seed=2024,from_scratch=True,scheduler_sha=digest(p['training']['scheduler']),best_epoch=1,final_test=dict(calls=1,selected='best.pt',sha256=best['sha256'],epoch=1),mse=1000.+i,mae=500.+i)
             manifest=dict(task=t,profile=p,identity=dict(run_id=t['id'],task='M',metric_scope='all_channels',profile_sha=digest(p),protocol_sha=digest(c),scientific_protocol=c['baseline_unified']['id'],commit='f'*40,from_scratch=True))
             artifacts[t['id']]={'result.json':exclusive(path/'result.json',result),'manifest.json':exclusive(path/'manifest.json',manifest),'runtime.json':exclusive(path/'runtime.json',dict(task=t['id'],error=None)),'best.pt':best}
-        group=exclusive(root/'PATCH_ENC2/group.json',dict(technical_complete=True,model='PatchTST',task_ids=[t['id']for t in c['tasks']],artifacts=artifacts))
+        group=exclusive(root/'PATCH_ENC2/group.json',dict(technical_complete=True,model='PatchTST',task_ids=[t['id']for t in c['tasks']],artifacts=artifacts,**r.resource_binding()))
         sealed=q.seal_boundary(c,dict(PatchTST=group));adopted[q.STAGE_STATES['PATCH_ENC2'][3]]=sealed
         yield root,adopted,c,artifacts
+
+
+class SingleSerialAcceptance(unittest.TestCase):
+    def test_real_worker_activation_and_task_wave_guards_restrict_short_mode(self):
+        code="""
+import sys
+from utils import ch3_patchtst_depth_urban6_recovery as r,ch3_probe_schema_recovery as activation,ch3_type1_execution as execution
+from utils.ch3_contract import digest
+from tools.restricted_regression import m5_formal_entry as tool
+sys.modules['m5_formal_entry']=tool
+activation.activate_worker(r.REUSE_REF,'PATCHTST-depth-Urban6-exit-r4-serial-check')
+from utils import ch3_type1_chain as q,ch3_type1_tasks as s
+c=q.configs()['PATCH_ENC1']
+cfg=dict(probe_schema_recovery_ref=r.REUSE_REF,approval=dict(execution_attempt=r.ATTEMPT),unified_stage='PATCH_ENC1',type1_scope=s.ID,protocol_file=str(s.file('PATCH_ENC1')),protocol_sha=digest(c))
+assert execution.read_config(cfg)==c and r.SERIAL_CHECK
+for purpose,task,phase in [('ch3_formal',r.SERIAL_TASK,'serial'),('ch3_probe',c['tasks'][1]['id'],'serial'),('ch3_probe',r.SERIAL_TASK,'q4')]:
+ try:execution.validate_worker(c,dict(cfg,purpose=purpose,task=task,successor_phase=phase))
+ except PermissionError:pass
+ else:raise AssertionError('worker guard did not reject other computation')
+try:execution.validate_wave(c,[dict(purpose='ch3_probe',task=r.SERIAL_TASK)]*2,r.RESULT)
+except PermissionError:pass
+else:raise AssertionError('short mode accepted multiple workers')
+assert 'torch' not in sys.modules
+"""
+        value=subprocess.run([q.PYTHON,'-B','-c',code],cwd=ROOT,capture_output=True,text=True,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
+        self.assertEqual(value.returncode,0,value.stderr)
+
+    def test_separate_template_and_entry_cannot_dispatch_other_stages(self):
+        code="""
+import sys
+from utils import ch3_patchtst_depth_urban6_recovery as r
+r.activate_serial_check()
+from utils import ch3_type1_chain as q
+v=q.start_template()
+assert v['upstream_anchors']['execution_mode']=='single_serial_check'
+assert v['upstream_anchors']['single_serial_task']==r.SERIAL_TASK
+assert r.RESULT==r.SERIAL_RESULT and q.ENTRY==r.SERIAL_ENTRY
+assert q.run is r.run_serial_check
+assert 'torch' not in sys.modules
+from unittest.mock import patch
+v.update(reviewed=True,execution_permitted=True,structure_frozen=True,m6_authorized=True,budget_authorized=True,closure_commit='f'*40,authorization_basis='CPU synthetic only')
+with patch.object(q,'closure',return_value='f'*40),patch.object(q,'dynamic',return_value={}),patch.object(q,'verify_live_remote',return_value='f'*40) as remote:
+ readiness=q.readiness_report(v)
+ assert readiness['blocked']==[],readiness
+ assert readiness['READY_TO_ARM_HANDOFF']and not readiness['READY_FOR_GPU_EXECUTION']
+ assert remote.call_count==1
+assert not r.RESULT.exists() and not r.LOG.exists()
+for stage in ('PATCH_ENC2','M_ALL'):
+ try:r.validate_permit_link(q.configs()[stage],{},True)
+ except PermissionError:pass
+ else:raise AssertionError('short check must not dispatch '+stage)
+"""
+        value=subprocess.run([q.PYTHON,'-B','-c',code],cwd=ROOT,capture_output=True,text=True,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
+        self.assertEqual(value.returncode,0,value.stderr)
+
+    def test_single_serial_then_precise_reuse_full_audit_and_no_extra_dispatch(self):
+        from tools.restricted_regression import m5_formal_entry as tool,resource_budget
+        from utils import ch3_native_execution as native,ch3_round2_amendment as amend
+        from tests.test_m6_whole_card_monitor import probe_fixture_trajectory as trajectory
+        from utils.ch3_contract import task_by_id,numeric_probe_policy
+        c=q.configs()['PATCH_ENC1'];events=[];counter=[40000000]
+        with tempfile.TemporaryDirectory(prefix='m6-one-serial-')as d,contextlib.ExitStack()as stack:
+            base=Path(d);short=base/'single';main=base/'main';current=[short]
+            previous=s.context
+            def ctx(cc):
+                if cc!=c:return previous(cc)
+                return dict(previous(cc),probe_root=current[0]/'probe/PATCH_ENC1',control=current[0]/'queue/PATCH_ENC1',fixture=base/'fixtures',result_root=base/'formal')
+            stack.enter_context(patch.object(s,'context',side_effect=ctx));stack.enter_context(patch.object(r,'SERIAL_RESULT',short))
+            stack.enter_context(patch.dict(os.environ,{q.SECRET:'CPU-fixture-only'}));stack.enter_context(patch.dict(sys.modules,{'m5_formal_entry':tool,'resource_budget':resource_budget}))
+            stack.enter_context(patch.object(q,'closure',return_value='f'*40));stack.enter_context(patch.object(r,'verify_production_inheritance',return_value={}))
+            stack.enter_context(patch.object(q,'dynamic',side_effect=lambda cc,worker=False:dict(commit='f'*40,protocol_sha=digest(cc),code={},environment={},hardware={'cpu_affinity':[],'gpu':'GPU-CPU-fixture, fixture only'},source_states={},**r.resource_binding())))
+            from tests.test_m6_whole_card_monitor import cpu_wave,gpu_queries
+            stack.enter_context(patch.object(tool.subprocess,'check_output',side_effect=gpu_queries));stack.enter_context(patch('ch3_runner.GPULock',side_effect=lambda cc:contextlib.nullcontext()))
+            stack.enter_context(patch('utils.ch3_native_recovery.resource_check'));stack.enter_context(patch('utils.ch3_m_execution.gpu_environment_reasons',return_value=[]))
+            stack.enter_context(patch.object(q,'verify_live_remote',side_effect=AssertionError('runtime must stay local')))
+            def make(cc,purpose,out,*,task,approval):
+                t=task_by_id(cc,task);out=Path(out);counts=s.worker_counts(cc,t);counter[0]+=1;pid=counter[0]
+                cfg=dict(task=task,output=str(out),approval=approval,protocol_sha=digest(cc),successor_scope=ctx(cc)['probe_scope'],successor_phase=out.parent.name,prefix_files={},limits=dict(**counts,seconds=1800),**r.resource_binding())
+                exclusive(out/'trajectory.json',trajectory(cc,t,out,numeric_probe_policy(cc,t)));exclusive(out/'config.json',cfg);exclusive(out/'budget.json',dict(counts=counts,by_pid={str(pid):counts}));exclusive(out/'runtime.json',dict(pid=pid,task=task,error=None));(out/'audit.jsonl').write_text('{"event":"CPU synthetic payload"}\n')
+                return dict(cfg,pid=pid,budget_file=str(out/'budget.json'))
+            def launch(configs,out,monitor):
+                events.extend(x['task']for x in configs)
+                return cpu_wave(configs,out,c=c)
+            stack.enter_context(patch.object(tool,'make_config',side_effect=make));stack.enter_context(patch.object(tool,'run_configs',side_effect=launch))
+            def begin(root,attempt,short_mode):
+                current[0]=root;s.RESULT=root;amend.RESULT=root/'round2-amendment';q.CONTROL=root/'queue/controller';r.ATTEMPT=attempt;r.SERIAL_CHECK=short_mode
+                auth=q.start_template();auth.update(reviewed=True,execution_permitted=True,structure_frozen=True,m6_authorized=True,budget_authorized=True,closure_commit='f'*40,authorization_basis='CPU-only fixture, never real authorization')
+                start=exclusive(root/'synthetic-auth.json',auth);exclusive(q.CONTROL/'controller.json',dict(scope=s.ID,owner=q.owner(),authorization=start))
+                if short_mode:return start
+                adopted=r.adopt_prefix();ctx(c)['control'].mkdir(parents=True);ctx(c)['probe_root'].mkdir(parents=True)
+                permit=q.create_permit(c,start,True,boundary_ref={k:adopted[q.STAGE_STATES[k][3]]for k in r.COMPLETED_STAGES},round2_ref=adopted['SEAL_ROUND2_REVISED_BOUNDARY'])
+                exclusive(ctx(c)['probe_root']/'approval.json',bound(permit));exclusive(ctx(c)['probe_root']/'controller.json',dict(owner=q.owner(),scope=ctx(c)['probe_scope']));return permit
+            for mod,name in ((s,'RESULT'),(amend,'RESULT'),(q,'CONTROL'),(r,'ATTEMPT'),(r,'SERIAL_CHECK')):stack.enter_context(patch.object(mod,name,getattr(mod,name)))
+            compare=stack.enter_context(patch.object(native,'compare',wraps=native.compare))
+            start=begin(short,'PATCHTST-depth-Urban6-exit-r4-serial-check',True)
+            def owned_probe(stage,permit_ref,probe,**kw):
+                self.assertEqual((stage,probe),('PATCH_ENC1',True))
+                ctx(c)['probe_root'].mkdir(parents=True)
+                exclusive(ctx(c)['probe_root']/'approval.json',bound(permit_ref));exclusive(ctx(c)['probe_root']/'controller.json',dict(owner=q.owner(),scope=ctx(c)['probe_scope']))
+                native.run_probe(c,bound(permit_ref))
+            with patch.object(q,'wait_owned',side_effect=owned_probe)as wait:r.run_serial_check(start)
+            self.assertEqual(wait.call_count,1);pr=ref(ctx(c)['control']/'probe-permit.json');one=bound(ref(ctx(c)['probe_root']/'serial-check.json'))
+            self.assertEqual(events,[r.SERIAL_TASK]);self.assertFalse((ctx(c)['probe_root']/'complete.json').exists());self.assertEqual(one['decisions'],{})
+            self.assertEqual(compare.call_count,1);self.assertTrue(one['serial_self_check']['passed'])
+            # A real CPU process supplies an exited lifecycle for the retained
+            # supervisor/child identity; tensors remain synthetic and no GPU runs.
+            child=subprocess.Popen([q.PYTHON,'-B','-c','import time;time.sleep(.1)']);identity=q.owner(child.pid);self.assertEqual(child.wait(timeout=3),0)
+            exited=dict(pid=child.pid,start_ticks=identity['start_ticks'])
+            owner=bound(ref(q.CONTROL/'controller.json'));owner['owner']=exited;(q.CONTROL/'controller.json').write_text(json.dumps(owner)+'\n')
+            ctl=bound(ref(ctx(c)['probe_root']/'controller.json'));ctl['owner']=exited;(ctx(c)['probe_root']/'controller.json').write_text(json.dumps(ctl)+'\n')
+            done=bound(ref(q.CONTROL/'serial-check-complete.json'));done['owner']=exited;(q.CONTROL/'serial-check-complete.json').write_text(json.dumps(done)+'\n')
+            self.assertEqual(done['formal_runs'],0);self.assertFalse(done['whole_stage_admission'])
+            saved=r.serial_check_evidence(c,required=True);self.assertEqual(saved['entry']['task_ids'],[r.SERIAL_TASK])
+            self.assertEqual(saved['producer'],bound(pr))
+            original=r.bound;receipt=ref(ctx(c)['probe_root']/'serial-check.json');bad=copy.deepcopy(one);bad['serial_self_check']=None
+            with patch.object(r,'bound',side_effect=lambda item:bad if item==receipt else original(item)),self.assertRaises(ValueError):r.serial_check_evidence(c,required=True)
+            before_count=len(events);pr=begin(main,'PATCHTST-depth-Urban6-exit-r4',False)
+            report=native.run_probe(c,bound(pr));self.assertEqual(len(events)-before_count,47)
+            self.assertEqual(events[before_count:].count(r.SERIAL_TASK),1) # only its q4 wave, no second serial
+            admission=q.audit_probe(c);self.assertTrue(bound(admission)['technical_admission']);self.assertEqual(len(report['decisions']),6)
+            from utils.ch3_native_recovery_records import scan_manifest
+            summary=bound(admission);manifest=bound(summary['manifest_ref'])
+            self.assertTrue(scan_manifest(manifest,summary['complete_ref'],ctx(c)['probe_root'])['integrity_scan_passed'])
+            wrong_manifest=copy.deepcopy(manifest);wrong_manifest['single_serial_source']['path']=str(base/'foreign.json')
+            with self.assertRaises(PermissionError):scan_manifest(wrong_manifest,summary['complete_ref'],ctx(c)['probe_root'])
+            probe_permit=bound(pr)
+            formal=q.create_permit(c,probe_permit['start_authorization_ref'],False,admission,boundary_ref=probe_permit['predecessor_boundaries'],round2_ref=probe_permit['round2_boundary_ref'])
+            runtime=q.seal_runtime(c,formal);q.validate_runtime(c,runtime,formal)
+            self.assertEqual(report['budget']['actual'],dict(adam=306,backward=306,forward=408));self.assertEqual(report['budget']['historical_actual'],dict(adam=24,backward=24,forward=32))
+            self.assertEqual(report['budget']['diagnostic_actual'],dict(adam=18,backward=18,forward=24))
+            wrong=copy.deepcopy(report);wrong['single_serial_source']['path']=str(base/'foreign.json')
+            with self.assertRaises(PermissionError):r.retained_refs(wrong)
+            self.assertNotIn('torch',sys.modules)
 
 
 class FixedEncoderAdoption(unittest.TestCase):
@@ -451,7 +587,7 @@ class FixedEncoderAdoption(unittest.TestCase):
             oldrows=[x for x in r.depth_results()['rows']if x['encoder']==3]
             self.assertEqual({(x['dataset'],x['H']):x['result']['result_ref']for x in oldrows},{(x['dataset'],x['H']):x['result_ref']for x in original['cells']if x['model']=='PatchTST'and x['task']=='M'})
             receipts[r.MAIN_ADOPTION_STATE]=sealed
-            complete=dict(round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],PATCH_ENC2_boundary=receipts[q.STAGE_STATES['PATCH_ENC2'][3]],**r.completion_fields(receipts))
+            complete=dict(round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],PATCH_ENC2_boundary=receipts[q.STAGE_STATES['PATCH_ENC2'][3]],**r.completion_fields(receipts),**r.resource_binding())
             self.assertEqual(r.validate_complete(complete),index)
             # Existing exclusive writer accepts identical bytes, never overwrites.
             self.assertEqual(r.seal_fixed_main(receipts),sealed)

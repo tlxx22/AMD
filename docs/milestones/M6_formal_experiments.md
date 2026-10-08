@@ -1,12 +1,46 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — r2已closure于d852398c7949a2feea9b572ee793c1e793ecd06c并启动，首个PATCH_ENC1串行波在退出窗口namespace PermissionError后观测失败。第二轮371格及196项新增正式结果保持，后续新增正式0/335；r1/r2累计失败短计算12/12/16保留。当前r3为精确退出过渡窄修候选，未stage/commit/push、未物化可执行许可或启动，result_review仍pending。见[本轮r3窄修](#m6-patch-enc1-namespace-exit-repair-v1)。**
+**In Progress — r3真实namespace观测失败保持；底层权限原因未证实。用户声明服务器/GPU独占、仅本队列运行，当前未提交r4候选改用exclusive_gpu_whole_card_v1，取消worker级GPU归属采集；不是追认旧失败或修复内核权限。已完成196、待执行335、总531、最大4550 run-epochs及原第二轮371保持；r1–r3失败成本18/18/24不变。未stage/commit/push、未生成可执行许可、未运行真实GPU短验收或主链，result_review仍pending。见[本轮整卡候选](#m6-exclusive-whole-card-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+<a id="m6-exclusive-whole-card-v1"></a>
+## r4未提交候选按用户独占决定改用整卡资源监控
+
+本轮起点仍为N `0abc95542f28c000d0366ad43a29e0b85867e38c`，已知12 modified＋1 untracked、index空；13份字节及父包inventory/patch/acceptance/evidence-index匹配。N/W/R三端0/0，W/R clean，旧实例/session退出，r4主链及短验收没有AUTH、result、log或launch/claimed。旧父包437份索引材料和95项保护引用核验保持，原85/85属于旧方向，不能当作新模式验收。
+
+用户独占声明是新模式的适用前提，不冒称工具核实没有其他进程。资源合同集中于canonical，新候选、完整相对HEAD diff及相对旧r4增量集中于`patch-enc1-identity-settle-repair-v1/whole-card-monitor-v1/`。沿用r4主链及独立serial-check身份，日志与未来许可移至该增量；不另开r5、不再开发恢复器或另一套短验收。
+
+采样器/真实run_configs在q1/q2/q4不调用worker GPU归属、namespace/sched或GPU进程表，不创建ExitObservation。只记录固定整卡数据、耗时和裁决；逐进程峰值、Measured与外部归属为null/N/A。最少Popen/PID/start_ticks/任务配对及poll/wait/退出码仍属于生命周期管理。退出后的独立整卡采样、原余量/会计/finite/UUID/10秒查询约束全部保留；不要求显存归零。查询异常、STOP、任务超时和业务失败按真实类型拒绝；既有明确资源不足/CUDA OOM规则保持，数值与身份故障不能资源回退。
+
+完整消费链接入当前资源合同：start模板/permit/config→单串行成功收据及采用→真实共享compare/probe审计→manifest/summary/runtime→formal波次和完成审计→固定enc2来源索引/结果汇总/complete。审计同时要求任务完整性、合法自有生命周期和真实整卡证据，不能无条件Passed。新probe不调用PyTorch逐worker allocated/reserved/peak统计，轨迹字段为null/N/A；CPU/RSS检查保留，旧模式仍按原字段和规则审计。单串行成功收据明确保存控制PID与task配对。formal资源记录流式保存/审计；AUTO_AUDIT仍每阶段一次，formal不回放完整数值probe。当前bundle与精确producer delta同步更新，旧训练producer和旧封印保持。
+
+无模型定向复验使用真实监控与资源审计本体、实际CPU短子进程及合成整卡查询；GPU归属/namespace/进程表调用设为一旦调用即失败。覆盖q1/q2/q4、正式审计、错误绑定、资源不足/非finite/UUID/会计/查询失败、worker/STOP/超时/重复启动、安全停止只处理自有fixture，以及单serial成功后主链少派一次serial。失败尝试和修正依据完整保留；NaN失败快照以非有限值描述保存，不能作为有效资源测量。最终同版本结果见本增量acceptance，不拼接旧85/85；真实模型构造、GPU、forward/backward/Adam、真实validation/test和训练checkpoint读取均0。
+
+全部七份effective配置/任务/profile、原133数值政策、额外两层数政策和formal/probe上限保持。旧371和196项完成来源、r1–r3负向资源收据与18/18/24成本不变；仅整卡模式和执行引用变化。审核closure后先物化本增量的短验收许可，公开preflight后做一次原batch128六步真实验收；失败停止，成功精确复用。然后按原顺序由用户一次arm剩余335项：enc1 M24→enc2 M24→固定enc2新版371（24/347）→Urban84→EPF35→M168。真实短验收不代表q4、整个probe或效果通过。本轮仍为未提交review点，新字节尚未获ChatGPT审核。
+
+<a id="m6-patch-enc1-identity-settle-repair-v1"></a>
+## r3失败后的统一有界身份核实与r4候选（此前未提交方向）
+
+本轮技术修复起点为N `0abc95542f28c000d0366ad43a29e0b85867e38c`；N/W/R实际HEAD、tracking和live remote一致、0/0且clean。r3 owner40928/212082645、probe-child41139/212091657、worker41212/212094890已退出，tmux不存在；不发信号。process SHA `94a1f00581764cf98639c425a93980c5099c4321421582ea7452e229202272a0`、失败快照SHA `4592a5a77d4ec343c5317c6add2b807b265a6a78624b2db18ca17ca524b6a62a`与用户锚点一致。
+
+r3 worker host49401、namespace pid:[4026534934]，查询前完整身份可靠；查询后PermissionError发生在namespace读取，stat-before ticks仍匹配，active_before=active_after=[41212]、poll仍未退出、NVML仍有49401而owned_host_pids为空。最终worker exit0、六步finite、runtime.error=None只证明短计算完成，不能替代当时资源准入。旧代码仅接受查询后已退出的特殊组合，本轮修正完整待核实策略及资源归属接线；底层errno当时未保存，内核权限原因未证实。r2活跃→退出快照及两份第二轮DLinear成功波memory已只读核对：旧波含metadata_unavailable和后续清晰样本，但缺少失读阶段，不能倒推同一种权限根因或改写历史收据。
+
+新状态机要求可信历史身份及同一个受控Popen，当前可读host/ticks/namespace不得冲突。namespace暂时PermissionError或退出一致缺失，查询前/后及活跃/退出统一进入pending，不只接单次例外。首次失读起60秒期限不重置；同一段待核实中的跨worker交接也共享首次截止，所有对象核实后才结束该段。NVML每次查询最多10秒且受剩余期限约束。pending期间不启动下一波、不授予准入、不为取证主动结束正常worker；继续检查STOP、worker错误、GPU UUID、整卡余量和未知占用。独立新样本完整确认同一活跃实例，或poll确认终止后双重PID消失并核清NVML残留，才解除不确定；最终正常退出码、资源及数值gate仍不可缺。
+
+资源评估保留raw unknown_pids，仅可信原生命周期的host列为pending_owned_unverified；不补零显存、不改成Measured。其他GPU进程、归属冲突、PID复用、读解析/其他阶段权限异常和不可靠查询仍拒绝；临时失读到期保持观测失败，不伪装resource-only回退。记录errno、读取阶段、单调时刻、proc状态/ticks、前后poll、待核实对象、无效范围及新鲜最终裁决；错误采样本身永不变Passed。
+
+r4主attempt `PATCHTST-depth-Urban6-exit-r4`，session `ch3-m6-patchtst-depth-urban6-r4`，独立同级result及本包followup-launcher.log。r1/r2/r3每次6/6/8，累计18/18/24，原资源收据保持失败，PATCH_ENC1硬上限432/432/576不改；工程补做不扣减原科学任务完成额度。MS203/M84/M_AMEND112及原371字节/真实producer不改，无重训、retest或额外seed。
+
+现有入口只能完整stage probe，本轮必要范围扩展为专用`m6_patch_enc1_serial_check_entry.py`及共享worker激活/任务guard、native probe的首serial结束分支。`ch3_native_recovery_records`同时将精确scope及单serial来源引用从manifest传至完整性扫描，包含旧完整permit和process SHA，不扩大任意路径访问；派发前确定复用身份，避免共享字典把新采集误认作旧证据而省略自检查。不是新调度平台。审核closure后先使用独立r4-serial-check生命周期、专属非执行模板生成新许可，仍通过clean精确HEAD、live remote、source、bundle、token/tmux、Popen和GPU锁保护；只执行相同PatchTST enc1/ETTh1/H96、原batch128和原六步/8 forward。成功后停止，不物化整阶段complete，不运行formal。失败保留并阻塞主链，不连续重试。成功收据的commit/config/schema/policy、实际resource/runtime、artifact SHA及退出身份完全核验后，主链只读采用这份serial；该阶段名义新增47份，短验收6/6/8另列为已采用成功成本，三次旧失败18/18/24继续单独保留。不能以短验收证明q4或全阶段Passed。
+
+仍采用旧196项，剩余335、总531，待执行最大4550 run-epochs；顺序371采用→enc1 M24→enc2 M24→固定enc2新版371→Urban84→EPF35→M168。统一数值政策、PatchTST M固定enc2、Urban六fold/H3/H12、Weather20/10、scheduler/seed/test-once及原profile/任务/顺序不变；每阶段一次AUTO_AUDIT，formal不完整回放probe或重复联网。
+
+本轮CPU/合成验收、保留失败日志和最终同字节结果见本包acceptance；真实模型构造、GPU probe、forward/backward/Adam、正式validation/test均0。候选未stage/commit/push、未生成可执行许可、未启动真实短验收或r4总链，尚待ChatGPT实际字节审核。
 
 <a id="m6-patch-enc1-namespace-exit-repair-v1"></a>
 ## r2首个PATCH_ENC1串行波：退出窗口namespace读取窄修候选

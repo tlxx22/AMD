@@ -9,7 +9,7 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive,sha
 def read_config(s):
     if s.get('probe_schema_recovery_ref'):
         from utils.ch3_probe_schema_recovery import activate_worker
-        activate_worker(s['probe_schema_recovery_ref'])
+        activate_worker(s['probe_schema_recovery_ref'],(s.get('approval')or{}).get('execution_attempt'))
     stage=s.get('unified_stage')
     if stage not in scope.STAGES or s.get('type1_scope')!=scope.ID or s.get('protocol_file')!=str(scope.file(stage)):raise PermissionError('exact unified protocol/stage')
     c=scope.validate(json.loads(scope.file(stage).read_text()))
@@ -58,6 +58,8 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,ru
     from utils.ch3_type1_chain import validate_runtime,stop_check
     from ch3_runner import dump
     probe=purpose=='ch3_probe';ctx=scope.context(c);t=task_by_id(c,task);out=Path(out)
+    from utils.ch3_type1_chain import PROBE_RECOVERY
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'guard_serial_task'):PROBE_RECOVERY.guard_serial_task(c,purpose,task,out.parent.name)
     if purpose not in ('ch3_probe','ch3_formal') or resume:raise PermissionError('unified fresh only; old checkpoint cannot resume')
     if not probe and runtime_ref is None:raise PermissionError('owned formal runtime required')
     stop_check()
@@ -77,6 +79,7 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,ru
         author_files=c['sources'].get(t['model'],{}).get('files',{}),prefix_files=prefix,metadata_files=metadata_files(c,approval,runtime_ref),
         forbidden_roots=[],device='cuda:0',artifact_root=str(out),resume=False,kernel_probe=False)
     if approval.get('probe_recovery_ref'):s['probe_schema_recovery_ref']=approval['probe_recovery_ref']
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):s.update(PROBE_RECOVERY.resource_binding())
     if probe:s['approval']=approval
     else:
         s['approval']=None;s['formal_permit_ref']=ref(ctx['control']/'formal-permit.json');s['runtime_admission_ref']=runtime_ref
@@ -93,7 +96,11 @@ def validate_worker(c,s):
     from m5_formal_entry import repository_files
     from utils.ch3_native_execution import exact_path
     from utils.ch3_type1_chain import validate_runtime,stop_check
-    probe=s.get('purpose')=='ch3_probe';ctx=scope.context(c);t=task_by_id(c,s['task']);a=s.get('approval') if probe else bound(s['formal_permit_ref'])
+    probe=s.get('purpose')=='ch3_probe';ctx=scope.context(c);t=task_by_id(c,s['task'])
+    from utils.ch3_type1_chain import PROBE_RECOVERY
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'guard_serial_task'):PROBE_RECOVERY.guard_serial_task(c,s.get('purpose'),s['task'],s.get('successor_phase'))
+    a=s.get('approval') if probe else bound(s['formal_permit_ref'])
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(s.get(k)!=v or a.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise PermissionError('exact worker/permit resource contract')
     if s.get('probe_schema_recovery_ref')!=a.get('probe_recovery_ref'):raise PermissionError('worker/permit recovery identity differs')
     stop_check()
     if s.get('purpose')not in ('ch3_probe','ch3_formal') or s.get('resume')is not False or s.get('kernel_probe')is not False or s.get('device')!='cuda:0':raise PermissionError('exact unified fresh GPU worker')
@@ -119,6 +126,10 @@ def validate_wave(c,configs,out):
     from utils.ch3_type1_chain import stop_check
     if not configs:raise ValueError('empty unified wave')
     stop_check();probe=configs[0]['purpose']=='ch3_probe';ctx=scope.context(c);ids=[s['task'] for s in configs]
+    from utils.ch3_type1_chain import PROBE_RECOVERY
+    if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'SERIAL_CHECK',False):
+        if len(configs)!=1:raise PermissionError('single serial check has exactly one worker')
+        PROBE_RECOVERY.guard_serial_task(c,configs[0]['purpose'],ids[0],configs[0].get('successor_phase'))
     if len(set(ids))!=len(ids) or any(s['unified_stage']!=ctx['stage'] or s['purpose']!=configs[0]['purpose'] for s in configs):raise ValueError('mixed unified scope')
     if probe:
         g=group_for(c,ids[0]);phase=configs[0]['successor_phase']
@@ -131,6 +142,7 @@ def validate_wave(c,configs,out):
         if any(s['formal_permit_ref']!=configs[0]['formal_permit_ref'] or s['runtime_admission_ref']!=configs[0]['runtime_admission_ref'] for s in configs):raise ValueError('mixed formal runtime')
     if ids not in allowed or not Path(out).resolve().is_relative_to(ctx['probe_root'] if probe else ctx['control']):raise ValueError('fixed unified wave membership')
     for s in configs:exact_path(c,task_by_id(c,s['task']),probe,s.get('successor_phase'),s['output'])
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(cfg.get(k)!=v for cfg in configs for k,v in PROBE_RECOVERY.resource_binding().items()):raise PermissionError('exact wave resource contract')
     from utils.ch3_type1_chain import CONTROL
     return CONTROL/'STOP'
 
@@ -156,6 +168,7 @@ def technical_group(c,model,a):
         if not history or (len(history)!=p['training']['epochs'] and not best.stopped):raise ValueError('incomplete epoch contract')
         steps=history[-1]['steps'];test=r.get('final_test',{})
         if m['task']!=t or m['profile']!=p or m['identity']['commit']!=a['commit'] or m['identity']['profile_sha']!=digest(p) or m['identity']['protocol_sha']!=digest(c) or m['identity']['data_sha']!=a['data_bindings'][t['dataset']][t['id']]:raise ValueError('formal manifest profile/data/version')
+        if a.get('resource_mode')is not None and any(m['identity'].get(k)!=a[k]for k in('resource_mode','resource_contract_ref')):raise ValueError('formal manifest resource binding')
         if r['id']!=t['id'] or r['commit']!=a['commit'] or r['protocol_sha']!=digest(c) or r['profile_sha']!=digest(p) or r['scientific_protocol']!=c['baseline_unified']['id'] or r['scheduler_updates']!=steps or r['scheduler_sha']!=digest(p['training']['scheduler']):raise ValueError('formal result scheduler identity')
         if t['task']=='M' and (p.get('metric_scope')!='all_channels' or p.get('supervised_channels')!=list(range(p['C'])) or p.get('output_order')!=p['features'] or r.get('metric_scope')!='all_channels' or r.get('elements')!=a_steps['test_windows_arithmetic_only']*p['pred_len']*p['C']):raise ValueError('genuine M all-channel supervision/evaluation/output order')
         import math
@@ -164,7 +177,20 @@ def technical_group(c,model,a):
         counts=dict(adam=steps,backward=steps,forward=forward)
         if runtime.get('error')is not None or runtime['task']!=t['id'] or b['counts']!=counts or b.get('by_pid')!={str(runtime['pid']):counts} or steps>a_steps['max_optimizer_steps']:raise ValueError('runtime/budget exact accounting')
         rows[t['id']]=refs
-    return dict(technical_complete=True,result_review='pending',model=model,task_ids=[t['id'] for t in expected],artifacts=rows)
+    resources={}
+    if a.get('resource_mode')is not None:
+        from utils.ch3_native_execution import wave_resource_identities
+        from m6_remaining_entry import same
+        summary=bound(a['summary_ref'])
+        for i,ids in enumerate(scope.formal_waves(c,summary,model)):
+            wave=scope.context(c)['control']/('group-'+model)/('wave-'+str(i));pr=bound(ref(wave/'process.json'))
+            identities=wave_resource_identities(pr,a,wave/'memory.jsonl',ids)
+            if set(identities)!={str(bound(rows[run]['runtime.json'])['pid'])for run in ids}or any(same(identity)for identity in identities.values()):raise ValueError('formal own worker exit/control binding')
+            if any(identities[str(bound(rows[run]['runtime.json'])['pid'])]['task_id']!=run for run in ids):raise ValueError('formal control PID/task pairing')
+            resources[str(i)]=dict(process=ref(wave/'process.json'),memory=ref(wave/'memory.jsonl'))
+    result=dict(technical_complete=True,result_review='pending',model=model,task_ids=[t['id'] for t in expected],artifacts=rows)
+    if a.get('resource_mode')is not None:result.update(resource_mode=a['resource_mode'],resource_contract_ref=a['resource_contract_ref'],resource_waves=resources)
+    return result
 
 
 def run_group(c,a,model,runtime_ref):
