@@ -1,12 +1,25 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — r3真实namespace观测失败保持；底层权限原因未证实。用户声明服务器/GPU独占、仅本队列运行，当前未提交r4候选改用exclusive_gpu_whole_card_v1，取消worker级GPU归属采集；不是追认旧失败或修复内核权限。已完成196、待执行335、总531、最大4550 run-epochs及原第二轮371保持；r1–r3失败成本18/18/24不变。未stage/commit/push、未生成可执行许可、未运行真实GPU短验收或主链，result_review仍pending。见[本轮整卡候选](#m6-exclusive-whole-card-v1)。**
+**In Progress — 整卡模式已closure于805656e9da7d780330cddbf79995f234deac90d6；r4真实短验收在模型构造前触发ForbiddenAccess，worker exit1、14份整卡采样、resource_admission=false、Adam/backward/forward=0/0/0。当前仅修受限worker重复全阶段配置验证；访问边界、整卡合同和科学配置不改。已完成196、待执行335、总531、最大4550 run-epochs、原371及r1–r3成本18/18/24保持。独立r5-worker-guard候选未提交、未生成可执行许可、未运行GPU或主链，result_review仍pending。见[本轮绑定修复](#m6-worker-guard-binding-fix-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+<a id="m6-worker-guard-binding-fix-v1"></a>
+## r4真实短验收失败：受限worker重复配置验证修复候选
+
+起点N为`805656e9da7d780330cddbf79995f234deac90d6`，parent为`0abc95542f28c000d0366ad43a29e0b85867e38c`；三仓库HEAD/tracking/live remote各自一致、0/0、初始clean，冻结tag保持。r4 owner/probe-child/worker及旧session退出；不发信号。原whole-card包、许可、日志、14份整卡采样和所有负向记录原字节保留。
+
+真实故障链为`probe_worker → probe_resource_binding → chain.configs → validate_revision → bound(旧ms-data-bindings.json) → ForbiddenAccess`。当前guard安装已完成validate_config/validate_worker，当前stage及资源合同在metadata授权集合，旧baseline-unified96-onecycle001-v3绑定不在其中。错误发生在模型构造与计算前，不是数值失败、资源不足或保护规则错误。r4新增0/0/0；旧r1–r3累计18/18/24不退款、不变Passed，PATCH_ENC1 caps仍432/432/576。
+
+修复仅在已安装guard的worker路径消费真实受保护配置/许可，严格核对purpose、stage/task/protocol、scope和精确resource_mode/ref；控制器及安装前的全阶段校验保留。另将已安装worker的当前配置重读改为复用同一校验结果，digest与访问钩子仍检查绑定字节，拒绝未安装配置副本。没有修改guard、monitor或bundle，没有授权、复制或改写旧MS数据绑定；probe_worker除传入原task外的计算AST保持。
+
+无模型夹具执行真实guard安装、真实worker入口及故障绑定路径，仅在init_training前使用明确的无计算终止点。首轮被授权文字保护拒绝，且发现RESULT隔离遗漏：三份合成采用JSON留在未启动的r5目录，closure为夹具值，永久保留为测试失败证据，不代表真实生命周期或完成结果。随后隔离全部输出至本包tests；未来真实短验收/主链使用独立`PATCHTST-depth-Urban6-exit-r5-worker-guard`身份。旧r4及合成目录不删除、不覆盖。
+
+本包`worker-guard-binding-fix-v1/`保存各次测试与最终同字节验收、精确producer差异证明、配置零差异、保护核验及非执行模板。CPU边界覆盖到真实资源绑定，未运行模型构造、六步落盘或真实GPU；后者必须在ChatGPT审核closure和新许可后通过既有单serial入口验收。成功收据仍精确采用一次，主链不重复H96 serial；失败停止，不循环重试。后续371/196来源采用→enc1 M24→enc2 M24→固定enc2新版371→Urban84→EPF35→M168顺序、335项及原上限保持。当前停在未stage/commit/push的送审点，不声称修后字节已被ChatGPT审核。
 
 <a id="m6-exclusive-whole-card-v1"></a>
 ## r4未提交候选按用户独占决定改用整卡资源监控

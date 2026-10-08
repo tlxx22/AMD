@@ -734,10 +734,29 @@ def compare_probe_trajectories(c, task, reference, actual):
         return dict(passed=not failures,mode='bounded_numeric',policy_id=rule['id'],policy_sha=digest(rule),state_atol=rule['state_atol'],metric_atol=metric_limit,rtol=0.0,equal_nan=False,bitwise_equal=raw_equal and state_max==0 and exact,state_max_abs=state_max,scalar_normalized_max_abs=scalar_max,validation_max_abs=validation_max,loss_max_abs=loss_max,loss_error_ratio=loss_ratio,loss_atol=rule.get('loss_atol',metric_limit),loss_rtol=rule.get('loss_rtol',0.0),compared_elements=count,exact_residual_state=exact and not any(f.startswith('step') and 'exact ' in f for f in failures),failures=failures)
     raise ValueError('unknown numeric policy kind')
 
-def probe_resource_binding(c):
-    """Select capture policy only from the activated, bound execution context."""
+def probe_resource_binding(c,task=None):
+    """Consume the installed worker grant; controllers still validate all stages."""
     from utils import ch3_type1_chain as chain
     recovery=chain.PROBE_RECOVERY
+    guard=sys.modules.get('restricted_io_guard')
+    if os.environ.get('AMD_RR_CONFIG') or guard is not None and getattr(guard,'_STATE',None) is not None:
+        from restricted_io_guard import require_installed
+        worker=require_installed()
+        binding=recovery.resource_binding() if recovery is not None and hasattr(recovery,'resource_binding') else {}
+        if not binding:
+            a=worker.get('approval') or {}
+            if any(v.get(k) is not None for v in (worker,a) for k in ('resource_mode','resource_contract_ref')):raise PermissionError('unbound probe resource mode')
+            return {}
+        stage=c.get('baseline_unified',{}).get('stage');ctx=chain.s.context(c);a=worker.get('approval')
+        if (worker.get('purpose')!='ch3_probe' or worker.get('type1_scope')!=chain.s.ID
+            or worker.get('unified_stage')!=stage or worker.get('successor_scope')!=ctx['probe_scope']
+            or worker.get('protocol_file')!=str(ctx['protocol_file']) or worker.get('protocol_sha')!=digest(c)
+            or task is None or task_by_id(c,worker.get('task'))!=task or worker.get('ids')!=[task['id']]
+            or not isinstance(a,dict) or a.get('type1_scope')!=worker['type1_scope']
+            or a.get('successor_scope')!=worker['successor_scope'] or a.get('protocol_sha')!=worker['protocol_sha']
+            or task['id'] not in a.get('authorized_task_ids',[])
+            or any(worker.get(k)!=v or a.get(k)!=v for k,v in binding.items())):raise PermissionError('installed probe task/protocol/permit/resource binding')
+        return binding
     if recovery is None or not hasattr(recovery,'resource_binding'):return {}
     stage=c.get('baseline_unified',{}).get('stage')
     if chain.configs().get(stage)!=c:raise PermissionError('probe resource configuration binding')
@@ -851,7 +870,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
 
 def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=None,backend_repetitions=8,urban_diagnostic=False,urban_confirmation=False,m_confirmation=False):
     import torch
-    resource_binding=probe_resource_binding(c);resource_mode=resource_binding.get('resource_mode')
+    resource_binding=probe_resource_binding(c,task);resource_mode=resource_binding.get('resource_mode')
     m_clock=time.monotonic()if task.get('task')=='M' or c.get('native_time_mark') else None
     out=Path(out);p,model,opt,generator=init_training(c,task,device)
     from utils.ch3_onecycle import build

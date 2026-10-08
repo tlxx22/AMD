@@ -443,7 +443,7 @@ from utils import ch3_patchtst_depth_urban6_recovery as r,ch3_probe_schema_recov
 from utils.ch3_contract import digest
 from tools.restricted_regression import m5_formal_entry as tool
 sys.modules['m5_formal_entry']=tool
-activation.activate_worker(r.REUSE_REF,'PATCHTST-depth-Urban6-exit-r4-serial-check')
+activation.activate_worker(r.REUSE_REF,'PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check')
 from utils import ch3_type1_chain as q,ch3_type1_tasks as s
 c=q.configs()['PATCH_ENC1']
 cfg=dict(probe_schema_recovery_ref=r.REUSE_REF,approval=dict(execution_attempt=r.ATTEMPT),unified_stage='PATCH_ENC1',type1_scope=s.ID,protocol_file=str(s.file('PATCH_ENC1')),protocol_sha=digest(c))
@@ -527,7 +527,7 @@ for stage in ('PATCH_ENC2','M_ALL'):
                 exclusive(ctx(c)['probe_root']/'approval.json',bound(permit));exclusive(ctx(c)['probe_root']/'controller.json',dict(owner=q.owner(),scope=ctx(c)['probe_scope']));return permit
             for mod,name in ((s,'RESULT'),(amend,'RESULT'),(q,'CONTROL'),(r,'ATTEMPT'),(r,'SERIAL_CHECK')):stack.enter_context(patch.object(mod,name,getattr(mod,name)))
             compare=stack.enter_context(patch.object(native,'compare',wraps=native.compare))
-            start=begin(short,'PATCHTST-depth-Urban6-exit-r4-serial-check',True)
+            start=begin(short,'PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check',True)
             def owned_probe(stage,permit_ref,probe,**kw):
                 self.assertEqual((stage,probe),('PATCH_ENC1',True))
                 ctx(c)['probe_root'].mkdir(parents=True)
@@ -549,7 +549,7 @@ for stage in ('PATCH_ENC2','M_ALL'):
             self.assertEqual(saved['producer'],bound(pr))
             original=r.bound;receipt=ref(ctx(c)['probe_root']/'serial-check.json');bad=copy.deepcopy(one);bad['serial_self_check']=None
             with patch.object(r,'bound',side_effect=lambda item:bad if item==receipt else original(item)),self.assertRaises(ValueError):r.serial_check_evidence(c,required=True)
-            before_count=len(events);pr=begin(main,'PATCHTST-depth-Urban6-exit-r4',False)
+            before_count=len(events);pr=begin(main,'PATCHTST-depth-Urban6-exit-r5-worker-guard',False)
             report=native.run_probe(c,bound(pr));self.assertEqual(len(events)-before_count,47)
             self.assertEqual(events[before_count:].count(r.SERIAL_TASK),1) # only its q4 wave, no second serial
             admission=q.audit_probe(c);self.assertTrue(bound(admission)['technical_admission']);self.assertEqual(len(report['decisions']),6)

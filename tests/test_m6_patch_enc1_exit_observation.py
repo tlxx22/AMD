@@ -486,10 +486,10 @@ class RecoveryBinding(unittest.TestCase):
         self.assertEqual(value['budget']['caps'],bound(recovery.OBSERVATION_REF)['old_caps'])
 
     def test_old_attempt_permit_cannot_authorize_new_attempt(self):
-        for attempt in ('PATCHTST-depth-Urban6-exit-r1','PATCHTST-depth-Urban6-exit-r2','PATCHTST-depth-Urban6-exit-r3'):
+        for attempt in ('PATCHTST-depth-Urban6-exit-r1','PATCHTST-depth-Urban6-exit-r2','PATCHTST-depth-Urban6-exit-r3','PATCHTST-depth-Urban6-exit-r4','PATCHTST-depth-Urban6-exit-r4-serial-check'):
             with self.assertRaises(PermissionError):recovery.validate_permit_link(self.cs['PATCH_ENC1'],dict(execution_attempt=attempt,probe_recovery_ref=recovery.REUSE_REF),True)
-        self.assertEqual(recovery.ATTEMPT,'PATCHTST-depth-Urban6-exit-r4');self.assertTrue(str(recovery.RESULT).endswith('-r4'))
-        self.assertEqual(recovery.anchors()['parent_technical_failure_ref'],recovery.OBSERVATION_REF)
+        self.assertEqual(recovery.ATTEMPT,'PATCHTST-depth-Urban6-exit-r5-worker-guard');self.assertTrue(str(recovery.RESULT).endswith('-r5-worker-guard'))
+        self.assertEqual(recovery.anchors()['parent_technical_failure_ref'],recovery.WORKER_FAILURE_REF)
 
     def test_all_profiles_numeric_policies_tasks_and_caps_stay_frozen(self):
         from utils import ch3_type1_tasks as s

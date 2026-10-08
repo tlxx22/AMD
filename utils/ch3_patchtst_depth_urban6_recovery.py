@@ -21,12 +21,14 @@ NAMESPACE_OBSERVATION_REF = dict(path=str(REVISION_PACKAGE / 'patch-enc1-namespa
 OBSERVATION_PACKAGE = REVISION_PACKAGE / 'patch-enc1-identity-settle-repair-v1'
 OBSERVATION_REF = dict(path=str(OBSERVATION_PACKAGE / 'observation-source.json'), sha256='0939eecb524ad65d71002ada47296b879f3967d16bc05a6150198df9882c0cd3')
 WHOLE_CARD_PACKAGE = OBSERVATION_PACKAGE / 'whole-card-monitor-v1'
+WORKER_GUARD_PACKAGE = WHOLE_CARD_PACKAGE / 'worker-guard-binding-fix-v1'
+WORKER_FAILURE_REF = dict(path=str(WORKER_GUARD_PACKAGE / 'worker-guard-failure-source.json'), sha256='62b999f8deb896508cdaf3e35d2e0d1a2fa0cc8aed889e68807b66f58a8c19a1')
 RESOURCE_CONTRACT_REF = dict(path=str(WHOLE_CARD_PACKAGE / 'resource-contract.json'), sha256='4b43a16d1fd3003ce35e4474141437635ba21a50d72f3f825c711750283b1f46')
 OLD_RESULT = prefix.RESULT
-RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r4')
-ATTEMPT = 'PATCHTST-depth-Urban6-exit-r4'
-SESSION = 'ch3-m6-patchtst-depth-urban6-r4'
-LOG = WHOLE_CARD_PACKAGE / 'followup-launcher.log'
+RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r5-worker-guard')
+ATTEMPT = 'PATCHTST-depth-Urban6-exit-r5-worker-guard'
+SESSION = 'ch3-m6-patchtst-depth-urban6-r5-worker-guard'
+LOG = WORKER_GUARD_PACKAGE / 'followup-launcher.log'
 ENTRY = ROOT / 'm6_patchtst_depth_urban6_recovery_entry.py'
 WRAPPER = ROOT / 'scripts/ch3/start_patchtst_depth_urban6_recovery.sh'
 PRODUCER = 'b97392a179b55b4bffb2bf0e3b85267bb0b07750'
@@ -40,7 +42,7 @@ SEED_STAGES = ('PATCH_ENC1','URBAN_SUBSET')
 ACTIVE = False
 SERIAL_CHECK = False
 SERIAL_RESULT = RESULT.with_name(RESULT.name+'-serial-check')
-SERIAL_LOG = WHOLE_CARD_PACKAGE / 'serial-check-launcher.log'
+SERIAL_LOG = WORKER_GUARD_PACKAGE / 'serial-check-launcher.log'
 SERIAL_SESSION = SESSION+'-serial-check'
 SERIAL_ENTRY = ROOT / 'm6_patch_enc1_serial_check_entry.py'
 SERIAL_TASK = 'PatchTST-ETTh1-M-round2-enc1-v1-f1-h96-s2024'
@@ -155,7 +157,7 @@ def activate():
     files = config_refs(); packages = {k:old_package(k) for k in s.STAGES}; spec = contract()
     s.STAGES = tuple(spec['stage_order'])
     s.file = lambda stage:Path(files[stage]['path'])
-    s.package = lambda stage:WHOLE_CARD_PACKAGE if stage=='PATCH_ENC1' else REVISION_PACKAGE if stage=='M_ALL' else PACKAGE if stage in spec['new_config_refs'] else packages[stage]
+    s.package = lambda stage:WORKER_GUARD_PACKAGE if stage=='PATCH_ENC1' else REVISION_PACKAGE if stage=='M_ALL' else PACKAGE if stage in spec['new_config_refs'] else packages[stage]
     s.validate = lambda c:validate_revision(c) if c['baseline_unified']['stage'] in spec['new_config_refs'] else old_validate(c)
     s.selected = lambda stage:[t for t in s.parent()['tasks'] if t['dataset']=='UrbanEV' and t['h'] in (3,12)] if stage=='URBAN_SUBSET' else old_selected(stage)
     s.probe_groups = lambda c:groups(c) if c['baseline_unified']['stage'] in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET') else old_groups(c)
@@ -166,6 +168,7 @@ def activate():
             for k in actual:v['nominal'][k]+=actual[k]
             v['nominal_workers']+=bound(OBSERVATION_REF)['retained_failed_workers']
             v.update(retained_historical_actual=actual,new_nominal_workers=48,observation_failure_cost_retained=True)
+            v.update(parent_worker_failure_ref=WORKER_FAILURE_REF,retained_zero_compute_failure_workers=1)
         if c['baseline_unified']['stage']=='URBAN_SUBSET':
             failed=bound(REUSE_REF)['failed_actual']
             for k in failed:v['nominal'][k]+=failed[k];v['caps'][k]+=failed[k]
@@ -176,7 +179,7 @@ def activate():
     s.RESULT=ms.RESULT=RESULT;amend.RESULT=RESULT/'round2-amendment'
     def context(c):
         v=old_context(c)
-        return dict(v,models=('PatchTST',) if c['baseline_unified']['stage'].startswith('PATCH_ENC') else s.MODELS,fixture=WHOLE_CARD_PACKAGE/c['baseline_unified']['stage']/'fixtures')
+        return dict(v,models=('PatchTST',) if c['baseline_unified']['stage'].startswith('PATCH_ENC') else s.MODELS,fixture=WORKER_GUARD_PACKAGE/c['baseline_unified']['stage']/'fixtures')
     s.context=context
     def plan(c):
         v=old_plan(c);models=list(context(c)['models']);v['models']=models;v['formal_waves']={m:v['formal_waves'][m] for m in models};return v
@@ -190,7 +193,7 @@ def activate():
 
 
 def code_binding():
-    return {str(p.relative_to(ROOT)):sha(p) for p in (Path(__file__),ROOT/'m6_patchtst_depth_urban6_recovery_entry.py',SERIAL_ENTRY,WRAPPER,ROOT/'tests/test_m6_patchtst_depth_urban6.py',ROOT/'tests/test_m6_patch_enc1_exit_observation.py',ROOT/'tests/test_m6_whole_card_monitor.py')}
+    return {str(p.relative_to(ROOT)):sha(p) for p in (Path(__file__),ROOT/'m6_patchtst_depth_urban6_recovery_entry.py',SERIAL_ENTRY,WRAPPER,ROOT/'tests/test_m6_patchtst_depth_urban6.py',ROOT/'tests/test_m6_patch_enc1_exit_observation.py',ROOT/'tests/test_m6_whole_card_monitor.py',ROOT/'tests/test_m6_worker_guard_binding.py')}
 
 
 def activate_serial_check():
@@ -198,7 +201,7 @@ def activate_serial_check():
     global SERIAL_CHECK,RESULT,LOG,SESSION,ENTRY,ATTEMPT
     activate()
     from utils import ch3_type1_chain as q,ch3_type1_tasks as s,ch3_round2_amendment as amend,ch3_ms_seal_recovery as ms
-    SERIAL_CHECK=True;RESULT=SERIAL_RESULT;LOG=SERIAL_LOG;SESSION=SERIAL_SESSION;ENTRY=SERIAL_ENTRY;ATTEMPT='PATCHTST-depth-Urban6-exit-r4-serial-check'
+    SERIAL_CHECK=True;RESULT=SERIAL_RESULT;LOG=SERIAL_LOG;SESSION=SERIAL_SESSION;ENTRY=SERIAL_ENTRY;ATTEMPT='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check'
     s.RESULT=ms.RESULT=RESULT;amend.RESULT=RESULT/'round2-amendment'
     q.CONTROL=RESULT/'queue/controller';q.LOG,q.SESSION,q.ENTRY=LOG,SESSION,ENTRY
     q.run=run_serial_check
@@ -231,7 +234,7 @@ def serial_check_evidence(c,required=False):
         if required or root.exists():raise ValueError('real single serial acceptance must complete before main arm; failed check is retained')
         return None
     v=bound(ref(done));report=bound(v['receipt_ref']);a=bound(report['approval']);owner=bound(ref(control/'controller.json'));auth=bound(owner['authorization'])
-    expected_attempt='PATCHTST-depth-Urban6-exit-r4-serial-check';expected_root=root/'probe/PATCH_ENC1'
+    expected_attempt='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check';expected_root=root/'probe/PATCH_ENC1'
     expected_auth=q.start_template()
     expected_auth['upstream_anchors']=dict(expected_auth['upstream_anchors'],execution_attempt=expected_attempt,execution_mode='single_serial_check')
     mutable={'reviewed','execution_permitted','structure_frozen','m6_authorized','budget_authorized','closure_commit','authorization_basis'}
@@ -267,7 +270,7 @@ def serial_check_evidence(c,required=False):
     return dict(report=report,key=key,entry=entry,producer=a,artifacts=report['artifacts'],counts=counts)
 
 
-def delta_ref():return ref(WHOLE_CARD_PACKAGE/'producer-delta-proof.json')
+def delta_ref():return ref(WORKER_GUARD_PACKAGE/'producer-delta-proof.json')
 
 
 def resource_binding():
@@ -297,7 +300,7 @@ def monitor_binding(configs):
 
 
 def worker_metadata(c):
-    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,NAMESPACE_OBSERVATION_REF,OBSERVATION_REF,RESOURCE_CONTRACT_REF]
+    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,NAMESPACE_OBSERVATION_REF,OBSERVATION_REF,WORKER_FAILURE_REF,RESOURCE_CONTRACT_REF]
     values += list(config_refs().values())
     for value in config_refs().values():
         parent=bound(value);values.append(parent['baseline_unified']['data_ref'])
@@ -335,6 +338,7 @@ def verify_production_inheritance():
 
 def verify_source_light():
     verify_observation_source()
+    verify_worker_guard_failure_source()
     source=bound(SOURCE_REF)
     if source['old_result']!=str(OLD_RESULT) or source['producer_commit']!=PRODUCER or source['config_refs']!=contract()['old_config_refs']:raise ValueError('specific completed371 producer')
     rows={k:bound(v) for k,v in source['refs'].items() if k!='launcher_log'}
@@ -374,6 +378,42 @@ def verify_source_light():
     if any((OLD_RESULT/stage).exists() for stage in ('URBAN_SUBSET','EPF_ALL','M_ALL')):raise ValueError('unexpected old third-round formal output; preserve and reassess affected scope')
     if source['old_probe_counts']!=dict(adam=12,backward=12,forward=16) or rows['old_budget']['actual']!=source['old_probe_counts']:raise ValueError('retained actual historical cost')
     return rows
+
+
+def verify_worker_guard_failure_source():
+    """The r4 access failure is negative evidence, never a valid resource wave."""
+    value=bound(WORKER_FAILURE_REF);root=OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r4-serial-check')
+    if (value.get('purpose')!='exact_PATCH_ENC1_worker_guard_binding_failure_v1' or value['producer_commit']!='805656e9da7d780330cddbf79995f234deac90d6'
+        or value['old_attempt']!='PATCHTST-depth-Urban6-exit-r4-serial-check' or value['old_result']!=str(root)
+        or value['prior_observation_ref']!=OBSERVATION_REF or value['config_ref']!=config_refs()['PATCH_ENC1']
+        or value['resource_contract_ref']!=RESOURCE_CONTRACT_REF or value['task_id']!=SERIAL_TASK):raise ValueError('exact r4 worker-guard failure source')
+    refs=value['refs']
+    for item in refs.values():
+        if ref(item['path'])!=item:raise ValueError('r4 negative evidence changed: '+item['path'])
+    process=bound(refs['process']);cfg=bound(refs['worker_config']);permit=bound(refs['permit']);auth=bound(refs['authorization'])
+    zero=dict(adam=0,backward=0,forward=0);historical=bound(OBSERVATION_REF)['retained_actual'];budget=bound(refs['probe_budget'])
+    if (process['returncodes']!=[1] or process['resource_admission']is not False or process['failure_kind']!='business'
+        or process['resource_mode']!='exclusive_gpu_whole_card_v1' or process['resource_contract_ref']!=RESOURCE_CONTRACT_REF
+        or process['sample_count']!=14 or value['sample_count']!=14 or value['attempt_actual']!=zero
+        or value['retained_actual']!=historical or budget['new_actual']!=zero or budget['actual']!=historical
+        or bound(refs['worker_budget'])['counts']!=zero or value['old_caps']!=dict(adam=432,backward=432,forward=576)
+        or value['new_formal_runs']!=0 or permit['commit']!=value['producer_commit'] or auth['closure_commit']!=value['producer_commit']
+        or permit['execution_attempt']!=value['old_attempt'] or cfg['approval']!=permit
+        or cfg['protocol_sha']!=digest(bound(value['config_ref'])) or cfg['unified_stage']!='PATCH_ENC1'
+        or any(cfg.get(k)!=v or permit.get(k)!=v for k,v in resource_binding().items())
+        or cfg['metadata_files'].get(RESOURCE_CONTRACT_REF['path'])!=RESOURCE_CONTRACT_REF['sha256']
+        or value['old_evidence_denied_path'] in cfg['metadata_files']):raise ValueError('r4 failure identity/cost/resource binding')
+    denied=[json.loads(line) for line in Path(refs['audit']['path']).read_text().splitlines() if json.loads(line)['event']=='denied']
+    if len(denied)!=1 or denied[0]['path']!=value['old_evidence_denied_path'] or denied[0]['reason']!='old evidence forbidden':raise ValueError('exact r4 denied metadata access')
+    runtime=bound(refs['runtime'])
+    if runtime['error']!="ForbiddenAccess('access refused: "+value['old_evidence_denied_path']+": old evidence forbidden')":raise ValueError('r4 worker failure preserved')
+    if bound(refs['controller_failure'])['error']!="RuntimeError('owned child technical failure: PATCH_ENC1-probe')" or bound(refs['probe_failure'])['error']!="RuntimeError('shared guard failure: stop all execution')":raise ValueError('r4 failure remains failure')
+    samples=[json.loads(line) for line in Path(refs['memory']['path']).read_text().splitlines()]
+    if len(samples)!=14 or any(s.get('resource_mode')!='exclusive_gpu_whole_card_v1' or 'owned_pid_metadata' in s or 'nvml_processes' in s for s in samples):raise ValueError('r4 whole-card negative wave samples')
+    from utils.ch3_type1_upstream import assert_owned_exited
+    assert_owned_exited(value['exit_instances'])
+    if subprocess.run(['tmux','has-session','-t','ch3-m6-patchtst-depth-urban6-r4-serial-check'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('r4 short lifecycle still active')
+    return value
 
 
 def verify_prior_observation_source():
@@ -496,7 +536,7 @@ def verify_prefix():
 
 
 def anchors():
-    return dict(recovery='specific_PATCH_ENC1_observation_after_completed_round2_371',execution_attempt=ATTEMPT,execution_mode='single_serial_check'if SERIAL_CHECK else'fixed_remaining_chain',single_serial_task=SERIAL_TASK,single_serial_result=str(SERIAL_RESULT),parent_technical_failure_ref=OBSERVATION_REF,prior_Urban_failure_ref=SOURCE_REF,completed_round2_ref=SOURCE_REF,completed_prefix_ref=PREFIX_REF,probe_reuse_ref=REUSE_REF,contract_ref=CONTRACT_REF,fixed_encoder_policy_ref=contract()['fixed_encoder_policy_ref'],producer_delta_ref=delta_ref(),candidate_config_refs=config_refs(),completed_new_formal=196,expected_remaining_formal=335,approved_total_new_formal=531,third_round_runs=287,depth_supplement_runs=48,automatic_main_table_replacement=True,main_table_replacement_cells=24,chosen_M_encoder=2,metric_based_reselection=False,**resource_binding())
+    return dict(recovery='specific_PATCH_ENC1_observation_after_completed_round2_371',execution_attempt=ATTEMPT,execution_mode='single_serial_check'if SERIAL_CHECK else'fixed_remaining_chain',single_serial_task=SERIAL_TASK,single_serial_result=str(SERIAL_RESULT),parent_technical_failure_ref=WORKER_FAILURE_REF,prior_observation_failure_ref=OBSERVATION_REF,prior_Urban_failure_ref=SOURCE_REF,completed_round2_ref=SOURCE_REF,completed_prefix_ref=PREFIX_REF,probe_reuse_ref=REUSE_REF,contract_ref=CONTRACT_REF,fixed_encoder_policy_ref=contract()['fixed_encoder_policy_ref'],producer_delta_ref=delta_ref(),candidate_config_refs=config_refs(),completed_new_formal=196,expected_remaining_formal=335,approved_total_new_formal=531,third_round_runs=287,depth_supplement_runs=48,automatic_main_table_replacement=True,main_table_replacement_cells=24,chosen_M_encoder=2,metric_based_reselection=False,**resource_binding())
 
 
 def status():

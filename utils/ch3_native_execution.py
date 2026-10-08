@@ -284,7 +284,7 @@ def run_probe(c,a):
         if c['baseline_unified']['stage']=='M_BASE' or c['baseline_unified']['stage']in getattr(recovery,'SEED_STAGES',()):
             seed=recovery.load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
             serial_check=getattr(recovery,'SERIAL_CHECK',False)
-            if serial_check and(c['baseline_unified']['stage']!='PATCH_ENC1' or a.get('execution_attempt')!='PATCHTST-depth-Urban6-exit-r4-serial-check'):raise PermissionError('precise single serial acceptance context')
+            if serial_check and(c['baseline_unified']['stage']!='PATCH_ENC1' or a.get('execution_attempt')!='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check'):raise PermissionError('precise single serial acceptance context')
     def wave(g,phase,ids,n):
         key=g['id']+'/'+phase+'/'+str(n)
         if seed and key in seed['evidence']:

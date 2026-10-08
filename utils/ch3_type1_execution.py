@@ -1,5 +1,5 @@
 """Guarded unified workers; compact formal records never replay probe numerics."""
-import json,os,time
+import json,os,sys,time
 from pathlib import Path
 from utils.ch3_contract import ROOT,digest,profile,task_by_id,step_arithmetic,BestState
 from utils import ch3_type1_tasks as scope
@@ -12,7 +12,13 @@ def read_config(s):
         activate_worker(s['probe_schema_recovery_ref'],(s.get('approval')or{}).get('execution_attempt'))
     stage=s.get('unified_stage')
     if stage not in scope.STAGES or s.get('type1_scope')!=scope.ID or s.get('protocol_file')!=str(scope.file(stage)):raise PermissionError('exact unified protocol/stage')
-    c=scope.validate(json.loads(scope.file(stage).read_text()))
+    c=json.loads(scope.file(stage).read_text())
+    guard=sys.modules.get('restricted_io_guard')
+    if guard is not None and getattr(guard,'_STATE',None) is not None:
+        if guard.require_installed() is not s:raise PermissionError('only the installed worker configuration may reuse validation')
+        # install() already validated this exact manifest and worker before the
+        # hook was installed. Re-reading its bound bytes is not a new grant.
+    else:c=scope.validate(c)
     if s['protocol_sha']!=digest(c):raise PermissionError('unified protocol changed')
     return c
 

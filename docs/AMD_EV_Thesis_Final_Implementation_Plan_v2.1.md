@@ -50,9 +50,15 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，用户独占条件下的整卡资源候选）**：r3已closure于`0abc95542f28c000d0366ad43a29e0b85867e38c`并启动，首个PATCH_ENC1六步serial因namespace读取失败而停止；底层内核权限原因仍未证实。用户现明确声明服务器/GPU独占、仅本实验队列运行，要求当前及后续相同条件的M6取消worker级GPU归属采集。当前未提交r4候选因此改用`exclusive_gpu_whole_card_v1`，不先closure旧方向、不另开r5。MS203、M84、M_AMEND112、原371格及已完成196项保持；待执行335、总531、最大4550 run-epochs及r1–r3失败成本18/18/24不变，旧资源失败不追认为Passed。科学与数值政策不改，真实短验收和主链均未启动，result_review仍pending。
+**当前总览（M6，r4受限worker绑定修复候选）**：整卡监控已closure于`805656e9da7d780330cddbf79995f234deac90d6`。r4真实短验收在模型构造前因worker重复全阶段配置验证，读取未授权的旧MS绑定而触发ForbiddenAccess；worker exit1、14份整卡采样、resource_admission=false，新增Adam/backward/forward为0/0/0。访问保护正确拒绝，本轮只修worker重复校验及当前配置消费，不扩大metadata授权、不改监控或科学合同。MS203、M84、M_AMEND112、原371格和196项完成来源保持；剩余335、总531、最大4550 run-epochs、probe硬上限及旧失败18/18/24不变。新独立`r5-worker-guard`候选尚未提交、未生成可执行许可、未运行GPU短验收或主链，result_review仍pending。
 
-旧失败、结果、许可、轨迹和日志原字节保留；采用版本不冒充原训练producer。r4仅补工程准入，原probe硬上限不扩大。审核closure后先以单独受控生命周期执行一次相同batch128/六步真实serial验收，失败即停，不循环重试；成功且全部绑定一致时复用，随后由用户一次arm主链。当前仅候选与无模型CPU复验，未stage/commit/push、未生成可执行许可、未进行真实GPU验收或完整恢复启动。
+旧失败、结果、许可、轨迹和日志原字节保留；采用版本不冒充原训练producer。审核closure后须使用本轮独立许可和生命周期，先执行一次相同batch128/六步真实serial验收；失败即停，成功且全部绑定一致时复用一次，再由用户arm主链。本轮仅候选与无模型CPU复验，不复用或重启已失败r4。
+
+### 受限worker只消费已验证的当前执行绑定
+
+guard安装前和控制器仍完整验证配置、来源、许可与资源合同。安装后的worker仅通过`require_installed()`消费同一受保护配置，核对当前purpose、type1/successor scope、stage/task/protocol以及许可中的精确整卡模式/合同；不得再次调用全阶段`chain.configs()`扩大读取范围。当前配置重读仍受文件SHA与protocol digest约束，不能以任意配置副本或模式字符串继承授权。旧模式照其原合同解释，访问规则、bundle和模型计算不改。
+
+材料集中于`whole-card-monitor-v1/worker-guard-binding-fix-v1/`。CPU夹具通过真实guard安装、worker入口和绑定函数，在`init_training`前停止；不把此检查称为六步轨迹或GPU准入。首次夹具隔离不完整写出的三份合成前缀记录保留为失败测试证据，不能采用为真实边界；未来真实命名空间另用`r5-worker-guard`，不覆盖它们。真实短验收、后续成功收据采用和335项长链均待审核closure及新许可就绪。
 
 ### 用户独占条件下的整卡资源合同（r4候选）
 
