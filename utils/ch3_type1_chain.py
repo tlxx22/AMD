@@ -111,6 +111,8 @@ def dynamic(c,worker=False):
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'code_binding'):code.update(PROBE_RECOVERY.code_binding())
     value=dict(commit=git('rev-parse','HEAD'),protocol_sha=digest(c),code=code,environment=environment_binding(),hardware=hardware_binding(),source_states=data['source_states'])
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):value.update(PROBE_RECOVERY.resource_binding())
+    from utils import ch3_event_resources as event
+    if event.enabled() and event._PRESTART is None:value['startup_hardware_ref']=event.startup_ref()
     return value
 
 
@@ -259,7 +261,10 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
         mode=PROBE_RECOVERY.resource_binding()['resource_mode']
         from ch3_runner import GPULock
         with GPULock(c):
-            if not resource_assessment(gpu_sample([],resource_mode=mode),[],resource_mode=mode)['admission']:raise ValueError('exclusive whole-card headroom unavailable')
+            if mode=='exclusive_gpu_event_driven_v1':
+                from utils.ch3_event_resources import validate_startup,startup_ref
+                validate_startup(startup_ref(),live=True)
+            elif not resource_assessment(gpu_sample([],resource_mode=mode),[],resource_mode=mode)['admission']:raise ValueError('exclusive whole-card headroom unavailable')
     else:resource_check(c)
     a=dict(purpose='baseline_type1_probe_permit_v1' if probe else 'baseline_type1_formal_permit_v1',type1_scope=s.ID,
         successor_scope=ctx['probe_scope'] if probe else ctx['formal_scope'],**dynamic(c),start_authorization_ref=start_ref,
@@ -290,6 +295,7 @@ def audit_probe(c):
         profile_shas={t['id']:digest(profile(c,t)) for t in c['tasks']},decisions=compact_decisions(report),budget=report['budget'],
         owner=owner(),**{k:report[k] for k in ('commit','code','environment','hardware')})
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):summary.update(PROBE_RECOVERY.resource_binding())
+    if report.get('startup_hardware_ref'):summary['startup_hardware_ref']=report['startup_hardware_ref']
     secret=os.environ.get(SECRET)
     if not secret:raise PermissionError('AUTO_AUDIT controlled lifecycle absent')
     summary['mac']=hmac.new(secret.encode(),digest(summary).encode(),hashlib.sha256).hexdigest()
@@ -305,6 +311,7 @@ def seal_runtime(c,permit_ref):
         summary_ref=a['summary_ref'],manifest_ref=a['manifest_ref'],protocol_sha=digest(c),commit=a['commit'],code=a['code'],
         integrity_scan_passed=True,full_scans=1,result_review='pending',upstream_boundary_ref=a['upstream_boundary_ref'],science_protocol=c['baseline_unified']['id'])
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):body.update(PROBE_RECOVERY.resource_binding())
+    if a.get('startup_hardware_ref'):body['startup_hardware_ref']=a['startup_hardware_ref']
     secret=os.environ.get(SECRET)
     if not secret:raise PermissionError('owned runtime secret absent')
     body['mac']=hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()
@@ -321,6 +328,15 @@ def validate_runtime(c,value,permit_ref):
 
 
 def readiness(a=None,launch=False,live_remote=False):
+    from utils import ch3_event_resources as event
+    if event.enabled():
+        try:
+            with event.prestart(a):return _readiness(a,launch,live_remote)
+        except (OSError,KeyError,ValueError,PermissionError,subprocess.CalledProcessError,subprocess.TimeoutExpired)as exc:return [str(exc)]
+    return _readiness(a,launch,live_remote)
+
+
+def _readiness(a=None,launch=False,live_remote=False):
     reasons=[]
     if not a or a.get('reviewed')is not True or a.get('execution_permitted')is not True:reasons.append('reviewed followup start record not materialized')
     if not a or a.get('budget_authorized')is not True:reasons.append('user-authorized fixed caps await reviewed closure/start-record binding')
@@ -503,7 +519,10 @@ def start(start_ref,token):
         exclusive(CONTROL/'controller.json',dict(scope=s.ID,owner=owner(),launch=ref(str(LOG)+'.claimed.json'),authorization=start_ref))
         os.environ[SECRET]=secrets.token_hex(32)
         signal.signal(signal.SIGTERM,lambda *_:safe_stop(signal_supervisor=False))
-        try:run(start_ref)
+        try:
+            from utils import ch3_event_resources as event
+            if event.enabled():event.seal_startup(start_ref)
+            run(start_ref)
         except BaseException as exc:
             exclusive(CONTROL/'failure.json',dict(error=repr(exc),scope=s.ID,automatic_retry=False,result_review='pending'));raise
 

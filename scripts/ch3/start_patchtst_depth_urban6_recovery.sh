@@ -13,10 +13,10 @@ fi
 if [[ "$M6_DEPTH_ACTION" == start || "$M6_DEPTH_ACTION" == arm ]]; then
   shift
   env PYTHONDONTWRITEBYTECODE=1 "$M6_DEPTH_PY" -B "$M6_DEPTH_ENTRY" preflight "$@"
-  M6_DEPTH_SESSION='ch3-m6-patchtst-depth-urban6-r5-worker-guard'
+  M6_DEPTH_SESSION='ch3-m6-patchtst-depth-urban6-r6-no-telemetry'
   if "$M6_DEPTH_SERIAL_CHECK"; then M6_DEPTH_SESSION+='-serial-check'; fi
   if tmux has-session -t "$M6_DEPTH_SESSION" 2>/dev/null; then echo 'retained depth/Urban6 session' >&2; exit 2; fi
-  M6_DEPTH_LOG='/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified-v3-ms-seal-m128-recovery1/moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/patchtst-depth-urban6-repair-v1/patchtst-enc2-adoption-v1/patch-enc1-identity-settle-repair-v1/whole-card-monitor-v1/worker-guard-binding-fix-v1/followup-launcher.log'
+  M6_DEPTH_LOG='/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified-v3-ms-seal-m128-recovery1/moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/patchtst-depth-urban6-repair-v1/patchtst-enc2-adoption-v1/patch-enc1-identity-settle-repair-v1/whole-card-monitor-v1/worker-guard-binding-fix-v1/runtime-no-telemetry-v1/followup-launcher.log'
   if "$M6_DEPTH_SERIAL_CHECK"; then M6_DEPTH_LOG="${M6_DEPTH_LOG%/*}/serial-check-launcher.log"; fi
   (set -o noclobber; : > "$M6_DEPTH_LOG")
   M6_DEPTH_TOKEN=$(env PYTHONDONTWRITEBYTECODE=1 "$M6_DEPTH_PY" -B "$M6_DEPTH_ENTRY" prepare-launch --wrapper-pid "$$" "$@")

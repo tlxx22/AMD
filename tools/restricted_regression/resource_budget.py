@@ -20,8 +20,9 @@ class BudgetExceeded(RuntimeError):
 
 
 class SharedBudget:
-    def __init__(self, path, limits):
+    def __init__(self, path, limits, resource_mode=None):
         self.path, self.limits = Path(path), dict(limits)
+        self.resource_mode = resource_mode
 
     @contextmanager
     def state(self):
@@ -76,28 +77,35 @@ class SharedBudget:
                 if line.startswith(('VmRSS:', 'VmHWM:')):
                     fields[line.split(':')[0]] = int(line.split()[1]) * 1024
             rss = max(fields.values(), default=0)
-            reserved = 0
-            if torch_module is not None and torch_module.cuda.is_initialized():
+            event = self.resource_mode == 'exclusive_gpu_event_driven_v1'
+            reserved = None if event else 0
+            if not event and torch_module is not None and torch_module.cuda.is_initialized():
                 reserved = torch_module.cuda.max_memory_reserved()
             s['rss_peak'] = max(s.get('rss_peak', 0), rss)
-            s['cuda_reserved_peak'] = max(s.get('cuda_reserved_peak', 0), reserved)
-            if rss > self.limits.get('rss', float('inf')) or reserved > self.limits.get('reserved', float('inf')):
+            s['cuda_reserved_peak'] = None if event else max(s.get('cuda_reserved_peak', 0), reserved)
+            if rss > self.limits.get('rss', float('inf')) or (not event and reserved > self.limits.get('reserved', float('inf'))):
                 s['stopped'] = 'memory limit'; raise BudgetExceeded(s['stopped'])
 
 
-def initialize(path, stage, limits):
+def initialize(path, stage, limits, resource_mode=None):
     value = dict(stage=stage, started=CLOCK(), counts=dict(forward=0, backward=0, adam=0),
                  by_test={}, by_pid={}, stopped=None, rss_peak=0, cuda_reserved_peak=0)
+    if resource_mode == 'exclusive_gpu_event_driven_v1':
+        value.update(resource_mode=resource_mode,cuda_reserved_peak=None,GPU_telemetry='not_collected_startup_only')
     with Path(path).open('x') as f:
         json.dump(value, f)
-    return SharedBudget(path, limits)
+    return SharedBudget(path, limits, resource_mode)
 
 
 def install(config):
     global INSTANCE
     if INSTANCE is not None:
         return INSTANCE
-    INSTANCE = SharedBudget(config['budget_file'], config['limits'])
+    mode=config.get('resource_mode')
+    if mode == 'exclusive_gpu_event_driven_v1':
+        from utils.ch3_event_resources import allocator_inputs
+        allocator_inputs(config)  # installed configuration + sealed startup grant, no GPU query
+    INSTANCE = SharedBudget(config['budget_file'], config['limits'], mode)
     return INSTANCE
 
 

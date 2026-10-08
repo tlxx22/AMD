@@ -25,7 +25,7 @@ def current_recovery():
 def activate_worker(value,execution_attempt=None):
     from utils import ch3_patchtst_depth_urban6_recovery as expanded
     if value==expanded.REUSE_REF:
-        if execution_attempt=='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check':expanded.activate_serial_check()
+        if execution_attempt=='PATCHTST-depth-Urban6-exit-r6-no-telemetry-serial-check':expanded.activate_serial_check()
         else:expanded.activate()
         return expanded
     from utils import ch3_amend_ett_identity_recovery as prefix

@@ -50,9 +50,21 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，r4受限worker绑定修复候选）**：整卡监控已closure于`805656e9da7d780330cddbf79995f234deac90d6`。r4真实短验收在模型构造前因worker重复全阶段配置验证，读取未授权的旧MS绑定而触发ForbiddenAccess；worker exit1、14份整卡采样、resource_admission=false，新增Adam/backward/forward为0/0/0。访问保护正确拒绝，本轮只修worker重复校验及当前配置消费，不扩大metadata授权、不改监控或科学合同。MS203、M84、M_AMEND112、原371格和196项完成来源保持；剩余335、总531、最大4550 run-epochs、probe硬上限及旧失败18/18/24不变。新独立`r5-worker-guard`候选尚未提交、未生成可执行许可、未运行GPU短验收或主链，result_review仍pending。
+**当前总览（M6，启动前检查＋运行期任务/异常驱动候选）**：受限worker绑定修复已closure于`6f525489cff125248cbc0b256e9744acf67590da`。r5独立H96短验收及主链另外三个ETTh1 serial均成功，随后首个q4波因整卡查询10秒超时停止，新增计算0/0/0；不把它认定为OOM、数值失败或Passed。旧MS203/M84/M_AMEND112、第二轮371格及196项完成来源保持；剩余335、总531、正式最大4550 run-epochs不变。用户明确独占服务器/GPU，本轮候选取消运行期显存遥测，保留启动前硬件/余量检查、正常任务生命周期和原数值门禁。独立`r6-no-telemetry`未stage/commit/push、未生成可执行许可、未启动GPU或主链，result_review仍pending。
 
-旧失败、结果、许可、轨迹和日志原字节保留；采用版本不冒充原训练producer。审核closure后须使用本轮独立许可和生命周期，先执行一次相同batch128/六步真实serial验收；失败即停，成功且全部绑定一致时复用一次，再由用户arm主链。本轮仅候选与无模型CPU复验，不复用或重启已失败r4。
+旧失败、结果、许可、轨迹和日志原字节保留；采用版本不冒充原训练producer。r5四H serial作为数值参照复用；旧波次耗时含旧遥测，不能与新q4无遥测耗时直接比收益。预先固定一次仅ETTh1四H的同执行方式serial计时补测，不择优、不全量重测，不要求再取得独立H96短验收收据后才准许恢复。审核closure及新许可就绪后，由用户一次arm原335项主链。
+
+### 用户独占条件下的启动前检查与运行期任务/异常驱动资源合同
+
+本条是用户明确修订资源门禁，不是修复Linux权限或nvidia-smi。当前及后续相同独占、单队列条件的M6执行，绑定`exclusive_gpu_event_driven_v1`及本版精确合同；独占来源是用户声明，工具未证明无人共享GPU。共享条件或设备/环境变化须重新评估。旧`exclusive_gpu_whole_card_v1`及namespace模式只按其原历史合同解释，不改旧收据。
+
+公开准备与真实启动边界在本包worker尚未运行时，各做一次最多10秒的固定GPU0查询，核对UUID、型号、容量、driver/冻结环境、CPU亲和性、有限非负会计及启动前余量`max(8 GiB,10% total)`。真实启动把该证据与许可SHA、closure、控制器生命周期和MAC绑定。控制器和worker只消费这一受保护绑定；任意字符串、环境变量或未核验字典不能授权模式。原内存分配限制机制/公式保留，输入改为该启动前证据；不再在worker启动后查询free/total，也不改变精度、batch或训练数学。
+
+q1/q2/q4的probe、formal、epoch/validation/test、完成审计、summary和status均不自动调用GPU查询或CUDA显存统计；不设置后台遥测，不要求fresh_post_exit_sample、显存归零或回到基线。峰值、采样间隔、持续余量、归属明示不采集/null/N/A，不填0或Measured，不宣称全过程余量已验证。CPU/RSS、计数/单项限额、Popen/poll/wait、任务ID、wave、日志、退出码、超时、STOP、单队列锁及安全停止保持。通过须有精确绑定、完整任务/产物、正常自有退出以及finite和原数值门禁，不能将取消遥测写成无条件准入。
+
+仅明确CUDA OOM可按原probe候选顺序降并发；原始异常/traceback与随后自有worker清理分别记录，有独立非OOM故障不得掩盖。普通MemoryError、信号退出、查询/访问失败、其他CUDA错误或数值失败不算OOM；q1 OOM停止，formal OOM按原失败恢复合同处理，不自动fresh或重复test。同一候选不盲目重跑，batch/seed/模型/阈值不改。安全停止仅处理合法持有或可靠核验的自有实例。
+
+本轮包为`worker-guard-binding-fix-v1/runtime-no-telemetry-v1/`。历史相关实际42/42/56分开记为负向18/18/24及成功serial24/24/32，r4与r5失败q4为0/0/0；reservation不当actual，不退款、不增加科学任务额度。PATCH_ENC1硬上限432/432/576保持，计时补测24/24/32纳入原上限；其他组不因此重新计时。原数值表、科学profile、4550 run-epochs及196＋335＝531均不变。无模型CPU/合成验收与未来真实GPU准入分开记录，新字节尚待审核。
 
 ### 受限worker只消费已验证的当前执行绑定
 

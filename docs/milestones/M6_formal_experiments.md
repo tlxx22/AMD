@@ -1,12 +1,29 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 整卡模式已closure于805656e9da7d780330cddbf79995f234deac90d6；r4真实短验收在模型构造前触发ForbiddenAccess，worker exit1、14份整卡采样、resource_admission=false、Adam/backward/forward=0/0/0。当前仅修受限worker重复全阶段配置验证；访问边界、整卡合同和科学配置不改。已完成196、待执行335、总531、最大4550 run-epochs、原371及r1–r3成本18/18/24保持。独立r5-worker-guard候选未提交、未生成可执行许可、未运行GPU或主链，result_review仍pending。见[本轮绑定修复](#m6-worker-guard-binding-fix-v1)。**
+**In Progress — r5绑定修复已closure于6f525489cff125248cbc0b256e9744acf67590da；独立H96及其余ETTh1三个serial成功，首个q4因整卡查询10秒超时停止，新增0/0/0。用户在独占条件下明确取消运行期显存遥测；当前为启动前硬件/余量检查＋任务/异常驱动的r6候选。旧371/196完成来源和四H数值参照保留；待执行335、总531、正式最大4550 run-epochs不变。未stage/commit/push、未物化可执行许可、未运行真实GPU或主链，result_review仍pending。见[本轮资源执行修订](#m6-runtime-no-telemetry-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+<a id="m6-runtime-no-telemetry-v1"></a>
+## r5四H serial成功、q4查询超时后的运行期无遥测候选
+
+本轮N起点`6f525489cff125248cbc0b256e9744acf67590da`，N/W/R各自HEAD/tracking/live remote一致、0/0且初始clean；r5 owner、probe-child、worker及session已退出。旧失败process SHA `2ed6d8af03233fb756df937c5c0987d4949c39d60cc636c59f430414a92cb7fb`、snapshot SHA `ebe2ea508395e69a45c6a9f0460b06a4a2ade9eeeb6951e107dc39df480641eb`精确核验。失败源为整卡查询10秒TimeoutExpired，四worker被清理、resource_admission=false、实际0/0/0；不据此认定CUDA OOM，也不离线追认为Passed。受限worker旧MS重复校验修复保持。
+
+r5 H96独立短验收6/6/8和主链H192/H336/H720各6/6/8均成功。已只读核对原process、runtime、budget、trajectory、schema及绑定artifact SHA/身份，原producer仍为6f525489...；没有重放旧数值sidecar或读取checkpoint。数值参照覆盖完整state/gradient/Adam等原schema，继续按原比较入口使用；本轮不把历史门禁改名或把旧q4改成通过。旧serial波耗时81–83秒含监控，worker自身约10–11秒不等于原波次计时口径，不能直接与新q4比较。`r5-source.json`预登记一次仅ETTh1四H的同模式serial计时补测24/24/32；不是新增H96成功收据前置，不全量重测，不挑最快一次。其余组照原准入顺序，收益gate不改。
+
+资源合同集中于canonical，当前明确模式`exclusive_gpu_event_driven_v1`。只有启动前固定GPU0/环境/会计/余量查询，10秒上限；真实启动将硬件证据与许可、closure、自有控制生命周期及MAC绑定。运行期generic hardware_binding、worker bootstrap、预算sample、轨迹捕获、波次/正式审计、summary和complete全部消费静态证据，不查询GPU。原分配限制机制/公式保留，仅复用已核验启动前free/total；CPU/RSS与Adam/backward/forward硬门禁保持。GPU峰值、持续余量、采样间隔及退出新样本均null/N/A，不造Measured或零峰值。正常退出和任务/产物完整性仍是必要条件。
+
+OOM判定保留原probe q候选顺序，但原始明确CUDA异常与随后自有cleanup分开保存。有独立业务异常、普通MemoryError、信号退出、其他CUDA错误、访问/数值失败时不能资源回退；q1 OOM及formal OOM按原停止合同处理。无监控查询能在计算中终止正常worker，安全停止/STOP/超时只处理合法自有实例，不以GPU进程表批量发信号。
+
+新身份为`PATCHTST-depth-Urban6-exit-r6-no-telemetry`，session同后缀；独立result/log/未来许可均在新包绑定，旧r1–r5字节保留。实际相关合计42/42/56＝旧负向18/18/24＋r5成功24/24/32；r4与本次失败q4为0。PATCH_ENC1 caps432/432/576原样保留，本次计时补测占原额度，reservation不当actual；旧成本不扣减科学任务完成额度。完成196、待执行335、总531、正式4550 run-epochs、七份effective科学配置及原数值表全部零差异。
+
+无模型CPU/合成复验使用真实run_configs、资源收据判定、guard安装、共享比较、AUTO_AUDIT、formal审计和汇总入口；计算产物与硬件查询仅为显式合成夹具，所有输出位于独立合成目录。运行期GPU查询设为一旦调用即失败，覆盖q1/q2/q4、启动前错误、OOM/cleanup与混合异常、预算/STOP/超时、缺项/错身份和旧证据采用。各次失败日志保留，最终同字节结果见本包acceptance；不拼接旧版本Passed，不执行真实模型/GPU/forward/backward/Adam/validation/test或checkpoint load。
+
+审核closure及新许可就绪后，由用户一次启动：采用旧371/196→ETTh1必要同模式计时及缺失q4准入→enc1 M24→enc2 M24→固定enc2新版371（24格切换、347保留）→Urban84→EPF35→M168。并发须实际适用证据，不凭本修订批准q4、不将正式队列统一退回串行。技术完成与result_review/效果gate分开；当前为未提交送审候选，不声称ChatGPT已审核新字节。
 
 <a id="m6-worker-guard-binding-fix-v1"></a>
 ## r4真实短验收失败：受限worker重复配置验证修复候选

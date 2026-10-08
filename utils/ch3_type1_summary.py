@@ -14,6 +14,7 @@ def observed(path,task_id=None,protocol=None,profile_sha=None):
     if r.get('id')!=m['task']['id'] or (task_id and r.get('id')!=task_id)or (protocol and r.get('scientific_protocol')!=protocol)or (profile_sha and r.get('profile_sha')!=profile_sha):raise ValueError('result source identity mismatch')
     value=dict(path=str(path),ref=ref(path),manifest_ref=ref(path.with_name('manifest.json')),task_id=r['id'],profile_sha=m['identity']['profile_sha'],science_execution_commit=m['identity']['commit'],mse=r['mse'],mae=r['mae'],status='complete',seed=r['seed'],std='N/A')
     if m['identity'].get('resource_mode')is not None:value.update(resource_mode=m['identity']['resource_mode'],resource_contract_ref=m['identity']['resource_contract_ref'])
+    if m['identity'].get('startup_hardware_ref'):value['startup_hardware_ref']=m['identity']['startup_hardware_ref']
     return value
 def result_index(configs):
     from utils.ch3_round2_amendment import summary,key

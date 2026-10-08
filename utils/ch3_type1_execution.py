@@ -36,6 +36,10 @@ def metadata_files(c,a,runtime_ref=None):
     from utils.ch3_type1_chain import ENVIRONMENT_REF
     values=[scope.parent_ref(c['baseline_unified']['stage']),scope.AUTHOR_RECIPE,c['baseline_unified']['data_ref'],a['start_authorization_ref']]
     values.append(ENVIRONMENT_REF)
+    if a.get('startup_hardware_ref'):
+        from utils.ch3_type1_chain import CONTROL
+        values += [a['startup_hardware_ref'],ref(CONTROL/'controller.json')]
+
     if a.get('probe_recovery_ref'):
         from utils.ch3_probe_schema_recovery import current_recovery
         recovery=current_recovery();values += [recovery.SOURCE_REF,recovery.REUSE_REF]
@@ -86,6 +90,7 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,ru
         forbidden_roots=[],device='cuda:0',artifact_root=str(out),resume=False,kernel_probe=False)
     if approval.get('probe_recovery_ref'):s['probe_schema_recovery_ref']=approval['probe_recovery_ref']
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):s.update(PROBE_RECOVERY.resource_binding())
+    if approval.get('startup_hardware_ref'):s['startup_hardware_ref']=approval['startup_hardware_ref']
     if probe:s['approval']=approval
     else:
         s['approval']=None;s['formal_permit_ref']=ref(ctx['control']/'formal-permit.json');s['runtime_admission_ref']=runtime_ref
@@ -94,7 +99,7 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,ru
     for name in ('cache/torch/kernels','mpl','cuda-cache'):(out/name).mkdir(parents=True,exist_ok=True)
     dump(out/'config.json',s)
     from resource_budget import initialize
-    initialize(s['budget_file'],purpose,limits)
+    initialize(s['budget_file'],purpose,limits,resource_mode=s.get('resource_mode'))
     return s
 
 
@@ -107,6 +112,7 @@ def validate_worker(c,s):
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'guard_serial_task'):PROBE_RECOVERY.guard_serial_task(c,s.get('purpose'),s['task'],s.get('successor_phase'))
     a=s.get('approval') if probe else bound(s['formal_permit_ref'])
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(s.get(k)!=v or a.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise PermissionError('exact worker/permit resource contract')
+    if a.get('resource_mode')=='exclusive_gpu_event_driven_v1' and s.get('startup_hardware_ref')!=a.get('startup_hardware_ref'):raise PermissionError('worker hardware grant mismatch')
     if s.get('probe_schema_recovery_ref')!=a.get('probe_recovery_ref'):raise PermissionError('worker/permit recovery identity differs')
     stop_check()
     if s.get('purpose')not in ('ch3_probe','ch3_formal') or s.get('resume')is not False or s.get('kernel_probe')is not False or s.get('device')!='cuda:0':raise PermissionError('exact unified fresh GPU worker')
@@ -193,9 +199,12 @@ def technical_group(c,model,a):
             identities=wave_resource_identities(pr,a,wave/'memory.jsonl',ids)
             if set(identities)!={str(bound(rows[run]['runtime.json'])['pid'])for run in ids}or any(same(identity)for identity in identities.values()):raise ValueError('formal own worker exit/control binding')
             if any(identities[str(bound(rows[run]['runtime.json'])['pid'])]['task_id']!=run for run in ids):raise ValueError('formal control PID/task pairing')
-            resources[str(i)]=dict(process=ref(wave/'process.json'),memory=ref(wave/'memory.jsonl'))
+            resources[str(i)]=dict(process=ref(wave/'process.json'))
+            if a.get('resource_mode')=='exclusive_gpu_event_driven_v1':resources[str(i)]['startup_hardware_ref']=a['startup_hardware_ref']
+            else:resources[str(i)]['memory']=ref(wave/'memory.jsonl')
     result=dict(technical_complete=True,result_review='pending',model=model,task_ids=[t['id'] for t in expected],artifacts=rows)
     if a.get('resource_mode')is not None:result.update(resource_mode=a['resource_mode'],resource_contract_ref=a['resource_contract_ref'],resource_waves=resources)
+    if a.get('startup_hardware_ref'):result['startup_hardware_ref']=a['startup_hardware_ref']
     return result
 
 

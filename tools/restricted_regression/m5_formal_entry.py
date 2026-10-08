@@ -190,7 +190,11 @@ def bootstrap(s):
             torch.autograd.grad=counted('backward','frozen_conv_gradient',torch.autograd.grad)
         torch.optim.Adam.step=counted('adam','Adam',torch.optim.Adam.step)
         if s.get('device')=='cuda:0':
-            free,total=torch.cuda.mem_get_info(0);reserve=max(8*1024**3,.1*total)
+            if s.get('resource_mode')=='exclusive_gpu_event_driven_v1':
+                from utils.ch3_event_resources import allocator_inputs
+                free,total=allocator_inputs(s)
+            else:free,total=torch.cuda.mem_get_info(0)
+            reserve=max(8*1024**3,.1*total)
             if free<=reserve:raise RuntimeError('resource headroom unavailable')
             torch.cuda.set_per_process_memory_fraction(min(.95,(free-reserve)/total),0)
 
@@ -199,7 +203,7 @@ def resource_assessment(sample, pids, baseline=None, pending_hosts=(),resource_m
     """Fail closed on unknown competitors; N/A process memory never becomes zero."""
     import math
     if resource_mode is not None:
-        if resource_mode!='exclusive_gpu_whole_card_v1' or sample.get('resource_mode')!=resource_mode:raise ValueError('exact whole-card resource mode')
+        if resource_mode not in ('exclusive_gpu_whole_card_v1','exclusive_gpu_event_driven_v1') or sample.get('resource_mode')!=resource_mode:raise ValueError('exact whole-card resource mode')
         reliable=(sample.get('device')=='cuda:0' and isinstance(sample.get('uuid'),str) and bool(sample['uuid'])
             and all(type(sample.get(k))in(int,float) and math.isfinite(sample[k]) and sample[k]>=0 for k in('time','total','used','free','driver_reserved','query_elapsed'))
             and sample['total']>0 and abs(sample['total']-sample['used']-sample['free']-sample['driver_reserved'])<=2*1024**2
@@ -504,6 +508,82 @@ def spawn(config):
     return process,handle
 
 
+def cuda_oom(text):
+    """Explicit CUDA allocation failure only; signals/MemoryError are not OOM."""
+    lines=[line.strip()for line in text.splitlines()if re.match(r'^[\w.]+(?:Error|Exception|ForbiddenAccess)(?::|\()',line.strip())]
+    explicit=lambda line:bool(re.search(r'(?:torch\.cuda\.OutOfMemoryError[:(]|(?:torch\.)?(?:OutOfMemoryError|RuntimeError)[:(].*CUDA (?:out of memory|error: out of memory))',line))
+    return bool(lines)and all(explicit(line)for line in lines)
+
+
+def run_event_wave(configs,out,stop_file,start):
+    """The existing owned wave, task/exception driven; no GPU sampler here."""
+    from utils.ch3_patchtst_depth_urban6_recovery import monitor_binding
+    from utils.ch3_event_resources import validate_startup
+    mode='exclusive_gpu_event_driven_v1'
+    if any(c.get('resource_mode')!=mode or c.get('resource_contract_ref')!=configs[0].get('resource_contract_ref') or c.get('startup_hardware_ref')!=configs[0].get('startup_hardware_ref')for c in configs):raise PermissionError('mixed event resource grants')
+    monitor_binding(configs)
+    validate_startup(configs[0]['startup_hardware_ref'],live=True)
+    if (out/'process.json').exists()or(out/'memory.jsonl').exists():raise FileExistsError('retained event wave; no repeat')
+    children=[];control=[];failure=None;original=[];cleanup=[];kind=None
+    def logs(cfg):
+        path=Path(cfg['output'])/'worker.log';runtime=Path(cfg['output'])/'runtime.json'
+        return (path.read_text()if path.exists()else '')+'\n'+(read(runtime).get('error')or '' if runtime.exists()else '')
+    def interrupted(*_):raise InterruptedError('STOP own event wave')
+    previous=signal.signal(signal.SIGTERM,interrupted)
+    try:
+        from utils.ch3_type1_chain import dispatch_guard
+        with dispatch_guard():
+            for cfg in configs:
+                p,h=spawn(cfg);children.append((p,h))
+                ticks=Path('/proc',str(p.pid),'stat').read_text().rsplit(')',1)[1].split()[19]
+                control.append(dict(pid=p.pid,start_ticks=ticks,task_id=cfg['task']))
+        while True:
+            if stop_file.exists():raise InterruptedError('STOP own workers only')
+            if time.monotonic()-start>max(c['limits']['seconds']or 1e12 for c in configs):raise TimeoutError('worker wall time limit')
+            failed=[i for i,(p,_)in enumerate(children)if p.poll()not in(None,0)or(p.poll()==0 and (Path(configs[i]['output'])/'runtime.json').exists()and read(Path(configs[i]['output'])/'runtime.json').get('error')is not None)]
+            if failed:
+                original=[dict(task_id=configs[i]['task'],returncode=children[i][0].returncode,exception=logs(configs[i]),cuda_oom=children[i][0].returncode is not None and children[i][0].returncode>0 and cuda_oom(logs(configs[i])))for i in failed]
+                raise RuntimeError('owned worker failed')
+            if all(p.poll()is not None for p,_ in children):break
+            time.sleep(.1)
+    except (InterruptedError,TimeoutError,OSError,RuntimeError,ValueError)as exc:
+        failure=str(exc);kind='business'
+    finally:
+        # Capture additional independent failures BEFORE cleanup. Only actual
+        # live held Popen objects are signalled; no GPU process-table lookup.
+        for i,(p,_)in enumerate(children):
+            if p.poll()not in(None,0)and not any(r['task_id']==configs[i]['task']for r in original):
+                text=logs(configs[i]);original.append(dict(task_id=configs[i]['task'],returncode=p.returncode,exception=text,cuda_oom=p.returncode>0 and cuda_oom(text)))
+        for i,(p,h)in enumerate(children):
+            if p.poll()is None:
+                cleanup.append(dict(task_id=configs[i]['task'],cause='wave_failure',trigger_tasks=[r['task_id']for r in original]))
+                p.terminate()
+            try:p.wait(timeout=60)
+            except subprocess.TimeoutExpired:failure='owned cleanup timeout';kind='business'
+            h.close()
+        signal.signal(signal.SIGTERM,previous)
+    # A mixed independent error or timeout/STOP must never hide behind OOM.
+    if failure=='owned worker failed'and original and all(r['cuda_oom']for r in original):
+        independent=[logs(c)for c in configs if any(x['task_id']==c['task']for x in cleanup)]
+        if not any(re.search(r'(?:Traceback|ForbiddenAccess|MemoryError|ValueError|RuntimeError|AssertionError)',text)and not cuda_oom(text)for text in independent):kind='resource'
+    codes=[p.returncode for p,_ in children]
+    result=dict(resource_mode=mode,resource_contract_ref=configs[0]['resource_contract_ref'],startup_hardware_ref=configs[0]['startup_hardware_ref'],
+        returncodes=codes,elapsed=time.monotonic()-start,failure=failure,failure_kind=kind,
+        resource_admission=not failure and len(children)==len(configs)and codes==[0]*len(configs),
+        owned_workers_exited=len(children)==len(configs)and all(p.poll()is not None for p,_ in children),
+        worker_lifecycles=[dict(v,returncode=p.returncode)for v,(p,_)in zip(control,children)],
+        original_failures=original,cleanup_terminations=cleanup,runtime_gpu_queries=0,telemetry='not_collected_startup_only',
+        process_peaks=None,cpu_peaks=None,process_attribution=None,external_occupancy_known=None,whole_card_peak=None,
+        actual_interval_min=None,actual_interval_max=None,fresh_post_exit_sample=None,sample_count=None,
+        timing_policy='run_configs start through owned wait; wave validation/spawn/bootstrap included; make_config excluded; no GPU telemetry')
+    dump(out/'process.json',result)
+    for cfg in configs:
+        audit=Path(cfg['audit_log'])
+        if audit.exists()and any(json.loads(l)['event']=='denied'for l in audit.read_text().splitlines()):raise RuntimeError('shared guard failure: stop all execution')
+    if any(c==86 for c in codes):raise RuntimeError('bootstrap/source identity failed: stop all execution')
+    return result
+
+
 def run_configs(configs,out,monitor=False):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None;observation_failed=False
     formal=all(c['purpose']=='ch3_formal' for c in configs)
@@ -527,6 +607,8 @@ def run_configs(configs,out,monitor=False):
         if getattr(scope,'SCOPE',None) in ('timemixer-revision-numeric-v1','urban-numeric-diagnostic-v1','urban-numeric-confirmation-v1'):stop_file=scope.validate_wave(read_profiles(),configs,out)
         else:stop_file=scope.ROOT/'STOP'
         if stop_file.exists():raise InterruptedError('probe STOP before monitor/worker launch')
+    if configs[0].get('resource_mode')=='exclusive_gpu_event_driven_v1':
+        return run_event_wave(configs,out,stop_file,start)
     whole=configs[0].get('resource_mode')=='exclusive_gpu_whole_card_v1';whole_clean=False;control_workers=[];exit_observed=None
     if any(c.get('resource_mode')!=configs[0].get('resource_mode') or c.get('resource_contract_ref')!=configs[0].get('resource_contract_ref')for c in configs):raise ValueError('mixed resource contracts')
     if configs[0].get('resource_mode')is not None:

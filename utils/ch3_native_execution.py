@@ -55,7 +55,7 @@ def validate_probe_memory(tr,producer):
     from ch3_runner import memory_growth_review
     mode=producer.get('resource_mode')
     if mode is not None:
-        if mode!='exclusive_gpu_whole_card_v1' or any(tr.get(k)!=producer[k]for k in('resource_mode','resource_contract_ref')):raise ValueError('probe memory resource binding')
+        if mode not in ('exclusive_gpu_whole_card_v1','exclusive_gpu_event_driven_v1') or any(tr.get(k)!=producer[k]for k in('resource_mode','resource_contract_ref')):raise ValueError('probe memory resource binding')
         if not {'allocated','reserved'}.issubset(tr) or tr['allocated']is not None or tr['reserved']is not None or tr.get('endpoint_resources',{}).get('allocated')is not None:raise ValueError('worker GPU memory is not collected')
     review=memory_growth_review(tr['memory'],mode)
     if tr.get('memory_review')!=review or review['blocked'] or review['needs_long_window']:raise ValueError('saved probe memory screen')
@@ -63,6 +63,10 @@ def validate_probe_memory(tr,producer):
 
 
 def wave_resource_identities(value,producer,memory,ids):
+    if producer.get('resource_mode')=='exclusive_gpu_event_driven_v1':
+        from utils.ch3_event_resources import validate_receipt
+        if Path(memory).exists():raise ValueError('runtime GPU samples forbidden in event mode')
+        return validate_receipt(value,producer,ids)
     if producer.get('resource_mode')=='exclusive_gpu_whole_card_v1':
         from utils.ch3_native_recovery_records import validate_whole_card_receipt
         return validate_whole_card_receipt(value,memory,producer,ids)
@@ -284,7 +288,7 @@ def run_probe(c,a):
         if c['baseline_unified']['stage']=='M_BASE' or c['baseline_unified']['stage']in getattr(recovery,'SEED_STAGES',()):
             seed=recovery.load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
             serial_check=getattr(recovery,'SERIAL_CHECK',False)
-            if serial_check and(c['baseline_unified']['stage']!='PATCH_ENC1' or a.get('execution_attempt')!='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check'):raise PermissionError('precise single serial acceptance context')
+            if serial_check and(c['baseline_unified']['stage']!='PATCH_ENC1' or a.get('execution_attempt')!='PATCHTST-depth-Urban6-exit-r6-no-telemetry-serial-check'):raise PermissionError('precise single serial acceptance context')
     def wave(g,phase,ids,n):
         key=g['id']+'/'+phase+'/'+str(n)
         if seed and key in seed['evidence']:
@@ -341,14 +345,19 @@ def run_probe(c,a):
                 tr=json.loads(path.read_text())
                 self_check=None if retained else compare(c,task_by_id(c,r),tr,tr)
                 if tr.get('finite')is not True or(self_check is not None and not self_check['passed']):raise ValueError('serial finite/state gate')
-                traces[r]=tr
+                reference=recovery.numeric_reference(c,r) if seed and hasattr(recovery,'numeric_reference') else None
+                if reference:
+                    prior=source.bound(reference)
+                    if not compare(c,task_by_id(c,r),prior,tr)['passed']:raise ValueError('fixed timing supplement numerical reference gate')
+                    traces[r]=prior
+                else:traces[r]=tr
                 if serial_check:
                     if g!=scope.probe_groups(c)[0] or n!=0 or r!=recovery.SERIAL_TASK or tr.get('steps')!=6 or profile(c,task_by_id(c,r))['training']['batch']!=128:raise ValueError('fixed one-worker six-step shape')
                     known=wave_resource_identities(v,a,root/g['id']/'serial/wave-0/memory.jsonl',[r]);runtime=json.loads((path.parent/'runtime.json').read_text());pid=str(runtime['pid'])
                     if pid not in known or runtime['error']is not None:raise ValueError('complete owned serial runtime')
                     validate_probe_memory(tr,a)
                     body=dict(purpose='native_single_serial_acceptance_v1',serial_check_passed=True,task_id=r,approval=source.ref(ctx['control']/'probe-permit.json'),scope=ctx['probe_scope'],budget=budget,evidence=evidence,artifacts=artifacts,decisions={},serial_self_check=self_check,worker_identity=dict(pid=int(pid),start_ticks=known[pid]['start_ticks']),probe_recovery_ref=a.get('probe_recovery_ref'),**{k:a[k]for k in ('commit','code','environment','hardware','source_states','protocol_sha')})
-                    for field in('resource_mode','resource_contract_ref'):
+                    for field in('resource_mode','resource_contract_ref','startup_hardware_ref'):
                         if field in a:body[field]=a[field]
                     if a.get('resource_mode')is not None:body['worker_identity']=known[pid]
                     from utils.ch3_native_recovery_records import exclusive
@@ -374,9 +383,10 @@ def run_probe(c,a):
             decisions[g['id']]=dict(status='Passed',concurrency=q,serial=serial,parallel=parallel,attempts=attempts,numerical_comparisons=comparisons,coverage=g.get('coverage'),makespan_scope='captured synthetic short package; not formal training speedup')
             dump(root/'progress.json',dict(decisions=decisions,budget=budget))
         report=dict(purpose='native_successor_probe_complete_v1',execution_complete=True,reviewed=False,manual_review=False,admission_granted=False,scope=ctx['probe_scope'],plan=scope.plan(c),approval=source.ref(root/'approval.json'),decisions=decisions,budget=budget,evidence=evidence,artifacts=artifacts,**{k:a[k] for k in ('commit','protocol_sha','code','environment','hardware')})
-        for field in('resource_mode','resource_contract_ref'):
+        for field in('resource_mode','resource_contract_ref','startup_hardware_ref'):
             if field in a:report[field]=a[field]
         if seed:
+            if seed.get('numeric_reference_ref'):report['numeric_reference_ref']=seed['numeric_reference_ref']
             report['probe_recovery_ref']=a['probe_recovery_ref']
             if seed.get('single_serial_source'):report['single_serial_source']=seed['single_serial_source']
         # Recovery, unified and type1 retain immediate group gates; one final
@@ -398,10 +408,11 @@ def validate_probe_completion(c,r):
     if (root/'STOP').exists() or (root/'failure.json').exists():raise ValueError('retained probe failure/STOP')
     if r['approval']!=source.ref(root/'approval.json'):raise ValueError('actual probe permit path/SHA')
     a=source.bound(r['approval'])
-    for field in('resource_mode','resource_contract_ref'):
+    for field in('resource_mode','resource_contract_ref','startup_hardware_ref'):
         if r.get(field)!=a.get(field):raise ValueError('probe resource policy/permit binding')
     from utils.ch3_probe_schema_recovery import current_recovery
     recovery=current_recovery()
+    if r.get('numeric_reference_ref') and r['numeric_reference_ref']!=getattr(recovery,'R5_SOURCE_REF',None):raise ValueError('exact old numerical reference registry')
     readonly=recovery.retained_refs(r)
     for k in ('commit','protocol_sha','code','environment','hardware'):
         if r[k]!=a[k]:raise ValueError('probe actual source mismatch')
@@ -428,7 +439,8 @@ def validate_probe_completion(c,r):
         if entry!=dict(process=source.ref(p/'process.json'),task_ids=ids):raise ValueError('process/task evidence binding')
         v=source.bound(entry['process'])
         if not wave_passed(v) and not resource_fallback(v):raise ValueError('failed nonresource evidence')
-        memory=p/'memory.jsonl';required_artifacts.add(str(memory))
+        memory=p/'memory.jsonl'
+        if producer.get('resource_mode')!='exclusive_gpu_event_driven_v1':required_artifacts.add(str(memory))
         identities=wave_resource_identities(v,producer,memory,ids)if wave_passed(v)else None
         for run in ids:
             out=p.parent/run;t=task_by_id(c,run);counts=scope.worker_counts(c,t)
@@ -453,6 +465,8 @@ def validate_probe_completion(c,r):
                 if same(dict(pid=int(pid),start_ticks=str(ticks))):raise ValueError('successful probe worker original still live')
                 if tr.get('threads')!=4 or tr.get('affinity')!=a['hardware']['cpu_affinity']:raise ValueError('probe thread/affinity identity')
                 if len(tr.get('trajectory',[]))!=6 or any(not math.isfinite(row['loss']) for row in tr['trajectory']) or any(not math.isfinite(tr['validation'][k]) for k in ('mse','mae','sse','sae')):raise ValueError('probe saved loss/validation finite')
+                reference=recovery.numeric_reference(c,run)if r.get('numeric_reference_ref')and phase=='serial'else None
+                if reference and not compare(c,t,source.bound(reference),tr)['passed']:raise ValueError('saved timing supplement/reference numeric gate')
                 validate_probe_memory(tr,producer)
                 if any(json.loads(line).get('event')=='denied' for line in (out/'audit.jsonl').read_text().splitlines()):raise ValueError('guard denied access cannot be admission')
                 for point in tr['M_full_state_trace']+tr.get('urban_diagnostic_trace',[]):
@@ -477,7 +491,8 @@ def validate_probe_completion(c,r):
                     if reviewed is not None:
                         comparisons.append(reviewed[len(comparisons)]);continue
                     serial_index=reps.index(run);serial_path=recovery.location(r,g['id']+'/serial/'+str(serial_index),root/g['id']/'serial'/('wave-'+str(serial_index))).parent/run/'trajectory.json'
-                    x=json.loads(serial_path.read_text());y=json.loads((root/g['id']/phase/run/'trajectory.json').read_text());row=compare(c,task_by_id(c,run),x,y)
+                    reference=recovery.numeric_reference(c,run) if r.get('numeric_reference_ref') and hasattr(recovery,'numeric_reference') else None
+                    x=source.bound(reference)if reference else json.loads(serial_path.read_text());y=json.loads((root/g['id']/phase/run/'trajectory.json').read_text());row=compare(c,task_by_id(c,run),x,y)
                     if not row['passed']:raise ValueError('saved numeric gate failed')
                     comparisons.append(row)
         if d['numerical_comparisons']!=comparisons:raise ValueError('numeric summary not reproducible')

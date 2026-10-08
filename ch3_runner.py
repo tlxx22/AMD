@@ -102,6 +102,7 @@ def code_binding():
                   'scripts/ch3/start_patchtst_depth_urban6_recovery.sh','tests/test_m6_patchtst_depth_urban6.py',
                   'configs/ch3_round2_patchtst_enc1_v1.json','configs/ch3_round2_patchtst_enc2_v1.json',
                   'configs/ch3_type1_urban6_h3_h12_v1.json','configs/ch3_type1_m_all_patchtst_enc2_v1.json']
+    files += ['utils/ch3_event_resources.py','tests/test_m6_event_driven_resources.py']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 
@@ -112,6 +113,8 @@ def environment_binding():
 
 
 def hardware_binding():
+    from utils import ch3_event_resources as event
+    if event.enabled():return event.hardware_binding()
     return dict(gpu=subprocess.check_output(['nvidia-smi','--query-gpu=uuid,name,memory.total,driver_version','--format=csv,noheader,nounits'],text=True).strip(),
                 cpu_affinity=sorted(os.sched_getaffinity(0)),threads=4)
 
@@ -504,6 +507,7 @@ def formal_identity(c, task, metadata, approval):
         binding=resource_binding()
         if any(approval.get(k)!=v for k,v in binding.items()):raise ValueError('formal identity resource binding')
         result.update(binding)
+        if approval.get('startup_hardware_ref'):result['startup_hardware_ref']=approval['startup_hardware_ref']
     return result
 
 
@@ -756,6 +760,10 @@ def probe_resource_binding(c,task=None):
             or a.get('successor_scope')!=worker['successor_scope'] or a.get('protocol_sha')!=worker['protocol_sha']
             or task['id'] not in a.get('authorized_task_ids',[])
             or any(worker.get(k)!=v or a.get(k)!=v for k,v in binding.items())):raise PermissionError('installed probe task/protocol/permit/resource binding')
+        if binding.get('resource_mode')=='exclusive_gpu_event_driven_v1':
+            from utils.ch3_event_resources import validate_startup
+            if worker.get('startup_hardware_ref')!=a.get('startup_hardware_ref'):raise PermissionError('installed worker startup mismatch')
+            validate_startup(a['startup_hardware_ref'],a,live=True)
         return binding
     if recovery is None or not hasattr(recovery,'resource_binding'):return {}
     stage=c.get('baseline_unified',{}).get('stage')
@@ -764,7 +772,7 @@ def probe_resource_binding(c,task=None):
 
 
 def probe_gpu_memory(cuda,device,kind,resource_mode=None):
-    if resource_mode=='exclusive_gpu_whole_card_v1':return None
+    if resource_mode in ('exclusive_gpu_whole_card_v1','exclusive_gpu_event_driven_v1'):return None
     if resource_mode is not None:raise ValueError('unknown probe resource mode')
     return getattr(cuda,kind)()if str(device).startswith('cuda')else 0
 
@@ -773,8 +781,8 @@ def memory_growth_review(memory,resource_mode=None):
     """Material growth AND rate AND no longer-window plateau, not mere monotonic RSS."""
     import math
     from utils.ch3_contract import RSS_PROBE_POLICY as rule
-    if resource_mode not in(None,'exclusive_gpu_whole_card_v1'):raise ValueError('unknown memory review mode')
-    whole=resource_mode=='exclusive_gpu_whole_card_v1'
+    if resource_mode not in(None,'exclusive_gpu_whole_card_v1','exclusive_gpu_event_driven_v1'):raise ValueError('unknown memory review mode')
+    whole=resource_mode in ('exclusive_gpu_whole_card_v1','exclusive_gpu_event_driven_v1')
     if whole and any(r.get('resource_mode')!=resource_mode or not {'allocated','reserved'}.issubset(r) or r['allocated']is not None or r['reserved']is not None for r in memory):raise ValueError('whole-card probe must not record worker GPU memory')
     needed=('rss_before_hash','rss_after_hash')if whole else('allocated','rss_before_hash','rss_after_hash')
     if any(any(k not in r or not isinstance(r[k],(int,float)) or not math.isfinite(r[k]) or r[k]<0 for k in needed) for r in memory):
@@ -852,6 +860,7 @@ def rss_window_worker(c,task,out,device='cuda:0'):
     """One bounded 24-update diagnostic; no per-step parameter snapshots/hashing."""
     import torch
     from utils.ch3_contract import RSS_PROBE_POLICY
+    resource_mode=probe_resource_binding(c,task).get('resource_mode')
     p,model,opt,generator=init_training(c,task,device);rows=[]
     def rss():return next(int(x.split()[1])*1024 for x in Path('/proc/self/status').read_text().splitlines() if x.startswith('VmRSS:'))
     def batch(n):return torch.randn(n,p['T'],p['C'],generator=generator),torch.randn(n,p['pred_len'],1,generator=generator)
@@ -860,8 +869,10 @@ def rss_window_worker(c,task,out,device='cuda:0'):
         x,y=batch(p['training']['batch']);update(model,opt,x,y,p,device)
         if i==1:evaluate(model,[batch(v),batch(tail or v)],p,device)
         del x,y;torch.cuda.synchronize();r=rss()
-        rows.append(dict(step=i+1,allocated=torch.cuda.memory_allocated(),rss_before_hash=r,rss_after_hash=r))
-    review=memory_growth_review(rows)
+        row=dict(step=i+1,allocated=probe_gpu_memory(torch.cuda,device,'memory_allocated',resource_mode),reserved=probe_gpu_memory(torch.cuda,device,'memory_reserved',resource_mode),rss_before_hash=r,rss_after_hash=r)
+        if resource_mode:row['resource_mode']=resource_mode
+        rows.append(row)
+    review=memory_growth_review(rows,resource_mode)
     result=dict(id=task['id'],profile_sha=digest(p),memory=rows,review=review,updates=24,
                 data='synthetic only; no full epoch; no per-step state hashing',finite=True)
     dump(Path(out)/'rss-window.json',result)

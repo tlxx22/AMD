@@ -34,6 +34,7 @@ def worker_fixture(case,root):
     import restricted_io_guard as guard
     from utils import ch3_patchtst_depth_urban6_recovery as r
     r.activate()
+    from utils import ch3_event_resources as event
     from utils import ch3_type1_chain as q,ch3_type1_tasks as scope,ch3_type1_execution as execution,ch3_round2_amendment as amend
     from utils.ch3_native_recovery_records import exclusive,ref,bound
     from utils.ch3_contract import digest,task_by_id
@@ -63,12 +64,16 @@ def worker_fixture(case,root):
         stack.enter_context(patch.object(scope,'context',side_effect=lambda cc:context if cc==c else previous(cc)))
         stack.enter_context(patch.object(q,'CONTROL',root/'queue/controller'))
         stack.enter_context(patch.object(q,'closure',return_value='f'*40))
+        original_git=runner.git
+        stack.enter_context(patch.object(runner,'git',side_effect=lambda *args:'f'*40 if args==('rev-parse','HEAD')else original_git(*args)))
         stack.enter_context(patch.dict(os.environ,{q.SECRET:'CPU-fixture-not-a-launch-grant','TMPDIR':str(context['fixture'])}))
         stack.enter_context(patch('utils.ch3_m_execution.gpu_environment_reasons',return_value=[]))
-        stack.enter_context(patch.object(q,'dynamic',side_effect=lambda cc,worker=False:dict(commit='f'*40,protocol_sha=digest(cc),code={},environment={},hardware={'cpu_affinity':[],'gpu':'GPU-CPU-fixture, never real GPU'},source_states={},**r.resource_binding())))
+        from tests.test_m6_event_driven_resources import startup_query
         start=q.start_template();start.update(reviewed=True,execution_permitted=True,structure_frozen=True,m6_authorized=True,budget_authorized=True,closure_commit='f'*40,authorization_basis='CPU-only synthetic fixture; actual HEAD differs and cannot authorize real computation')
         start_ref=exclusive(root/'synthetic-auth.json',start)
+        with patch.object(scope,'RESULT',root/'not-started'),patch.object(subprocess,'check_output',side_effect=startup_query),event.prestart(start):pass
         exclusive(q.CONTROL/'controller.json',dict(scope=scope.ID,owner=q.owner(),authorization=start_ref))
+        event.seal_startup(start_ref)
         adopted=r.adopt_prefix()
         permit_ref=q.create_permit(c,start_ref,True,boundary_ref={k:adopted[q.STAGE_STATES[k][3]]for k in r.COMPLETED_STAGES},round2_ref=adopted['SEAL_ROUND2_REVISED_BOUNDARY'])
         out=context['probe_root']/r.groups(c)[0]['id']/'serial'/task['id']
@@ -104,6 +109,24 @@ def worker_fixture(case,root):
         stack.enter_context(patch.object(runner,'init_training',side_effect=no_model))
         torch_stub=types.ModuleType('torch');torch_stub.CPU_binding_fixture=True
         stack.enter_context(patch.dict(sys.modules,{'torch':torch_stub}))
+        if case=='good':
+            # Execute the real bootstrap and budget sampler with no compute API.
+            def no_compute(*args,**kwargs):raise AssertionError('fixture must not compute or query CUDA')
+            class Module:
+                __call__=no_compute
+            class Adam:
+                step=no_compute
+            fractions=[]
+            torch_stub.set_num_threads=lambda n:None
+            torch_stub.nn=types.SimpleNamespace(Module=Module)
+            torch_stub.optim=types.SimpleNamespace(Adam=Adam)
+            torch_stub.autograd=types.SimpleNamespace(backward=no_compute)
+            torch_stub.cuda=types.SimpleNamespace(mem_get_info=no_compute,is_initialized=no_compute,max_memory_reserved=no_compute,set_per_process_memory_fraction=lambda f,d:fractions.append((f,d)))
+            tool.bootstrap(state)
+            resource_budget.INSTANCE.sample(torch_stub)
+            startup=event.validate_startup(state['startup_hardware_ref'],state['approval'],live=True)['sample']
+            assert fractions==[(min(.95,(startup['free']-max(8*1024**3,.1*startup['total']))/startup['total']),0)]
+            assert json.loads(Path(state['budget_file']).read_text())['cuda_reserved_peak']is None
         if case=='original-bug':
             # Execute precisely the reviewed failing helper under the real hook.
             raw=subprocess.check_output(['git','-C',str(ROOT),'show','805656e9da7d780330cddbf79995f234deac90d6:ch3_runner.py'])
@@ -145,7 +168,7 @@ def worker_fixture(case,root):
             except (PermissionError,ValueError,RuntimeError):pass
             else:raise AssertionError('bad installed binding was accepted: '+case)
             assert calls['init_training']==0
-        assert calls['all_stage_after_install']==0 and calls['stage_validation']==before_stage and calls['synthetic_card_samples']==1
+        assert calls['all_stage_after_install']==0 and calls['stage_validation']==before_stage and calls['synthetic_card_samples']==0
         if case=='good':
             try:Path(denied_path).read_bytes()
             except guard.ForbiddenAccess:pass

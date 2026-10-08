@@ -135,7 +135,7 @@ def manifest_projection(report, complete_ref, root, extra_refs=()):
         result['readonly_probe_recovery_ref']=report['probe_recovery_ref']
         result['readonly_probe_scope']=report.get('scope','')
         if report.get('single_serial_source'):result['single_serial_source']=report['single_serial_source']
-    for name in('resource_mode','resource_contract_ref'):
+    for name in('resource_mode','resource_contract_ref','startup_hardware_ref'):
         if name in report:result[name]=report[name]
     return result
 

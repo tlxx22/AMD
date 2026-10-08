@@ -23,12 +23,15 @@ OBSERVATION_REF = dict(path=str(OBSERVATION_PACKAGE / 'observation-source.json')
 WHOLE_CARD_PACKAGE = OBSERVATION_PACKAGE / 'whole-card-monitor-v1'
 WORKER_GUARD_PACKAGE = WHOLE_CARD_PACKAGE / 'worker-guard-binding-fix-v1'
 WORKER_FAILURE_REF = dict(path=str(WORKER_GUARD_PACKAGE / 'worker-guard-failure-source.json'), sha256='62b999f8deb896508cdaf3e35d2e0d1a2fa0cc8aed889e68807b66f58a8c19a1')
-RESOURCE_CONTRACT_REF = dict(path=str(WHOLE_CARD_PACKAGE / 'resource-contract.json'), sha256='4b43a16d1fd3003ce35e4474141437635ba21a50d72f3f825c711750283b1f46')
+LEGACY_RESOURCE_CONTRACT_REF = dict(path=str(WHOLE_CARD_PACKAGE / 'resource-contract.json'), sha256='4b43a16d1fd3003ce35e4474141437635ba21a50d72f3f825c711750283b1f46')
+EVENT_PACKAGE = WORKER_GUARD_PACKAGE / 'runtime-no-telemetry-v1'
+RESOURCE_CONTRACT_REF = dict(path=str(EVENT_PACKAGE/'resource-contract.json'),sha256='e7f51568521cf9940b8adc287e6480a22baae197439ab2432bccab9829dbacd3')
+R5_SOURCE_REF = dict(path=str(EVENT_PACKAGE/'r5-source.json'),sha256='2de463ec1e427c30657d170caaa37a8f2633ca41eee7ce46b9231299fd60e439')
 OLD_RESULT = prefix.RESULT
-RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r5-worker-guard')
-ATTEMPT = 'PATCHTST-depth-Urban6-exit-r5-worker-guard'
-SESSION = 'ch3-m6-patchtst-depth-urban6-r5-worker-guard'
-LOG = WORKER_GUARD_PACKAGE / 'followup-launcher.log'
+RESULT = OLD_RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r6-no-telemetry')
+ATTEMPT = 'PATCHTST-depth-Urban6-exit-r6-no-telemetry'
+SESSION = 'ch3-m6-patchtst-depth-urban6-r6-no-telemetry'
+LOG = EVENT_PACKAGE / 'followup-launcher.log'
 ENTRY = ROOT / 'm6_patchtst_depth_urban6_recovery_entry.py'
 WRAPPER = ROOT / 'scripts/ch3/start_patchtst_depth_urban6_recovery.sh'
 PRODUCER = 'b97392a179b55b4bffb2bf0e3b85267bb0b07750'
@@ -42,7 +45,7 @@ SEED_STAGES = ('PATCH_ENC1','URBAN_SUBSET')
 ACTIVE = False
 SERIAL_CHECK = False
 SERIAL_RESULT = RESULT.with_name(RESULT.name+'-serial-check')
-SERIAL_LOG = WORKER_GUARD_PACKAGE / 'serial-check-launcher.log'
+SERIAL_LOG = EVENT_PACKAGE / 'serial-check-launcher.log'
 SERIAL_SESSION = SESSION+'-serial-check'
 SERIAL_ENTRY = ROOT / 'm6_patch_enc1_serial_check_entry.py'
 SERIAL_TASK = 'PatchTST-ETTh1-M-round2-enc1-v1-f1-h96-s2024'
@@ -157,7 +160,7 @@ def activate():
     files = config_refs(); packages = {k:old_package(k) for k in s.STAGES}; spec = contract()
     s.STAGES = tuple(spec['stage_order'])
     s.file = lambda stage:Path(files[stage]['path'])
-    s.package = lambda stage:WORKER_GUARD_PACKAGE if stage=='PATCH_ENC1' else REVISION_PACKAGE if stage=='M_ALL' else PACKAGE if stage in spec['new_config_refs'] else packages[stage]
+    s.package = lambda stage:EVENT_PACKAGE if stage=='PATCH_ENC1' else REVISION_PACKAGE if stage=='M_ALL' else PACKAGE if stage in spec['new_config_refs'] else packages[stage]
     s.validate = lambda c:validate_revision(c) if c['baseline_unified']['stage'] in spec['new_config_refs'] else old_validate(c)
     s.selected = lambda stage:[t for t in s.parent()['tasks'] if t['dataset']=='UrbanEV' and t['h'] in (3,12)] if stage=='URBAN_SUBSET' else old_selected(stage)
     s.probe_groups = lambda c:groups(c) if c['baseline_unified']['stage'] in ('PATCH_ENC1','PATCH_ENC2','URBAN_SUBSET') else old_groups(c)
@@ -179,7 +182,7 @@ def activate():
     s.RESULT=ms.RESULT=RESULT;amend.RESULT=RESULT/'round2-amendment'
     def context(c):
         v=old_context(c)
-        return dict(v,models=('PatchTST',) if c['baseline_unified']['stage'].startswith('PATCH_ENC') else s.MODELS,fixture=WORKER_GUARD_PACKAGE/c['baseline_unified']['stage']/'fixtures')
+        return dict(v,models=('PatchTST',) if c['baseline_unified']['stage'].startswith('PATCH_ENC') else s.MODELS,fixture=EVENT_PACKAGE/c['baseline_unified']['stage']/'fixtures')
     s.context=context
     def plan(c):
         v=old_plan(c);models=list(context(c)['models']);v['models']=models;v['formal_waves']={m:v['formal_waves'][m] for m in models};return v
@@ -201,7 +204,7 @@ def activate_serial_check():
     global SERIAL_CHECK,RESULT,LOG,SESSION,ENTRY,ATTEMPT
     activate()
     from utils import ch3_type1_chain as q,ch3_type1_tasks as s,ch3_round2_amendment as amend,ch3_ms_seal_recovery as ms
-    SERIAL_CHECK=True;RESULT=SERIAL_RESULT;LOG=SERIAL_LOG;SESSION=SERIAL_SESSION;ENTRY=SERIAL_ENTRY;ATTEMPT='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check'
+    SERIAL_CHECK=True;RESULT=SERIAL_RESULT;LOG=SERIAL_LOG;SESSION=SERIAL_SESSION;ENTRY=SERIAL_ENTRY;ATTEMPT='PATCHTST-depth-Urban6-exit-r6-no-telemetry-serial-check'
     s.RESULT=ms.RESULT=RESULT;amend.RESULT=RESULT/'round2-amendment'
     q.CONTROL=RESULT/'queue/controller';q.LOG,q.SESSION,q.ENTRY=LOG,SESSION,ENTRY
     q.run=run_serial_check
@@ -226,6 +229,7 @@ def guard_serial_task(c,purpose,task,phase):
 
 
 def serial_check_evidence(c,required=False):
+    if not SERIAL_CHECK:return None
     """Once at adoption/audit: exact prior lifecycle, never an old MAC grant."""
     from utils import ch3_type1_chain as q
     from utils.ch3_native_execution import wave_passed
@@ -234,7 +238,7 @@ def serial_check_evidence(c,required=False):
         if required or root.exists():raise ValueError('real single serial acceptance must complete before main arm; failed check is retained')
         return None
     v=bound(ref(done));report=bound(v['receipt_ref']);a=bound(report['approval']);owner=bound(ref(control/'controller.json'));auth=bound(owner['authorization'])
-    expected_attempt='PATCHTST-depth-Urban6-exit-r5-worker-guard-serial-check';expected_root=root/'probe/PATCH_ENC1'
+    expected_attempt='PATCHTST-depth-Urban6-exit-r6-no-telemetry-serial-check';expected_root=root/'probe/PATCH_ENC1'
     expected_auth=q.start_template()
     expected_auth['upstream_anchors']=dict(expected_auth['upstream_anchors'],execution_attempt=expected_attempt,execution_mode='single_serial_check')
     mutable={'reviewed','execution_permitted','structure_frozen','m6_authorized','budget_authorized','closure_commit','authorization_basis'}
@@ -270,16 +274,16 @@ def serial_check_evidence(c,required=False):
     return dict(report=report,key=key,entry=entry,producer=a,artifacts=report['artifacts'],counts=counts)
 
 
-def delta_ref():return ref(WORKER_GUARD_PACKAGE/'producer-delta-proof.json')
+def delta_ref():return ref(EVENT_PACKAGE/'producer-delta-proof.json')
 
 
 def resource_binding():
     value=bound(RESOURCE_CONTRACT_REF)
-    if (value.get('purpose')!='M6_exclusive_gpu_resource_contract_v1' or value.get('resource_mode')!='exclusive_gpu_whole_card_v1'
-        or value.get('exclusive_condition')!='user_declared_exclusive_server_GPU_single_experiment_queue' or value.get('tool_proved_exclusive')is not False
-        or value.get('device')!='cuda:0' or value.get('GPU_index')!=0 or value.get('reserve_bytes')!=8*1024**3
-        or value.get('reserve_fraction')!=.1 or value.get('query_timeout_seconds')!=10 or value.get('worker_GPU_attribution')!='not_collected'
-        or value.get('scientific_numeric_budget_changes')is not False):raise PermissionError('exact user-declared exclusive resource contract required')
+    expected=dict(purpose='M6_exclusive_gpu_event_resource_contract_v1',resource_mode='exclusive_gpu_event_driven_v1',
+        exclusive_condition='user_declared_exclusive_server_GPU_single_experiment_queue',tool_proved_exclusive=False,
+        device='cuda:0',GPU_index=0,reserve_bytes=8*1024**3,reserve_fraction=.1,query_timeout_seconds=10,
+        startup_only=True,runtime_gpu_queries=0,worker_GPU_attribution='not_collected',runtime_memory_telemetry='not_collected',scientific_numeric_budget_changes=False)
+    if value!=expected:raise PermissionError('exact user exclusive startup/event contract required')
     return dict(resource_mode=value['resource_mode'],resource_contract_ref=RESOURCE_CONTRACT_REF)
 
 
@@ -296,11 +300,14 @@ def monitor_binding(configs):
     q.validate_permit(q.configs()[configs[0]['unified_stage']],permits[0],configs[0]['purpose']=='ch3_probe')
     gpu=permits[0].get('hardware',{}).get('gpu')
     if not isinstance(gpu,str)or not gpu.strip():raise PermissionError('fixed permit GPU identity absent')
+    from utils.ch3_event_resources import validate_startup
+    validate_startup(permits[0]['startup_hardware_ref'],permits[0],live=True)
+    if any(cfg.get('startup_hardware_ref')!=permits[0]['startup_hardware_ref']for cfg in configs):raise PermissionError('exact wave hardware grant')
     return dict(expected,gpu_uuid=gpu.splitlines()[0].split(',')[0].strip())
 
 
 def worker_metadata(c):
-    values=[CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,NAMESPACE_OBSERVATION_REF,OBSERVATION_REF,WORKER_FAILURE_REF,RESOURCE_CONTRACT_REF]
+    values=[R5_SOURCE_REF,LEGACY_RESOURCE_CONTRACT_REF,CONTRACT_REF,contract()['fixed_encoder_policy_ref'],PRIOR_OBSERVATION_REF,NAMESPACE_OBSERVATION_REF,OBSERVATION_REF,WORKER_FAILURE_REF,RESOURCE_CONTRACT_REF]
     values += list(config_refs().values())
     for value in config_refs().values():
         parent=bound(value);values.append(parent['baseline_unified']['data_ref'])
@@ -316,7 +323,7 @@ def worker_metadata(c):
 
 def verify_production_inheritance():
     proof=bound(delta_ref())
-    if proof.get('purpose')!='whole_card_depth_urban6_exact_delta_v1' or proof.get('resource_contract_ref')!=RESOURCE_CONTRACT_REF or proof['producer_commit']!=PRODUCER or proof['contract_ref']!=CONTRACT_REF or proof['new_code']!=code_binding():raise ValueError('reviewed explicit continuation delta')
+    if proof.get('purpose')!='event_driven_depth_urban6_exact_delta_v1' or proof.get('resource_contract_ref')!=RESOURCE_CONTRACT_REF or proof['producer_commit']!=PRODUCER or proof['contract_ref']!=CONTRACT_REF or proof['new_code']!=code_binding():raise ValueError('reviewed explicit continuation delta')
     for name,row in proof['changes'].items():
         old=subprocess.check_output(['git','-C',str(ROOT),'show',PRODUCER+':'+name])
         if hashlib.sha256(old).hexdigest()!=row['before_sha256'] or sha(ROOT/name)!=row['after_sha256']:raise ValueError('exact producer delta bytes: '+name)
@@ -325,6 +332,11 @@ def verify_production_inheritance():
             before,after=functions(old),functions((ROOT/name).read_bytes())
             changed=sorted(k for k in set(before)|set(after) if before.get(k)!=after.get(k))
             if changed!=row['changed_symbols']:raise ValueError('exact reviewed function delta')
+    for name,expected in proof.get('new_files',{}).items():
+        if sha(ROOT/name)!=expected:raise ValueError('new event resource/fixture byte binding')
+    for name,expected in proof.get('unchanged_training_ast',{}).items():
+        node=next(n for n in ast.parse((ROOT/'ch3_runner.py').read_bytes()).body if getattr(n,'name',None)==name)
+        if hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()!=expected:raise ValueError('training/evaluation math changed: '+name)
     # Computation producers and author sources are byte-identical; the changed
     # restricted entry only supplies monitoring and orchestration, not math.
     for name,expected in proof['unchanged_producers'].items():
@@ -339,6 +351,7 @@ def verify_production_inheritance():
 def verify_source_light():
     verify_observation_source()
     verify_worker_guard_failure_source()
+    verify_r5_source()
     source=bound(SOURCE_REF)
     if source['old_result']!=str(OLD_RESULT) or source['producer_commit']!=PRODUCER or source['config_refs']!=contract()['old_config_refs']:raise ValueError('specific completed371 producer')
     rows={k:bound(v) for k,v in source['refs'].items() if k!='launcher_log'}
@@ -386,22 +399,22 @@ def verify_worker_guard_failure_source():
     if (value.get('purpose')!='exact_PATCH_ENC1_worker_guard_binding_failure_v1' or value['producer_commit']!='805656e9da7d780330cddbf79995f234deac90d6'
         or value['old_attempt']!='PATCHTST-depth-Urban6-exit-r4-serial-check' or value['old_result']!=str(root)
         or value['prior_observation_ref']!=OBSERVATION_REF or value['config_ref']!=config_refs()['PATCH_ENC1']
-        or value['resource_contract_ref']!=RESOURCE_CONTRACT_REF or value['task_id']!=SERIAL_TASK):raise ValueError('exact r4 worker-guard failure source')
+        or value['resource_contract_ref']!=LEGACY_RESOURCE_CONTRACT_REF or value['task_id']!=SERIAL_TASK):raise ValueError('exact r4 worker-guard failure source')
     refs=value['refs']
     for item in refs.values():
         if ref(item['path'])!=item:raise ValueError('r4 negative evidence changed: '+item['path'])
     process=bound(refs['process']);cfg=bound(refs['worker_config']);permit=bound(refs['permit']);auth=bound(refs['authorization'])
     zero=dict(adam=0,backward=0,forward=0);historical=bound(OBSERVATION_REF)['retained_actual'];budget=bound(refs['probe_budget'])
     if (process['returncodes']!=[1] or process['resource_admission']is not False or process['failure_kind']!='business'
-        or process['resource_mode']!='exclusive_gpu_whole_card_v1' or process['resource_contract_ref']!=RESOURCE_CONTRACT_REF
+        or process['resource_mode']!='exclusive_gpu_whole_card_v1' or process['resource_contract_ref']!=LEGACY_RESOURCE_CONTRACT_REF
         or process['sample_count']!=14 or value['sample_count']!=14 or value['attempt_actual']!=zero
         or value['retained_actual']!=historical or budget['new_actual']!=zero or budget['actual']!=historical
         or bound(refs['worker_budget'])['counts']!=zero or value['old_caps']!=dict(adam=432,backward=432,forward=576)
         or value['new_formal_runs']!=0 or permit['commit']!=value['producer_commit'] or auth['closure_commit']!=value['producer_commit']
         or permit['execution_attempt']!=value['old_attempt'] or cfg['approval']!=permit
         or cfg['protocol_sha']!=digest(bound(value['config_ref'])) or cfg['unified_stage']!='PATCH_ENC1'
-        or any(cfg.get(k)!=v or permit.get(k)!=v for k,v in resource_binding().items())
-        or cfg['metadata_files'].get(RESOURCE_CONTRACT_REF['path'])!=RESOURCE_CONTRACT_REF['sha256']
+        or any(cfg.get(k)!=v or permit.get(k)!=v for k,v in dict(resource_mode='exclusive_gpu_whole_card_v1',resource_contract_ref=LEGACY_RESOURCE_CONTRACT_REF).items())
+        or cfg['metadata_files'].get(LEGACY_RESOURCE_CONTRACT_REF['path'])!=LEGACY_RESOURCE_CONTRACT_REF['sha256']
         or value['old_evidence_denied_path'] in cfg['metadata_files']):raise ValueError('r4 failure identity/cost/resource binding')
     denied=[json.loads(line) for line in Path(refs['audit']['path']).read_text().splitlines() if json.loads(line)['event']=='denied']
     if len(denied)!=1 or denied[0]['path']!=value['old_evidence_denied_path'] or denied[0]['reason']!='old evidence forbidden':raise ValueError('exact r4 denied metadata access')
@@ -536,16 +549,14 @@ def verify_prefix():
 
 
 def anchors():
-    return dict(recovery='specific_PATCH_ENC1_observation_after_completed_round2_371',execution_attempt=ATTEMPT,execution_mode='single_serial_check'if SERIAL_CHECK else'fixed_remaining_chain',single_serial_task=SERIAL_TASK,single_serial_result=str(SERIAL_RESULT),parent_technical_failure_ref=WORKER_FAILURE_REF,prior_observation_failure_ref=OBSERVATION_REF,prior_Urban_failure_ref=SOURCE_REF,completed_round2_ref=SOURCE_REF,completed_prefix_ref=PREFIX_REF,probe_reuse_ref=REUSE_REF,contract_ref=CONTRACT_REF,fixed_encoder_policy_ref=contract()['fixed_encoder_policy_ref'],producer_delta_ref=delta_ref(),candidate_config_refs=config_refs(),completed_new_formal=196,expected_remaining_formal=335,approved_total_new_formal=531,third_round_runs=287,depth_supplement_runs=48,automatic_main_table_replacement=True,main_table_replacement_cells=24,chosen_M_encoder=2,metric_based_reselection=False,**resource_binding())
+    return dict(recovery='specific_PATCH_ENC1_observation_after_completed_round2_371',execution_attempt=ATTEMPT,execution_mode='single_serial_check'if SERIAL_CHECK else'fixed_remaining_chain',single_serial_task=SERIAL_TASK,single_serial_result=str(SERIAL_RESULT),parent_technical_failure_ref=R5_SOURCE_REF,prior_observation_failure_ref=OBSERVATION_REF,r5_numeric_reference_ref=R5_SOURCE_REF,timing_supplement=bound(R5_SOURCE_REF)['timing_supplement'],prior_Urban_failure_ref=SOURCE_REF,completed_round2_ref=SOURCE_REF,completed_prefix_ref=PREFIX_REF,probe_reuse_ref=REUSE_REF,contract_ref=CONTRACT_REF,fixed_encoder_policy_ref=contract()['fixed_encoder_policy_ref'],producer_delta_ref=delta_ref(),candidate_config_refs=config_refs(),completed_new_formal=196,expected_remaining_formal=335,approved_total_new_formal=531,third_round_runs=287,depth_supplement_runs=48,automatic_main_table_replacement=True,main_table_replacement_cells=24,chosen_M_encoder=2,metric_based_reselection=False,**resource_binding())
 
 
 def status():
     verify_source_light()
     try:verify_production_inheritance()
     except (ImportError,RuntimeError)as exc:raise ValueError('completed371 producer/bundle verification failed: '+str(exc)[:300])from exc
-    if not SERIAL_CHECK:
-        from utils import ch3_type1_chain as q
-        serial_check_evidence(q.configs()['PATCH_ENC1'],required=True)
+    if not SERIAL_CHECK:verify_r5_source()
     return dict(state='COMPLETED_ROUND2_371_ADOPTION_AWAITING_START',READY_FOR_GPU_EXECUTION=False,anchors=anchors(),remaining_formal_runs=335,result_review='pending')
 
 
@@ -761,6 +772,9 @@ def retained_refs(report):
 
 def retained_payload(c,point):
     if c['baseline_unified']['stage']=='PATCH_ENC1':
+        refs={p:v for row in bound(R5_SOURCE_REF)['accepted'].values()for p,v in row['artifacts'].items()}
+        return all(point[k]in refs and ref(point[k])==refs[point[k]]for k in ('schema_file','data_file','meta_file')if k in point)
+    if c['baseline_unified']['stage']=='PATCH_ENC1':
         saved=SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json'
         if not saved.exists():return False
         body=bound(ref(saved))
@@ -776,20 +790,9 @@ def retained_payload(c,point):
 def load_seed(c,a):
     validate_permit_link(c,a,True)
     if c['baseline_unified']['stage']=='PATCH_ENC1':
-        value=verify_observation_source()
-        for item in list(bound(PRIOR_OBSERVATION_REF)['artifact_refs'].values())+list(bound(NAMESPACE_OBSERVATION_REF)['artifact_refs'].values())+list(value['artifact_refs'].values()):
-            if ref(item['path'])!=item:raise ValueError('failed six-step artifact changed; never reclassify resource failure')
+        old=verify_r5_source();actual=old['historical_actual']
         from utils import ch3_type1_tasks as s
-        actual=value['retained_actual']
-        seed=dict(budget=dict(caps=s.probe_budget(c)['caps'],reserved=dict(actual),actual=dict(actual),historical_actual=dict(actual),new_actual=dict(adam=0,backward=0,forward=0),diagnostic_actual=dict(actual),diagnostic_failure_ref=OBSERVATION_REF,refund=False),evidence={},decisions={},artifacts={})
-        if not SERIAL_CHECK:
-            saved=serial_check_evidence(c)
-            if saved:
-                for k,n in saved['counts'].items():
-                    for field in ('reserved','actual','historical_actual'):seed['budget'][field][k]+=n
-                seed['evidence'][saved['key']]=saved['entry'];seed['artifacts']=saved['artifacts']
-                seed['single_serial_source']=ref(SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json')
-        return seed
+        return dict(budget=dict(caps=s.probe_budget(c)['caps'],reserved=dict(actual),actual=dict(actual),historical_actual=dict(actual),new_actual=dict(adam=0,backward=0,forward=0),diagnostic_actual=dict(actual),refund=False),evidence={},decisions={},artifacts={},numeric_reference_ref=R5_SOURCE_REF)
     v=evidence();artifacts={};entries={}
     for run,row in v['accepted'].items():
         t=next(t for t in c['tasks'] if t['id']==run)
@@ -832,9 +835,34 @@ def self_review(report,path):
     return any(str(path) in row['artifacts'] and row['self_comparison']['passed']is True for row in evidence()['accepted'].values()) if report.get('probe_recovery_ref')==REUSE_REF else False
 
 
+def numeric_reference(c,run):
+    if c['baseline_unified']['stage']!='PATCH_ENC1':return None
+    for row in bound(R5_SOURCE_REF)['accepted'].values():
+        if row['task_ids']==[run]:return row['trajectory_ref']
+    return None
+
+
+def verify_r5_source():
+    value=bound(R5_SOURCE_REF)
+    if value.get('producer_commit')!='6f525489cff125248cbc0b256e9744acf67590da' or value.get('historical_actual')!=dict(adam=42,backward=42,forward=56) or value.get('timing_comparable')is not False:raise ValueError('exact r5 adoption/cost/timing boundary')
+    for item in value['protected_refs'].values():
+        if ref(item['path'])!=item:raise ValueError('r5 failure/success source changed')
+    failure=bound(value['failed_q4_ref'])
+    if failure.get('failure_kind')!='observation' or failure.get('resource_admission')is not False or failure.get('returncodes')!=[-15]*4:raise ValueError('r5 q4 remains negative')
+    from utils.ch3_type1_upstream import assert_owned_exited
+    owners=[]
+    for row in value['accepted'].values():
+        if row['producer']['commit']!=value['producer_commit'] or row['producer']['resource_contract_ref']!=LEGACY_RESOURCE_CONTRACT_REF:raise ValueError('r5 original producer/policy retained')
+        process=bound(row['process'])
+        if process.get('returncodes')!=[0] or process.get('resource_admission')is not True:raise ValueError('successful original serial only')
+        owners+=process['worker_lifecycles']
+    assert_owned_exited(owners)
+    return value
+
+
 def group_review(report,group):return None
 def extra_actual(report):
     if report.get('probe_recovery_ref')==REUSE_REF:
-        if report.get('scope','').endswith('PATCH_ENC1-probe'):return bound(OBSERVATION_REF)['retained_actual']
+        if report.get('scope','').endswith('PATCH_ENC1-probe'):return bound(R5_SOURCE_REF)['historical_actual']
         if report.get('scope','').endswith('URBAN_SUBSET-probe'):return evidence()['failed_actual']
     return dict(adam=0,backward=0,forward=0)
