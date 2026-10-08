@@ -157,6 +157,8 @@ def build_index(old_boundaries,amendment_ref,c):
     return validate_index(dict(purpose='round2_revised_main_results_v1',revision=PROTOCOL,effective_counts=dict(MS=203,M=168,total=371),planned_formal_executions=399,original_runs=287,amendment_runs=112,Weather_replacement_runs=28,cells=cells,technical_complete=True,result_review='pending',source_rule='all Weather20 replaces Weather10 irrespective of metrics',history_test_seen=True))
 
 def summary():
+    from utils.ch3_type1_chain import PROBE_RECOVERY
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'second_round'):return PROBE_RECOVERY.second_round()
     path=RESULT/'queue/round2-main-results.json'
     if not path.exists(): return dict(revision='Pending',effective_expected=371,planned_formal_executions=399,Weather20='Pending; no Weather10 value relabeled as 20',result_review='pending')
     boundary=bound(ref(RESULT/'queue/round2-boundary.json'))

@@ -8,7 +8,7 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive
 
 def cli():
     parser=argparse.ArgumentParser()
-    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round'))
+    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round','depth-results'))
     parser.add_argument('--approval',default=str(s.PACKAGE/'start-review.json'));parser.add_argument('--approval-sha')
     parser.add_argument('--wrapper-pid',type=int);parser.add_argument('--stage',choices=s.STAGES);parser.add_argument('--model',choices=s.MODELS)
     parser.add_argument('--runtime');parser.add_argument('--runtime-sha');a=parser.parse_args()
@@ -52,14 +52,17 @@ def cli():
     if a.action=='third-round':
         from utils.ch3_type1_summary import result_index
         print(json.dumps(result_index(q.configs()),ensure_ascii=False,indent=2));return 0
+    if a.action=='depth-results':
+        if not q.PROBE_RECOVERY or not hasattr(q.PROBE_RECOVERY,'depth_results'):raise PermissionError('depth variants require their explicit entry')
+        print(json.dumps(q.PROBE_RECOVERY.depth_results(),ensure_ascii=False,indent=2));return 0
     status=q.status()
     if a.action=='logs':status['logs']=[str(q.LOG)]+[str(p) for p in q.CONTROL.glob('*.log')]
     if a.action=='complete':
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
-        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or complete.get('total_runs')!=427 or complete.get('imported_ms_runs')!=203 or complete.get('base_round2_runs')!=287 or complete.get('third_round_runs')!=231 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
-        if q.PROBE_RECOVERY and getattr(q.PROBE_RECOVERY,'COMPLETED_PREFIX',False):
-            if complete.get('adopted_new_formal_runs')!=84 or complete.get('executed_new_formal_runs')!=343:raise ValueError('completed prefix84 plus this attempt343, not427 new outputs')
+        if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or any(complete.get(k)!=v for k,v in q.completion_counts().items()) or complete.get('imported_ms_runs')!=203 or complete.get('base_round2_runs')!=287 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
+        for stage in ('PATCH_ENC1','PATCH_ENC2'):
+            if stage in s.STAGES:q.validate_boundary_light(complete[stage+'_boundary'],stage)
         q.validate_boundary_light(complete['M_BASE_boundary'],'M_BASE')
         base=bound(complete['base287_boundary']);ms=bound(complete['MS_import_boundary'])
         from utils.ch3_ms_seal_recovery import SOURCE_REF
@@ -73,6 +76,7 @@ def cli():
         q.validate_boundary_light(complete['URBAN_boundary'])
         q.validate_boundary_light(complete['EPF_boundary'],'EPF_ALL')
         q.validate_boundary_light(complete['M_boundary'],'M_ALL')
+        if q.PROBE_RECOVERY and hasattr(q.PROBE_RECOVERY,'validate_complete'):q.PROBE_RECOVERY.validate_complete(complete)
     print(json.dumps(status,ensure_ascii=False,indent=2));return 0
 
 

@@ -23,6 +23,8 @@ def current_recovery():
     return PROBE_RECOVERY or sys.modules[__name__]
 
 def activate_worker(value):
+    from utils import ch3_patchtst_depth_urban6_recovery as expanded
+    if value==expanded.REUSE_REF:expanded.activate();return expanded
     from utils import ch3_amend_ett_identity_recovery as prefix
     if value==prefix.REUSE_REF:prefix.activate();return prefix
     from utils import ch3_moderntcn_etth1_recovery as numeric

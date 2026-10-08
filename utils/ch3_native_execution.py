@@ -257,9 +257,11 @@ def run_probe(c,a):
     ctx=scope.context(c);root=ctx['probe_root'];zero=dict(adam=0,forward=0,backward=0)
     budget=dict(caps=ctx['caps'],reserved=dict(zero),actual=dict(zero),refund=False);decisions={};evidence={};artifacts={}
     seed=None
-    if a.get('probe_recovery_ref') and c['baseline_unified']['stage']=='M_BASE':
+    if a.get('probe_recovery_ref'):
         from utils.ch3_probe_schema_recovery import current_recovery
-        seed=current_recovery().load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
+        recovery=current_recovery()
+        if c['baseline_unified']['stage']=='M_BASE' or c['baseline_unified']['stage']in getattr(recovery,'SEED_STAGES',()):
+            seed=recovery.load_seed(c,a);budget=seed['budget'];decisions=seed['decisions'];evidence=seed['evidence'];artifacts=seed['artifacts']
     def wave(g,phase,ids,n):
         key=g['id']+'/'+phase+'/'+str(n)
         if seed and key in seed['evidence']:

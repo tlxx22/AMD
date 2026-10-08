@@ -1,10 +1,78 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — AMD新增ETT声明/完成前缀恢复已closure于08a79f250c4982201f4ae065b812a18caa3d5dc4，旧配置准备通过但新恢复链尚未启动。M_BASE 21/21准入、M84和基础287保持完成；MS203与M84保留真实旧来源，补做正式0/112、第三轮正式0/231，result_review仍pending。当前用户启动前协议修订仅把两阶段Weather20共56项patience None改为10；133数值政策、其余科学字段、原预算及剩余343项范围保持。只做无业务模型合成验收，未stage/commit/push、未生成可执行新许可、未arm/start或执行真实模型/GPU/训练/validation/test；候选待ChatGPT实际字节审核。三轮合同见[§0总览](#m6-three-rounds)，最新增量见[Weather20早停修订](#m6-weather20-patience10-v1)。**
+**In Progress — Weather20/10版本已closure于b97392a179b55b4bffb2bf0e3b85267bb0b07750。MS203、M84、M_AMEND112和原第二轮371格已技术完成，result_review仍pending。第三轮已发生两份AMD串行probe，但正式尚未开始；当前失败是退出观测/采样衔接。用户新增PatchTST encoder1/2独立M补做48项、Urban六fold且H仅3/12共84项，并在新增结果产生前固定第三章M主表PatchTST为enc2，不因结果改选。第二轮待enc2全部24项技术完成后另建371索引，第三轮PatchTST M24同步enc2，MS保持。第三轮287、本次待执行335、扩展后新正式总531。当前增量仍为未提交候选，未生成可执行许可或启动新链。必要CPU构造/合成前向另记，未运行真实GPU probe/正式训练/真实评价。最新范围及复验见[本次增量](#m6-patchtst-depth-urban6-repair-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
+
+下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+<a id="m6-patchtst-depth-urban6-repair-v1"></a>
+## 当前增量：PatchTST固定层数补做、Urban六fold与退出观测修复
+
+本节对应用户明确批准的新科学范围和原第三轮技术故障修复，两者分别登记。开发起点为N的`b97392a179b55b4bffb2bf0e3b85267bb0b07750`，本节仍是未提交候选，不表示已获ChatGPT审核或已启动新链。W/R、AGENTS、作者实现、原始数据、环境、Closed milestones及不可变baseline tag保持。
+
+### 完成来源与原故障
+
+Weather20/patience10版本已closure。旧`amend-ett-identity-r1`链的MS203、M84、M_AMEND112及第二轮371格均技术完成，Weather20已按整批规则采用；结果review与效果分析仍pending。原371主索引SHA为`8a9ccbe8c0574e0cb82a1b2d129b1528516d63772b5e3c23b96e5c84ecd43aa9`，边界SHA为`2cc3a7ac538369272f79e4b46d12fbe8f57348d88d4571d207db782d521b65fc`，本次保持原字节和各自生产commit。
+
+第三轮已经执行AMD fold1的H3/H12两份六步串行probe，原实际消耗为Adam12、backward12、forward16，正式任务为0；不能写成第三轮从未启动。H3具备完整退出和资源收据，可按固定绑定复用。H12 worker退出码0、runtime.error=None，但资源收据失败：`owned exit observation did not settle within 3 seconds`。该波实际采样间隔最长9.732354781823233秒；末尾子进程metadata不可用，NVML仍登记host PID14956，对应worker PID14330、start_ticks208056410及其原PID namespace。现有材料支持退出观测与慢采样衔接故障，不能据此认定OOM或将资源Passed手填为true。
+
+当前窄修仍要求原实例退出、GPU UUID/namespace/start_ticks身份可靠、无未知占用且获得新鲜清洁尾样本；尾部总等待最多60秒，每次NVML查询最多10秒，临近截止时进一步收紧两次查询的合计时间。短暂NVML残留仅延迟裁决；长期残留、PID复用/归属冲突、读取不确定、权限或查询失败、UUID改变均拒绝。查询/观测故障不进入resource-only降并发回退。资源余量、原数值政策和模型计算数学不变，当前restricted bundle仅更新监测文件的封印，旧producer封印保留。
+
+H12原6/6/8失败消耗及原轨迹继续保留，但缺少的资源退出证明不能用离线数值自比较代替。因此只重新测量这一受影响serial；H3不再派发，其余新层数、新fold和未开始任务仍需按真实形状完成准入。并发最多q4，仅使用实际验证范围，不将3层或fold1/2的旧准入直接外推。
+
+### 新科学任务及结果采用边界
+
+PatchTST新增encoder1和encoder2各24项，共48项，依次完成enc1固定组、enc2固定组。六域为ETTh1、ETTh2、ETTm1、ETTm2、Weather、Exchange，H96/192/336/720，seed2024。逐任务从第二轮已封存的对应PatchTST有效profile派生：ETTh1/Exchange取M_BASE，新增三个ETT及Weather取M_AMEND；Weather明确取20轮/patience10来源。唯一结构差异为`e_layers=3→1/2`，variant/task-ID/配置与产物路径独立；作者PatchTST实现及其余结构、输入、监督、数据处理、Adam、batch/eval_batch128和完整OneCycle参数保持。四ETT及Exchange为10/None，Weather为20/10，scheduler仍按最大轮数计划。每项独立fresh，不取原3层权重，不warm-start。
+
+M数值准入沿`baseline_numeric_admission_v1`，full_float_state、state_atol2e-4、metric_atol1e-6，PatchTST原loss及所有exact身份要求保持。当前五阶段原133条政策不变，两层补做增加12个对应model/dataset政策条目；政策条目不等同于probe组。
+
+48项仍作为第二轮协议下的独立层数实验，原399次计划运行事实及旧371封存、3层结果索引不变。用户随后在新增enc1/2结果产生前明确冻结第三章M主表PatchTST为enc2，并澄清“固定enc2，不因结果改选”；这一科学身份不再pending。enc1完整执行和保留，但不参与正式主表；enc2全部24项技术完成并封存后，建立独立`round2-main-results.patchtst-enc2-v1.json`和对应边界，24个PatchTST M格统一切换，其他347格保持原cell全部来源字段。新版记录原索引引用、逐格previous/new来源、预先采用政策与采用身份，原Weather10→Weather20来源链保留；旧文件不覆盖、不修改、不删除。MSE/MAE来自同一run的validation-selected best，不按test、指标、相对排名、论文接近度或enc1更好/enc2更差改选，不逐H拼接。
+
+第三轮M_ALL新增配置`configs/ch3_type1_m_all_patchtst_enc2_v1.json`从第三轮原对应profile派生：仅PatchTST24项`e_layers=3→2`，配套新variant/task-ID、metadata身份映射和来源绑定，其余144项科学profile与task-ID保持。原type1学习率、seed、batch、epochs、patience（含Weather20/10）、数据及test合同不变，M_ALL仍168项；全部MS任务（Urban六fold和EPF）的PatchTST配置保持。新形状必须完成本阶段适用probe，不继承3层并发Passed。
+
+`depth-results`完整呈现enc1/2/3逐域四H及域内均值，三种配置、结果和结果产生前的固定采用规则仅要求在M6与服务器实验artifact完整留存，不要求增加论文实验设置、附录或其他板块；正式M主表展示固定enc2。TimeMixer Table7的Layers属于其自身模型，通用run.py默认不能证明主表PatchTST逐任务配置；本次未确认该作者来源，48项不称精确论文主表复现。
+
+第三轮Urban扩为七baseline×fold1–6×H3/H12共84项，只有两个预测偏移，不是六折四H矩阵。原fold1/2的28个科学profile不变，新增56项逐一采用冻结的真实fold月份边界、训练窗口、train-only scaler、节点顺序及metadata，重新派生batch数、steps_per_epoch和计量。F4/T12/C11、target=volume、pred_len1、batch128、epochs20/patience5、seed2024、Adam初始lr1e-4及type1系数4/9保持。EPF35保持；M168除上文PatchTST24项结构和身份修订外保持。第三轮为84＋35＋168＝287项，最大3990 run-epochs。
+
+### 接线、计量与启动边界
+
+新技术attempt为`PATCHTST-depth-Urban6-exit-r1`，session为`ch3-m6-patchtst-depth-urban6-r1`，scope仍`m6-baseline-type1-followup-v3-recovery1`。独立结果根为现有formal evidence下的`baseline-unified-v3-ms-seal-m128-recovery1-patchtst-depth-urban6-r1`，日志在本增量包`followup-launcher.log`；旧许可、失败、日志、结果和两份短轨迹不覆盖。
+
+执行顺序固定为：采用原第二轮371来源及新生命周期记录→enc1 M24准入/正式/封存→enc2 M24准入/正式/封存→另封存固定enc2新版371来源→Urban84准入/正式/封存→EPF35→M168（PatchTST enc2）→technical_complete。不重新派发MS203、M_BASE21组/旧40份、M84、M_AMEND28组/112项或其test，不等待已退出的旧owner。旧训练来源与新采用commit分开；新许可需在实际review/closure后绑定当前HEAD及本次新M_ALL配置/plan/固定政策。第三轮许可须消费新371边界，旧371仍保留为历史来源；运行期只核验紧凑边界/MAC和索引SHA，不逐worker重放371个结果或probe。各阶段完整AUTO_AUDIT一次，正常阶段自动衔接，层数效果不控制后续执行。
+
+| 新执行阶段 | 正式任务 | 最大run-epochs | 最大Adam/backward各 | 最大forward |
+|---|---:|---:|---:|---:|
+| PatchTST enc1 | 24 | 280 | 50640 | 63806 |
+| PatchTST enc2 | 24 | 280 | 50640 | 63806 |
+| Urban六fold、H3/H12 | 84 | 1680 | 7300300 | 8197182 |
+| EPF | 35 | 350 | 399000 | 467845 |
+| M_ALL | 168 | 1960 | 354480 | 446642 |
+| 合计 | 335 | 4550 | 8155060 | 9239281 |
+
+已完成196项新正式任务加本次335项，共531；较原427新增104＝层数48＋fold扩展56。正常早停如实记实际轮数，不新增run/搜索额度。新五阶段共69个准入组、335个代表；含两份历史串行及失败成本的名义probe计量为4026/4026/5416，保护上界6024/6024/8104（Adam/backward/forward）；本次新计算分别为4014/4014/5400及6012/6012/8088，名义669个新短worker、保护上界1002。原成本不清零，不将probe轨迹计作正式结果。
+
+基于第二轮同模型/域/fold/H的已记录elapsed与forward计数，仅作计划代理：按本轮最大计算量折算串行等价约261.2小时，理想q4算术约65.3小时，未计采用/probe/审计/尾观测开销。该估算不是新形状实测工期或时限保证；enc1/2借用3层吞吐参考、batch/LR/早停及共享负载变化均可能影响实际耗时，并发仍待实际准入。逐任务计量及来源见外置预算记录。
+
+### 当前定向复验与送审材料
+
+固定enc2决定前的19文件候选定向30/30通过，原日志、inventory/patch/acceptance/index完整保留。其退出观测、来源完整性及未变化的模型计算证据继续按适用范围使用；该30/30不冒充当前增量新字节的验收结论。
+
+固定enc2增量定向23/23通过（独立`tests/attempt2.log`），覆盖M_ALL仅24个结构差异、MS/数值政策/计量不变、真实371索引生成与边界封存、347格逐字段保持、enc2更差仍固定采用、旧enc3及Weather替换历史保留、缺项/重复/篡改/错producer/test次数拒绝、新旧配置/plan/政策/closure许可隔离、第三轮必须消费新371边界、完整335项顺序与五次阶段AUTO_AUDIT、compact formal准入及运行期联网0。第一次23项验收有两项新夹具断言/收据注入错误，失败日志保留；修正夹具后同一最终代码和绑定证据完成23/23，不删除保护断言、不放宽比较容差。
+
+第三轮PatchTST enc2的24项实际构造输入签名与既有enc2 CPU capture一致，逐项绑定复用32次构造/32次最小合成前向中的适用证据，本次增量新增真实构造/模型前向0；这只证明构造与输出接口，不证明第三轮新形状的并发或数值准入。新增GPU、backward/Adam、真实validation/test、checkpoint字节读取/反序列化和信号操作均0。原128份轨迹等更早材料未在本次重放，原371结果及旧失败现场保持。
+
+真实PatchTST适配器CPU构造32次、最小合成前向32次，确认1/2层实际encoder block数及全部48任务的结构签名映射；hour/minute ETT配置差异独立覆盖。旧完整数值轨迹只作有界只读复核；本轮backward/Adam、GPU初始化/probe、正式训练、真实validation/test与checkpoint读取/反序列化均0。旧完成前缀只核验非checkpoint产物及checkpoint stat，保留原已验证checksum引用，不重算checkpoint checksum。
+
+本轮失败验收日志和证明迭代保留，最终Passed仅对应最终同一候选字节，不拼接不同版本Passed。一次合成夹具遗漏结果根隔离，曾创建新候选根下六个空queue目录；已确认无文件、无进程、无许可/计算并仅用rmdir移除，夹具现已全部使用临时根。该事实独立保留，不声称新结果路径从未存在；当前路径再次为空缺状态。
+
+增量集中于[patchtst-depth-urban6-repair-v1](../../../amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified-v3-ms-seal-m128-recovery1/moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/patchtst-depth-urban6-repair-v1/)：`contract.json`登记科学增量与父profile；`source-anchors.json`、`prefix-verification.json`登记371来源和退出/完整性；`urban-probe-reuse.json`区分H3复用与H12失败；`producer-delta-proof.json`精确绑定监测/接线差异和新bundle；`cpu-smoke/`与`tests/attempt5.log`为实际验收；`budget-and-timing.json`保留派生计量及工期来源；完整inventory/patch/acceptance/evidence-index供直读审核。`start-approval.template.json`只有未授权模板，`operations.sh`是review/closure及许可就绪后的操作方案，当前未生成可执行AUTH。
+
+当前固定enc2送审增量位于上述包的`patchtst-enc2-adoption-v1/`：`fixed-encoder-policy.json`记录用户结果前决定及仅M6/服务器完整留存；新`contract.json`、`m_all-data-bindings.json`、`m_all-plan.json`及`producer-delta-proof.json`绑定第三轮24项修订；`effective-profile-diff.json`、`cpu-interface-reuse.json`、`budget-verification.json`保留逐项差异、CPU映射和计量复核。新的完整20文件inventory/patch/acceptance/index合并原19候选及本次增量，原19包不覆盖。当前未授权模板和经bash-n核验的`operations.sh`均在该子目录；未来许可须排他生成该子目录`start-review.json`，显式指定新许可路径及实际SHA。入口/session/结果根沿用本候选身份，日志仍在父包`followup-launcher.log`，不误写到子目录；旧父包模板/操作记录只保留其当时准备事实。
+
+当前停止在未stage/commit/push、未arm/start、未启动真实恢复监督器或新GPU计算的review点。技术完成、结果review与效果结论始终分开；不宣称ChatGPT已审核本轮新字节。
 
 <a id="m6-three-rounds"></a>
 ## 0. 三轮正式实验组织与最终结果采用规则

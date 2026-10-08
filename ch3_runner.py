@@ -97,6 +97,11 @@ def code_binding():
                   'm6_moderntcn_etth1_recovery_entry.py',
                   'scripts/ch3/start_moderntcn_etth1_recovery.sh','tests/test_m6_moderntcn_etth1_diagnostic.py',
                   'tests/test_m6_moderntcn_etth1_recovery.py','tests/test_m6_numeric_admission_defaults.py']
+    if (ROOT/'utils/ch3_patchtst_depth_urban6_recovery.py').exists():
+        files += ['utils/ch3_patchtst_depth_urban6_recovery.py','m6_patchtst_depth_urban6_recovery_entry.py',
+                  'scripts/ch3/start_patchtst_depth_urban6_recovery.sh','tests/test_m6_patchtst_depth_urban6.py',
+                  'configs/ch3_round2_patchtst_enc1_v1.json','configs/ch3_round2_patchtst_enc2_v1.json',
+                  'configs/ch3_type1_urban6_h3_h12_v1.json','configs/ch3_type1_m_all_patchtst_enc2_v1.json']
     return {f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in files}
 
 

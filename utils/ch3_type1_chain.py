@@ -95,7 +95,7 @@ def dynamic(c,worker=False):
     env=bound(ENVIRONMENT_REF)
     recipe=bound(s.AUTHOR_RECIPE)
     for value in c['baseline_unified'].get('extension_refs',{}).values():bound(value)
-    if c['baseline_unified']['stage']in ('M_BASE','M_AMEND'):
+    if c['baseline_unified']['stage']in ('M_BASE','M_AMEND','PATCH_ENC1','PATCH_ENC2'):
         from utils.ch3_round2_amendment import RECIPE_REF
         onecycle=bound(RECIPE_REF)
         for value in onecycle['source_refs']:
@@ -222,14 +222,16 @@ def validate_boundary_light(value,stage='URBAN_SUBSET'):
     b=bound(value);c=configs()[stage]
     if value['path']!=str(s.context(c)['control']/'technical-boundary.json'):raise ValueError('exact sealed ring boundary path')
     if b.get('purpose')!='baseline_type1_'+stage+'_boundary_v1' or b.get('scope')!=s.ID or b.get('technical_complete')is not True or b.get('result_review')!='pending' or b['task_ids']!=[t['id'] for t in c['tasks']] or b['protocol_sha']!=digest(c):raise ValueError('sealed MS boundary scope')
-    if stage=='M_BASE' and PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False):PROBE_RECOVERY.validate_adopted_boundary(value)
+    if PROBE_RECOVERY and stage in getattr(PROBE_RECOVERY,'COMPLETED_STAGES',('M_BASE',)if getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)else()):PROBE_RECOVERY.validate_adopted_boundary(value)
     return b
 
 def validate_round2_boundary_light(value):
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'validate_main_boundary') and value.get('path')==str(PROBE_RECOVERY.main_boundary_path()):return PROBE_RECOVERY.validate_main_boundary(value)
     from utils import ch3_round2_amendment as amend
     v=bound(value);secret=os.environ.get(SECRET,'');body={k:x for k,x in v.items() if k!='mac'}
     if value['path']!=str(amend.RESULT/'queue/round2-boundary.json') or not secret or not hmac.compare_digest(v.get('mac',''),hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()):raise PermissionError('round-two amendment boundary not sealed by this lifecycle')
     if v.get('owner')!=owner(json.loads((CONTROL/'controller.json').read_text())['owner']['pid']) or not same(v['owner']) or v.get('scope')!=s.ID or v.get('technical_complete')is not True or v.get('result_review')!='pending' or v.get('effective_counts')!={'MS':203,'M':168,'total':371} or v.get('planned_formal_executions')!=399 or v.get('effective_task_set_sha')!=digest(sorted(amend.expected_cells())):raise ValueError('exact revised 371-source boundary and owned lifecycle')
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'validate_round2_adoption'):PROBE_RECOVERY.validate_round2_adoption(v)
     return v
 
 def seal_round2_boundary(amendment_ref):
@@ -328,7 +330,7 @@ def readiness_report(a=None):
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
     return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,
         registered_ms203_recovery_requires_full_source_check_and_owned_exit=True,
-        remaining_formal_runs=343 if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False) else 427,
+        remaining_formal_runs=completion_counts()['executed_new_formal_runs'],
         base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)))
 
 
@@ -402,7 +404,8 @@ def validate_child(permit_ref):
 
 def seal_boundary(c,receipts):
     stop_check()
-    for m in s.MODELS:
+    if set(receipts)!=set(s.context(c)['models']):raise ValueError('exact stage model receipt coverage')
+    for m in s.context(c)['models']:
         r=bound(receipts[m])
         if r.get('technical_complete')is not True or r['model']!=m or r['task_ids']!=[t['id'] for t in c['tasks'] if t['model']==m]:raise ValueError('exact successful model receipt')
     binding=dynamic(c)
@@ -424,17 +427,20 @@ def drive(actions,update,check,initial=None,states=None):
 def run(start_ref):
     from ch3_runner import dump
     cs=configs()
+    def round2(r):
+        if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'MAIN_ADOPTION_STATE'):return r.get(PROBE_RECOVERY.MAIN_ADOPTION_STATE,r.get('SEAL_ROUND2_REVISED_BOUNDARY'))
+        return r.get('SEAL_ROUND2_REVISED_BOUNDARY')
     def probe(stage,r):
         c=cs[stage];ctx=s.context(c);ctx['control'].mkdir(parents=True,exist_ok=False)
         predecessors={k:r[STAGE_STATES[k][3]]for k in s.STAGES[:s.STAGES.index(stage)]}
-        pr=create_permit(c,start_ref,True,boundary_ref=predecessors,round2_ref=r.get('SEAL_ROUND2_REVISED_BOUNDARY'))
+        pr=create_permit(c,start_ref,True,boundary_ref=predecessors,round2_ref=round2(r))
         wait_owned(stage,pr,True);return pr
     def formal(stage,r):
         c=cs[stage];summary=r[STAGE_STATES[stage][1]]
         predecessors={k:r[STAGE_STATES[k][3]]for k in s.STAGES[:s.STAGES.index(stage)]}
-        pr=create_permit(c,start_ref,False,summary,predecessors,r.get('SEAL_ROUND2_REVISED_BOUNDARY'))
+        pr=create_permit(c,start_ref,False,summary,predecessors,round2(r))
         runtime=seal_runtime(c,pr);receipts={}
-        for model in s.MODELS:
+        for model in s.context(c)['models']:
             stop_check();wait_owned(stage,pr,False,model,runtime)
             receipts[model]=ref(s.context(c)['control']/('group-'+model)/'complete.json')
         return receipts
@@ -446,16 +452,28 @@ def run(start_ref):
         actions[audit_state]=lambda r,stage=stage:audit_probe(cs[stage])
         actions[formal_state]=lambda r,stage=stage:formal(stage,r)
         actions[seal_state]=lambda r,stage=stage:seal_boundary(cs[stage],r[STAGE_STATES[stage][2]])
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'continuation_actions'):actions.update(PROBE_RECOVERY.continuation_actions())
     initial=None;states=None
     if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False):
         stop_check();validate_start(bound(start_ref))
-        dump(CONTROL/'progress.json',dict(state='VERIFY_ADOPT_COMPLETED_BASE287',scope=s.ID,result_review='pending'))
+        dump(CONTROL/'progress.json',dict(state='VERIFY_ADOPT_COMPLETED_ROUND2_371' if getattr(PROBE_RECOVERY,'COMPLETED_ROUND2',False) else 'VERIFY_ADOPT_COMPLETED_BASE287',scope=s.ID,result_review='pending'))
         initial=PROBE_RECOVERY.adopt_prefix()
         skipped={'VERIFY_IMPORT_MS203_AND_SEAL','SEAL_BASE_287_BOUNDARY',*STAGE_STATES['M_BASE']}
+        if getattr(PROBE_RECOVERY,'COMPLETED_ROUND2',False):skipped.update((*STAGE_STATES['M_AMEND'],'SEAL_ROUND2_REVISED_BOUNDARY'))
         states=[state for state in STATES if state not in skipped]
     receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check,initial,states)
     stop_check()
-    exclusive(CONTROL/'complete.json',dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],total_runs=427,imported_ms_runs=203,base_round2_runs=287,third_round_runs=231,round2_effective_runs=371,adopted_new_formal_runs=84 if initial else 0,executed_new_formal_runs=343 if initial else 427))
+    complete=dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],imported_ms_runs=203,base_round2_runs=287,round2_effective_runs=371,**completion_counts())
+    for stage in ('PATCH_ENC1','PATCH_ENC2'):
+        if stage in cs:complete[stage+'_boundary']=receipts[STAGE_STATES[stage][3]]
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'completion_fields'):complete.update(PROBE_RECOVERY.completion_fields(receipts))
+    exclusive(CONTROL/'complete.json',complete)
+
+
+def completion_counts():
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'completion_counts'):return PROBE_RECOVERY.completion_counts()
+    adopted=84 if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)else 0
+    return dict(total_runs=427,third_round_runs=231,adopted_new_formal_runs=adopted,executed_new_formal_runs=427-adopted)
 
 
 def start(start_ref,token):

@@ -36,6 +36,7 @@ def metadata_files(c,a,runtime_ref=None):
         for name in ('POLICY_REF','ALL_M_POLICY_REF','PRIOR_REUSE_REF','INCLUSION_REF','DELTA_REF','WEATHER_REF'):
             if hasattr(recovery,name):values.append(getattr(recovery,name))
         values += list(getattr(recovery,'WEATHER_CONFIG_REFS',{}).values())
+        if hasattr(recovery,'worker_metadata'):values += recovery.worker_metadata(c)
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
     values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
     values += list(a.get('predecessor_boundaries',{}).values())

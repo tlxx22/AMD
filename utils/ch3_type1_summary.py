@@ -18,7 +18,7 @@ def result_index(configs):
     revision=summary();cell_bank={r['cell_id']:r for r in revision.get('cells',[])}
     rows=[];base=s.RESULT.parent
     for stage,c in configs.items():
-        if stage in ('M_BASE','M_AMEND'):continue
+        if stage not in ('URBAN_SUBSET','EPF_ALL','M_ALL'):continue
         for prior,t in zip(s.selected(stage),c['tasks']):
             current=s.context(c)['result_root']/('formal-'+t['model'])/t['id']/'result.json'
             row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],s.PROTOCOL,digest(s.profile(c,t))),v3=observed(OLD_RESULT/('M' if stage=='M_ALL' else 'MS')/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
@@ -34,4 +34,6 @@ def result_index(configs):
                     m=bound(ref(path.with_name('manifest.json')))
                     if m['profile'].get('T')==168 and all(m['task'].get(k)==t[k]for k in ('model','dataset','fold','h','seed')):row['historical_T168'].append(observed(path))
             rows.append(row)
-    return dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV='28/168: folds1,2 and H3,12 only',EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks; new ETT have no v3 result'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=True,no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
+    urban=len(configs['URBAN_SUBSET']['tasks'])
+    fixed=revision.get('adoption_policy_ref')
+    return dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV=('84/168: folds1–6 and H3,12 only'if urban==84 else'28/168: folds1,2 and H3,12 only'),EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=not bool(fixed),no_metric_based_layer_selection=True,main_table_policy_ref=fixed,fixed_encoder_adoption=revision.get('fixed_encoder_adoption','complete'if fixed else None),no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')

@@ -50,9 +50,19 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，启动前Weather20早停修订候选）**：AMD新增ETT声明及基础287完成前缀恢复已实际closure于`08a79f250c4982201f4ae065b812a18caa3d5dc4`，旧配置启动准备通过；本次只读核验确认新恢复总链尚未arm/start。M_BASE 21/21技术准入、M84及基础287保持已完成，MS203和M84保留各自真实训练来源，result_review仍pending。用户在启动前明确把第二轮M_AMEND和第三轮M_ALL的Weather20共56项patience从None改为10；其他科学字段、统一133条数值政策和原计算上限保持。原总链427＝已完成84＋剩余343，第二轮399次计划运行、371有效格及第三轮231不变。详细矩阵见唯一[M6三轮总览](milestones/M6_formal_experiments.md#m6-three-rounds)，最新候选见[M6 Weather20早停修订](milestones/M6_formal_experiments.md#m6-weather20-patience10-v1)。
+**当前总览（M6，PatchTST固定enc2主表/Urban六fold及退出观测修订候选）**：Weather20/patience10已closure于`b97392a179b55b4bffb2bf0e3b85267bb0b07750`；MS203、M84、M_AMEND112及原第二轮371格已技术完成，原第二轮399次计划运行和固定Weather20整批采用事实保持。第三轮已经产生两份AMD串行短轨迹，尚无正式训练；退出观测失败不能称为“从未启动”、OOM或数值失败。用户批准第二轮协议下PatchTST encoder1/2各24项独立补做，以及第三轮Urban扩至六fold、H仅3/12共84项；并在新增结果产生前固定第三章M主表PatchTST为enc2，不因结果改选。第二轮enc2技术完成后另建371格索引，只切换24格，其余347格及旧371索引保持；第三轮M_ALL的PatchTST24项改为enc2，所有MS保持。第三轮287项、本次待执行335项、扩展后531项及新增104项数量不变。统一数值政策不变，结果review及效果结论另行进行。详情见唯一[M6最新增量](milestones/M6_formal_experiments.md#m6-patchtst-depth-urban6-repair-v1)。
 
-旧失败、完成结果、许可及原启动准备记录按真实版本保留。原剩余5组/40份测量已经在r2完成，不再派发；旧M84的producer commit仍为`760b9dd7162d200c11b8836a7c9ece41822dfcf1`，新恢复版本只记录采用动作和新生命周期。未来单次用户启动顺序为基础287来源采用→M_AMEND准入/112项→第二轮371来源封存→第三轮Urban28/EPF35/M168。本次候选尚未stage/commit/push、未物化可执行新许可、未arm/start；只进行无业务模型的合成验收，没有新增真实模型/GPU/训练/validation/test。历史小节继续表示各自记录时点，不倒改事实。
+旧失败、完成结果、许可及准备记录按真实版本保留。旧M84仍绑定实际`760b9dd7162d200c11b8836a7c9ece41822dfcf1`训练版本，补做112保留实际Weather修订执行版本，新的采用动作与旧训练来源分开。本轮只形成候选，未stage/commit/push、未生成可执行许可或启动恢复链；必要真实CPU构造/合成前向与GPU probe、正式训练及真实评价分开报告。历史小节仍表示各自记录时点，特别是第三轮原231项及Urban28矩阵不倒改。
+
+### PatchTST固定层数补做与第三轮Urban扩展（当前候选）
+
+PatchTST encoder1/2各六个M域（ETTh1/ETTh2/ETTm1/ETTm2/Weather/Exchange）×四H96/192/336/720，合计48项fresh、seed2024。逐项以第二轮封存有效profile为父配置，仅e_layers从3变为1/2；Weather使用20轮上限/patience10，其余10/None，batch/eval128和完整OneCycle保留。先enc1后enc2，不按中途效果取消。用户已在新增结果产生前冻结正式M主表为enc2：enc1完整保留但不参与主表，enc2全部24项技术完成后建立独立新版371格有效索引，统一切换24个PatchTST M来源，其余347格逐项保持；原371封存、enc3结果及新旧来源均留存。不得按test、MSE/MAE、相对排名或论文接近度改选或逐H拼接。第三轮M_ALL的PatchTST24项仅e_layers从3变为2，另绑variant/task-ID和新配置，原type1、Weather20/10及全部其他科学字段保持；M_ALL仍168项，所有MS的PatchTST配置不变。
+
+三种层数的配置、结果、预先采用规则及enc1/2/3逐域四H/域内均值，完整保留在M6和服务器artifact；不要求新增论文实验设置或附录板块，正式主表只展示预先固定的enc2版本，MSE/MAE来自同一run的validation-selected checkpoint。本次未确认作者主表PatchTST逐任务配置：TimeMixer Table7的Layers不是PatchTST配置证据，通用run.py默认也不能证明，48项不能称精确复现。
+
+第三轮Urban仅扩fold1–6，H仍3/12，七模型共84项，是六折两个预测偏移，不是六折四H全矩阵。原fold1/2的28项profile保持，新增56项绑定各自冻结fold的真实split、月份边界、train-only scaler、节点顺序及窗口计量；F4/T12/C11、target volume、pred_len1、batch128、20/5、Adam初始1e-4及固定20轮type1系数4/9保持。EPF35保持；M168除上述PatchTST24项层数和身份修订外保持（含Weather20/10）。第三轮287项最大3990 run-epochs；加独立层数48项最大560，本次335项最大4550，任务增加是用户明确科学授权，退出观测技术失败成本另记。
+
+新链从第二轮371来源采用→enc1 M24→enc2 M24→Urban84→EPF35→M168自动衔接。不重派MS203/M84/M_AMEND112或已完成probe/test；当前两份Urban轨迹分别保留数值与资源证据状态。有完整资源证明的H3串行可复用，H12缺失退出证明不能靠自比较补齐，只补受影响测量。监测修订使用有界查询和尾部新鲜采样，仍拒绝身份冲突、未知占用及不可靠观测；不改变baseline_numeric_admission_v1或生产数学。每阶段完整AUTO_AUDIT一次，formal仅消费紧凑准入及完整性绑定；技术完成不代表result_review或效果Passed。
 
 <a id="weather20-patience10"></a>
 ### 启动前Weather20早停政策修订

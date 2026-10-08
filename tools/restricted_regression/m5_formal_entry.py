@@ -239,10 +239,11 @@ def owned_pid_metadata(pid):
     except (PermissionError,ValueError,IndexError):return dict(pid=pid,host_pid=None,state='metadata_unavailable')
 
 
-def gpu_sample(pids):
-    raw=subprocess.check_output(['nvidia-smi','-i','0','--query-gpu=uuid,memory.total,memory.used,memory.free,memory.reserved','--format=csv,noheader,nounits'],text=True)
+def gpu_sample(pids,query_timeout=10.0):
+    if not 0 < query_timeout <= 10.0:raise ValueError('bounded GPU query timeout required')
+    raw=subprocess.check_output(['nvidia-smi','-i','0','--query-gpu=uuid,memory.total,memory.used,memory.free,memory.reserved','--format=csv,noheader,nounits'],text=True,timeout=query_timeout)
     uuid,*memory=raw.strip().split(',');total,used,free,driver_reserved=[float(x.strip())*1024**2 for x in memory]
-    processes=subprocess.check_output(['nvidia-smi','-i','0','--query-compute-apps=pid,used_memory','--format=csv,noheader,nounits'],text=True)
+    processes=subprocess.check_output(['nvidia-smi','-i','0','--query-compute-apps=pid,used_memory','--format=csv,noheader,nounits'],text=True,timeout=query_timeout)
     own={};all_processes={};pid_candidates={};matched=[];table_reliable=True
     metadata={str(pid):owned_pid_metadata(pid) for pid in pids}
     for pid in pids:
@@ -276,28 +277,45 @@ class ExitObservation:
     No sample containing a stale PID can grant admission. A later clean sample
     must resolve it; PID reuse, UUID change and unrelated competitors fail closed.
     """
+    TAIL_SECONDS=60.0
     def __init__(self, baseline):
-        self.uuid=baseline['uuid'];self.known={};self.pending={}
+        self.uuid=baseline['uuid'];self.known={};self.pending={};self.tail_deadline=None;self.final_clean=False
+    def query_timeout(self,now):
+        deadlines=list(self.pending.values())+([self.tail_deadline]if self.tail_deadline is not None else [])
+        remaining=min(deadlines)-now if deadlines else self.TAIL_SECONDS
+        if remaining<=0:raise ValueError('owned exit observation exceeded bounded 60-second tail')
+        # Two NVML queries together cannot exhaust an unbounded tail.
+        return min(10.0,remaining/2)
     def classify(self,sample,owned,active):
         if sample['uuid']!=self.uuid:raise ValueError('GPU UUID changed')
         now=sample['time'];active={str(p) for p in active};owned={str(p) for p in owned}
+        if not active and self.tail_deadline is None:self.tail_deadline=now+self.TAIL_SECONDS
+        if self.tail_deadline is not None and now>self.tail_deadline:raise ValueError('owned exit observation exceeded bounded 60-second tail')
         for pid,m in sample.get('owned_pid_metadata',{}).items():
             if pid not in owned:raise ValueError('foreign PID metadata')
             if m.get('host_pid') is not None:
-                identity=(str(m['host_pid']),m['start_ticks'])
+                if not m.get('start_ticks') or not m.get('namespace'):raise ValueError('incomplete owned process identity')
+                identity=(str(m['host_pid']),m['start_ticks'],m['namespace'])
                 if pid in self.known and self.known[pid]!=identity:raise ValueError('owned PID lifetime changed')
                 self.known[pid]=identity
+            elif pid in active:
+                raise ValueError('active owned process identity unavailable')
+        if active-set(sample.get('owned_pid_metadata',{})):raise ValueError('active owned process metadata missing')
         observed=set(sample.get('nvml_processes',{}));waiting=[]
-        for pid,(host,start) in self.known.items():
+        for pid,(host,start,namespace) in self.known.items():
             metadata=sample.get('owned_pid_metadata',{}).get(pid,{})
-            if (pid not in active or metadata.get('host_pid') is None) and host in observed:
-                deadline=self.pending.setdefault((pid,host,start),now+3.0)
-                if now>deadline:raise ValueError('owned exit observation did not settle within 3 seconds')
+            if pid not in active and host in observed:
+                deadline=self.pending.setdefault((pid,host,start,namespace),now+self.TAIL_SECONDS)
+                if now>deadline:raise ValueError('owned exit observation exceeded bounded 60-second tail')
                 waiting.append(host)
             elif pid in active and metadata.get('start_ticks')==start:
-                self.pending.pop((pid,host,start),None)
+                self.pending.pop((pid,host,start,namespace),None)
         for key in list(self.pending):
             if key[1] not in observed:del self.pending[key]
+        # Admission needs a fresh post-exit sample, not a worker return code or
+        # a cached last active sample. Remaining unknowns are checked by caller.
+        unavailable=any(m.get('state')=='metadata_unavailable' for m in sample.get('owned_pid_metadata',{}).values())
+        self.final_clean=not active and not waiting and not unavailable and sample.get('process_table_reliable')is True
         return waiting
 
 
@@ -389,7 +407,7 @@ def spawn(config):
 
 
 def run_configs(configs,out,monitor=False):
-    out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None
+    out=Path(out);out.mkdir(parents=True,exist_ok=True);start=time.monotonic();children=[];samples=[];failure=None;baseline=None;observation_failed=False
     formal=all(c['purpose']=='ch3_formal' for c in configs)
     stop_file=Path(configs[0]['artifact_root']).parent/'STOP' if formal else Path(read_profiles()['execution']['evidence'])/'probe'/'STOP'
     if configs and configs[0]['purpose']=='ch3_moderntcn_etth1_diagnostic':
@@ -436,13 +454,13 @@ def run_configs(configs,out,monitor=False):
                 for config in configs:children.append(spawn(config))
         else:children=[spawn(c) for c in configs]
         with (out/'memory.jsonl').open('x',encoding='utf-8') as log:
-            while any(p.poll() is None for p,_ in children) or (monitor and exit_observation.pending):
+            while any(p.poll() is None for p,_ in children) or (monitor and not exit_observation.final_clean):
                 if stop_file.exists():raise InterruptedError('safe-stop; own workers only')
                 if formal and any(p.poll() not in (None,0) for p,_ in children):raise RuntimeError('formal worker failed; stop owned wave before further dispatch')
                 if time.monotonic()-start>max(c['limits']['seconds'] or 1e12 for c in configs):raise TimeoutError('worker wall time limit')
                 if monitor:
                     active=[p.pid for p,_ in children if p.poll() is None]
-                    sample=gpu_sample(active)
+                    sample=gpu_sample([p.pid for p,_ in children],query_timeout=exit_observation.query_timeout(time.monotonic()))
                     after=[p.pid for p,_ in children if p.poll() is None]
                     waiting=exit_observation.classify(sample,[p.pid for p,_ in children],after)
                     # Exited children are not silently reattributed. During this
@@ -475,8 +493,9 @@ def run_configs(configs,out,monitor=False):
                     if unknown or (len(configs)>1 and not transient and after and not sample['assessment']['external_occupancy_known']):
                         raise MemoryError('external occupancy unknown; concurrency not admitted')
                 time.sleep(.1)
-    except (MemoryError,TimeoutError,InterruptedError,subprocess.CalledProcessError,ValueError,RuntimeError) as exc:
+    except (MemoryError,TimeoutError,InterruptedError,subprocess.CalledProcessError,subprocess.TimeoutExpired,ValueError,RuntimeError) as exc:
         failure=('whole-card sampling failed: ' if isinstance(exc,(subprocess.CalledProcessError,ValueError)) else '')+str(exc)
+        observation_failed=monitor and isinstance(exc,(subprocess.CalledProcessError,subprocess.TimeoutExpired,ValueError))
     finally:
         for p,h in children:
             if p.poll() is None:p.terminate()
@@ -494,7 +513,7 @@ def run_configs(configs,out,monitor=False):
                     {k:Path('/sys/fs/cgroup/cpu/'+k).read_text().strip() for k in ('cpu.cfs_quota_us','cpu.cfs_period_us')})
     result['whole_card_peak']=max((s['used'] for s in samples),default=None)
     settled=[s for s in samples if not s.get('admission_deferred')]
-    result['exit_transitions_resolved']=exit_observation is not None and not exit_observation.pending
+    result['exit_transitions_resolved']=exit_observation is not None and exit_observation.final_clean and not exit_observation.pending
     result['resource_admission']=bool(settled) and not failure and result['exit_transitions_resolved'] and all(s['assessment']['admission'] for s in settled)
     if formal:
         result.update(process_peaks={str(p.pid):aggregate['process_peaks'].get(str(p.pid)) for p,_ in children},
@@ -508,6 +527,8 @@ def run_configs(configs,out,monitor=False):
     result['failure_kind']=('resource' if failure and any(x in failure for x in ('headroom','whole-card','occupancy')) else
                             'resource' if failed_logs and all('CUDA out of memory' in text for text in failed_logs) else
                             'business' if any(codes) or failure else None)
+    if observation_failed or (failure and any(x in failure for x in ('owned exit observation','owned PID lifetime','GPU UUID','owned process identity','owned process metadata','timed out','sampling unreliable','external occupancy unknown'))):
+        result['failure_kind']='observation'
     dump(out/'process.json',result)
     for c in configs:
         audit=Path(c['audit_log'])
