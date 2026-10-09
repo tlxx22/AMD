@@ -156,14 +156,14 @@ class SelectedDM4(unittest.TestCase):
         raw=tempfile.mkdtemp(prefix='synthetic-B-guard-',dir=b.PACKAGE/'fixtures')
         # Retain the final installed-guard fixture and access log for byte review.
         with contextlib.nullcontext(raw)as raw:
-            root=Path(raw);r=subprocess.run([sys.executable,'-B',str(b.PACKAGE/'cpu-worker-binding-fixture.py'),str(root/'run')],cwd=b.ROOT,capture_output=True,text=True,timeout=120,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','CUDA_VISIBLE_DEVICES':''})
+            root=Path(raw);r=subprocess.run([sys.executable,'-B',str(b.SCIENCE_PACKAGE/'cpu-worker-binding-fixture.py'),str(root/'run')],cwd=b.ROOT,capture_output=True,text=True,timeout=120,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','CUDA_VISIBLE_DEVICES':''})
             (root/'stdout.txt').write_text(r.stdout);(root/'stderr.txt').write_text(r.stderr);(root/'exit.json').write_text(json.dumps(dict(synthetic=True,exit_code=r.returncode))+'\n')
             self.assertEqual(r.returncode,0,r.stdout+r.stderr);v=json.loads(r.stdout)
             self.assertTrue(v['real_guard_installed']);self.assertTrue(v['synthetic_lifecycle']);self.assertEqual(v['calls']['all_stage_after_install'],0);self.assertEqual(v['calls']['binding'],1);self.assertEqual(v['calls']['synthetic_card_samples'],0);self.assertFalse(v['old_path_in_metadata'])
             self.assertEqual([v[k]for k in('real_model','GPU','forward','backward','Adam','validation_test','checkpoint_load')],[0]*7)
 
     def test_real_saved_Urban_AUTO_AUDIT_integration_evidence(self):
-        v=bound(ref(b.PACKAGE/'urban-B-auto-audit-integration.json'))
+        v=bound(ref(b.SCIENCE_PACKAGE/'urban-B-auto-audit-integration.json'))
         self.assertTrue(v['synthetic_lifecycle']);self.assertEqual(v['files'],2843);self.assertEqual(v['new_gpu_queries'],0)
         self.assertIn('native.validate_probe_completion',v['actual_functions']);self.assertIn('chain.audit_probe',v['actual_functions'])
         self.assertEqual(v['real_saved_numeric_resource_source'],bound(b.contract()['urban_audit_ref'])['source_complete'])

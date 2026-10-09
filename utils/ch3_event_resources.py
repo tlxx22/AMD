@@ -14,6 +14,7 @@ from utils.ch3_native_recovery_records import bound, exclusive, ref
 MODE = 'exclusive_gpu_event_driven_v1'
 _PRESTART = None
 _LAST = None
+_QUERY_AUDIT = None
 
 
 def enabled():
@@ -33,33 +34,99 @@ def validate_hardware(value):
     return value
 
 
+
+def invalidate_startup():
+    global _LAST
+    _LAST = None
+
+
+def query_audit():
+    # Diagnostic data only; this does not confer a startup grant.
+    return json.loads(json.dumps(_QUERY_AUDIT)) if _QUERY_AUDIT is not None else None
+
+
+def _startup_query(policy,retry_check=None):
+    global _QUERY_AUDIT
+    _QUERY_AUDIT = dict(status='QUERY_PENDING',attempts=[],max_attempts=policy['max_attempts'],
+        timeout_seconds=10,retry_delay_seconds=policy['retry_delay_seconds'],resource_fallback=False)
+    command=['nvidia-smi','-i','0',
+        '--query-gpu=uuid,name,memory.total,driver_version,memory.used,memory.free,memory.reserved',
+        '--format=csv,noheader,nounits']
+    for index in range(policy['max_attempts']):
+        started=time.monotonic()
+        try:
+            # check_output uses run(): timeout kills the child and communicates/
+            # waits before re-raising. No detached query or manual PID cleanup.
+            raw=subprocess.check_output(command,text=True,timeout=10)
+        except subprocess.TimeoutExpired as exc:
+            finished=time.monotonic()
+            _QUERY_AUDIT['attempts'].append(dict(attempt=index+1,started_monotonic=started,
+                finished_monotonic=finished,elapsed=finished-started,status='TIMEOUT',
+                error_type='subprocess.TimeoutExpired',error=str(exc)))
+            if index+1==policy['max_attempts']:
+                _QUERY_AUDIT.update(status='QUERY_FAILED',error_type='subprocess.TimeoutExpired',error=str(exc))
+                raise
+            try:
+                if retry_check:retry_check()
+                time.sleep(policy['retry_delay_seconds'])
+                if retry_check:retry_check()
+            except BaseException as cancelled:
+                _QUERY_AUDIT.update(status='RETRY_CANCELLED',error_type=type(cancelled).__name__,error=str(cancelled))
+                raise
+        except BaseException as exc:
+            finished=time.monotonic()
+            _QUERY_AUDIT['attempts'].append(dict(attempt=index+1,started_monotonic=started,
+                finished_monotonic=finished,elapsed=finished-started,status='COMMAND_FAILED',
+                error_type=type(exc).__name__,error=str(exc)))
+            _QUERY_AUDIT.update(status='QUERY_FAILED',error_type=type(exc).__name__,error=str(exc))
+            raise
+        else:
+            finished=time.monotonic()
+            _QUERY_AUDIT['attempts'].append(dict(attempt=index+1,started_monotonic=started,
+                finished_monotonic=finished,elapsed=finished-started,status='QUERY_RETURNED'))
+            return raw,started,finished
+
+
 @contextlib.contextmanager
-def prestart(authorization):
-    """Only public prepare/start with valid authorization, before owned workers."""
-    global _PRESTART, _LAST
+def prestart(authorization,launch=False):
+    """Fresh startup check only; B retries command timeouts, never sample rejection."""
+    global _PRESTART, _LAST, _QUERY_AUDIT
+    _LAST=None;_QUERY_AUDIT=None
+    if _PRESTART is not None:raise PermissionError('nested startup check forbidden')
     from utils import ch3_type1_chain as q
     q.validate_start(authorization)
     if q.s.RESULT.exists():raise PermissionError('no GPU query after execution namespace exists')
-    started = time.monotonic()
-    raw = subprocess.check_output(['nvidia-smi','-i','0',
-        '--query-gpu=uuid,name,memory.total,driver_version,memory.used,memory.free,memory.reserved',
-        '--format=csv,noheader,nounits'],text=True,timeout=10)
-    finished = time.monotonic()
-    rows = raw.strip().splitlines()
-    if len(rows) != 1:raise ValueError('exact fixed GPU0 startup query')
-    uuid,name,total,driver,used,free,reserved = [x.strip() for x in rows[0].split(',')]
-    numbers = {k:float(v)*1024**2 for k,v in [('total',total),('used',used),('free',free),('driver_reserved',reserved)]}
-    sample = dict(time=finished,uuid=uuid,device='cuda:0',resource_mode=MODE,query_timeout=10.,query_elapsed=finished-started,**numbers)
-    from tools.restricted_regression.m5_formal_entry import resource_assessment
-    assessment = resource_assessment(sample,[],resource_mode=MODE)
-    hardware = validate_hardware(dict(gpu=', '.join([uuid,name,total,driver]),cpu_affinity=sorted(os.sched_getaffinity(0)),threads=4))
-    if not assessment['admission']or sample['free']<=assessment['reserve']:raise ValueError('startup GPU accounting/headroom query rejected')
-    value = dict(purpose='M6_event_startup_hardware_v1',hardware=hardware,sample=sample,assessment=assessment,
-        resource_contract_ref=q.PROBE_RECOVERY.resource_binding()['resource_contract_ref'],
-        closure_commit=authorization['closure_commit'],authorization_sha=digest(authorization))
-    _PRESTART = value
+    policy=dict(max_attempts=1,retry_delay_seconds=0);retry_check=None
+    if q.PROBE_RECOVERY and hasattr(q.PROBE_RECOVERY,'startup_query_policy'):
+        q.PROBE_RECOVERY.before_startup_query(authorization,launch=launch)
+        policy=q.PROBE_RECOVERY.startup_query_policy()
+        retry_check=lambda:q.PROBE_RECOVERY.before_startup_query(authorization,launch=launch)
+    raw,started,finished=_startup_query(policy,retry_check)
+    try:
+        rows = raw.strip().splitlines()
+        if len(rows) != 1:raise ValueError('exact fixed GPU0 startup query')
+        uuid,name,total,driver,used,free,reserved = [x.strip() for x in rows[0].split(',')]
+        numbers = {k:float(v)*1024**2 for k,v in [('total',total),('used',used),('free',free),('driver_reserved',reserved)]}
+        sample = dict(time=finished,uuid=uuid,device='cuda:0',resource_mode=MODE,query_timeout=10.,query_elapsed=finished-started,**numbers)
+        from tools.restricted_regression.m5_formal_entry import resource_assessment
+        assessment = resource_assessment(sample,[],resource_mode=MODE)
+        hardware = validate_hardware(dict(gpu=', '.join([uuid,name,total,driver]),cpu_affinity=sorted(os.sched_getaffinity(0)),threads=4))
+        if not assessment['admission']or sample['free']<=assessment['reserve']:raise ValueError('startup GPU accounting/headroom query rejected')
+        _QUERY_AUDIT['status']='SAMPLE_ACCEPTED'
+        value = dict(purpose='M6_event_startup_hardware_v1',hardware=hardware,sample=sample,assessment=assessment,
+            resource_contract_ref=q.PROBE_RECOVERY.resource_binding()['resource_contract_ref'],
+            closure_commit=authorization['closure_commit'],authorization_sha=digest(authorization))
+        if policy['max_attempts']>1:value['startup_query_audit']=query_audit()
+    except BaseException as exc:
+        _QUERY_AUDIT.update(status='SAMPLE_REJECTED',error_type=type(exc).__name__,error=str(exc))
+        raise
+    _PRESTART=value
     try:yield value
-    finally:_LAST=value;_PRESTART=None
+    except BaseException:
+        _LAST=None
+        raise
+    else:_LAST=value
+    finally:_PRESTART=None
 
 
 def seal_startup(start_ref):

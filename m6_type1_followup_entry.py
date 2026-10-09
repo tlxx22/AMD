@@ -8,7 +8,7 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive
 
 def cli():
     parser=argparse.ArgumentParser()
-    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round','depth-results','width-results'))
+    parser.add_argument('action',choices=('dry-run','preflight','launch-check','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round','depth-results','width-results'))
     parser.add_argument('--approval',default=str(s.PACKAGE/'start-review.json'));parser.add_argument('--approval-sha')
     parser.add_argument('--wrapper-pid',type=int);parser.add_argument('--stage',choices=s.STAGES);parser.add_argument('--model',choices=s.MODELS)
     parser.add_argument('--runtime');parser.add_argument('--runtime-sha');a=parser.parse_args()
@@ -19,6 +19,9 @@ def cli():
         print(json.dumps(dict(scope=s.ID,scientific_protocol=s.PROTOCOL,states=q.STATES,manual_review=False,
             permit_generation='preauthorized_machine_gate',prepared_only=True,**readiness,plans=plans),ensure_ascii=False,indent=2))
         return 2 if reasons and a.action=='preflight' else 0
+    if a.action=='launch-check':
+        if not value:raise PermissionError('exact B approval reference required')
+        print(json.dumps(q.launch_check(bound(value)),ensure_ascii=False));return 0
     if a.action=='prepare-launch':
         if not value:raise PermissionError('actual reviewed approval required')
         print(q.prepare_launch(value,a.wrapper_pid));return 0

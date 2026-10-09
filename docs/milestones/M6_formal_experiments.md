@@ -1,6 +1,36 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 用户已正式统一选择PatchTST非Weather M d_model4/e_layers2；A40项已真实完成并通过本轮只读来源/完成审计。新版371精确20替换/351保留，Weather4完整128配置及其他347格保持；新第三轮M_ALL精确20宽度/身份变化、148任务/profile保持。r6旧196及层数48保持完成，Urban七组probe保存来源可在B新生命周期经合法AUTO_AUDIT采用。B独立恢复候选只执行Urban84→EPF35→M168=287，不重跑A40/层数48/旧前缀。当前未stage/commit/push、无实际B许可、未GPU preflight或arm；全局result_review及效果gate仍pending。见[本轮选定来源与B恢复](#m6-selected-dm4-third-round-v1)。**
+**In Progress — N为8de112a2f1ff2117e94c22e5119d86ccaf0bdec7；第三轮0/287，旧B启动失败保持。启动查询去重/超时重试候选补做protected_AST审核：旧证明在Python3.11匹配、3.13失配66项，当前受保护函数与Git父版本完全一致。本轮共享稳定AST算法并另存新proof/template/source-check，未stage/commit/push、无新可执行许可或GPU操作。startup-r2、Weather128、20/351及20/148和287项科学合同保持。见[AST证明补做](#m6-B-AST-proof-repair-v1)。**
+
+<a id="m6-B-AST-proof-repair-v1"></a>
+## B启动候选AST证明修订与真实来源验证
+
+原11文件候选和63/63有效历史测试保留。本轮从已知10 modified＋1 untracked、index空的候选继续；不closure旧证明、不生成B许可、不GPU preflight或arm。旧producer-delta-proof SHA `9bf2b2cedb36fbe6a37ba6c4742b69364311403180170594b1b682e84723d5b9`及旧送审索引原字节保留。独立增量为`startup-timeout-recovery-v1/ast-proof-repair-v1/`，包含相对HEAD完整diff、相对原候选增量和新的逐文件SHA/mode。
+
+根因可复现为解释器序列化口径：旧生成器与旧生产验证器均用ast.dump(include_attributes=False)；正式Python3.11.15匹配66/66且真实验证器返回，默认Python3.13.5因show_empty=False及新增type_params字段失配66/66。两个解释器的当前源码/Git父版本比较均0差异。不是66个受保护函数被修改，也不是正式3.11已运行验证失败；旧证明依赖未显式冻结的解析器行为。
+
+修订算法full-field-ast-json-v1由生成器与生产验证器共用，显式包含所有语义字段、空列表、None、标量类型和值；旧解析器缺失type_params仅规范为空列表，非空类型参数仍受保护。原66函数集合与protected_exact、bundle、guard检查不删不放宽；新证明逐项绑定当前AST、Git父版本、原producer和旧启动证明。未来非执行模板/操作材料与默认日志位于新增量目录，startup-r2 attempt/session和原未创建结果根不变，旧许可/token不能消费。
+
+定向CPU回归实际执行verify_production_inheritance与verify_source（真实工作目录、无整函数mock），双Python验证66项一致；故意篡改函数、proof指纹及删除登记函数继续拒绝。新prepare-permission的source-check复用未来main的完整只读来源/配置/模板检查，但不生成许可、不查询GPU，READY_TO_ARM_HANDOFF=false。未closure的main仍拒绝。原启动去重、三次超时上限与非超时立即拒绝测试继续执行；首轮新增测试中中文路径JSON转义导致的断言失败及修正后的同字节日志全部保留，最终数量以新acceptance为准。
+
+旧送审索引2718项加索引自身共2719份文件逐份保护；旧B许可/日志/launch SHA及PRE_CONTROLLER_START_FAILED、零计算事实保持。选定371索引仍20替换/351保留，M_ALL仅20宽度修订/148保持，Weather4完整128/heads16/encoder2/ff256/epochs20/patience10、type1 scheduler/数据/评价不变。旧196、层数48、宽度40及Urban七组来源不重训不retest。287项/3990 run-epochs、独占event资源模式、数值/finite/RNG/order/STOP和运行期零GPU查询政策不变。当前候选未获新一轮ChatGPT字节审核；无新许可、真实结果根、launcher或session，不执行后段。
+
+<a id="m6-B-startup-timeout-recovery-v1"></a>
+## B首次启动前GPU查询超时与独立startup-r2候选
+
+起点N为`8de112a2f1ff2117e94c22e5119d86ccaf0bdec7`，初始N/W/R各自HEAD/tracking/live remote一致、0/0且clean，AGENTS、冻结baseline tag、作者源码、数据及环境不变。真实旧失败发生于北京时间2026-10-09 19:21:59（UTC 11:21:59）。旧owner64326/start_ticks218806679及session已退出，旧claimed不存在；第三轮controller/结果根尚不存在，无probe/formal/validation/test计算。
+
+旧许可SHA `be6da901ba58f24a73f2656a0467b849c63c49cdfc050ba671c1e32193ede802`、旧日志SHA `3b8f1adc66153453662ab14a32cde82f0c193bea6f98ff384f04c4445ccc8772`、旧launch SHA `121396fb9aee1bb500568c571c87b018a3362a3762f7c9b9cd8df26604f5db8a`逐份核验并保留。旧P中144份文件建立只读SHA保护记录，原准备收据、失败和来源证明不覆盖。来源科学scope、287项/3990 run-epochs、旧196/层数48/宽度40来源保持，查询超时不计正式任务或模型计算成本，不改成OOM/resource fallback。
+
+旧arm路径为Shell preflight第一次查询→新建launcher/launch/tmux→controller.start/readiness第二次查询；第二次10秒超时触发启动失败。本轮Shell使用无GPU的launch-check，核对真实许可、当前closure/live remote、source/data/环境、STOP和排他身份；controller仍执行完整原检查与一次新的逻辑采样阶段，绝不复用公开preflight旧余量。仅TimeoutExpired可额外重试2次，固定间隔2秒，每次10秒、最多3次，查询加等待约34秒。合法响应仍核对UUID/型号/driver、显存会计/有限非负及原余量；非法响应/命令错误/来源或STOP等立即拒绝，不靠重试碰碰运气。单次耗时、重试和最终状态可追溯，超时查询子进程由subprocess终止并回收。
+
+增量目录`dm4-selection-third-round-v1/startup-timeout-recovery-v1/`保留非执行contract/template、未来prepare-permission/operations及新的精确producer proof。新attempt=`THIRD-PatchTST-enc2-dm4-selected-startup-r2`，session=`ch3-m6-third-selected-dm4-startup-r2`；未来AUTH/launch/claimed/失败标记独立，日志为`B-startup-r2-launcher.log`。因旧结果从未创建，沿用批准结果路径但禁止重用旧许可/token/MAC。启动失败清除有效grant/_LAST，并留下拒绝再次消费token的标记；status只读显示当前Prepared与前次PRE_CONTROLLER_START_FAILED，附时间、错误及SHA来源，不物化controller或查询GPU。
+
+定向测试执行真实公开readiness/资源判定、Shell arm控制分支、prepare_launch/verify_launch、controller.start及真实MAC生成，仅GPU输出、未来closure和tmux进程边界用明确合成夹具；controller.run在派发前截停，无真实任务。1次成功、1/2次超时后成功、3次超时、非超时错误、身份/余量/会计拒绝、STOP、旧许可隔离、token失效及CPU子进程回收分别验证。旧Urban来源/AUTO_AUDIT采用、20/351、20/148、Weather完整profile、287调度、guard与q1/q2/q4运行期零GPU查询另作必要回归；最终同字节数量和完整日志见本增量acceptance/evidence-index。
+
+测试首次Shell夹具未正确替换日志目标，产生本增量一份0字节followup-launcher.log，随后prepare-launch因合成目标日志缺失拒绝；没有GPU查询、controller或真实许可。该空文件、失败日志及隔离说明原样保留，修正夹具后完整链通过；未来真实日志采用独立B-startup-r2-launcher.log。此负向夹具不得混为新技术启动或旧失败补写成功。运行期回归的旧r6夹具另曾因历史producer证明不匹配及真实旧日志存在而出现1 failure/1 error；失败日志保留。现仅将夹具日志隔离、用本轮真实精确差异证明验证当前字节，生产r6校验器及旧证明未改；没有无条件通过或放宽科学断言。
+
+本轮所有effective配置、科学profile、数值容差/比较器、RNG/order/scheduler、资源门槛、guard及bundle字节保持；旧成功probe照原scope/producer采用，旧失败始终失败。新查询策略只适用于绑定本B合同，其他执行不静默增加重试；进入controller/worker后的GPU自动查询仍0。真实GPU超时恢复能力尚未实测，工程CPU验收不替代实际GPU准入。当前停在未stage/commit/push审核点，无实际新B许可、GPU preflight、arm或结果根。后续ChatGPT审核→精确closure→新B许可与公开preflight→用户一次arm，正常Urban84→EPF35→M168自动衔接，technical_complete不代表result_review或效果Passed。下方历史正文保留当时时点事实。
 
 <a id="m6-selected-dm4-third-round-v1"></a>
 ## 用户正式选择dm4与第三轮B独立恢复候选

@@ -50,7 +50,27 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，用户正式选择PatchTST非Weather d_model4与第三轮B恢复候选）**：入口A已在`7d9fec8c5f66e9f38dbf396bf8d1136276b8e78e`完成dm4/dm8各20项；本轮只读完成审计通过，400实际run-epochs、Adam/backward各55840、forward75292，40次validation-selected best的test-once来源完整。用户最终统一选定五个非Weather M域的PatchTST为d_model4/e_layers2，不再依据效果改选。新版371来源仅替换20格、351格保留；第三轮独立新M_ALL配置仅改20项宽度及身份，其余148项完整保持。Weather始终128/16 heads/2层/d_ff256，完整原profile不变。r6层数48项及旧196项不重训；旧Urban七组probe在新B生命周期从合法AUTO_AUDIT采用后，再按Urban84→EPF35→M168继续287项。本轮为未stage/commit/push候选，无可执行B许可、无GPU preflight或启动，整体result_review及效果gate另行审查。
+**当前总览（M6，B启动候选AST证明口径修订）**：dm4采用及B恢复已closure于`8de112a2f1ff2117e94c22e5119d86ccaf0bdec7`；旧B启动前查询失败保留，第三轮仍0/287。启动去重与最多三次TimeoutExpired重试候选的审核发现protected_AST口径跨Python版本不一致：旧证明在正式3.11匹配66/66，在默认3.13失配66/66，但受保护函数与Git父版本完全一致。本轮统一生成器和生产验证器的AST序列化口径，以独立`ast-proof-repair-v1/`保存新证明、非执行模板及CPU来源检查，保留旧送审包。startup-r2身份、Urban84→EPF35→M168、Weather完整128配置、20/351及20/148边界不变。当前未stage/commit/push，无新可执行许可、GPU preflight或arm；真实GPU准入、result_review及效果gate仍分开。
+
+### B候选protected_AST证明口径与生产验证器一致性补做（2026-10-09）
+
+原证明使用`SHA256(ast.dump(node, include_attributes=False))`。正式Python3.11.15下66项匹配，真实verify_production_inheritance与verify_source能够返回；服务器默认Python3.13.5下66项失配，真实验证器拒绝。3.13的ast.dump默认省略空列表，FunctionDef/ClassDef还增加type_params字段；不是受保护训练函数被改写。两种解释器分别核对当前源码与Git父版本，66项AST均一致。
+
+生产验证器和新证明生成器共享`full-field-ast-json-v1`：保留节点类型、全部语义字段（含空列表/None）、标量类型与值；仅将旧解析器缺失的type_params规范为显式空列表，非空参数仍参与指纹。原66项登记集合、精确源码/bundle/guard保护及全部科学/数值合同保持；篡改受保护函数、指纹或删除登记项均由真实生产验证器拒绝。生成器逐项比较Git父版本与当前源码，不以整函数mock或硬编码Passed代替。
+
+新材料位于`startup-timeout-recovery-v1/ast-proof-repair-v1/`，精确链回原producer proof和旧启动proof；旧proof、四个送审锚点及旧索引全部不覆盖。当前B的未来模板、operations和日志改绑新目录；技术attempt仍为startup-r2，不新增科学运行或另一层恢复器。非执行source-check调用真实verify_source、verify_production_inheritance及配置/模板检查，不生成许可、不查询GPU、不授予启动资格。CPU定向验收覆盖两种Python的66项一致性、真实来源链、篡改拒绝与原启动去重/重试；最终同字节日志和首次测试断言失败均保留于新包。当前只完成候选，后续须ChatGPT审核及精确closure后才能生成新的B许可，由用户最终arm。
+
+### 第三轮B启动前查询去重与有界超时恢复（2026-10-09）
+
+旧B的同一次arm先由Shell完整preflight查询GPU，再创建launcher/launch并在tmux中由controller.start→readiness再次查询；后一次nvidia-smi超过10秒，属于启动前查询故障，不是显存不足、CUDA OOM或模型数值失败。原许可、日志、launch及准备证据完整保留，claimed/结果根/controller均不存在，新增probe/formal/validation/test为0。
+
+公开preflight继续独立核验Git/live remote、许可、source、数据、环境和GPU身份/余量；其样本不能缓存为未来启动余量。B的Shell arm仅做绑定许可、实际HEAD/live remote、来源/科学scope、STOP、旧新attempt隔离及排他空间的无GPU检查；实际controller仍完整验证，并取得一个新的逻辑GPU准入采样阶段。固定GPU0的UUID/型号/容量/driver、有限非负会计及`max(8 GiB,10% total)`余量不变，成功样本继续由真实许可、closure及controller生命周期MAC保护。
+
+仅本B绑定合同允许subprocess.TimeoutExpired重试：每次查询最多10秒，最多3次实际调用，失败间隔固定2秒，查询加等待最坏约34秒（不含CPU来源核验耗时）；任一合法结果立即结束重试。非零命令退出、设备/环境身份不符、会计异常、真实余量不足、许可/source/Git错误、STOP及运行后故障均不重试。subprocess超时负责终止并回收该查询子进程；记录各次单调时间/耗时/错误及最终裁决。失败清除_LAST/启动grant，已验证launch留下独立失败标记使原token不可复用；不把查询失败登记为resource-only或OOM。
+
+技术增量集中于`dm4-selection-third-round-v1/startup-timeout-recovery-v1/`，attempt为`THIRD-PatchTST-enc2-dm4-selected-startup-r2`，session为`ch3-m6-third-selected-dm4-startup-r2`，未来许可及`B-startup-r2-launcher.log`位于此目录。原批准结果根因从未创建，保持原路径并完整排他核验；旧许可/token/owner/launch不消费。新producer差异证明链到8de112a...及旧证明，只允许启动监测/接线变化，原bundle/guard、科学配置、数值、模型数学和运行期执行函数继续精确保护。status只读区分当前Prepared与前次PRE_CONTROLLER_START_FAILED，包含失败时刻、错误和精确历史引用；不创建结果或查询GPU。
+
+本轮仅CPU/合成验收，涵盖实际Shell→CLI→controller路径、真实超时子进程回收、失败/token隔离、Urban保存来源采用、287项调度及q1/q2/q4运行期零GPU查询。全部测试及失败夹具证据保留；测试Shell隔离失误产生的一份空日志明确标记合成负向证据，不是实际启动或许可，未来真实日志另用上述独立文件。旧196、层数48、宽度40及旧Urban证据不重算、不重训或retest；M_ALL非Weatherdm4与Weather128完整profile、type1 scheduler、早停、并发数值/收益门禁和test-once不变。审核closure后才准备新许可/独立公开preflight，由用户最后一次arm287项；当前不执行任何后段。
 
 ### 用户正式选择dm4、新371来源及独立第三轮B恢复
 

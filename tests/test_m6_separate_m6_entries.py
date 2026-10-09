@@ -63,7 +63,7 @@ class SeparateEntries(unittest.TestCase):
     def test_A_actual_shared_driver_complete40_cannot_dispatch_B(self):
         # Retain the historical real shared-driver isolation test in a separate
         # process, as A and B activation belongs to distinct physical processes.
-        old=bound(ref(b.PACKAGE/'historical-test-source.json'))['source'];tree=ast.parse(old)
+        old=bound(ref(b.SCIENCE_PACKAGE/'historical-test-source.json'))['source'];tree=ast.parse(old)
         cls=next(n for n in tree.body if isinstance(n,ast.ClassDef));method=next(n for n in cls.body if n.name==self._testMethodName)
         header=old[:old.index('class SeparateEntries')];lines=old.splitlines(True);body=''.join(lines[method.lineno-1:method.end_lineno])
         child=header+'class IsolationTest(unittest.TestCase):\n'+body+'\nif __name__=="__main__": unittest.main()\n'

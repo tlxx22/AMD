@@ -337,8 +337,12 @@ def readiness(a=None,launch=False,live_remote=False):
     from utils import ch3_event_resources as event
     if event.enabled():
         try:
-            with event.prestart(a):return _readiness(a,launch,live_remote)
-        except (OSError,KeyError,ValueError,PermissionError,subprocess.CalledProcessError,subprocess.TimeoutExpired)as exc:return [str(exc)]
+            with event.prestart(a,launch=launch):reasons=_readiness(a,launch,live_remote)
+            if reasons:event.invalidate_startup()
+            return reasons
+        except (OSError,KeyError,ValueError,PermissionError,subprocess.CalledProcessError,subprocess.TimeoutExpired)as exc:
+            event.invalidate_startup()
+            return [str(exc)]
     return _readiness(a,launch,live_remote)
 
 
@@ -360,11 +364,21 @@ def _readiness(a=None,launch=False,live_remote=False):
     return list(dict.fromkeys(reasons))
 
 
+def launch_check(a=None):
+    """B wrapper gate: exact authorization/source/namespace, without GPU calls."""
+    if not PROBE_RECOVERY or not hasattr(PROBE_RECOVERY,'before_startup_query'):
+        raise PermissionError('light launch check belongs to the registered B startup recovery')
+    validate_start(a);verify_live_remote(a['closure_commit'])
+    PROBE_RECOVERY.before_startup_query(a,launch=False)
+    return dict(scope=s.ID,execution_attempt=PROBE_RECOVERY.ATTEMPT,launch_check='Passed',GPU_queries=0)
+
+
 def readiness_report(a=None):
     blocked=readiness(a,live_remote=True)
     try:v=upstream_status()
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
     return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,
+        **(dict(startup_query_audit=__import__('utils.ch3_event_resources',fromlist=['query_audit']).query_audit()) if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'startup_query_policy') else {}),
         registered_ms203_recovery_requires_full_source_check_and_owned_exit=not(PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False))),
         remaining_formal_runs=completion_counts()['executed_new_formal_runs'],
         base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)or getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False))))
@@ -385,6 +399,7 @@ def prepare_launch(approval_ref,pid):
 
 def verify_launch(approval_ref,token):
     from utils.ch3_m_launch import file_identity,tmux_view
+    if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'assert_startup_token_usable'):PROBE_RECOVERY.assert_startup_token_usable()
     if not isinstance(token,str) or len(token)!=64:raise PermissionError('wrapper token required; no internal direct start')
     v=json.loads(Path(str(LOG)+'.launch.json').read_text())
     if v['scope']!=s.ID or v['approval']!=approval_ref or v['log']!=str(LOG) or v['log_identity']!=file_identity(LOG) or not secrets.compare_digest(v['token_sha'],hashlib.sha256(token.encode()).hexdigest()):raise PermissionError('launcher identity mismatch')
@@ -518,8 +533,14 @@ def completion_counts():
 
 
 def start(start_ref,token):
-    launch=verify_launch(start_ref,token);reasons=readiness(bound(start_ref),True)
-    if reasons:raise PermissionError('; '.join(reasons))
+    launch=verify_launch(start_ref,token)
+    try:
+        reasons=readiness(bound(start_ref),True)
+        if reasons:raise PermissionError('; '.join(reasons))
+    except BaseException as exc:
+        if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'record_startup_failure'):
+            PROBE_RECOVERY.record_startup_failure(start_ref,exc,launch)
+        raise
     with lock(QUEUE_LOCK):
         if s.RESULT.exists():raise FileExistsError('retained execution')
         exclusive(str(LOG)+'.claimed.json',dict(launch=ref(str(LOG)+'.launch.json'),consumer=owner(),tmux=launch['tmux']))
@@ -541,5 +562,6 @@ def status():
     if (CONTROL/'controller.json').exists():
         r['controller']=json.loads((CONTROL/'controller.json').read_text());r['running']=same(r['controller']['owner'])
         if (CONTROL/'progress.json').exists():r.update(json.loads((CONTROL/'progress.json').read_text()))
-    r.update(STOP=(CONTROL/'STOP').exists(),failure=(CONTROL/'failure.json').exists(),complete=(CONTROL/'complete.json').exists())
+    if not (CONTROL/'controller.json').exists() and PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'startup_status'):r.update(PROBE_RECOVERY.startup_status())
+    r.update(STOP=(CONTROL/'STOP').exists(),failure=(CONTROL/'failure.json').exists()or r.get('pre_controller_start_failed',False),complete=(CONTROL/'complete.json').exists())
     return r

@@ -52,6 +52,13 @@ def fixture(stage='PATCH_ENC1',synthetic_numeric=False):
         stack.enter_context(patch.object(s,'context',side_effect=lambda cc:ctx if cc==c else old_context(cc)))
         stack.enter_context(patch.object(s,'RESULT',root/'execution'))
         stack.enter_context(patch.object(q,'CONTROL',root/'controller'))
+        stack.enter_context(patch.object(q,'LOG',root/'synthetic-launcher.log'))
+        # Exercise the unchanged r6 runtime in an isolated synthetic lifecycle.
+        # Its historical startup delta correctly refuses later source bytes;
+        # validate those bytes with the current exact B proof instead. The
+        # production r6 verifier, old proof and original evidence stay intact.
+        from utils import ch3_third_round_after_selection as current_B
+        stack.enter_context(patch.object(r,'verify_production_inheritance',side_effect=current_B.verify_production_inheritance))
         stack.enter_context(patch.object(q,'closure',return_value='f'*40))
         import ch3_runner as runner
         original_git=runner.git
@@ -267,7 +274,6 @@ class EventResources(unittest.TestCase):
         from tests.test_m6_probe_schema_recovery import trajectory
         with fixture(synthetic_numeric=True)as(root,c,ctx,a,hw,stack,queries):
             stack.enter_context(patch.object(amend,'RESULT',s.RESULT/'round2-amendment'))
-            stack.enter_context(patch.object(r,'verify_production_inheritance',return_value={}))
             # Saved prefix adoption is real; weights are never read or evaluated.
             adopted=r.adopt_prefix();predecessors={stage:adopted[q.STAGE_STATES[stage][3]]for stage in r.COMPLETED_STAGES}
             pr=q.create_permit(c,a['start_authorization_ref'],True,boundary_ref=predecessors,round2_ref=adopted['SEAL_ROUND2_REVISED_BOUNDARY']);a=bound(pr)
