@@ -45,7 +45,11 @@ def cli():
             from utils.ch3_type1_execution import run_group
             run_group(c,permit,a.model,dict(path=a.runtime,sha256=a.runtime_sha))
         return 0
-    if a.action=='safe-stop':print(json.dumps(q.safe_stop()));return 0
+    if a.action=='safe-stop':
+        if q.PROBE_RECOVERY and getattr(q.PROBE_RECOVERY,'THIRD_ROUND_ONLY',False):
+            if not value:raise PermissionError('exact B authorization required for safe-stop')
+            q.validate_start(bound(value))
+        print(json.dumps(q.safe_stop()));return 0
     if a.action=='width-results':
         if not q.PROBE_RECOVERY or not hasattr(q.PROBE_RECOVERY,'width_results'):raise PermissionError('width variants require their precise entry')
         print(json.dumps(q.PROBE_RECOVERY.width_results(),ensure_ascii=False,indent=2));return 0
@@ -64,7 +68,7 @@ def cli():
     if a.action=='complete':
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
-        if q.PROBE_RECOVERY and getattr(q.PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False):
+        if q.PROBE_RECOVERY and (getattr(q.PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(q.PROBE_RECOVERY,'THIRD_ROUND_ONLY',False)):
             q.PROBE_RECOVERY.validate_complete(complete);print(json.dumps(status,ensure_ascii=False,indent=2));return 0
         if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or any(complete.get(k)!=v for k,v in q.completion_counts().items()) or complete.get('imported_ms_runs')!=203 or complete.get('base_round2_runs')!=287 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
         for stage in ('PATCH_ENC1','PATCH_ENC2'):

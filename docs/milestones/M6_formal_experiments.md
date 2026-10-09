@@ -1,6 +1,22 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — r6已closure于bd4b63dfcce78f38cc233e74f3c50271b020d8de；enc1/enc2各24项及固定enc2新版371已技术完成。Urban七组probe计算完成，AUTO_AUDIT拒绝未正确只读登记的旧H3 process；第三轮正式0/287，用户暂停第三轮。当前为Urban窄修＋五个非Weather域PatchTST enc2/d_model4与8独立40项候选，Weather完整128/16 heads结构保留且不重训。待用户在40项完成后统一选择宽度；A/B物理隔离，A完成不调用B，B无许可不可启动；当前未stage/commit/push、无可执行许可、无GPU启动，result_review仍pending。见[本轮增量](#m6-width40-urban-audit-v1)。**
+**In Progress — 用户已正式统一选择PatchTST非Weather M d_model4/e_layers2；A40项已真实完成并通过本轮只读来源/完成审计。新版371精确20替换/351保留，Weather4完整128配置及其他347格保持；新第三轮M_ALL精确20宽度/身份变化、148任务/profile保持。r6旧196及层数48保持完成，Urban七组probe保存来源可在B新生命周期经合法AUTO_AUDIT采用。B独立恢复候选只执行Urban84→EPF35→M168=287，不重跑A40/层数48/旧前缀。当前未stage/commit/push、无实际B许可、未GPU preflight或arm；全局result_review及效果gate仍pending。见[本轮选定来源与B恢复](#m6-selected-dm4-third-round-v1)。**
+
+<a id="m6-selected-dm4-third-round-v1"></a>
+## 用户正式选择dm4与第三轮B独立恢复候选
+
+本轮起点`7d9fec8c5f66e9f38dbf396bf8d1136276b8e78e`，N/W/R初始各自HEAD/tracking/live remote一致、0/0、clean。用户选择五个非Weather域各四H的dm4，不依后续效果重新选择；作者4/8线索仍是未确认唯一配置的用户转述。
+
+A的dm4/dm8各20项完成，controller、两阶段probe、formal组收据与技术boundary核对；280份产物文件Python/system checksum一致，实际400 run-epochs、Adam55840/backward55840/forward75292、40次正式test均为validation-selected best、finite及计数/预算保持。本轮未反序列化checkpoint、未调用新test、未运行模型/GPU。source/identity/completion/metric provenance审查通过，不替代整体result_review或效果gate。
+
+选定来源包`patchtst-width-urban-audit-v1/separate-entrypoints-v1/dm4-selection-third-round-v1/`新增独立371索引与来源boundary；旧r6索引SHA `5ecec35a4e719104e2f11a79484660707ad8e993c4b0c94bdc06ee82bca36792`和旧boundary保留。仅非Weather20格切换dm4，351格逐字段相同（Weather4+其他347），真实训练producer保持7d9fec8...；dm8、dm16、enc1/enc3及所有历史产物保留。新来源记录不携带旧owner MAC，不自行变成执行许可。
+
+M_ALL新版本`configs/ch3_type1_m_all_patchtst_enc2_dm4_selected_v1.json`从父SHA `f26ac0cab3cb2a2c47a20553b1f1e8e6b7d3951f5e33ae3dcdcbcb8c80a68ed2`派生，仅20项PatchTST非Weather d_model16→4及必要身份引用；其余148项完整任务/profile不变。Weather4原128/16 heads/2层/ff256、dropouts0.2、20/10、第三轮type1 scheduler、数据及评价全部保持。其他numeric policy、seed、batch、lr/Adam、监督/输出、scaler/window、validation-best/test-once无差异；第二轮OneCycle不迁入第三轮。
+
+物理B入口`scripts/ch3/start_third_round_after_selection.sh`与`m6_third_round_after_selection_entry.py`使用独立`THIRD-PatchTST-enc2-dm4-selected-r1` / `ch3-m6-third-selected-dm4-r1`，不调用A、不接受A许可、不重派旧196或层数48。先签本生命周期的来源采用记录，再从Urban AUTO_AUDIT边界恢复：保存r6原scope/producer下实际审核七组数值/资源；仅精确path/SHA只读登记，错误task/stage/producer、篡改引用、越界与symlink继续拒绝。旧r6 failure保持失败；新B的采用complete、manifest、admission HMAC只表示新生命周期合法采用，不改旧历史。Urban84→EPF35→M168自动衔接共287，最大3990 run-epochs；原531/4550与独立宽度40/400分别记录。A的q4不外推到第三轮新协议/形状，M_ALL仍按自己的serial/q4/q2/q1准入，formal不回放全量probe。
+
+本轮定向验收包含20/351来源、20/148配置、Weather完整不变、错误宽度/许可拒绝、manifest/完整AUTO_AUDIT接线、失败/STOP与287调度、当前owner HMAC隔离和A完成不触发B；真实来源审计与独立合成生命周期分开标记，失败测试日志保留。详细最终计数及逐份SHA以本增量包acceptance/evidence-index为准。未执行GPU查询、模型、probe/formal或validation/test；无可执行B许可、结果根、日志或session。下一步为ChatGPT字节审核→精确closure→新B许可/公开preflight→用户一次arm；本轮不执行这些后段。历史小节保持当时时点事实。
+
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 

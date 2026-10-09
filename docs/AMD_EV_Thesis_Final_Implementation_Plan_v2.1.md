@@ -50,7 +50,22 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，Urban审计修复与PatchTST宽度复现实验候选）**：运行期无遥测版本已closure于`bd4b63dfcce78f38cc233e74f3c50271b020d8de`并真实启动r6。enc1/enc2各24项及固定enc2新版371索引已技术完成；Urban七组probe有complete，但在`URBAN_AUTO_AUDIT`因已接受旧H3 serial的精确process引用未纳入只读登记而失败，第三轮正式0/287。旧失败、test记录与producer不改判，result_review仍pending。用户暂停第三轮，批准独立40项PatchTST enc2宽度4/8复现实验；本轮仅修复、CPU验收和未提交候选；40项复现实验与第三轮恢复使用两个物理隔离入口，不启动GPU或第三轮。
+**当前总览（M6，用户正式选择PatchTST非Weather d_model4与第三轮B恢复候选）**：入口A已在`7d9fec8c5f66e9f38dbf396bf8d1136276b8e78e`完成dm4/dm8各20项；本轮只读完成审计通过，400实际run-epochs、Adam/backward各55840、forward75292，40次validation-selected best的test-once来源完整。用户最终统一选定五个非Weather M域的PatchTST为d_model4/e_layers2，不再依据效果改选。新版371来源仅替换20格、351格保留；第三轮独立新M_ALL配置仅改20项宽度及身份，其余148项完整保持。Weather始终128/16 heads/2层/d_ff256，完整原profile不变。r6层数48项及旧196项不重训；旧Urban七组probe在新B生命周期从合法AUTO_AUDIT采用后，再按Urban84→EPF35→M168继续287项。本轮为未stage/commit/push候选，无可执行B许可、无GPU preflight或启动，整体result_review及效果gate另行审查。
+
+### 用户正式选择dm4、新371来源及独立第三轮B恢复
+
+用户对作者邮件所述4/8不确定复现线索作出最终科学裁决：ETTh1、ETTh2、ETTm1、ETTm2、Exchange各四H统一d_model4、e_layers2、n_heads4、d_ff128。不得改选8/16、按域/H拼接或重训已完成40项。作者仍未确认唯一宽度；此选择身份不冒称作者确认或效果gate Passed。
+
+本轮审计40项controller、probe与formal完成收据、manifest/result/history/runtime/budget及checkpoint文件引用；280份文件Python/system checksum一致，没有反序列化checkpoint、新模型计算或test访问。选定20项保留真实训练producer `7d9fec8c5f66e9f38dbf396bf8d1136276b8e78e`；未选dm8完整保留。source/identity/completion/metric provenance审查通过与全局result_review、科学效果结论分开。
+
+独立`round2-main-results.patchtst-enc2-dm4-selected-v1`及只读来源boundary从r6固定enc2版派生：371=MS203+M168，20个非Weather PatchTST M格替换、351格逐字段保留，含Weather4及其他347。cell_id一一对应，新旧run ID、producer、profile/protocol、manifest/result/runtime与指标精确引用；旧索引和边界不覆盖。当前来源boundary非执行、无owner/MAC；正式采用HMAC仅在未来B受控生命周期产生。
+
+第三轮父`configs/ch3_type1_m_all_patchtst_enc2_v1.json`保持原字节；新`configs/ch3_type1_m_all_patchtst_enc2_dm4_selected_v1.json`只派生20项d_model16→4与必要variant/task/profile/data引用，148项任务/profile保持。Weather4的d_model128、heads16、d_ff256、dropout/fc_dropout0.2、20/10及完整scheduler/data/监督/评价原样保留。第三轮type1_horizon_scaled_v1与第二轮OneCycle分离，全部numeric policy、batch/seed/optimizer/早停/test-once保持。
+
+B沿现有受控框架、独立scope/attempt/result/log/session及许可恢复，物理入口为`scripts/ch3/start_third_round_after_selection.sh`。新生命周期先采用旧371/196、层数48及已完成宽度40来源，再采用保存Urban七组probe的精确文件引用；在原schema下审核数值、资源和完整性，生成新adoption complete/manifest/当前owner HMAC，不移植旧MAC、不改旧r6失败、不重跑有效Urban probe。Urban84→EPF35→M168共287，最大3990 run-epochs；原531/4550合同和独立新增40/400分别核账。M_ALL新宽度及第三轮协议仍须自己的serial/q4→必要q2→测得q1门禁，不外推A的q4。每阶段完整AUTO_AUDIT一次，formal消费紧凑收据；技术失败停止，正常阶段自动衔接。
+
+资源仍为exclusive_gpu_event_driven_v1：仅合法启动前有界硬件/余量查询，运行期无GPU显存遥测；guard、资源余量、数值与生命周期/STOP/预算/安全停止保持。代码与CPU/合成验收、来源与配置差异、失败日志、未来许可模板和操作材料集中于`separate-entrypoints-v1/dm4-selection-third-round-v1/`。当前无实际B许可、未GPU preflight、未arm；候选新字节等待ChatGPT审核。下方旧40项待选择及B等待选择记录是此前时点事实，予以保留。
+
 
 ### Urban只读登记与五域PatchTST enc2宽度4/8的独立授权
 

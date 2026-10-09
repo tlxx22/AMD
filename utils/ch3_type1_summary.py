@@ -24,7 +24,7 @@ def result_index(configs):
         if stage not in ('URBAN_SUBSET','EPF_ALL','M_ALL'):continue
         for prior,t in zip(s.selected(stage),c['tasks']):
             current=s.context(c)['result_root']/('formal-'+t['model'])/t['id']/'result.json'
-            row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],s.PROTOCOL,digest(s.profile(c,t))),v3=observed(OLD_RESULT/('M' if stage=='M_ALL' else 'MS')/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
+            row=dict(ring=stage,model=t['model'],dataset=t['dataset'],fold=t['fold'],H=t['h'],seed=2024,std='N/A',new=observed(current,t['id'],c['baseline_unified']['id'],digest(s.profile(c,t))),v3=observed(OLD_RESULT/('M' if stage=='M_ALL' else 'MS')/('formal-'+t['model'])/prior['id']/'result.json',prior['id'],'baseline-unified96-onecycle001-v3'),historical_T168=[])
             # Daily comparison follows the sealed round-two source rule, never test ranking.
             row['second_round_revised']=cell_bank.get(key(t),dict(status='revision_pending'))
             if stage=='EPF_ALL':

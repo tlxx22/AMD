@@ -174,7 +174,7 @@ def validate_permit(c,a,probe=False,worker=False):
     if set(a.get('predecessor_boundaries',{}))!=set(required):raise ValueError('exact new predecessor rings required')
     for stage in required:validate_boundary_light(a['predecessor_boundaries'][stage],stage)
     validate_upstream_boundary_light(a['upstream_boundary_ref'])
-    if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False):
+    if PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False)):
         if a.get('base287_boundary_ref')is not None or a.get('round2_boundary_ref')is not None:raise ValueError('independent variants cannot adopt old training lifecycle seals')
     else:
         if ctx['stage']!='M_BASE':validate_base287_boundary_light(a['base287_boundary_ref'])
@@ -277,7 +277,7 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
         budget_refund=False,additional_search=0,from_scratch=True,result_review='pending',upstream_boundary_ref=ref(CONTROL/'upstream-technical-boundary.json'),authorization_basis='user pre-authorized full training iff preregistered technical gates pass')
     a['predecessor_boundaries']=boundary_ref or {}
     if PROBE_RECOVERY:a.update(execution_attempt=getattr(PROBE_RECOVERY,'ATTEMPT','M_BASE-probe-schema-r1'),probe_recovery_ref=PROBE_RECOVERY.REUSE_REF)
-    a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'and not(PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False))else None
+    a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'and not(PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False)))else None
     a['round2_boundary_ref']=round2_ref
     if not probe:
         summary=validate_summary_light(c,summary_ref);a['summary_ref']=summary_ref;a['manifest_ref']=summary['manifest_ref'];a['technical_admission']=True
@@ -289,7 +289,9 @@ def audit_probe(c):
     """One saved-evidence full audit at AUTO_AUDIT, never in formal paths."""
     from utils.ch3_native_execution import validate_probe_completion
     ctx=s.context(c);complete_ref=ref(ctx['probe_root']/'complete.json');report=bound(complete_ref)
-    validate_probe_completion(c,report);stop_check()
+    adopted=PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'validate_saved_probe')and PROBE_RECOVERY.validate_saved_probe(c,report)
+    if not adopted:validate_probe_completion(c,report)
+    stop_check()
     manifest=manifest_projection(report,complete_ref,ctx['probe_root'],process_refs(report))
     manifest_ref=exclusive(ctx['control']/'probe-artifact-manifest.json',manifest)
     summary=dict(purpose='baseline_type1_technical_admission_v1',scope=ctx['probe_scope'],technical_admission=True,
@@ -299,6 +301,7 @@ def audit_probe(c):
         owner=owner(),**{k:report[k] for k in ('commit','code','environment','hardware')})
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):summary.update(PROBE_RECOVERY.resource_binding())
     if report.get('startup_hardware_ref'):summary['startup_hardware_ref']=report['startup_hardware_ref']
+    if report.get('adopted_source_ref'):summary.update(adopted_source_ref=report['adopted_source_ref'],adoption_execution_commit=report['adoption_execution_commit'],original_approval_ref=report['original_approval_ref'])
     secret=os.environ.get(SECRET)
     if not secret:raise PermissionError('AUTO_AUDIT controlled lifecycle absent')
     summary['mac']=hmac.new(secret.encode(),digest(summary).encode(),hashlib.sha256).hexdigest()
@@ -362,9 +365,9 @@ def readiness_report(a=None):
     try:v=upstream_status()
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
     return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,
-        registered_ms203_recovery_requires_full_source_check_and_owned_exit=not(PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)),
+        registered_ms203_recovery_requires_full_source_check_and_owned_exit=not(PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False))),
         remaining_formal_runs=completion_counts()['executed_new_formal_runs'],
-        base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)or getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False))))
+        base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)or getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False))))
 
 
 def wrapper_command(pid):
@@ -497,7 +500,7 @@ def run(start_ref):
         states=[state for state in STATES if state not in skipped]
     receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check,initial,states)
     stop_check()
-    if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False):
+    if PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False)):
         complete=PROBE_RECOVERY.completion_record(receipts)
     else:
         complete=dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],imported_ms_runs=203,base_round2_runs=287,round2_effective_runs=371,**completion_counts())

@@ -23,6 +23,10 @@ def current_recovery():
     return PROBE_RECOVERY or sys.modules[__name__]
 
 def activate_worker(value,execution_attempt=None):
+    from utils import ch3_third_round_after_selection as third
+    if value==third.REUSE_REF:
+        if execution_attempt!=third.ATTEMPT:raise PermissionError('exact independent selected third-round worker attempt')
+        third.activate();return third
     from utils import ch3_patchtst_width_reproduction as width
     if value==width.REUSE_REF:
         if execution_attempt!=width.ATTEMPT:raise PermissionError('exact independent width40 worker attempt')
