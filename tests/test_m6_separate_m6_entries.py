@@ -16,9 +16,9 @@ class SeparateEntries(unittest.TestCase):
             self.assertFalse(any(forbidden in(n.module or'')for n in ast.walk(ast.parse(name.read_text()))if isinstance(n,ast.ImportFrom)))
 
     def test_B_source_stage_counts_and_skip_completed_depth(self):
-        v=b.contract();self.assertEqual(v['stage_order'],['URBAN_SUBSET','EPF_ALL','M_ALL']);self.assertEqual(v['stage_runs'],dict(URBAN_SUBSET=84,EPF_ALL=35,M_ALL=168));self.assertTrue(v['no_depth_redispatch']);self.assertTrue(v['no_A_dispatch'])
+        v=b.contract();self.assertEqual(v['stage_order'],['URBAN_SUBSET','EPF_ALL','M_ALL']);self.assertEqual(v['stage_runs'],dict(URBAN_SUBSET=168,EPF_ALL=35,M_ALL=168));self.assertTrue(v['no_depth_redispatch']);self.assertTrue(v['no_A_dispatch'])
         self.assertFalse(any(x in v['stage_order']for x in('PATCH_ENC1','PATCH_ENC2','M_BASE','M_AMEND')))
-        self.assertEqual(v['remaining_formal_runs'],287)
+        self.assertEqual(v['remaining_formal_runs'],371)
 
     def test_B_no_executable_default_after_explicit_selection(self):
         # Selection is now explicit; executable permission and closure remain separate gates.

@@ -86,8 +86,7 @@ class SelectedDM4(unittest.TestCase):
 
     def test_exact_Urban_registry_and_wrong_stage_scope_rejected(self):
         r=dict(scope=b.ID+'-URBAN_SUBSET-probe',probe_recovery_ref=b.REUSE_REF)
-        refs=b.retained_refs(r);self.assertGreater(len(refs),10)
-        self.assertIn('fc56e22a37ae93fe3f2ce351d55ed8824739291d20d1d2ff8fd73770a73a23d5',{x['sha256']for x in refs.values()})
+        self.assertEqual(b.retained_refs(r),{})
         self.assertRaises(PermissionError,b.retained_refs,dict(r,scope='foreign-URBAN_SUBSET-probe'))
         self.assertRaises(PermissionError,b.retained_refs,dict(r,probe_recovery_ref=b.SOURCE_REF))
         self.assertEqual(b.retained_refs(dict(r,scope=b.ID+'-EPF_ALL-probe')), {})
@@ -104,16 +103,17 @@ class SelectedDM4(unittest.TestCase):
                 link=p/'link.json';link.symlink_to(outside);report['artifacts']={str(link):ref(link)};self.assertRaises(ValueError,manifest_projection,report,complete,root)
 
     def test_registry_cannot_expand_to_unknown_producer_or_stage(self):
-        original=b.bound;r=dict(scope=b.ID+'-URBAN_SUBSET-probe',probe_recovery_ref=b.REUSE_REF);spec=b.contract()
-        for key,value in(('producer_commit','0'*40),('stage','M_ALL'),('purpose','forged')):
-            bad=original(spec['urban_readonly_ref']);bad[key]=value
-            def read(x):return bad if x==spec['urban_readonly_ref']else original(x)
-            with patch.object(b,'bound',side_effect=read):self.assertRaises(ValueError,b.retained_refs,r)
+        for scope in ('foreign-URBAN_SUBSET-probe',b.LEGACY_SCOPE+'-URBAN_SUBSET-probe'):
+            self.assertRaises(PermissionError,b.retained_refs,dict(scope=scope,probe_recovery_ref=b.REUSE_REF))
+        self.assertRaises(PermissionError,b.adopt_urban_probe,{})
+        for report in (dict(adoption_only=True),dict(adopted_source_ref=b.SOURCE_REF)):
+            self.assertRaises(PermissionError,b.validate_saved_probe,q.configs()['URBAN_SUBSET'],report)
+        self.assertFalse(b.validate_saved_probe(q.configs()['URBAN_SUBSET'],{}))
 
-    def test_drive287_order_no_A_depth_or_old_prefix_workers(self):
+    def test_drive371_order_no_A_depth_or_old_prefix_workers(self):
         events=[];actions={x:lambda r,x=x:events.append(x)or {'synthetic':True}for x in q.STATES if x!='COMPLETE'}
         receipts=q.drive(actions,lambda _:None,lambda:None);v=b.completion_record(receipts)
-        self.assertEqual(v['executed_third_formal_runs'],287);self.assertEqual(set(v['stage_boundaries']),set(b.STAGES))
+        self.assertEqual(v['executed_third_formal_runs'],371);self.assertEqual(set(v['stage_boundaries']),set(b.STAGES))
         self.assertFalse(any('PATCH_ENC' in x or 'PATCH_DM' in x or 'M_BASE' in x or 'M_AMEND' in x for x in events))
         self.assertEqual([x for x in events if x.endswith('_FORMAL')],['URBAN_SUBSET_FORMAL','EPF_ALL_FORMAL','M_ALL_FORMAL'])
 
@@ -124,13 +124,13 @@ class SelectedDM4(unittest.TestCase):
             actions={x:fail for x in q.STATES if x!='COMPLETE'}
             self.assertRaises(type(exc),q.drive,actions,lambda _:None,lambda:None);self.assertEqual(events,['first'])
 
-    def test_actual_shared_run_287_and_Urban_no_probe_redispatch(self):
+    def test_actual_shared_run_371_fresh_Urban_no_old_formal_redispatch(self):
         with tempfile.TemporaryDirectory(prefix='synthetic-m6-B-driver-')as raw,contextlib.ExitStack()as stack:
             root=Path(raw);stack.enter_context(patch.object(s,'RESULT',root/'results'));stack.enter_context(patch.object(q,'CONTROL',root/'controller'));q.CONTROL.mkdir()
             start=exclusive(root/'synthetic-start.json',{'synthetic':True});events=[];runs=[]
             stack.enter_context(patch.object(q,'validate_start',side_effect=lambda v:v));stack.enter_context(patch.object(q,'stop_check'))
             stack.enter_context(patch.object(b,'import_ms',side_effect=lambda:exclusive(root/'synthetic-adoption.json',{'synthetic':True})))
-            stack.enter_context(patch.object(b,'adopt_urban_probe',side_effect=lambda r:events.append(('URBAN_SUBSET','adopt_saved_probe'))or exclusive(root/'synthetic-urban-adoption.json',{'synthetic':True})))
+            stack.enter_context(patch.object(b,'adopt_urban_probe',side_effect=AssertionError('no old Urban admission')))
             def permit(c,start_ref,probe,*args,**kwargs):
                 stage=c['baseline_unified']['stage'];events.append((stage,'probe'if probe else'formal'))
                 return exclusive(root/(stage+('-probe'if probe else'-formal')+'.json'),{'synthetic':True,'stage':stage})
@@ -142,9 +142,9 @@ class SelectedDM4(unittest.TestCase):
             stack.enter_context(patch.object(q,'audit_probe',side_effect=lambda c:exclusive(root/(c['baseline_unified']['stage']+'-audit.json'),{'synthetic':True})))
             stack.enter_context(patch.object(q,'seal_runtime',side_effect=lambda c,value:value));stack.enter_context(patch.object(q,'seal_boundary',side_effect=lambda c,r:exclusive(root/(c['baseline_unified']['stage']+'-boundary.json'),{'synthetic':True})))
             q.run(start);complete=bound(ref(q.CONTROL/'complete.json'))
-            self.assertEqual(len(runs),287);self.assertEqual(len(set(runs)),287)
-            self.assertEqual(events,[('URBAN_SUBSET','adopt_saved_probe'),('URBAN_SUBSET','formal'),('EPF_ALL','probe'),('EPF_ALL','formal'),('M_ALL','probe'),('M_ALL','formal')])
-            self.assertEqual(complete['executed_third_formal_runs'],287);self.assertEqual(complete['adopted_depth_formal_runs'],48)
+            self.assertEqual(len(runs),371);self.assertEqual(len(set(runs)),371)
+            self.assertEqual(events,[('URBAN_SUBSET','probe'),('URBAN_SUBSET','formal'),('EPF_ALL','probe'),('EPF_ALL','formal'),('M_ALL','probe'),('M_ALL','formal')])
+            self.assertEqual(complete['executed_third_formal_runs'],371);self.assertEqual(complete['adopted_depth_formal_runs'],48)
 
     def test_new_handoff_MAC_bound_to_current_lifecycle(self):
         with tempfile.TemporaryDirectory(prefix='synthetic-m6-B-handoff-')as raw,patch.object(q,'CONTROL',Path(raw)),patch.object(q,'closure',return_value='f'*40),patch.dict(os.environ,{q.SECRET:'synthetic-B-only-secret'}),patch.object(b,'verify_source',return_value=b.contract()):
@@ -166,10 +166,11 @@ class SelectedDM4(unittest.TestCase):
         v=bound(ref(b.SCIENCE_PACKAGE/'urban-B-auto-audit-integration.json'))
         self.assertTrue(v['synthetic_lifecycle']);self.assertEqual(v['files'],2843);self.assertEqual(v['new_gpu_queries'],0)
         self.assertIn('native.validate_probe_completion',v['actual_functions']);self.assertIn('chain.audit_probe',v['actual_functions'])
-        self.assertEqual(v['real_saved_numeric_resource_source'],bound(b.contract()['urban_audit_ref'])['source_complete'])
+        self.assertEqual(v['real_saved_numeric_resource_source'],bound(b.SOURCE_REF)['refs']['probe/URBAN_SUBSET/complete.json'])
+        self.assertFalse(b.contract()['adopt_old_urban_probe']);self.assertRaises(PermissionError,b.adopt_urban_probe,{})
 
     def test_complete_pending_is_not_result_review_Passed(self):
-        self.assertRaises(ValueError,b.validate_complete,dict(scope=b.ID,technical_complete=True,result_review='Passed',executed_third_formal_runs=287))
+        self.assertRaises(ValueError,b.validate_complete,dict(scope=b.ID,technical_complete=True,result_review='Passed',executed_third_formal_runs=371))
         self.assertFalse(b.RESULT.exists());self.assertFalse(b.LOG.exists());self.assertFalse((b.PACKAGE/'start-review.json').exists())
 
 

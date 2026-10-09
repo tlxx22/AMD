@@ -20,7 +20,9 @@ def synthetic_gpu(args,**kwargs):
 def fixture():
     root=Path(tempfile.mkdtemp(prefix='synthetic-startup-',dir=b.PACKAGE/'fixtures'))
     package=root/'technical';package.mkdir();realpackage=b.PACKAGE
-    (package/'producer-delta-proof.json').write_bytes((realpackage/'producer-delta-proof.json').read_bytes())
+    (package/'producer-delta-proof.v3.json').write_bytes((realpackage/'producer-delta-proof.v3.json').read_bytes())
+    for stage in b.STAGES:
+        name=stage.lower()+'-plan.json';(package/name).write_bytes((realpackage/name).read_bytes())
     cs=q.configs()
     with contextlib.ExitStack()as stack:
         for obj,key,value in [(b,'PACKAGE',package),(b,'LOG',package/'followup-launcher.log'),(q,'LOG',package/'followup-launcher.log'),(s,'PACKAGE',package),(s,'RESULT',root/'synthetic-result'),(q,'CONTROL',root/'synthetic-result/queue/controller'),(q,'QUEUE_LOCK',root/'queue.lock')]:stack.enter_context(patch.object(obj,key,value))
@@ -69,7 +71,7 @@ class BStartupRecovery(unittest.TestCase):
     def test_public_preflight_real_checks_one_synthetic_sample(self):
         with fixture()as(root,auth,start,stack),patch.object(subprocess,'check_output',side_effect=synthetic_gpu)as query:
             report=q.readiness_report(auth)
-            self.assertEqual(report['blocked'],[]);self.assertTrue(report['READY_TO_ARM_HANDOFF']);self.assertFalse(report['READY_FOR_GPU_EXECUTION']);self.assertEqual(report['remaining_formal_runs'],287)
+            self.assertEqual(report['blocked'],[]);self.assertTrue(report['READY_TO_ARM_HANDOFF']);self.assertFalse(report['READY_FOR_GPU_EXECUTION']);self.assertEqual(report['remaining_formal_runs'],371)
             self.assertEqual(sum(call.args[0][0]=='nvidia-smi'for call in query.call_args_list),1)
             self.assertEqual(report['startup_query_audit']['status'],'SAMPLE_ACCEPTED');self.assertFalse(s.RESULT.exists())
 
@@ -188,7 +190,7 @@ class BStartupRecovery(unittest.TestCase):
             old=v['previous_startup_failures'][0];self.assertEqual(old['state'],'PRE_CONTROLLER_START_FAILED');self.assertNotEqual(old['execution_attempt'],b.ATTEMPT)
 
     def test_no_new_science_configuration_or_result_roots(self):
-        cs=q.configs();self.assertEqual([len(cs[k]['tasks'])for k in b.STAGES],[84,35,168]);self.assertEqual(b.selected_main()['retained_cells'],351)
+        cs=q.configs();self.assertEqual([len(cs[k]['tasks'])for k in b.STAGES],[168,35,168]);self.assertEqual(b.selected_main()['retained_cells'],351)
         self.assertFalse(b.RESULT.exists());self.assertFalse(b.LOG.exists());self.assertFalse((b.PACKAGE/'start-review.json').exists())
         old=bound(b.startup_contract()['science_contract_ref']);self.assertEqual(old['selected_main_ref']['sha256'],'e6a5729c0856882f237c9f53c989a6b98557900794f15e4b27deb5fe7cb3c876')
 

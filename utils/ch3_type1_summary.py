@@ -38,8 +38,10 @@ def result_index(configs):
                     if m['profile'].get('T')==168 and all(m['task'].get(k)==t[k]for k in ('model','dataset','fold','h','seed')):row['historical_T168'].append(observed(path))
             rows.append(row)
     urban=len(configs['URBAN_SUBSET']['tasks'])
+    urban_coverage={28:'28/168: folds1,2 and H3,12 only',84:'84/168: folds1–6 and H3,12 only',168:'168/168: folds1–6 and H3,6,9,12'}
+    if urban not in urban_coverage:raise ValueError('unknown Urban coverage cannot be summarized')
     fixed=revision.get('adoption_policy_ref')
-    value=dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV=('84/168: folds1–6 and H3,12 only'if urban==84 else'28/168: folds1,2 and H3,12 only'),EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=not bool(fixed),no_metric_based_layer_selection=True,main_table_policy_ref=fixed,fixed_encoder_adoption=revision.get('fixed_encoder_adoption','complete'if fixed else None),no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
+    value=dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV=urban_coverage[urban],EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=not bool(fixed),no_metric_based_layer_selection=True,main_table_policy_ref=fixed,fixed_encoder_adoption=revision.get('fixed_encoder_adoption','complete'if fixed else None),no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
     from utils.ch3_type1_chain import PROBE_RECOVERY
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):value.update(PROBE_RECOVERY.resource_binding())
     return value

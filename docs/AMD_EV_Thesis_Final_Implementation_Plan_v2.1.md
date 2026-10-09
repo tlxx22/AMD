@@ -50,7 +50,24 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，B启动候选AST证明口径修订）**：dm4采用及B恢复已closure于`8de112a2f1ff2117e94c22e5119d86ccaf0bdec7`；旧B启动前查询失败保留，第三轮仍0/287。启动去重与最多三次TimeoutExpired重试候选的审核发现protected_AST口径跨Python版本不一致：旧证明在正式3.11匹配66/66，在默认3.13失配66/66，但受保护函数与Git父版本完全一致。本轮统一生成器和生产验证器的AST序列化口径，以独立`ast-proof-repair-v1/`保存新证明、非执行模板及CPU来源检查，保留旧送审包。startup-r2身份、Urban84→EPF35→M168、Weather完整128配置、20/351及20/148边界不变。当前未stage/commit/push，无新可执行许可、GPU preflight或arm；真实GPU准入、result_review及效果gate仍分开。
+**当前总览（M6，旧B停止并废止正式资格；Urban六fold四H候选）**：AST与启动修复已closure于`a019a099d6ce5e4972a52a269e18ce16ddae2630`。用户于2026-10-09 14:33:31 UTC明确safe-stop旧startup-r2并废止其全部第三轮正式结果资格；controller、owned children及session已退出，旧产物仅历史保留。新Urban为七模型×六fold×H3/6/9/12＝168项，第三轮Urban168→EPF35→M168＝371项、最大5670 run-epochs。PatchTST非Weather dm4、Weather128完整配置和其它科学/数值/资源政策保持。当前为独立四H候选、未stage/commit/push，无新执行许可、GPU preflight或训练；等待ChatGPT字节审核。
+
+### 旧B用户停止、正式资格废止与Urban六fold四H新合同（2026-10-09）
+
+旧attempt=`THIRD-PatchTST-enc2-dm4-selected-startup-r2`当时处于URBAN_SUBSET_FORMAL，受保护safe-stop退出0，STOP持久化；controller43798/start_ticks219633778、group44176及四个owned worker均退出，tmux session消失，EPF/M和后续Urban模型未启动。停止时间北京时间22:33:31（UTC14:33:31），来源为用户撤销H3/H12第三轮有效实验资格的明确指令。旧H3/H12是此前批准的精简范围；本次用户新四H决定替代旧287项合同，不倒改历史为当时未获批准。
+
+独立停止回执记录正式完成0、用户中断4、当前运行0、尚未派发283；四个staging与上述四个中断任务重叠，不是额外四次运行。history保存19个完整epoch/validation记录；最后持久化预算Adam33997/backward34000/forward37244，停止时未最终封账，尾部未落盘消耗未知，不冒称精确最终值。四worker启动至STOP请求的约1939–1941秒是墙钟估计，不能相加冒充GPU忙时；保留原RSS记录，运行期GPU峰值/利用率本就不采集。restricted audit仅有train/validation prefix解析，正式test记录0；中断中的validation调用数不能从完整history推断。全部日志、manifest、history、budget、metrics/process及负向记录原字节保留；8个best/last checkpoint本轮只保留路径、size、mtime/mode，不读取内容或计算新SHA（SHA记null并说明），不能声称已完成checkpoint checksum审计。旧B任何正式/probe结果不作为新第三轮准入、completed、result_review或效果gate来源，不能resume或重复arm；第二轮371、此前196、层数48和宽度40的合法来源不受影响。
+
+父配置`configs/ch3_type1_urban6_h3_h12_v1.json`（SHA b962ca4557720d1223e14fd0decfe2be0660fb543f8049d767d315436a0ff459）只读。新`configs/ch3_type1_urban6_four_H_v1.json`具有168个唯一task/profile身份，按AMD→DLinear→PatchTST→iTransformer→TimeMixer→ModernTCN→TimeXer、fold1–6、H3/6/9/12固定顺序。原84项H3/H12科学profile完全继承；新增84项H6/H9由冻结`ch3_baseline_ms_u96_oc01_v3.json`对应真实fold/H的数据metadata、月份边界、窗口、train-only scaler与节点顺序唯一派生，再应用已批准第三轮type1合同，不读取真实test。Urban仍F4/T12/C11/MS、单点pred_len1，batch/eval128、epochs最多20/patience5、seed2024、Adam初始lr1e-4、type1_horizon_scaled_v1最大E20/coefficient4/9。数值表仅扩展适用H集合，容差和全部比较器不变；不把第二轮OneCycle带入第三轮。
+
+新执行固定Urban168→EPF35→M_ALL168＝371正式任务，最大run-epochs3360+350+1960＝5670。EPF与选定dm4 M_ALL两个effective配置原字节不动；M_ALL非Weather20项dm4及其它148项（含Weather4完整128/heads16/encoder2/ff256、20/10）保持。新四H合同对应重新派生正式和probe保护上界，旧B实际消耗单列、不扣减科学completed也不退款，不把旧reservation计成actual。
+
+独立attempt=`THIRD-PatchTST-enc2-dm4-Urban6-four-H-r1`、session=`ch3-m6-third-dm4-urban6-fourH-r1`，result为同级`...third-selected-dm4-urban6-four-H-r1`；新许可、log、launch/claimed、owner/MAC/STOP均隔离。增量包为原`ast-proof-repair-v1/urban6-four-H-third-v1/`，旧B及旧送审包不覆盖。七模型每组24个fold/H独立serial参照，覆盖全部168项后按原q4/q2/q1数值、finite、资源与同模式makespan门禁准入；不整体采用旧r6两H或被停止B的probe。新生命周期完成Urban AUTO_AUDIT后才派发168正式，封存后自动进入EPF35、M168；不因中途效果改计划。资源仍exclusive_gpu_event_driven_v1，仅启动前真实GPU0有界检查，运行期显存查询0，余量和明确CUDA OOM分类/STOP/预算/test-once不变。公开preflight与实际controller单一采样阶段分离、TimeoutExpired最多3×10秒/间隔2秒规则保留。
+
+66函数的原AST登记集合及跨Python稳定算法不删：本次明确批准四H范围、独立来源与计数所需的9项控制函数AST差异逐项登记，其余57项与父版本完全一致；模型数学、guard、bundle和运行期资源/数值函数继续精确保护。summary仅增加完整168/168四H报告，独立before/after SHA登记。候选CPU/合成定向验收及所有失败日志保存于本增量acceptance/evidence-index，覆盖真实调度、受限guard、完整新Urban probe/AUTO_AUDIT、manifest、旧来源隔离、STOP、启动重试与66项证明；合成硬件/CPU短进程和数值payload不能冒充真实GPU准入或正式结果。当前未生成可执行许可、未创建新结果根/session、未运行真实GPU、模型、validation/test或checkpoint加载。后续ChatGPT审核→精确closure→新许可/source-check/公开preflight→用户一次arm；technical complete、result_review和效果gate分别审查。
+
+本轮有效CPU验收合计80项通过，另有8项数值子测试通过：此前71项套件中70项成功记录在同一生产字节下沿用，失败的完整Urban合成夹具修正后单独通过，新增371项实际封存/完成判定1项通过，资源/数值定向8项通过；不把曾有error的71项套件写成全通过。完整Urban测试以336个CPU短worker覆盖168个serial与168个q4代表，真实执行run_configs、数值比较、资源审计、AUTO_AUDIT及紧凑formal准入；未运行真实模型或GPU。初次数据绑定误含冻结来源中5个无关EPF source_states，已只投影4个真实Urban源文件，168项metadata/scaler未变；TimeMixer夹具补足原门禁要求的七点诊断轨迹，371封存夹具补齐自有MAC secret，均未弱化生产保护。首次及中间失败日志原样保留；真实只读source-check通过、GPU查询0、未生成许可，Python3.11/3.13的66项AST验证一致。
+
 
 ### B候选protected_AST证明口径与生产验证器一致性补做（2026-10-09）
 

@@ -19,14 +19,14 @@ def nodes(raw):return {n.name:n for n in ast.parse(raw).body if isinstance(n,(as
 
 class BASTProof(unittest.TestCase):
     def test_all66_real_source_and_Git_parent_match(self):
-        proof=bound(ref(b.PACKAGE/'producer-delta-proof.json'));old=bound(b.SUPERSEDED_STARTUP_PROOF_REF);count=0
+        proof=bound(ref(b.PACKAGE/'producer-delta-proof.v3.json'));old=bound(b.SUPERSEDED_STARTUP_PROOF_REF);count=0
         self.assertEqual(proof['AST_algorithm'],b.AST_PROOF_ALGORITHM)
         self.assertEqual({f:set(v)for f,v in proof['protected_AST'].items()},{f:set(v)for f,v in old['protected_AST'].items()})
         for name,registered in proof['protected_AST'].items():
             now=nodes((b.ROOT/name).read_bytes());parent=nodes(subprocess.check_output(['git','show',proof['parent_commit']+':'+name],cwd=b.ROOT))
             for symbol,want in registered.items():
-                self.assertEqual(b.protected_ast_fingerprint(now[symbol]),want,(name,symbol));self.assertEqual(b.protected_ast_fingerprint(parent[symbol]),want,(name,symbol));count+=1
-        self.assertEqual(count,66)
+                self.assertEqual(b.protected_ast_fingerprint(now[symbol]),want,(name,symbol));self.assertEqual(b.protected_ast_fingerprint(parent[symbol]),proof['parent_AST'][name][symbol],(name,symbol));count+=1
+        self.assertEqual(count,66);self.assertEqual({k:set(v)for k,v in proof['changed_top_level_functions'].items()},b.APPROVED_AST_CHANGES)
 
     def test_true_production_verifiers_return_in_real_repository(self):
         self.assertEqual(Path.cwd(),b.ROOT)
@@ -59,23 +59,23 @@ class BASTProof(unittest.TestCase):
         compat.type_params=[];self.assertEqual(b.protected_ast_fingerprint(compat),base)
 
     def test_proof_fingerprint_tamper_rejected_by_real_verifier(self):
-        root=fixture();proof=bound(ref(b.PACKAGE/'producer-delta-proof.json'));file=next(iter(proof['protected_AST']));symbol=next(iter(proof['protected_AST'][file]));proof['protected_AST'][file][symbol]='0'*64
-        (root/'producer-delta-proof.json').write_text(json.dumps(proof)+'\n')
-        with patch.object(b,'PACKAGE',root):self.assertRaisesRegex(ValueError,'protected mathematics/runtime function changed',b.verify_production_inheritance)
+        root=fixture();proof=bound(ref(b.PACKAGE/'producer-delta-proof.v3.json'));file=next(k for k,v in proof['protected_AST'].items()if v);symbol=next(iter(proof['protected_AST'][file]));proof['protected_AST'][file][symbol]='0'*64
+        (root/'producer-delta-proof.v3.json').write_text(json.dumps(proof)+'\n')
+        with patch.object(b,'PACKAGE',root):self.assertRaises(ValueError,b.verify_production_inheritance)
 
     def test_dropping_one_protected_symbol_rejected_by_real_verifier(self):
-        root=fixture();proof=bound(ref(b.PACKAGE/'producer-delta-proof.json'));file=next(iter(proof['protected_AST']));proof['protected_AST'][file].pop(next(iter(proof['protected_AST'][file])))
-        (root/'producer-delta-proof.json').write_text(json.dumps(proof)+'\n')
+        root=fixture();proof=bound(ref(b.PACKAGE/'producer-delta-proof.v3.json'));file=next(k for k,v in proof['protected_AST'].items()if v);proof['protected_AST'][file].pop(next(iter(proof['protected_AST'][file])))
+        (root/'producer-delta-proof.v3.json').write_text(json.dumps(proof)+'\n')
         with patch.object(b,'PACKAGE',root):self.assertRaises(ValueError,b.verify_production_inheritance)
 
     def test_protected_function_tamper_hits_real_AST_gate_after_file_binding(self):
-        root=fixture();source=root/'source';source.mkdir();proof=bound(ref(b.PACKAGE/'producer-delta-proof.json'))
+        root=fixture();source=root/'source';source.mkdir();proof=bound(ref(b.PACKAGE/'producer-delta-proof.v3.json'))
         for name in set(proof['protected_exact'])|set(proof['after_code']):
             path=source/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((b.ROOT/name).read_bytes())
         name='utils/ch3_event_resources.py';path=source/name;tree=ast.parse(path.read_bytes());node=next(n for n in tree.body if isinstance(n,ast.FunctionDef)and n.name=='enabled');node.body.append(ast.Pass());path.write_text(ast.unparse(tree)+'\n')
         # Intentionally authorize this synthetic file's changed bytes so the
         # independent protected_AST gate must reject its semantic change.
-        proof['after_code'][name]=hashlib.sha256(path.read_bytes()).hexdigest();(root/'producer-delta-proof.json').write_text(json.dumps(proof)+'\n')
+        proof['after_code'][name]=hashlib.sha256(path.read_bytes()).hexdigest();(root/'producer-delta-proof.v3.json').write_text(json.dumps(proof)+'\n')
         with patch.object(b,'PACKAGE',root),patch.object(b,'ROOT',source):self.assertRaisesRegex(ValueError,'protected mathematics/runtime function changed: '+name,b.verify_production_inheritance)
 
     def test_prepare_script_complete_source_path_without_GPU_or_permission(self):
@@ -94,23 +94,25 @@ class BASTProof(unittest.TestCase):
 
     def test_future_template_uses_new_proof_and_main_rejects_unclosed_candidate(self):
         review=bound(ref(b.PACKAGE/'start-approval.template.json'));self.assertEqual(review,q.start_template());self.assertFalse(review['execution_permitted'])
-        self.assertEqual(review['upstream_anchors']['producer_delta_ref'],ref(b.PACKAGE/'producer-delta-proof.json'));self.assertNotIn(str(b.STARTUP_PACKAGE/'start-review.json'),(b.PACKAGE/'operations.sh').read_text())
+        self.assertEqual(review['upstream_anchors']['producer_delta_ref'],ref(b.PACKAGE/'producer-delta-proof.v3.json'));self.assertNotIn(str(b.STARTUP_PACKAGE/'start-review.json'),(b.PACKAGE/'operations.sh').read_text())
         script=b.PACKAGE/'prepare-permission.py';result=subprocess.run([sys.executable,'-B',str(script),'main','--reviewed-closure','8de112a2f1ff2117e94c22e5119d86ccaf0bdec7'],cwd=b.ROOT,capture_output=True,text=True,timeout=30)
         self.assertNotEqual(result.returncode,0);self.assertFalse((b.PACKAGE/'start-review.json').exists())
 
     def test_same_attempt_science_Weather_and_all_historical_SHA(self):
-        self.assertEqual(b.ATTEMPT,'THIRD-PatchTST-enc2-dm4-selected-startup-r2');self.assertEqual(b.CURRENT_STAGE_RUNS,dict(URBAN_SUBSET=84,EPF_ALL=35,M_ALL=168));self.assertEqual(b.selected_main()['retained_cells'],351)
+        self.assertEqual(b.ATTEMPT,'THIRD-PatchTST-enc2-dm4-Urban6-four-H-r1');self.assertEqual(b.CURRENT_STAGE_RUNS,dict(URBAN_SUBSET=168,EPF_ALL=35,M_ALL=168));self.assertEqual(b.selected_main()['retained_cells'],351)
         c=q.configs()['M_ALL'];parent=bound(b.contract()['parent_M_ALL_ref'])
         for t in c['tasks']:
             if t['model']=='PatchTST'and t['dataset']=='Weather':self.assertEqual(profile(c,t),profile(parent,t));self.assertEqual(profile(c,t)['structure']['d_model'],128)
-        v=bound(ref(b.PACKAGE/'old-package-protection.json'))
-        for row in v['files']:self.assertEqual(hashlib.sha256(Path(row['path']).read_bytes()).hexdigest(),row['sha256'],row['path'])
+        v=b.verify_stopped_B();inventory=bound(v['retained_artifact_inventory_ref'])
+        for row in inventory['files']:
+            if row['sha256']is not None:self.assertEqual(hashlib.sha256(Path(row['path']).read_bytes()).hexdigest(),row['sha256'],row['path'])
+            else:self.assertEqual(Path(row['path']).stat().st_size,row['size'])
         self.assertEqual(b.historical_startup_failure()['formal_completed'],0)
 
     def test_generator_and_verifier_share_actual_fingerprint_function(self):
-        path=b.PACKAGE/'generate-producer-proof.py';tree=ast.parse(path.read_bytes())
+        path=b.PACKAGE/'generate-producer-proof-v3.py';tree=ast.parse(path.read_bytes())
         calls=[n for n in ast.walk(tree)if isinstance(n,ast.Call)and isinstance(n.func,ast.Attribute)and n.func.attr=='protected_ast_fingerprint']
-        self.assertEqual(len(calls),2);proof=bound(ref(b.PACKAGE/'producer-delta-proof.json'));self.assertEqual(proof['generator_ref'],ref(path));self.assertEqual(proof['AST_algorithm'],b.AST_PROOF_ALGORITHM);self.assertIn('protected_ast_fingerprint',proof['changed_top_level_functions']['utils/ch3_third_round_after_selection.py'])
+        self.assertEqual(len(calls),2);proof=bound(ref(b.PACKAGE/'producer-delta-proof.v3.json'));self.assertEqual(proof['generator_ref'],ref(path));self.assertEqual(proof['AST_algorithm'],b.AST_PROOF_ALGORITHM);self.assertEqual(set(proof['changed_top_level_functions']['utils/ch3_third_round_after_selection.py']),b.APPROVED_AST_CHANGES['utils/ch3_third_round_after_selection.py'])
 
 
 if __name__=='__main__':unittest.main()

@@ -1,4 +1,4 @@
-"""Independent B lifecycle: reviewed dm4 sources, saved Urban audit, 287 runs."""
+"""Independent four-H B lifecycle; withdrawn B results never authorize new runs."""
 import contextlib,copy,hashlib,hmac,json,os,sys
 from pathlib import Path
 from utils.ch3_contract import ROOT,digest,profile
@@ -7,22 +7,28 @@ from utils import ch3_patchtst_depth_urban6_recovery as parent
 
 SCIENCE_PACKAGE=parent.EVENT_PACKAGE/'patchtst-width-urban-audit-v1/separate-entrypoints-v1/dm4-selection-third-round-v1'
 STARTUP_PACKAGE=SCIENCE_PACKAGE/'startup-timeout-recovery-v1'
-PACKAGE=STARTUP_PACKAGE/'ast-proof-repair-v1'
+LEGACY_PACKAGE=STARTUP_PACKAGE/'ast-proof-repair-v1'
+PACKAGE=LEGACY_PACKAGE/'urban6-four-H-third-v1'
 SUPERSEDED_STARTUP_PROOF_REF={'path':str(STARTUP_PACKAGE/'producer-delta-proof.json'),'sha256':'9bf2b2cedb36fbe6a37ba6c4742b69364311403180170594b1b682e84723d5b9'}
 AST_PROOF_ALGORITHM='full-field-ast-json-v1'
-STARTUP_RECOVERY_REF={'path': '/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-epf4-timemixer-y5k7elwc/m-baselines-v1/baseline-unified-v3-ms-seal-m128-recovery1/moderntcn-etth1-numeric-diagnosis-v1/baseline-numeric-admission-v1/patchtst-depth-urban6-repair-v1/patchtst-enc2-adoption-v1/patch-enc1-identity-settle-repair-v1/whole-card-monitor-v1/worker-guard-binding-fix-v1/runtime-no-telemetry-v1/patchtst-width-urban-audit-v1/separate-entrypoints-v1/dm4-selection-third-round-v1/startup-timeout-recovery-v1/startup-recovery.contract.json', 'sha256': '038b6be9b057cae7ced12a323010685c49534ec266e307264bb79c1a1e846b12'}
-CONTRACT_REF={'path':str(SCIENCE_PACKAGE/'third-round-selected-dm4.contract.json'),'sha256':'a88265b64dedf3b84da5877a07f42038a36dade6dcc6bbd61aa633c8d1b4c14f'}
+STARTUP_RECOVERY_REF={'path':str(PACKAGE/'startup-recovery.contract.v3.json'),'sha256':'e2ab52923a141aea222dbea3eeaabc0266110c14d7c3f35e5ae6a560049cd399'}
+CONTRACT_REF={'path':str(PACKAGE/'third-round-four-H.contract.v3.json'),'sha256':'e0b1dfecca6737d12122133437eceba13879bbf905652e2157f06798490cb7ac'}
 REUSE_REF=CONTRACT_REF
 from utils.ch3_patchtst_width_reproduction import SOURCE_REF
-ID='m6-third-round-selected-patchtst-dm4-v1'
-ATTEMPT='THIRD-PatchTST-enc2-dm4-selected-startup-r2'
-SESSION='ch3-m6-third-selected-dm4-startup-r2'
-RESULT=parent.RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-third-selected-dm4-r1')
-LOG=PACKAGE/'B-startup-r2-launcher.log'
+LEGACY_SCOPE='m6-third-round-selected-patchtst-dm4-v1'
+ID='m6-third-round-selected-patchtst-dm4-urban6-four-H-v1'
+ATTEMPT='THIRD-PatchTST-enc2-dm4-Urban6-four-H-r1'
+SESSION='ch3-m6-third-dm4-urban6-fourH-r1'
+RESULT=parent.RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-third-selected-dm4-urban6-four-H-r1')
+LOG=PACKAGE/'B-urban6-four-H-launcher.log'
 ENTRY=ROOT/'m6_third_round_after_selection_entry.py'
 WRAPPER=ROOT/'scripts/ch3/start_third_round_after_selection.sh'
 STAGES=('URBAN_SUBSET','EPF_ALL','M_ALL')
-CURRENT_STAGE_RUNS={'URBAN_SUBSET':84,'EPF_ALL':35,'M_ALL':168}
+CURRENT_STAGE_RUNS={'URBAN_SUBSET':168,'EPF_ALL':35,'M_ALL':168}
+APPROVED_AST_CHANGES={'utils/ch3_third_round_after_selection.py':{
+    'contract','validate_revision','retained_refs','adopt_urban_probe',
+    'validate_saved_probe','continuation_actions','completion_counts',
+    'completion_record','validate_complete'}}
 THIRD_ROUND_ONLY=True
 INDEPENDENT_SCIENCE_QUEUE=False
 COMPLETED_PREFIX=False
@@ -33,9 +39,12 @@ _R6={}
 
 def contract():
     v=bound(CONTRACT_REF)
-    if (v.get('purpose')!='third_round_user_selected_dm4_resume_v1' or v.get('selected_d_model')!=4
+    if (v.get('purpose')!='third_round_user_selected_dm4_urban6_four_H_v1' or v.get('selected_d_model')!=4
         or v.get('stage_order')!=list(STAGES) or v.get('stage_runs')!=CURRENT_STAGE_RUNS
-        or v.get('remaining_formal_runs')!=287 or v.get('Weather_d_model')!=128
+        or v.get('remaining_formal_runs')!=371 or v.get('max_run_epochs')!=5670
+        or v.get('urban_horizons')!=[3,6,9,12] or v.get('urban_folds')!=list(range(1,7))
+        or v.get('new_queue_completed_from_old_B')!=0 or v.get('adopt_old_urban_probe')is not False
+        or v.get('Weather_d_model')!=128
         or v.get('Weather_changed')is not False or v.get('no_depth_redispatch')is not True
         or v.get('no_A_dispatch')is not True or v.get('execution_permitted')is not False
         or v.get('r6_source_ref')!=SOURCE_REF
@@ -79,6 +88,7 @@ def selected_main(value=None):
 def validate_revision(c):
     spec=contract();stage=c['baseline_unified']['stage']
     if stage not in STAGES or c!=bound(spec['config_refs'][stage]):raise ValueError('exact reviewed third-round effective configuration')
+    if stage=='URBAN_SUBSET':return validate_urban_four_H(c)
     if stage!='M_ALL':return c
     old=bound(spec['parent_M_ALL_ref']);expected=copy.deepcopy(old);data=bound(c['baseline_unified']['data_ref']);olddata=bound(old['baseline_unified']['data_ref']);changed=0
     for i,t in enumerate(old['tasks']):
@@ -105,14 +115,98 @@ def validate_revision(c):
     return c
 
 
+def urban_task(prior):
+    from utils import ch3_type1_tasks as s
+    t=s.new_task(prior);t['id']+='-urban6-four-H-v1';t['group']+='-urban6-four-H-v1'
+    t['profile']=t['id']+'-profile'
+    return t
+
+
+def validate_urban_four_H(c):
+    """Reconstruct from exact frozen per-fold/H sources, never test data."""
+    from utils import ch3_type1_tasks as s
+    from utils.ch3_contract import step_arithmetic
+    spec=contract();old=bound(spec['urban_parent_ref']);frozen=bound(spec['frozen_urban_source_ref'])
+    if spec['frozen_urban_source_ref']!=s.PARENT_REF:raise ValueError('exact frozen four-H source')
+    source=bound(frozen['baseline_unified']['data_ref']);data=bound(c['baseline_unified']['data_ref'])
+    expected=copy.deepcopy(old);expected.update(tasks=[],resolved_profiles={},groups=[])
+    expected['baseline_unified']['parent_refs']={}
+    metadata=dict(purpose='urban_six_fold_four_H_train_validation_metadata_v1',source_refs=[s.PARENT_REF,spec['urban_parent_ref']],
+        source_states={str(Path(old['datasets']['UrbanEV']['path'])/name):source['source_states'][str(Path(old['datasets']['UrbanEV']['path'])/name)]for name in('volume.csv','e_price.csv','s_price.csv','weather_central.csv')},test_observations_accessed=False,metadata={'UrbanEV':{}},data_bindings={'UrbanEV':{}},mapping={})
+    for model in s.MODELS:
+        bank=[]
+        for fold in range(1,7):
+            for h in (3,6,9,12):
+                prior=next(t for t in frozen['tasks']if t['dataset']=='UrbanEV'and(t['model'],t['fold'],t['h'])==(model,fold,h))
+                t=urban_task(prior);p=s.inherited_profile(prior)
+                if (p['T'],p['pred_len'],p['C'],p['training']['batch'],p['training']['epochs'],p['training']['patience'])!=(12,1,11,128,20,5):raise ValueError('fixed single-offset Urban training')
+                if h in(3,12):
+                    before=next(x for x in old['tasks']if(x['model'],x['fold'],x['h'])==(model,fold,h))
+                    if p!=profile(old,before):raise ValueError('all84 existing scientific profiles unchanged')
+                expected['tasks'].append(t);expected['resolved_profiles'][t['id']]=p;bank.append(t['id'])
+                expected['baseline_unified']['parent_refs'][t['id']]=dict(config_ref=s.PARENT_REF,task_id=prior['id'],profile_sha=digest(profile(frozen,prior)))
+                m=source['metadata']['UrbanEV'][prior['id']]
+                metadata['metadata']['UrbanEV'][t['id']]=m;metadata['data_bindings']['UrbanEV'][t['id']]=digest(m)
+                metadata['mapping'][t['id']]=dict(task_id=prior['id'],data_ref=frozen['baseline_unified']['data_ref'])
+                a=step_arithmetic(c,t)
+                if m['window_counts']!=dict(train=a['train_windows'],validation=a['validation_windows'])or p['training']['scheduler']['steps_per_epoch']!=a['train_batches']:raise ValueError('real fold/H window and scheduler counts')
+        expected['groups'].append(dict(id=t['group'],dataset='UrbanEV',model=model,input_variant='F4',q=4,representatives=bank,task_ids=bank,
+            waves=[bank[i:i+4]for i in range(0,len(bank),4)],equivalence='every fold/H independently represented; no inherited partial-H admission'))
+    for rule in expected['baseline_unified']['numeric_policies'].values():rule['horizons']=[3,6,9,12]
+    expected['baseline_unified'].update(data_ref=c['baseline_unified']['data_ref'],four_H_parent_ref=spec['urban_parent_ref'])
+    if c!=expected or data!=metadata or len({t['profile']for t in c['tasks']})!=168:raise ValueError('exact168 unique profiles and frozen data mappings; no other scientific changes')
+    return c
+
+
+def urban_probe_groups(c):
+    from utils import ch3_type1_tasks as s
+    return [dict(id=model+'-cross-fold-f1-f6-H3-H6-H9-H12',model=model,
+        representatives=[t['id']for t in c['tasks']if t['model']==model],planned_q=4,
+        coverage={t['id']:[t['id']]for t in c['tasks']if t['model']==model},
+        identities={t['id']:digest(profile(c,t))for t in c['tasks']if t['model']==model},
+        equivalence='all24 fold/H representatives independently measured; no old B/r6 admission')for model in s.MODELS]
+
+
+def urban_probe_budget(c):
+    from utils import ch3_type1_tasks as s
+    counts={t['id']:s.worker_counts(c,t)for t in c['tasks']}
+    return dict(nominal={k:2*sum(v[k]for v in counts.values())for k in('adam','backward','forward')},
+        caps={k:3*sum(v[k]for v in counts.values())for k in('adam','backward','forward')},
+        nominal_workers=336,max_workers=504,
+        fallback='resource-only q4 -> once q2 -> measured serial q1; q2 -> measured serial q1; no refund')
+
+
+def verify_stopped_B():
+    """Read-only revocation source; no checkpoint reads or new runtime credit."""
+    v=bound(contract()['withdrawn_B_ref']);inventory=bound(v['retained_artifact_inventory_ref'])
+    if (v.get('old_attempt')!='THIRD-PatchTST-enc2-dm4-selected-startup-r2'
+        or v.get('old_formal_eligibility')is not False or v.get('old_probe_eligibility_for_new_queue')is not False
+        or v.get('may_resume')is not False or v.get('new_queue_completed_from_old_B')!=0):raise ValueError('withdrawn B cannot be adopted or resumed')
+    for r in [v['authorization_ref'],v['log_ref'],v['launch_ref'],*v['refs'].values()]:
+        if Path(r['path']).is_symlink()or sha(r['path'])!=r['sha256']:raise ValueError('exact withdrawn B stop source bytes')
+    for row in inventory['files']:
+        p=Path(row['path']);st=p.stat()
+        if p.is_symlink()or(st.st_size,st.st_mtime_ns)!=(row['size'],row['mtime_ns']):raise ValueError('withdrawn B artifact stat changed')
+        if row['sha256']is not None and sha(p)!=row['sha256']:raise ValueError('withdrawn B artifact bytes changed')
+    from utils import ch3_type1_chain as q
+    for identity in v['identities']:
+        if identity.get('start_ticks')is None:
+            if Path('/proc',str(identity['pid'])).exists():raise PermissionError('withdrawn worker PID currently occupied; cannot assert exit identity')
+        elif q.same(identity):raise PermissionError('withdrawn B owner still active')
+    import subprocess
+    if subprocess.run(['tmux','has-session','-t',v['old_session']],capture_output=True).returncode==0:raise PermissionError('withdrawn B session active')
+    if not Path(v['refs']['STOP']['path']).exists():raise PermissionError('persistent old B STOP required')
+    return v
+
+
 
 def startup_contract():
     v=bound(STARTUP_RECOVERY_REF)
     if (v.get('purpose')!='B_pre_controller_timeout_recovery_v1' or v.get('science_scope')!=ID
         or v.get('science_contract_ref')!=CONTRACT_REF or v.get('execution_attempt')!=ATTEMPT
         or v.get('session')!=SESSION or v.get('result_root')!=str(RESULT)
-        or v.get('stage_runs')!=CURRENT_STAGE_RUNS or v.get('remaining_formal_runs')!=287
-        or v.get('scientific_change')is not False or v.get('execution_permitted')is not False
+        or v.get('stage_runs')!=CURRENT_STAGE_RUNS or v.get('remaining_formal_runs')!=371
+        or v.get('scientific_change')is not True or v.get('execution_permitted')is not False
         or v.get('query_policy')!=dict(timeout_seconds=10,max_attempts=3,retry_delay_seconds=2,
             retry_exception='subprocess.TimeoutExpired',maximum_query_and_wait_seconds=34)):
         raise PermissionError('exact B technical startup contract, no scientific change')
@@ -129,7 +223,7 @@ def startup_query_policy():
 
 def historical_startup_failure():
     v=bound(startup_contract()['prior_failure_ref'])
-    if (v.get('state')!='PRE_CONTROLLER_START_FAILED' or v.get('scope')!=ID
+    if (v.get('state')!='PRE_CONTROLLER_START_FAILED' or v.get('scope')!=LEGACY_SCOPE
         or v.get('execution_attempt')!='THIRD-PatchTST-enc2-dm4-selected-r1'
         or v.get('production_commit')!='8de112a2f1ff2117e94c22e5119d86ccaf0bdec7'
         or v.get('formal_completed')!=0 or v.get('new_validation_test')!=0):
@@ -243,22 +337,28 @@ def protected_ast_fingerprint(node):
 
 def verify_production_inheritance():
     import ast
-    proof=bound(ref(PACKAGE/'producer-delta-proof.json'))
+    proof=bound(ref(PACKAGE/'producer-delta-proof.v3.json'))
     previous=bound(startup_contract()['previous_producer_proof_ref'])
-    superseded=bound(SUPERSEDED_STARTUP_PROOF_REF)
     registry=lambda value:{name:set(symbols)for name,symbols in value['protected_AST'].items()}
-    if (proof.get('purpose')!='B_AST_proof_repair_exact_delta_v1'
+    if (proof.get('purpose')!='B_four_H_exact_delta_v1'
         or proof.get('AST_algorithm')!=AST_PROOF_ALGORITHM
-        or proof.get('superseded_startup_proof_ref')!=SUPERSEDED_STARTUP_PROOF_REF
-        or registry(proof)!=registry(superseded)
+        or registry(proof)!=registry(previous)
         or sum(map(len,proof['protected_AST'].values()))!=66
-        or set(proof['after_code'])!=set(superseded['after_code'])
-        or proof['protected_exact']!=superseded['protected_exact']
-        or proof.get('parent_commit')!='8de112a2f1ff2117e94c22e5119d86ccaf0bdec7'
+        or set(proof['after_code'])!=set(previous['after_code'])
+        or set(proof['protected_exact'])!=set(previous['protected_exact'])
+        or {k:v for k,v in proof['protected_exact'].items()if k!='utils/ch3_type1_summary.py'}!={k:v for k,v in previous['protected_exact'].items()if k!='utils/ch3_type1_summary.py'}
+        or proof.get('summary_source_delta')!=dict(before=previous['protected_exact']['utils/ch3_type1_summary.py'],after=proof['protected_exact']['utils/ch3_type1_summary.py'],reason='explicit full four-H coverage reporting; result sources and selection unchanged')
+        or proof.get('parent_commit')!='a019a099d6ce5e4972a52a269e18ce16ddae2630'
         or proof.get('previous_proof_ref')!=startup_contract()['previous_producer_proof_ref']
-        or proof.get('model_math_changed')is not False or proof.get('scientific_change')is not False
+        or proof.get('model_math_changed')is not False or proof.get('scientific_change')is not True
+        or proof.get('parent_AST')!=previous['protected_AST']
         or proof['before_code']!={**previous['protected_exact'],**previous['after_code']}):
-        raise ValueError('precise reviewed B startup delta with original producer proof')
+        raise ValueError('precise four-H scope delta with original66 protection')
+    changed={name:{symbol for symbol,h in symbols.items()if h!=previous['protected_AST'][name][symbol]}
+        for name,symbols in proof['protected_AST'].items()}
+    changed={name:symbols for name,symbols in changed.items()if symbols}
+    if changed!=APPROVED_AST_CHANGES or proof.get('approved_AST_changes')!={k:sorted(v)for k,v in APPROVED_AST_CHANGES.items()}:
+        raise ValueError('only explicit four-H scope/admission/count AST deltas allowed')
     for name,h in proof['protected_exact'].items():
         if sha(ROOT/name)!=h:raise ValueError('protected source changed: '+name)
     for name,h in proof['after_code'].items():
@@ -276,6 +376,7 @@ def verify_production_inheritance():
 
 def verify_source():
     historical_startup_failure()
+    verify_stopped_B()
     spec=contract();source=bound(SOURCE_REF);audit=bound(spec['width_source_audit_ref']);complete=bound(spec['width_complete_ref'])
     if audit.get('technical_complete')is not True or audit.get('producer_commit')!='7d9fec8c5f66e9f38dbf396bf8d1136276b8e78e'or audit.get('new_test_calls')!=0 or complete.get('technical_complete')is not True or complete.get('total_runs')!=40:raise ValueError('real independent width40 completion and read-only audit')
     for k in('PATCH_ENC1','PATCH_ENC2','probe/URBAN_SUBSET/complete.json','queue/controller/failure.json'):
@@ -289,19 +390,19 @@ def verify_source():
     import subprocess
     for session in(parent.SESSION,A_SESSION):
         if subprocess.run(['tmux','has-session','-t',session],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('source lifecycle still active')
-    selected_main();bound(spec['selected_boundary_ref']);bound(spec['urban_readonly_ref']);bound(spec['urban_audit_ref']);verify_production_inheritance()
+    selected_main();bound(spec['selected_boundary_ref']);verify_production_inheritance()
     return spec
 
 
 def anchors():
     v=contract()
-    return dict(execution_attempt=ATTEMPT,startup_recovery_ref=STARTUP_RECOVERY_REF,contract_ref=CONTRACT_REF,source_ref=SOURCE_REF,selection_ref=v['selection_ref'],selected_main_ref=v['selected_main_ref'],selected_boundary_ref=v['selected_boundary_ref'],urban_source_audit_ref=v['urban_audit_ref'],producer_delta_ref=ref(PACKAGE/'producer-delta-proof.json'),candidate_config_refs=config_refs(),completed_old_new_formal=196,completed_depth_formal=48,completed_independent_width_formal=40,expected_remaining_formal=287,approved_third_formal=287,Weather_d_model=128,selected_nonWeather_d_model=4,**resource_binding())
+    return dict(execution_attempt=ATTEMPT,startup_recovery_ref=STARTUP_RECOVERY_REF,contract_ref=CONTRACT_REF,source_ref=SOURCE_REF,selection_ref=v['selection_ref'],selected_main_ref=v['selected_main_ref'],selected_boundary_ref=v['selected_boundary_ref'],withdrawn_B_ref=v['withdrawn_B_ref'],old_B_completed_credit=0,urban_horizons=[3,6,9,12],producer_delta_ref=ref(PACKAGE/'producer-delta-proof.v3.json'),candidate_config_refs=config_refs(),completed_old_new_formal=196,completed_depth_formal=48,completed_independent_width_formal=40,expected_remaining_formal=371,approved_third_formal=371,Weather_d_model=128,selected_nonWeather_d_model=4,**resource_binding())
 
 
 def status():
     # Read-only state: no GPU query, source numerical replay or old checkpoint scan.
     verify_source()
-    return dict(state='DM4_SELECTED_B_WAIT_REVIEW_CLOSURE_AND_PERMISSION',anchors=anchors(),selected_nonWeather_d_model=4,remaining_formal_runs=287,READY_FOR_GPU_EXECUTION=False,result_review='pending',result_exists=RESULT.exists(),log_exists=LOG.exists(),permission_exists=(PACKAGE/'start-review.json').exists(),previous_startup_failures=[historical_startup_failure()])
+    return dict(state='FOUR_H_B_WAIT_REVIEW_CLOSURE_AND_PERMISSION',anchors=anchors(),selected_nonWeather_d_model=4,remaining_formal_runs=371,READY_FOR_GPU_EXECUTION=False,result_review='pending',result_exists=RESULT.exists(),log_exists=LOG.exists(),permission_exists=(PACKAGE/'start-review.json').exists(),previous_startup_failures=[historical_startup_failure()],withdrawn_B=verify_stopped_B())
 
 
 def import_ms():
@@ -337,7 +438,7 @@ def monitor_binding(configs):
 
 
 def worker_metadata(c):
-    v=contract();values=[CONTRACT_REF,SOURCE_REF,v['selection_ref'],v['selected_main_ref'],v['selected_boundary_ref'],v['width_source_audit_ref'],v['urban_audit_ref'],v['urban_readonly_ref'],v['parent_M_ALL_ref'],resource_binding()['resource_contract_ref'],ref(PACKAGE/'producer-delta-proof.json')]
+    v=contract();values=[CONTRACT_REF,SOURCE_REF,v['selection_ref'],v['selected_main_ref'],v['selected_boundary_ref'],v['width_source_audit_ref'],v['parent_M_ALL_ref'],v['urban_parent_ref'],v['frozen_urban_source_ref'],resource_binding()['resource_contract_ref'],ref(PACKAGE/'producer-delta-proof.v3.json')]
     values.extend([STARTUP_RECOVERY_REF,startup_contract()['prior_failure_ref'],startup_contract()['previous_producer_proof_ref']])
     values.append(bound(v['parent_M_ALL_ref'])['baseline_unified']['data_ref'])
     for r in config_refs().values():values.extend([r,bound(r)['baseline_unified']['data_ref']])
@@ -360,42 +461,19 @@ def historical_urban_context():
 
 def retained_refs(report):
     if report.get('probe_recovery_ref')not in(None,REUSE_REF):raise PermissionError('foreign readonly registry')
-    if not report.get('scope','').endswith('URBAN_SUBSET-probe'):return {}
-    if report.get('scope')!=ID+'-URBAN_SUBSET-probe':raise PermissionError('exact B Urban stage only')
-    saved=bound(contract()['urban_readonly_ref'])
-    if saved['stage']!='URBAN_SUBSET' or saved['source_complete_ref']!=bound(contract()['urban_audit_ref'])['source_complete']:raise ValueError('exact registered saved Urban source')
-    audit=bound(contract()['urban_audit_ref']);original=bound(saved['source_complete_ref'])
-    from utils.ch3_native_recovery_records import process_refs
-    expected=dict(original['artifacts'])
-    expected.update({x['path']:x for x in process_refs(original)+[audit['source_complete'],audit['source_permit'],audit['config_ref']]})
-    if saved.get('purpose')!='exact_r6_Urban_source_files_v1' or saved.get('producer_commit')!='bd4b63dfcce78f38cc233e74f3c50271b020d8de' or saved['refs']!=expected:raise ValueError('only exact original successful Urban file refs; no directory whitelist')
-    return saved['refs']
+    if report.get('scope','').endswith('URBAN_SUBSET-probe')and report['scope']!=ID+'-URBAN_SUBSET-probe':raise PermissionError('exact four-H B stage only')
+    # All168 representatives are freshly admitted in this lifecycle. Neither
+    # stopped B nor the partial-H r6 registry grants external artifact access.
+    return {}
 
 
 def adopt_urban_probe(receipts):
-    """Materialize an adoption record, never rerun an already completed probe."""
-    from utils import ch3_type1_tasks as s,ch3_type1_chain as q
-    c=q.configs()['URBAN_SUBSET'];ctx=s.context(c);ctx['control'].mkdir(parents=True,exist_ok=False);ctx['probe_root'].mkdir(parents=True,exist_ok=False)
-    permit=q.create_permit(c,bound(ref(q.CONTROL/'controller.json'))['authorization'],True)
-    approval=exclusive(ctx['probe_root']/'approval.json',bound(permit))
-    original_ref=bound(contract()['urban_audit_ref'])['source_complete'];report=bound(original_ref)
-    adopted=copy.deepcopy(report);adopted.update(scope=ctx['probe_scope'],approval=approval,probe_recovery_ref=REUSE_REF,adopted_source_ref=original_ref,original_approval_ref=report['approval'],adoption_execution_commit=q.closure(),adoption_only=True)
-    exclusive(ctx['probe_root']/'complete.json',adopted)
-    return permit
+    raise PermissionError('four-H requires fresh complete Urban admission; stopped B/r6 probe cannot authorize it')
 
 
 def validate_saved_probe(c,report):
-    if c['baseline_unified']['stage']!='URBAN_SUBSET':return False
-    from utils import ch3_type1_tasks as s
-    original_ref=bound(contract()['urban_audit_ref'])['source_complete'];original=bound(original_ref)
-    expected=copy.deepcopy(original);permit=ref(s.context(c)['probe_root']/'approval.json')
-    expected.update(scope=s.context(c)['probe_scope'],approval=permit,probe_recovery_ref=REUSE_REF,adopted_source_ref=original_ref,original_approval_ref=original['approval'],adoption_execution_commit=report.get('adoption_execution_commit'),adoption_only=True)
-    from utils import ch3_type1_chain as q
-    q.validate_permit(c,bound(permit),True)
-    if report!=expected or report['adoption_execution_commit']!=q.closure():raise ValueError('deterministic original Urban adoption; no forged success/source')
-    from utils.ch3_native_execution import validate_probe_completion
-    with historical_urban_context():validate_probe_completion(c,original)
-    return True
+    if report.get('adoption_only')or report.get('adopted_source_ref'):raise PermissionError('no historical probe completion adoption in new four-H lifecycle')
+    return False
 
 
 def location(report,key,default):return Path(default)
@@ -405,21 +483,21 @@ def self_review(report,path):return False
 def group_review(report,group):return None
 def continuation_actions():
     from utils import ch3_type1_chain as q
-    return {q.STAGE_STATES['URBAN_SUBSET'][0]:adopt_urban_probe,'VERIFY_ADOPT_SELECTED_DM4_SOURCES':lambda _:import_ms()}
+    return {'VERIFY_ADOPT_SELECTED_DM4_SOURCES':lambda _:import_ms()}
 
 
 def completion_counts():
-    return dict(total_runs=531,third_round_runs=287,adopted_new_formal_runs=244,executed_new_formal_runs=287,independent_width_formal_runs=40)
+    return dict(total_runs=615,third_round_runs=371,adopted_new_formal_runs=244,executed_new_formal_runs=371,independent_width_formal_runs=40,withdrawn_B_completed_credit=0)
 
 
 def completion_record(receipts):
     from utils import ch3_type1_chain as q
-    return dict(scope=ID,technical_complete=True,result_review='pending',stage_boundaries={s:receipts[q.STAGE_STATES[s][3]]for s in STAGES},selected_main_ref=contract()['selected_main_ref'],selection_ref=contract()['selection_ref'],adopted_original_new_formal_runs=196,adopted_depth_formal_runs=48,completed_independent_width_formal_runs=40,executed_third_formal_runs=287,total_third_formal_runs=287,**resource_binding())
+    return dict(scope=ID,technical_complete=True,result_review='pending',stage_boundaries={s:receipts[q.STAGE_STATES[s][3]]for s in STAGES},selected_main_ref=contract()['selected_main_ref'],selection_ref=contract()['selection_ref'],adopted_original_new_formal_runs=196,adopted_depth_formal_runs=48,completed_independent_width_formal_runs=40,executed_third_formal_runs=371,total_third_formal_runs=371,withdrawn_B_ref=contract()['withdrawn_B_ref'],withdrawn_B_completed_credit=0,**resource_binding())
 
 
 def validate_complete(v):
     from utils import ch3_type1_chain as q
-    if v.get('scope')!=ID or v.get('technical_complete')is not True or v.get('result_review')!='pending' or v.get('executed_third_formal_runs')!=287 or v.get('selected_main_ref')!=contract()['selected_main_ref'] or v.get('selection_ref')!=contract()['selection_ref']or set(v.get('stage_boundaries',{}))!=set(STAGES):raise ValueError('exact B technical complete; result review separate')
+    if v.get('scope')!=ID or v.get('technical_complete')is not True or v.get('result_review')!='pending' or v.get('executed_third_formal_runs')!=371 or v.get('total_third_formal_runs')!=371 or v.get('withdrawn_B_completed_credit')!=0 or v.get('withdrawn_B_ref')!=contract()['withdrawn_B_ref'] or v.get('selected_main_ref')!=contract()['selected_main_ref'] or v.get('selection_ref')!=contract()['selection_ref']or set(v.get('stage_boundaries',{}))!=set(STAGES):raise ValueError('exact four-H B technical complete; withdrawn B excluded; result review separate')
     for stage,r in v['stage_boundaries'].items():q.validate_boundary_light(r,stage)
     return v
 
@@ -437,6 +515,11 @@ def activate():
     # independently bound in validate_revision/worker_metadata.
     s.parent_ref=_R6['parent_ref']
     s.validate=validate_revision;s.expected_tasks=lambda stage:bound(config_refs()[stage])['tasks']
+    old_selected,old_groups,old_budget=s.selected,s.probe_groups,s.probe_budget
+    s.selected=lambda stage:[t for t in s.parent()['tasks']if t['dataset']=='UrbanEV'and t['fold']in range(1,7)and t['h']in(3,6,9,12)]if stage=='URBAN_SUBSET'else old_selected(stage)
+    s.probe_groups=lambda c:urban_probe_groups(c)if c['baseline_unified']['stage']=='URBAN_SUBSET'else old_groups(c)
+    s.probe_budget=lambda c:urban_probe_budget(c)if c['baseline_unified']['stage']=='URBAN_SUBSET'else old_budget(c)
+    s.package=lambda stage:PACKAGE
     s.context=lambda c:dict(original_context(c),fixture=PACKAGE/c['baseline_unified']['stage']/'fixtures')
     # Original protocol/profile identities remain in unchanged Urban/EPF configs.
     q.STAGE_STATES={stage:tuple(stage+suffix for suffix in('_PROBE','_AUTO_AUDIT','_FORMAL','_BOUNDARY'))for stage in STAGES}
