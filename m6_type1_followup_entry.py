@@ -8,7 +8,7 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive
 
 def cli():
     parser=argparse.ArgumentParser()
-    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round','depth-results'))
+    parser.add_argument('action',choices=('dry-run','preflight','prepare-launch','start','probe-child','group-child','status','logs','complete','safe-stop','summary','second-round','third-round','depth-results','width-results'))
     parser.add_argument('--approval',default=str(s.PACKAGE/'start-review.json'));parser.add_argument('--approval-sha')
     parser.add_argument('--wrapper-pid',type=int);parser.add_argument('--stage',choices=s.STAGES);parser.add_argument('--model',choices=s.MODELS)
     parser.add_argument('--runtime');parser.add_argument('--runtime-sha');a=parser.parse_args()
@@ -46,6 +46,10 @@ def cli():
             run_group(c,permit,a.model,dict(path=a.runtime,sha256=a.runtime_sha))
         return 0
     if a.action=='safe-stop':print(json.dumps(q.safe_stop()));return 0
+    if a.action=='width-results':
+        if not q.PROBE_RECOVERY or not hasattr(q.PROBE_RECOVERY,'width_results'):raise PermissionError('width variants require their precise entry')
+        print(json.dumps(q.PROBE_RECOVERY.width_results(),ensure_ascii=False,indent=2));return 0
+    if q.PROBE_RECOVERY and getattr(q.PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)and a.action in ('summary','second-round','third-round','depth-results'):raise PermissionError('width40 queue cannot adopt results or continue third round')
     if a.action in ('summary','second-round'):
         from utils.ch3_round2_amendment import summary
         print(json.dumps(summary(),ensure_ascii=False,indent=2));return 0
@@ -60,6 +64,8 @@ def cli():
     if a.action=='complete':
         if status['running'] or status['STOP'] or status['failure'] or not status['complete']:print(json.dumps(status));return 2
         complete=json.loads((q.CONTROL/'complete.json').read_text())
+        if q.PROBE_RECOVERY and getattr(q.PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False):
+            q.PROBE_RECOVERY.validate_complete(complete);print(json.dumps(status,ensure_ascii=False,indent=2));return 0
         if complete.get('scope')!=s.ID or complete.get('technical_complete')is not True or complete.get('result_review')!='pending' or any(complete.get(k)!=v for k,v in q.completion_counts().items()) or complete.get('imported_ms_runs')!=203 or complete.get('base_round2_runs')!=287 or complete.get('round2_effective_runs')!=371:raise ValueError('exact technical complete required')
         for stage in ('PATCH_ENC1','PATCH_ENC2'):
             if stage in s.STAGES:q.validate_boundary_light(complete[stage+'_boundary'],stage)

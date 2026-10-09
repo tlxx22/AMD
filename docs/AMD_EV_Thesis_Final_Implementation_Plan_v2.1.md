@@ -50,9 +50,29 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，启动前检查＋运行期任务/异常驱动候选）**：受限worker绑定修复已closure于`6f525489cff125248cbc0b256e9744acf67590da`。r5独立H96短验收及主链另外三个ETTh1 serial均成功，随后首个q4波因整卡查询10秒超时停止，新增计算0/0/0；不把它认定为OOM、数值失败或Passed。旧MS203/M84/M_AMEND112、第二轮371格及196项完成来源保持；剩余335、总531、正式最大4550 run-epochs不变。用户明确独占服务器/GPU，本轮候选取消运行期显存遥测，保留启动前硬件/余量检查、正常任务生命周期和原数值门禁。独立`r6-no-telemetry`未stage/commit/push、未生成可执行许可、未启动GPU或主链，result_review仍pending。
+**当前总览（M6，Urban审计修复与PatchTST宽度复现实验候选）**：运行期无遥测版本已closure于`bd4b63dfcce78f38cc233e74f3c50271b020d8de`并真实启动r6。enc1/enc2各24项及固定enc2新版371索引已技术完成；Urban七组probe有complete，但在`URBAN_AUTO_AUDIT`因已接受旧H3 serial的精确process引用未纳入只读登记而失败，第三轮正式0/287。旧失败、test记录与producer不改判，result_review仍pending。用户暂停第三轮，批准独立40项PatchTST enc2宽度4/8复现实验；本轮仅修复、CPU验收和未提交候选；40项复现实验与第三轮恢复使用两个物理隔离入口，不启动GPU或第三轮。
 
-旧失败、结果、许可、轨迹和日志原字节保留；采用版本不冒充原训练producer。r5四H serial作为数值参照复用；旧波次耗时含旧遥测，不能与新q4无遥测耗时直接比收益。预先固定一次仅ETTh1四H的同执行方式serial计时补测，不择优、不全量重测，不要求再取得独立H96短验收收据后才准许恢复。审核closure及新许可就绪后，由用户一次arm原335项主链。
+### Urban只读登记与五域PatchTST enc2宽度4/8的独立授权
+
+作者线索仅为用户转述邮件：TimeMixer主表PatchTST可能使用d_model4或8，作者尚不能确定唯一值。不得把结果接近程度当作作者确认。已实际读取TimeMixer正式论文[Table 2](https://arxiv.org/pdf/2405.14616)：T96、H96/192/336/720四H均值，PatchTST ETTh1 MSE/MAE=0.516/0.484、ETTh2=0.391/0.411、ETTm1=0.406/0.407、ETTm2=0.290/0.334；该表没有Exchange。论文主实验三次重复与本队列单seed2024分别记录，不擅自加seed。
+
+逐任务父配置为`configs/ch3_round2_patchtst_enc2_v1.json`真实resolved_profiles。五个非Weather域ETTh1/ETTh2/ETTm1/ETTm2/Exchange，H96/192/336/720，分别仅将d_model16改为4或8，e_layers2、n_heads4、d_ff128、dropout/fc_dropout0.3以及全部patch/stride/RevIN/输入监督保持。L96、batch/eval_batch128、seed2024、原Adam/OneCycle/max_lr0.01/pct_start0.2、epochs10/patienceNone、validation严格best与test-once不变。独立variant/task/config/manifest/输出与fresh权重，不跨候选resume。dm4每头维度1由真实CPU构造与前向验证，不改heads。
+
+**Weather不新增任务、不重训、不改现有结果**：第二/第三轮PatchTST原本就是d_model128、n_heads16、e_layers2、d_ff256、dropout/fc_dropout0.2、epochs20/patience10；完整原profile及scheduler/数据/评价原字节保持。不能用Weather结构套五个非Weather域，也不能反向把Weather改为16/4/8。
+
+独立dm4→dm8各20项，共40项、最大400 run-epochs，正式test最多一次/项，共40次。派生最大Adam/backward各55840、forward75292；probe两阶段合计nominal480/480/640、硬上限720/720/960。新形状按五域各四H的独立serial及q4→必要q2→q1数值/同模式makespan门禁，不能继承dm16并发。明确CUDA OOM才按原probe顺序回退；q1与formal OOM、混合/业务/finite/身份错误仍停止。`exclusive_gpu_event_driven_v1`的启动前有界硬件/余量、运行期无遥测、生命周期/STOP/预算/guard与全部数值政策保持。
+
+原531计划与原4550 run-epochs合同保留；196项原前缀及r6新增48项层数结果分别按实际来源记录，40项是本次新增科学授权，不是旧失败补做。40项完成必须停止，不采用宽度、不修改371、不进入第三轮。只生成两候选五域四H MSE/MAE、域均值、对应论文差距和逐指标接近/冲突报告，Exchange无虚构参考。由用户选择一个统一非Weather宽度4或8后，再审核结果和采用合同；不得逐域/H挑选或按与EL-AMD的差距改选。
+
+后续选择后的修改本轮不实现：另建371索引，相对r6固定enc2版只换20个非WeatherPatchTST格、351格保留（含原Weather4格）；第三轮M_ALL只改相同20项的d_model，Weather128及其余模型/Urban MS/EPF MS均不变。有效Urban probe由后续新attempt在修后正式来源审计中采用，旧r6AUTO_AUDIT失败永久保留，不重跑有效probe、不重复arm旧生命周期。
+
+本轮只读登记限已接受AMD/fold1/H3的原process精确path/SHA，并联查原stage/task、producer许可、profile、finite/六步及资源成功记录；不扩大目录白名单、不放宽symlink/越界保护、不修改guard或历史manifest。增量位于`runtime-no-telemetry-v1/patchtst-width-urban-audit-v1/`；科学配置差异、CPU模型40构造/40前向、无模型生命周期/审计负例、失败日志和未来单启动方案分别保存。当前未stage/commit/push、无可执行许可、无GPU/probe/formal/test，新字节尚待ChatGPT审核。
+
+两个入口互不调用：A为`scripts/ch3/start_patchtst_width_reproduction.sh`，一次arm固定dm4二十项→dm8二十项→技术完成后停止；其complete不会触发B。A经本轮字节审核及精确closure后才可物化真实许可和公开preflight，长队列由用户最后启动。B为`scripts/ch3/start_third_round_after_selection.sh`，本次只实现非执行计划/status和明确拒绝；没有选宽、结果/配置/采用审核、后续Git closure及独立B许可时，arm/start/prepare-launch/许可生成/GPU preflight全部拒绝，不读取A许可、不用旧dm16或默认4/8补全，不创建第三轮结果。未来B按已审核r6来源采用196与48项完成事实及Urban probe，在修后合法AUTO_AUDIT边界续接Urban84→EPF35→M168；不重复enc1/enc2的48项或有效Urban probe。新371仍20格替换/351格保持；第三轮M_ALL非Weather20项才采用用户选择，Weather原128完整保持。两入口的同包命令框架和隔离测试位于`patchtst-width-urban-audit-v1/separate-entrypoints-v1/`；本轮不预填closure或许可SHA、不执行任何入口的arm。
+
+用户已明确纠正入口B中的Weather16笔误：Weather的d_model始终为128，本次不涉及Weather；第三轮PatchTST Weather的全部现有配置保持。该澄清不改变A的40项非Weather范围，也不解除B等待用户选定非Weather宽度及后续审核closure的停止条件。
+
+以下运行期无遥测资源合同及旧候选成本段落保留原登记时点；新的科学授权和第三轮暂停以上述增量为准。
 
 ### 用户独占条件下的启动前检查与运行期任务/异常驱动资源合同
 

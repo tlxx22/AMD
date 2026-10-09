@@ -759,9 +759,46 @@ def evidence():
     return v
 
 
+def accepted_urban_readonly_refs(report):
+    """Only the registered successful H3 wave, never its failed H12 sibling."""
+    expected_scope='m6-baseline-type1-followup-v3-recovery1-URBAN_SUBSET-probe'
+    if report.get('scope')!=expected_scope or report.get('probe_recovery_ref')!=REUSE_REF:
+        raise PermissionError('exact registered Urban stage/source required')
+    saved=evidence();old=bound(saved['old_config_ref']);readonly={}
+    run='AMD-UrbanEV-F4-type1-followup-v3-recovery1-f1-h3-s2024'
+    if set(saved['accepted'])!={run}:raise ValueError('only the registered Urban H3 serial')
+    row=saved['accepted'][run];producer=row['producer']
+    process=OLD_RESULT/'probe/URBAN_SUBSET/AMD-cross-fold-f1-f2-H3-H12/serial/wave-0/process.json'
+    permit=bound(ref(OLD_RESULT/'queue/URBAN_SUBSET/probe-permit.json'))
+    if (row['process']['path']!=str(process) or row['task_ids']!=[run] or producer!=permit
+        or producer.get('commit')!=PRODUCER or producer.get('successor_scope')!=expected_scope
+        or producer.get('protocol_sha')!=digest(old) or producer.get('authorized_task_ids')!=[t['id']for t in old['tasks']]
+        or row['self_comparison'].get('passed')is not True):raise ValueError('exact accepted task/producer/process binding')
+    def record(name):
+        p=process.parent.parent/run/name
+        value=row['artifacts'].get(str(p))
+        if not value or value['path']!=str(p):raise ValueError('registered original success record absent')
+        return bound(value)
+    cfg=record('config.json');runtime=record('runtime.json');trajectory=record('trajectory.json')
+    task=next(t for t in old['tasks']if t['id']==run)
+    if (cfg.get('task')!=run or cfg.get('unified_stage')!='URBAN_SUBSET' or cfg.get('purpose')!='ch3_probe'
+        or cfg.get('protocol_sha')!=digest(old) or cfg.get('approval')!=producer
+        or runtime.get('task')!=run or runtime.get('error')is not None or trajectory.get('id')!=run
+        or trajectory.get('profile_sha')!=digest(profile(old,task)) or trajectory.get('finite')is not True
+        or trajectory.get('steps')!=6 or record('budget.json').get('counts')!=dict(adam=6,backward=6,forward=8)):
+        raise ValueError('original Urban success/schema/profile evidence changed')
+    from utils.ch3_native_execution import wave_passed
+    if not wave_passed(bound(row['process'])):raise ValueError('failed Urban resource wave cannot be retained')
+    for key,entry in report.get('evidence',{}).items():
+        if entry.get('process',{}).get('path')==str(process) and (entry.get('process')!=row['process'] or entry.get('task_ids')!=[run] or key!='AMD-cross-fold-f1-f6-H3-H12/serial/0'):
+            raise ValueError('historical process attached to wrong task/group/wave')
+    readonly.update(row['artifacts']);readonly[str(process)]=row['process']
+    return readonly
+
+
 def retained_refs(report):
     if report.get('probe_recovery_ref') not in (None,REUSE_REF):raise PermissionError('unregistered retained probe evidence')
-    if report.get('scope','').endswith('URBAN_SUBSET-probe'):return {p:r for v in evidence()['accepted'].values() for p,r in v['artifacts'].items()}
+    if report.get('scope','').endswith('URBAN_SUBSET-probe'):return accepted_urban_readonly_refs(report)
     if report.get('single_serial_source'):
         if not report.get('scope','').endswith('PATCH_ENC1-probe'):raise PermissionError('single serial evidence only belongs to PATCH_ENC1')
         if report['single_serial_source']['path']!=str(SERIAL_RESULT/'probe/PATCH_ENC1/serial-check.json'):raise PermissionError('only the precise single serial readonly source')

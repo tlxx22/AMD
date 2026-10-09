@@ -9,7 +9,7 @@ from utils.ch3_native_recovery_records import bound,ref,exclusive,sha
 def read_config(s):
     if s.get('probe_schema_recovery_ref'):
         from utils.ch3_probe_schema_recovery import activate_worker
-        activate_worker(s['probe_schema_recovery_ref'],(s.get('approval')or{}).get('execution_attempt'))
+        activate_worker(s['probe_schema_recovery_ref'],(s.get('approval')or bound(s['formal_permit_ref'])).get('execution_attempt'))
     stage=s.get('unified_stage')
     if stage not in scope.STAGES or s.get('type1_scope')!=scope.ID or s.get('protocol_file')!=str(scope.file(stage)):raise PermissionError('exact unified protocol/stage')
     c=json.loads(scope.file(stage).read_text())

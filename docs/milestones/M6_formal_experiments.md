@@ -1,12 +1,46 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — r5绑定修复已closure于6f525489cff125248cbc0b256e9744acf67590da；独立H96及其余ETTh1三个serial成功，首个q4因整卡查询10秒超时停止，新增0/0/0。用户在独占条件下明确取消运行期显存遥测；当前为启动前硬件/余量检查＋任务/异常驱动的r6候选。旧371/196完成来源和四H数值参照保留；待执行335、总531、正式最大4550 run-epochs不变。未stage/commit/push、未物化可执行许可、未运行真实GPU或主链，result_review仍pending。见[本轮资源执行修订](#m6-runtime-no-telemetry-v1)。**
+**In Progress — r6已closure于bd4b63dfcce78f38cc233e74f3c50271b020d8de；enc1/enc2各24项及固定enc2新版371已技术完成。Urban七组probe计算完成，AUTO_AUDIT拒绝未正确只读登记的旧H3 process；第三轮正式0/287，用户暂停第三轮。当前为Urban窄修＋五个非Weather域PatchTST enc2/d_model4与8独立40项候选，Weather完整128/16 heads结构保留且不重训。待用户在40项完成后统一选择宽度；A/B物理隔离，A完成不调用B，B无许可不可启动；当前未stage/commit/push、无可执行许可、无GPU启动，result_review仍pending。见[本轮增量](#m6-width40-urban-audit-v1)。**
 
 原开篇“尚未运行任何正式训练或正式test评价”及各历史小节的“当前”均属于各自记录时点，不代表当前实际进度。
 
 下方三轮总览中Weather20的20/None保留此前批准时点；最新采用规则为两阶段20/10，见[本次启动前早停修订](#m6-weather20-patience10-v1)。其他历史事实与参数不倒改。
 
 下方第三轮231项/Urban28及旧瞬时状态亦为历史登记。本次六fold扩展、独立层数补做与真正当前完成状态统一以[最新增量](#m6-patchtst-depth-urban6-repair-v1)为准；不把历史技术失败补做混作新增科学任务。
+
+
+<a id="m6-width40-urban-audit-v1"></a>
+## r6 Urban AUTO_AUDIT窄修与非Weather PatchTST宽度4/8复现实验
+
+N实际起点`bd4b63dfcce78f38cc233e74f3c50271b020d8de`，N/W/R各自HEAD/tracking/live remote一致、0/0、初始clean，tag/AGENTS/作者代码/数据/环境保持。r6controller及worker/session退出，progress停在URBAN_AUTO_AUDIT，failure仍为`ValueError('probe artifact path/symlink outside exact scope')`。enc1/enc2分别24项边界与真实组收据/manifest/result/budget/runtime引用已只读核验，不反序列化或重新checksum历史checkpoint、不重新test。旧371与r6固定enc2新版371并存，均不覆盖；技术完成和result_review pending分别记录。
+
+根因是`urban-probe-reuse.json`已接受AMD/fold1/H3的process `fc56e22a37ae93fe3f2ce351d55ed8824739291d20d1d2ff8fd73770a73a23d5`，但retained_refs只投影artifacts，manifest_projection合并process_refs后正确触发scope拒绝。窄修只登记该精确process，联查task/stage/producer、原许可/profile与config/runtime/trajectory/budget成功证据；旧H12失败不进入集合。原symlink/越界拒绝和guard保留，不给任意历史目录授权；真实r6manifest/failure不补写Passed。合法/错路径/SHA/task/stage/producer/资源失败/篡改/symlink在独立合成目录验收，真实数值完成校验、历史资源收据、manifest及AUTO_AUDIT另有完整合成路径证据；不重跑真实Urban probe。
+
+本次科学线索仅为用户转述作者邮件，d_model4/8仍不确定。Codex实际核验TimeMixer ICLR2024 PDF Table2及四H均值说明，四ETT参考为ETTh1 0.516/0.484、ETTh2 0.391/0.411、ETTm1 0.406/0.407、ETTm2 0.290/0.334（MSE/MAE）；Exchange未列入，不虚构。原论文主实验三次重复与本项目seed2024单次分别披露于本服务器记录，不据此新增重复。
+
+父源逐域逐H来自第二轮真实enc2 resolved_profiles。ETTh1/ETTh2/ETTm1/ETTm2/Exchange均d_model16/n_heads4/e_layers2/d_ff128、dropout和fc_dropout0.3；两候选只改d_model为4或8，各20任务、唯一ID及独立fresh来源。其他structure、L96、batch/eval_batch128、seed2024、Adam/OneCycle/lr0.01/pct_start0.2、epochs10/patienceNone、split/scaler/全通道监督评价、validation-best/test-once全等。第三轮原type1配置此时不改，不与本轮OneCycle混用。
+
+Weather四H不进入新增任务：第二/第三轮真实enc2结构均128/16 heads/2 layers/256 ff、dropout/fc_dropout0.2、20/10及原scheduler；8份完整profile前后全等，配置文件SHA不变，已有Weather结果不改不重训。dm4每头维度1及dm8每头维度2经真实PatchTST适配器CPU构造/输出前向，覆盖五域四H两候选40次构造、40次前向；小batch2仅形状/finite工程检查，正式batch128不变，不作为并发证据。CPU smoke无Adam/backward/GPU/真实validation/test/checkpoint读取。
+
+新增40项单列最大400 run-epochs、formal Adam/backward各55840、forward75292、最多40次test-once；两候选probe nominal各240/240/320、caps各360/360/480，共上限720/720/960，新形状独立准入。同模式serial/makespan与数值门禁保持，不能拿dm16并发Passed顶替；q4/q2/q1按原资源性顺序，明确CUDA OOM之外失败停止。沿用独占event模式，只有启动前10秒内固定卡查询/余量检查，运行期不采集GPU，生命周期、数值/finite/RNG/order/scheduler/guard/预算不变。
+
+原531及4550科学合同不改写：原完成196＋本次r6已完成层数48分别登记，第三轮287暂停。新40是新增复现实验，不冒充技术失败补做，不混进旧531完成计数。r6真实probe、失败成本和旧serial/许可一律保留，reservation不当actual，另有actual账本。不为本轮重新访问已完成任务test或加载其权重。
+
+候选复用共享签名许可、native probe→一次AUTO_AUDIT→紧凑formal审计/封存及tmux入口；独立`PatchTST-enc2-width4-8-reproduction-r1`结果/日志/许可，固定dm4→dm8。40项完成后technical_complete且awaiting_user_width_selection=true，绝不自动生成采用索引或进入Urban/EPF/M_ALL。对照报告按五域各四H列同一run的MSE/MAE、域均值、四ETT论文差距、各指标接近者及冲突；不自动择优/择差/选width，作者线索不变成确认。层数/宽度尝试和来源只要求M6及服务器记录可追溯，不新增论文板块要求。
+
+用户统一选4或8并完成结果/采用审核后，才另建新版371：相对r6版20个非WeatherPatchTST格切换、351格保持，包括Weather128的4格；第三轮M_ALL只改20个非WeatherPatchTST的d_model。其他347格、Weather完整结构与Urban/EPF/MS配置保持。修后Urban有效证据须合法审计后采用，旧r6失败不变Passed。本轮只准备该未来边界，不提前实现选择或第三轮自动恢复。
+
+最终同字节定向验收、各次合成失败日志、真实CPU构造捕获、原source保护、精确diff/inventory和非执行模板集中于`runtime-no-telemetry-v1/patchtst-width-urban-audit-v1/`。测试以实际受限guard安装/真实绑定路径、共享数值/资源判定、AUTO_AUDIT、来源拒绝与队列停止为边界，所有合成产物隔离。当前未stage/commit/push、未生成可执行许可、未运行真实GPU/probe/formal/test；修后字节尚未获ChatGPT审核。审核closure后再物化实际commit许可及公开preflight，由用户最后一次启动40项，日志/status/complete/width-results/safe-stop使用同一许可，正常阶段自动衔接，40项后必须停止。
+
+### 本轮补充：A四十项队列与B第三轮恢复物理隔离
+
+入口A为`scripts/ch3/start_patchtst_width_reproduction.sh`及其独立Python入口，原40项/400 run-epochs、科学配置与停止语义不变。A一次启动两候选，完成后只封存技术结果和对照报告；无B调用、无第三轮调度、无自动采用。审核closure后使用本次最新非执行模板排他准备A许可，公开preflight后由用户最后arm；日志/tail/status/complete/width-results/safe-stop固定同一A许可。
+
+入口B为`scripts/ch3/start_third_round_after_selection.sh`及`m6_third_round_after_selection_entry.py`。当前是非执行准备态，允许只读plan/status；所有启动/许可/prepare-launch/GPU preflight明确exit2，旧A/r6许可和命令参数不能补成选择，不读取其许可。计划绑定r6已完成196＋层数48、原固定enc2新版371及Urban七组probe/ref，未来先完成选择后的20格替换/351格保持和M_ALL非Weather20项配置审核/closure，再生成独立B许可。受控采用在修复后的Urban AUTO_AUDIT边界执行，随后仅Urban84→EPF35→M168；48项层数实验和已完成有效probe不派发。原Weather128/heads16/ff256/20-10及完整profile保持；Weather不属于本次修改范围。
+
+用户已明确纠正补充指令中的Weather16笔误：Weather的d_model始终为128，本次修改不涉及Weather，第三轮PatchTST Weather的任何现有配置均不修改。该字段已澄清；A仍为40项非Weather任务，B仍不可启动，继续等待非Weather统一宽度4/8选择、结果及配置审核、closure与独立许可。
+
+当前B没有选择、可执行配置、许可或新371；不会GPU查询、调度、发信号或创建真实结果/log/session。未来独立B操作框架有arm/logs/tail/status/complete/second-round/third-round/safe-stop；这些启动动作在本轮候选中继续拒绝，须在用户选择与后续审核closure后才接入真实执行，不能用A的complete自动开启。增量`separate-entrypoints-v1/`同时保留上一版15文件送审包，提供相对HEAD完整最终diff及相对上一候选的增量、两入口权限/来源框架、CPU拒绝与隔离测试。当前无stage/commit/push、无真实许可、无GPU或第三轮启动，新字节待ChatGPT审核。
 
 <a id="m6-runtime-no-telemetry-v1"></a>
 ## r5四H serial成功、q4查询超时后的运行期无遥测候选

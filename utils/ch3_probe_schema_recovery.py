@@ -23,6 +23,10 @@ def current_recovery():
     return PROBE_RECOVERY or sys.modules[__name__]
 
 def activate_worker(value,execution_attempt=None):
+    from utils import ch3_patchtst_width_reproduction as width
+    if value==width.REUSE_REF:
+        if execution_attempt!=width.ATTEMPT:raise PermissionError('exact independent width40 worker attempt')
+        width.activate();return width
     from utils import ch3_patchtst_depth_urban6_recovery as expanded
     if value==expanded.REUSE_REF:
         if execution_attempt=='PATCHTST-depth-Urban6-exit-r6-no-telemetry-serial-check':expanded.activate_serial_check()

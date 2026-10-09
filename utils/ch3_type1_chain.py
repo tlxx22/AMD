@@ -95,7 +95,7 @@ def dynamic(c,worker=False):
     env=bound(ENVIRONMENT_REF)
     recipe=bound(s.AUTHOR_RECIPE)
     for value in c['baseline_unified'].get('extension_refs',{}).values():bound(value)
-    if c['baseline_unified']['stage']in ('M_BASE','M_AMEND','PATCH_ENC1','PATCH_ENC2'):
+    if c['baseline_unified']['stage']in ('M_BASE','M_AMEND','PATCH_ENC1','PATCH_ENC2') or (PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)):
         from utils.ch3_round2_amendment import RECIPE_REF
         onecycle=bound(RECIPE_REF)
         for value in onecycle['source_refs']:
@@ -174,10 +174,13 @@ def validate_permit(c,a,probe=False,worker=False):
     if set(a.get('predecessor_boundaries',{}))!=set(required):raise ValueError('exact new predecessor rings required')
     for stage in required:validate_boundary_light(a['predecessor_boundaries'][stage],stage)
     validate_upstream_boundary_light(a['upstream_boundary_ref'])
-    if ctx['stage']!='M_BASE':validate_base287_boundary_light(a['base287_boundary_ref'])
-    elif a.get('base287_boundary_ref') is not None:raise ValueError('M128 must precede base287 seal')
-    if ctx['stage']not in ('M_BASE','M_AMEND'):validate_round2_boundary_light(a['round2_boundary_ref'])
-    elif a.get('round2_boundary_ref') is not None:raise ValueError('amendment must precede the revised round-two boundary')
+    if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False):
+        if a.get('base287_boundary_ref')is not None or a.get('round2_boundary_ref')is not None:raise ValueError('independent variants cannot adopt old training lifecycle seals')
+    else:
+        if ctx['stage']!='M_BASE':validate_base287_boundary_light(a['base287_boundary_ref'])
+        elif a.get('base287_boundary_ref') is not None:raise ValueError('M128 must precede base287 seal')
+        if ctx['stage']not in ('M_BASE','M_AMEND'):validate_round2_boundary_light(a['round2_boundary_ref'])
+        elif a.get('round2_boundary_ref') is not None:raise ValueError('amendment must precede the revised round-two boundary')
     if not probe:validate_summary_light(c,a['summary_ref'])
     return a
 
@@ -274,7 +277,7 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
         budget_refund=False,additional_search=0,from_scratch=True,result_review='pending',upstream_boundary_ref=ref(CONTROL/'upstream-technical-boundary.json'),authorization_basis='user pre-authorized full training iff preregistered technical gates pass')
     a['predecessor_boundaries']=boundary_ref or {}
     if PROBE_RECOVERY:a.update(execution_attempt=getattr(PROBE_RECOVERY,'ATTEMPT','M_BASE-probe-schema-r1'),probe_recovery_ref=PROBE_RECOVERY.REUSE_REF)
-    a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'else None
+    a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'and not(PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False))else None
     a['round2_boundary_ref']=round2_ref
     if not probe:
         summary=validate_summary_light(c,summary_ref);a['summary_ref']=summary_ref;a['manifest_ref']=summary['manifest_ref'];a['technical_admission']=True
@@ -359,9 +362,9 @@ def readiness_report(a=None):
     try:v=upstream_status()
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:v=dict(state='UPSTREAM_BLOCKED',error=str(exc),READY_FOR_GPU_EXECUTION=False)
     return dict(blocked=blocked,READY_TO_ARM_HANDOFF=not blocked,READY_FOR_GPU_EXECUTION=False,upstream=v,
-        registered_ms203_recovery_requires_full_source_check_and_owned_exit=True,
+        registered_ms203_recovery_requires_full_source_check_and_owned_exit=not(PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)),
         remaining_formal_runs=completion_counts()['executed_new_formal_runs'],
-        base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)))
+        base287_requires_imported_MS203_and_fresh_M128_84=not (PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)or getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False))))
 
 
 def wrapper_command(pid):
@@ -494,7 +497,10 @@ def run(start_ref):
         states=[state for state in STATES if state not in skipped]
     receipts=drive(actions,lambda state:dump(CONTROL/'progress.json',dict(state=state,scope=s.ID,result_review='pending')),stop_check,initial,states)
     stop_check()
-    complete=dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],imported_ms_runs=203,base_round2_runs=287,round2_effective_runs=371,**completion_counts())
+    if PROBE_RECOVERY and getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False):
+        complete=PROBE_RECOVERY.completion_record(receipts)
+    else:
+        complete=dict(scope=s.ID,technical_complete=True,result_review='pending',MS_import_boundary=bound(receipts['VERIFY_IMPORT_MS203_AND_SEAL'])['boundaries']['MS'],M_BASE_boundary=receipts['SEAL_M128_BOUNDARY'],base287_boundary=receipts['SEAL_BASE_287_BOUNDARY'],AMEND_boundary=receipts['SEAL_AMEND_BOUNDARY'],round2_boundary=receipts['SEAL_ROUND2_REVISED_BOUNDARY'],URBAN_boundary=receipts['SEAL_URBAN_BOUNDARY'],EPF_boundary=receipts['SEAL_EPF_BOUNDARY'],M_boundary=receipts['SEAL_M_BOUNDARY'],imported_ms_runs=203,base_round2_runs=287,round2_effective_runs=371,**completion_counts())
     for stage in ('PATCH_ENC1','PATCH_ENC2'):
         if stage in cs:complete[stage+'_boundary']=receipts[STAGE_STATES[stage][3]]
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'completion_fields'):complete.update(PROBE_RECOVERY.completion_fields(receipts))

@@ -517,7 +517,8 @@ def cuda_oom(text):
 
 def run_event_wave(configs,out,stop_file,start):
     """The existing owned wave, task/exception driven; no GPU sampler here."""
-    from utils.ch3_patchtst_depth_urban6_recovery import monitor_binding
+    from utils.ch3_probe_schema_recovery import current_recovery
+    monitor_binding=current_recovery().monitor_binding
     from utils.ch3_event_resources import validate_startup
     mode='exclusive_gpu_event_driven_v1'
     if any(c.get('resource_mode')!=mode or c.get('resource_contract_ref')!=configs[0].get('resource_contract_ref') or c.get('startup_hardware_ref')!=configs[0].get('startup_hardware_ref')for c in configs):raise PermissionError('mixed event resource grants')
@@ -615,7 +616,8 @@ def run_configs(configs,out,monitor=False):
         if not whole:raise PermissionError('unsupported resource mode')
         if not monitor:raise PermissionError('whole-card mode requires live resource sampling')
         if (out/'process.json').exists()or(out/'memory.jsonl').exists():raise FileExistsError('retained whole-card wave; repeat forbidden')
-        from utils.ch3_patchtst_depth_urban6_recovery import monitor_binding
+        from utils.ch3_probe_schema_recovery import current_recovery
+        monitor_binding=current_recovery().monitor_binding
         monitor_contract=monitor_binding(configs)
     aggregate=dict(process_peaks={},cpu_peaks={},whole_peak=None,last_time=None,min_interval=None,max_interval=None,settled_count=0,all_admitted=True,count=0)
     def terminate_owned(sig,frame):raise InterruptedError('safe-stop own process tree')
