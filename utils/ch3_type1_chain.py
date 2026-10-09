@@ -113,6 +113,8 @@ def dynamic(c,worker=False):
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):value.update(PROBE_RECOVERY.resource_binding())
     from utils import ch3_event_resources as event
     if event.enabled() and event._PRESTART is None:value['startup_hardware_ref']=event.startup_ref()
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():value.update(concurrency.binding(c))
     return value
 
 
@@ -181,7 +183,10 @@ def validate_permit(c,a,probe=False,worker=False):
         elif a.get('base287_boundary_ref') is not None:raise ValueError('M128 must precede base287 seal')
         if ctx['stage']not in ('M_BASE','M_AMEND'):validate_round2_boundary_light(a['round2_boundary_ref'])
         elif a.get('round2_boundary_ref') is not None:raise ValueError('amendment must precede the revised round-two boundary')
-    if not probe:validate_summary_light(c,a['summary_ref'])
+    if not probe:
+        from utils import ch3_reviewed_concurrency as concurrency
+        if concurrency.enabled():concurrency.validate_permit(c,a)
+        else:validate_summary_light(c,a['summary_ref'])
     return a
 
 
@@ -231,6 +236,14 @@ def validate_boundary_light(value,stage='URBAN_SUBSET'):
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and stage not in PROBE_RECOVERY.COMPLETED_STAGES and any(b.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise ValueError('new boundary exclusive resource binding')
     if value['path']!=str(s.context(c)['control']/'technical-boundary.json'):raise ValueError('exact sealed ring boundary path')
     if b.get('purpose')!='baseline_type1_'+stage+'_boundary_v1' or b.get('scope')!=s.ID or b.get('technical_complete')is not True or b.get('result_review')!='pending' or b['task_ids']!=[t['id'] for t in c['tasks']] or b['protocol_sha']!=digest(c):raise ValueError('sealed MS boundary scope')
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():
+        if any(b.get(k)!=v for k,v in concurrency.binding(c).items()):raise PermissionError('new boundary fixed concurrency policy')
+        if set(b.get('receipts',{}))!=set(s.MODELS):raise ValueError('exact formal model coverage')
+        for model,r in b['receipts'].items():
+            if r['path']!=str(s.context(c)['control']/('group-'+model)/'complete.json'):raise PermissionError('current attempt group receipt only')
+            row=bound(r)
+            if row.get('technical_complete')is not True or row.get('model')!=model or row.get('task_ids')!=[t['id']for t in c['tasks']if t['model']==model] or any(row.get(k)!=b[k]for k in('concurrency_policy','concurrency_plan_ref','probe_admission_claim')):raise ValueError('current formal group completeness and policy binding')
     if PROBE_RECOVERY and stage in getattr(PROBE_RECOVERY,'COMPLETED_STAGES',('M_BASE',)if getattr(PROBE_RECOVERY,'COMPLETED_PREFIX',False)else()):PROBE_RECOVERY.validate_adopted_boundary(value)
     return b
 
@@ -257,6 +270,8 @@ def seal_round2_boundary(amendment_ref):
 
 
 def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_ref=None):
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled()and probe:raise PermissionError('normal reviewed queue never creates automatic probe permits; manual diagnostics require explicit authorization')
     stop_check();validate_start(bound(start_ref));ctx=s.context(c)
     from utils.ch3_native_recovery import resource_check
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):
@@ -280,7 +295,9 @@ def create_permit(c,start_ref,probe,summary_ref=None,boundary_ref=None,round2_re
     a['base287_boundary_ref']=ref(CONTROL/'base287-boundary.json')if ctx['stage']!='M_BASE'and not(PROBE_RECOVERY and (getattr(PROBE_RECOVERY,'INDEPENDENT_SCIENCE_QUEUE',False)or getattr(PROBE_RECOVERY,'THIRD_ROUND_ONLY',False)))else None
     a['round2_boundary_ref']=round2_ref
     if not probe:
-        summary=validate_summary_light(c,summary_ref);a['summary_ref']=summary_ref;a['manifest_ref']=summary['manifest_ref'];a['technical_admission']=True
+        if concurrency.enabled():a.update(concurrency.binding(c))
+        else:
+            summary=validate_summary_light(c,summary_ref);a['summary_ref']=summary_ref;a['manifest_ref']=summary['manifest_ref'];a['technical_admission']=True
     validate_permit(c,a,probe)
     return exclusive(ctx['control']/('probe-permit.json' if probe else 'formal-permit.json'),a)
 
@@ -309,6 +326,8 @@ def audit_probe(c):
 
 
 def seal_runtime(c,permit_ref):
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():return concurrency.seal_runtime(c,permit_ref)
     ctx=s.context(c);a=validate_permit(c,bound(permit_ref));summary=validate_summary_light(c,a['summary_ref']);manifest=bound(a['manifest_ref'])
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(manifest.get(k)!=x for k,x in PROBE_RECOVERY.resource_binding().items()):raise ValueError('manifest exclusive resource binding')
     # Exactly one integrity scan per stage supervisor lifecycle. Child processes consume HMAC-bound refs only.
@@ -328,6 +347,8 @@ def validate_runtime(c,value,permit_ref):
     stop_check();v=bound(value);body={k:x for k,x in v.items() if k!='mac'};secret=os.environ.get(SECRET,'')
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(v.get(k)!=x for k,x in PROBE_RECOVERY.resource_binding().items()):raise ValueError('runtime exclusive resource binding')
     if not secret or not hmac.compare_digest(v.get('mac',''),hmac.new(secret.encode(),digest(body).encode(),hashlib.sha256).hexdigest()):raise PermissionError('runtime not from current controlled chain')
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():return concurrency.validate_runtime(c,v,permit_ref)
     if v.get('scope')!=s.ID or v.get('stage')!=s.context(c)['stage'] or v['permit_ref']!=permit_ref or v['protocol_sha']!=digest(c) or v['integrity_scan_passed']is not True or v['full_scans']!=1 or not same(v['owner']):raise ValueError('current formal lifecycle binding')
     if v['owner']!=json.loads((CONTROL/'controller.json').read_text())['owner'] or v.get('science_protocol')!=c['baseline_unified']['id']:raise ValueError('different supervisor lifecycle/protocol')
     return v
@@ -460,6 +481,9 @@ def seal_boundary(c,receipts):
         r=bound(receipts[m])
         if r.get('technical_complete')is not True or r['model']!=m or r['task_ids']!=[t['id'] for t in c['tasks'] if t['model']==m]:raise ValueError('exact successful model receipt')
         if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(r.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise ValueError('group receipt exclusive resource binding')
+        from utils import ch3_reviewed_concurrency as concurrency
+        if concurrency.enabled():
+            if receipts[m]['path']!=str(s.context(c)['control']/('group-'+m)/'complete.json')or any(r.get(k)!=v for k,v in concurrency.binding(c).items()):raise ValueError('exact current formal group and reviewed concurrency')
     binding=dynamic(c)
     if binding.get('protocol_sha')!=digest(c):raise ValueError('seal protocol binding differs from exact configuration')
     return exclusive(s.context(c)['control']/'technical-boundary.json',dict(purpose='baseline_type1_'+s.context(c)['stage']+'_boundary_v1',scope=s.ID,
@@ -488,7 +512,9 @@ def run(start_ref):
         pr=create_permit(c,start_ref,True,boundary_ref=predecessors,round2_ref=round2(r))
         wait_owned(stage,pr,True);return pr
     def formal(stage,r):
-        c=cs[stage];summary=r[STAGE_STATES[stage][1]]
+        from utils import ch3_reviewed_concurrency as concurrency
+        c=cs[stage];summary=None if concurrency.enabled()else r[STAGE_STATES[stage][1]]
+        if concurrency.enabled():s.context(c)['control'].mkdir(parents=True,exist_ok=False)
         predecessors={k:r[STAGE_STATES[k][3]]for k in s.STAGES[:s.STAGES.index(stage)]}
         pr=create_permit(c,start_ref,False,summary,predecessors,round2(r))
         runtime=seal_runtime(c,pr);receipts={}

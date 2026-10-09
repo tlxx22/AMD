@@ -74,7 +74,8 @@ class UrbanFourH(unittest.TestCase):
         self.assertEqual(sum(len(g['representatives'])for g in groups),168)
         self.assertTrue(all(len(g['representatives'])==24 and g['planned_q']==4 for g in groups))
         for g in groups:self.assertEqual(set(g['coverage']),set(g['representatives']))
-        self.assertEqual(s.probe_budget(self.c)['caps'],dict(adam=3024,backward=3024,forward=4176))
+        self.assertEqual(s.probe_budget(self.c)['caps'],dict(adam=0,backward=0,forward=0))
+        self.assertFalse(s.probe_budget(self.c)['automatic_probe']);self.assertEqual(s.probe_budget(self.c)['max_workers'],0)
         self.assertRaises(PermissionError,b.adopt_urban_probe,{})
         self.assertNotIn('URBAN_SUBSET_PROBE',b.continuation_actions());self.assertEqual(b.SEED_STAGES,())
 
@@ -121,7 +122,7 @@ class UrbanFourH(unittest.TestCase):
             for stage,c in self.cs.items():
                 ctx=s.context(c);groups={}
                 for model in ctx['models']:
-                    groups[model]=exclusive(ctx['control']/('group-'+model)/'complete.json',dict(synthetic=True,technical_complete=True,model=model,task_ids=[t['id']for t in c['tasks']if t['model']==model],**b.resource_binding()))
+                    groups[model]=exclusive(ctx['control']/('group-'+model)/'complete.json',dict(synthetic=True,technical_complete=True,scope=b.ID,model=model,task_ids=[t['id']for t in c['tasks']if t['model']==model],**b.resource_binding(),**__import__('utils.ch3_reviewed_concurrency',fromlist=['binding']).binding(c)))
                 receipts[q.STAGE_STATES[stage][3]]=q.seal_boundary(c,groups)
             v=b.completion_record(receipts);self.assertEqual(b.validate_complete(v),v)
             self.assertEqual(v['executed_third_formal_runs'],371);self.assertEqual(v['result_review'],'pending')
@@ -151,63 +152,18 @@ finally:
         (root/'stdout.txt').write_text(r.stdout);(root/'stderr.txt').write_text(r.stderr);self.assertEqual(r.returncode,0,r.stderr)
         self.assertTrue(json.loads(r.stdout)['unrelated_alive'])
 
-    def test_real_full168_native_probe_AUTO_AUDIT_and_compact_formal_permit(self):
-        from tests.test_m6_B_startup_recovery import fixture,synthetic_gpu
-        from tests.test_m6_probe_schema_recovery import trajectory
-        from utils import ch3_native_execution as native,ch3_event_resources as event
-        from tools.restricted_regression import m5_formal_entry as tool,resource_budget
-        import ch3_runner as runner
-        real_query=subprocess.check_output
-        with fixture()as(root,auth,start,stack):
-            c=self.c;old_context=s.context;ctx=dict(old_context(c),probe_root=root/'probe',control=root/'queue',fixture=root/'fixture',result_root=root/'formal')
-            ctx['fixture'].mkdir();ctx['control'].mkdir()
-            stack.enter_context(patch.object(s,'context',side_effect=lambda cc:ctx if cc==c else old_context(cc)))
-            stack.enter_context(patch.dict(os.environ,{q.SECRET:'CPU-four-H-only-not-an-execution-grant'}))
-            stack.enter_context(patch.dict(sys.modules,{'m5_formal_entry':tool,'resource_budget':resource_budget}))
-            # Keep the real lock behavior, with only its fixture path isolated.
-            lock=runner.GPULock;stack.enter_context(patch.object(runner,'GPULock',side_effect=lambda cc:lock({'execution':{'evidence':str(root)}})))
-            with patch.object(subprocess,'check_output',side_effect=synthetic_gpu),event.prestart(auth):pass
-            exclusive(q.CONTROL/'controller.json',dict(owner=q.owner(),scope=b.ID,authorization=start));hw=event.seal_startup(start);b.import_ms()
-            a=bound(q.create_permit(c,start,True));exclusive(ctx['probe_root']/'approval.json',a)
-            spawned=[];calls=[]
-            def spawn(cfg):
-                t=task_by_id(c,cfg['task']);out=Path(cfg['output']);h=(out/'worker.log').open('x')
-                delay=.15 if cfg['successor_phase']=='serial'else .01
-                child=subprocess.Popen([sys.executable,'-B','-c','import time;time.sleep('+str(delay)+')'],stdout=h,stderr=h);spawned.append(child)
-                tr=trajectory(c,t,out,numeric_probe_policy(c,t));tr.update(b.resource_binding(),allocated=None,reserved=None)
-                for row in tr['memory']:row.update(allocated=None,reserved=None,resource_mode=event.MODE)
-                tr['affinity']=a['hardware']['cpu_affinity'];tr['memory_review']=runner.memory_growth_review(tr['memory'],event.MODE)
-                if t['model']=='TimeMixer':
-                    from utils.ch3_urban_confirmation import policy
-                    diagnostic=[]
-                    for step in range(7):
-                        point=copy.deepcopy(tr['M_full_state_trace'][max(step,1)-1]);point['step']=step
-                        meta=exclusive(out/('diagnostic-meta-'+str(step)+'.json'),dict(step=step,rng='rng',absent_gradients=[],empty_optimizer_state=[]))
-                        point.update(meta_file=meta['path'],meta_sha=meta['sha256']);diagnostic.append(point)
-                    tr['urban_diagnostic_trace']=diagnostic
-                    snapshot=dict(model=tr['final'],optimizer=tr['trajectory'][-1]['optimizer'],rng=tr['final_rng'])
-                    endpoint=dict(metrics=tr['validation'],batch_ids=['CPU-cached-validation-A','CPU-cached-validation-B'],before=snapshot,after=snapshot,mode_restored=True,target=dict(index=profile(c,t)['target_idx'],pred_len=1,C=11,metric_space='train-standardized target-only'))
-                    tr['urban_confirmation']=dict(policy_sha=digest(policy(c,t)),evaluations={'2':copy.deepcopy(endpoint),'6':copy.deepcopy(endpoint)})
-                exclusive(out/'trajectory.json',tr);counts=s.worker_counts(c,t)
-                (out/'budget.json').write_text(json.dumps(dict(counts=counts,by_pid={str(child.pid):counts}))+'\n')
-                exclusive(out/'runtime.json',dict(pid=child.pid,task=t['id'],error=None));(out/'audit.jsonl').write_text('{"event":"CPU-synthetic-only"}\n')
-                calls.append(t['id']);return child,h
-            def no_GPU(args,**kwargs):
-                if args[0]=='nvidia-smi':raise AssertionError('runtime GPU query forbidden')
-                return real_query(args,**kwargs)
-            stack.enter_context(patch.object(tool,'spawn',side_effect=spawn))
-            stack.enter_context(patch.object(tool,'read_profiles',return_value=dict(execution=dict(evidence=str(ctx['probe_root'])))))
-            stack.enter_context(patch.object(subprocess,'check_output',side_effect=no_GPU))
-            for name in('gpu_sample','owned_pid_metadata','ExitObservation'):stack.enter_context(patch.object(tool,name,side_effect=AssertionError('runtime telemetry forbidden')))
-            report=native.run_probe(c,a);self.assertEqual(len(calls),336);self.assertTrue(all(p.poll()is not None for p in spawned))
-            self.assertEqual(set(calls),{t['id']for t in c['tasks']});self.assertTrue(all(calls.count(t['id'])==2 for t in c['tasks']))
-            with patch.object(native,'validate_probe_completion',wraps=native.validate_probe_completion)as audit:
-                summary_ref=q.audit_probe(c);self.assertEqual(audit.call_count,1)
-                summary=q.validate_summary_light(c,summary_ref);self.assertEqual(summary['startup_hardware_ref'],hw)
-                formal=q.create_permit(c,start,False,summary_ref);runtime=q.seal_runtime(c,formal);q.validate_runtime(c,runtime,formal)
-                self.assertEqual(audit.call_count,1)
-            bad=copy.deepcopy(report);bad['evidence'].pop(next(iter(bad['evidence'])));self.assertRaises(ValueError,native.validate_probe_completion,c,bad)
-            self.assertFalse(list(ctx['probe_root'].rglob('memory.jsonl')));self.assertFalse(b.RESULT.exists())
+    def test_probe_tool_retained_but_new_default_cannot_create_probe_admission(self):
+        # The previous 336-worker fixture remains in Git and its saved evidence.
+        # This policy explicitly removes that automatic experiment. Exercise the
+        # new refusal and the unchanged manual tool's incomplete-evidence gate.
+        from tests.test_m6_reviewed_concurrency import fixture
+        from utils import ch3_native_execution as native
+        with fixture()as(root,cs,start,stack):
+            self.assertRaises(PermissionError,q.create_permit,cs['URBAN_SUBSET'],start,True)
+            stack.enter_context(patch.object(q,'audit_probe',side_effect=AssertionError('no automatic AUTO_AUDIT')))
+            self.assertTrue(callable(native.run_probe));self.assertTrue(callable(native.validate_probe_completion))
+            self.assertRaises((ValueError,KeyError,PermissionError),native.validate_probe_completion,cs['URBAN_SUBSET'],{'scope':'manual-incomplete-fixture','evidence':{}})
+            self.assertFalse((s.RESULT/'probe').exists());self.assertFalse(any('PROBE'in x or'AUTO_AUDIT'in x for x in q.STATES))
 
 
 if __name__=='__main__':unittest.main()

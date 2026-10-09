@@ -1,6 +1,36 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — N为a019a099d6ce5e4972a52a269e18ce16ddae2630；旧B已由用户safe-stop并废止全部正式资格，owned进程/session退出。新Urban六fold×四H3/6/9/12×七模型＝168，第三轮371项/5670最大run-epochs；旧B completed信用0，EPF/M及Weather128不变。本轮仅独立候选与CPU/合成验收，未stage/commit/push，无新许可、GPU或训练。见[六fold四H修订](#m6-urban6-four-H-third-v1)。**
+**In Progress — N审核起点0a0049a8fbe3505c7f3ca719b8c392df071a0e2c；四H attempt已按用户指令safe-stop，owned进程/session退出且该attempt未来信用0。最新用户政策：未来新建EPF七baseline通用默认4＋1，当前56组全部固定q4；probe按需诊断，历史证据评估固定q计划直接正式调度；371项/5670最大run-epochs、Weather128等科学字段不变。本轮未提交候选、CPU/合成验收，无新许可/GPU/训练。**
+
+## EPF通用默认4＋1与当前56组固定q4候选（本轮用户新决定）
+
+用户决定：TimeXer在后续所有新建EPF实验中，与其它六个baseline永久统一默认4＋1，策略版本`epf_all_baselines_4_plus_1_v1`。通用`ch3_type1_tasks.probe_groups()`按PJM→NP→BE→FR→DE排序，每个baseline一个q4容量组：第一波PJM/NP/BE/FR实际四路，第二波DE实际单路。该尾波不是probe、OOM回退或新增任务；不跨baseline补位。当前B没有局部分组特例，直接消费通用默认及新版本固定计划。
+
+历史3＋2保持原身份和字节：真实旧MS worker的PJM/BE/FR为batch16/q4容量，NP/DE为batch4/q2；原工具、来源报告、Passed及负向记录只读保留。冻结旧type1 EPF协议有显式`historical_epf_probe_groups_v1()`只读兼容入口，按精确protocol digest识别，不能成为新任务默认。新协议或字段变更不能冒充该旧身份。未来明显不同的batch/模型形状会在通用分组中标记resource_review_required与风险，等待资源评估；不静默恢复3＋2。
+
+当前TimeXer五市场均T168、pred_len24、C3、train/eval batch32、float32且网络结构一致。统一四市场并发是用户批准、历史资源证据支持的工程推断，不登记新组合numerical Passed、Measured或GPU准入成功。当前计划Urban7＋EPF7＋M_ALL42＝56组，全部固定q4；EPF14个正式波次、35项。Urban与M_ALL执行分组保持，任务身份、三份科学配置SHA、Weather128/非Weather PatchTST dm4、seed/数值/test边界不变。
+
+第三轮仍371项，最大3360＋350＋1960＝5670 run-epochs；已审核的5670启动合同修复与3990拒绝保护继续保留。正常队列直接FORMAL，不强制PROBE/AUTO_AUDIT；保留GPU0启动前身份和max(8GiB,10%)余量、TimeoutExpired最多3×10秒/间隔2秒、q≤4、全局锁、STOP/owned停止与正式失败停队列，运行期GPU遥测0。旧两H和四H STOP、678/679/905最后持久化实际成本及未知尾部保持，不供给新完成/准入信用。
+
+本轮证据集中于`reviewed-concurrency-reuse-v1/timexer-epf-four-plus-one-v1/`。旧57组计划、5670修复包及纠正范围前的非执行版本不覆盖；新计划、科学/启动合同、producer证明、非执行许可模板与准备脚本逐份版本化。永久回归覆盖通用新协议默认、显式历史读取、TimeXer两波、56组/371项/5670、错误版本/顺序/q/SHA、真实permit/runtime/worker/manifest/group complete以及Python3.11/3.13的66项保护；结果与所有失败诊断见本轮acceptance/evidence-index。当前未stage/commit/push，无可执行新许可、GPU preflight或arm，新增字节待ChatGPT审核；technical_complete、result_review与效果gate分开。
+
+补审确认：原25项最终执行清单遗漏`test_complete371_real_scheduler_permits_audits_boundaries_no_probe`，生产`completion_record()`因未定义`v`触发NameError；原25/25不代表完整COMPLETE链已验证。本轮局部修复从已验证`contract()`取得EPF分组版本，并在`validate_complete()`显式核对该版本、56组计划、371/371计数、两次停止队列信用0及result_review=pending。实际CPU合成`q.run()`已执行源采用→Urban168→EPF35→M_ALL168的permit/runtime、正式产物审计与三阶段封存，最终complete.json在独立夹具落盘且真实完成验证通过；版本/旧57组计划/SHA/旧信用/计数/review状态9类篡改拒绝。该夹具没有真实GPU、模型训练或test，不提供科学完成信用。Python3.11/3.13真实source-check与66项AST保护通过，新proof-v11、非执行template-v7与准备脚本版本化；旧proof、失败及送审字节保留。最终15文件完整patch必须独立包含13份tracked修改及两份新增文件；本次增量位于`timexer-epf-four-plus-one-v1/completion-chain-repair-v1/`，实际日志、SHA及审计边界以该包为准。仍未stage/commit/push、无新可执行许可/GPU preflight/arm，修后字节待ChatGPT审核。
+
+## 并发probe按需诊断、固定计划直接正式调度候选（2026-10-10，北京时间）
+
+用户正式修改M6并发执行政策：并发probe改为按需工程诊断，历史成功证据优先复用；ChatGPT训练前按模型实际结构、batch、T/pred_len/C/token/patch、dtype、GPU/driver、threads/workers、OOM与数值/RNG/order/吞吐证据评估固定q1/q2/q4。不仅因dataset/fold/H不同机械重测，不把缺少新probe等同于只能q1。相同或相近形状且历史依据充分时正常推荐q4；估计与实测分别记录，不伪造未测Passed、numeric equivalence或Measured。最终并发计划仍待ChatGPT本轮字节审核。
+
+按用户指令于北京时间2026-10-10 01:24:37（UTC2026-10-09 17:24:37，STOP落盘时间）停止四H attempt `THIRD-PatchTST-enc2-dm4-Urban6-four-H-r1`。核对scope、许可b3608cfcd276cff959eef7f16d97a64676fb8a7c7718aeb79e0b43b9fb92405d、controller22784/start_ticks220162060、probe child23072/start_ticks220163886及worker46233/start_ticks220765449后，既有safe-stop退出0并落盘STOP；上述进程和tmux均退出。原controller.failure保留InterruptedError('persistent unified STOP; no retry')。正式训练0，EPF/M未派发；本次四H的所有probe/validation/正式产物只作停止历史，不作为未来新队列的准入或completed信用，禁止恢复原attempt。更早被废止的两H B记录及原第二轮371、196项、层数48和宽度40合法来源保持。
+
+停止时AMD与DLinear各完成24 serial及24 q4 worker，PatchTST完成17 serial、另1 worker中断；共113完成/114启动、2组完成/1组部分/4组未启动。波次总账持久化actual Adam678/backward678/forward904；逐worker预算另核实中断worker已有0/1/1，故全部worker最后持久化actual合计678/679/905。原波次总账不倒改，独立cost-reconciliation-v2补充差异；reservation684/684/912不是实际消耗。113个完整六步短轨迹中训练forward678、合成validation forward226；不是226次真实数据验证或正式test，正式test0。中断worker未落盘尾部的实际消耗仍未知，最后持久化数只作下界，不退款、不扣减科学任务完成额度。已完成波次elapsed为AMD serial1955.531512秒/q4 510.809978秒、DLinear serial1613.879306秒/q4 440.505540秒、PatchTST serial1281.616084秒；这是监控入口墙钟记录，不是GPU忙时，不能相加解释利用率。event-driven运行期GPU显存遥测本来不采集。独立停止/撤销、成本及1683份保留文件inventory存于`urban6-four-H-third-v1/reviewed-concurrency-reuse-v1/`；二进制数值payload与checkpoint只记录stat，不读取内容，SHA明确为null。
+
+新政策身份为`reviewed_concurrency_reuse_without_mandatory_probe_v1`，新attempt `THIRD-PatchTST-dm4-Urban6-four-H-reviewed-q-r1`、session `ch3-m6-third-fourH-reviewed-q-r1`，结果根为同级`...third-selected-dm4-urban6-four-H-reviewed-q-r1`。独立合同、固定并发计划、producer证明、非执行许可模板和operations均在本增量目录。正常调度从采用已接受旧来源后直接进入Urban168正式→EPF35→M168正式及各自技术封存，不触发PROBE/AUTO_AUDIT，不创建probe permit、假admission-summary或probe manifest；正常启动模板probe预算为0，原手动诊断工具保留但须用户明确请求和适用独立授权，不暗中派发。新formal permit、当前owner/HMAC runtime、worker配置与manifest、波次/技术边界、summary/complete均绑定固定计划及真实科学来源；无条件True不能替代完成审计。
+
+候选计划57组：56组推荐q4；TimeXer EPF NP/DE结构组按原范围推荐q2。历史原始来源82组，包含原MS203、M84/M_AMEND112、r6 Urban七组、enc2层数及dm4宽度实验的成功短波/正式收据。49组当前主要张量/结构形状在历史记录中有匹配，8组为相近形状推断；这里的“历史实测”只描述来源，不表示新队列已实测。Urban H6/H9在T12/pred_len1/C11/batch128下按同模型形状评估；第二轮M/宽度实验与第三轮type1的优化协议差异明确保留，所有57组均未在新attempt实测并发数值等价。历史显存峰值只按原采样范围解释，event-driven缺失值不补0，不声称持续余量或无人占用由工具证明。被停止四H及两H B均不供给新并发信用。真实正式OOM、finite/数值/业务失败按原技术失败协议停止，不自动降q、变batch、清空重训或增加test。
+
+科学配置原字节不动：Urban六fold×H3/6/9/12×七模型168，EPF35，M_ALL168，总371/最大5670 run-epochs。非Weather PatchTST M20项dm4/encoder2；Weather4完整128/heads16/encoder2/ff256、20/10及其余全部科学字段保持；新371采用索引仍20替换/351保留。保留GPU0及启动前max(8GiB,10%)余量、TimeoutExpired最多3×10秒/间隔2秒、有界查询失败阻塞、全局GPU锁、q≤4、环境/CPU亲和性、来源/config/data SHA、真实初始化/RNG/order、预算/finite、validation-best/test-once、STOP和合法owned清理；运行期GPU查询0。原restricted guard和bundle不改，66项跨Python AST登记集合保留；必要的12项调度/许可控制函数差异明确登记，其余54项保持，模型训练数学及数据函数不变。
+
+本轮仅代码/CPU合成与只读来源验收：当前政策39项、受影响科学/隔离回归24项、独立数值比较8项，共71项有效通过，全部在同一生产字节下完成。首次10项套件有3个error（group receipt漏传mandatory_probe=false及两处夹具问题），已修正并保留日志；后续47项混合套件为39项通过、8项历史数值夹具在比较前因全局lifecycle混用报错，不冒称47/47。8项原数值测试不改断言、不改容差，独立解释器复验8/8。真实371项CPU合成正式驱动未派发probe，实际permit/runtime、受限guard、正式结果审计、三阶段封存和complete均覆盖；真实只读source-check通过、66项跨Python校验通过、GPU查询0、未生成许可。详细通过数、源字节绑定和全部失败日志见本增量acceptance/evidence-index。CPU夹具的虚拟closure、独立路径、合成checkpoint占位与结果记录不可用作正式科学来源。未stage/commit/push，未生成新可执行许可、未GPU preflight、未arm或启动训练；新字节尚待ChatGPT审核。后续审核固定q计划和代码→精确closure→独立许可与启动前检查→用户一次arm，正常阶段自动衔接。technical_complete、result_review、效果gate分别审查。
 
 <a id="m6-urban6-four-H-third-v1"></a>
 ## 旧B停止与Urban六fold四H独立第三轮候选

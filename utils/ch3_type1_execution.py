@@ -50,7 +50,7 @@ def metadata_files(c,a,runtime_ref=None):
     values += list(c['baseline_unified'].get('extension_refs',{}).values())
     values += [ref(scope.package(stage)/(stage.lower()+'-plan.json')) for stage in scope.STAGES]
     values += list(a.get('predecessor_boundaries',{}).values())
-    for key in ('summary_ref','ms_boundary_ref','upstream_boundary_ref','base287_boundary_ref','round2_boundary_ref'):
+    for key in ('concurrency_plan_ref','summary_ref','ms_boundary_ref','upstream_boundary_ref','base287_boundary_ref','round2_boundary_ref'):
         if a.get(key):values.append(a[key])
     if runtime_ref:values.append(runtime_ref)
     # Raw probe payloads and the large probe completion report are deliberately absent.
@@ -60,6 +60,11 @@ def metadata_files(c,a,runtime_ref=None):
 def worker_permit(s):
     a=bound(s['formal_permit_ref']);data=bound(a['data_binding_ref'])
     return dict(a,data_bindings=data['data_bindings'])
+
+
+def formal_plan(c,a):
+    from utils import ch3_reviewed_concurrency as concurrency
+    return concurrency.validate_permit(c,a)if concurrency.enabled()else bound(a['summary_ref'])
 
 
 def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,runtime_ref=None):
@@ -91,6 +96,9 @@ def make_config(c,purpose,out,*,task,approval,artifact_root=None,resume=False,ru
     if approval.get('probe_recovery_ref'):s['probe_schema_recovery_ref']=approval['probe_recovery_ref']
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):s.update(PROBE_RECOVERY.resource_binding())
     if approval.get('startup_hardware_ref'):s['startup_hardware_ref']=approval['startup_hardware_ref']
+    if approval.get('concurrency_policy'):
+        from utils import ch3_reviewed_concurrency as concurrency
+        concurrency.validate_permit(c,approval);s.update(concurrency.binding(c))
     if probe:s['approval']=approval
     else:
         s['approval']=None;s['formal_permit_ref']=ref(ctx['control']/'formal-permit.json');s['runtime_admission_ref']=runtime_ref
@@ -112,6 +120,9 @@ def validate_worker(c,s):
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'guard_serial_task'):PROBE_RECOVERY.guard_serial_task(c,s.get('purpose'),s['task'],s.get('successor_phase'))
     a=s.get('approval') if probe else bound(s['formal_permit_ref'])
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding') and any(s.get(k)!=v or a.get(k)!=v for k,v in PROBE_RECOVERY.resource_binding().items()):raise PermissionError('exact worker/permit resource contract')
+    if a.get('concurrency_policy'):
+        from utils import ch3_reviewed_concurrency as concurrency
+        if any(s.get(k)!=v for k,v in concurrency.binding(c).items()):raise PermissionError('exact worker concurrency policy')
     if a.get('resource_mode')=='exclusive_gpu_event_driven_v1' and s.get('startup_hardware_ref')!=a.get('startup_hardware_ref'):raise PermissionError('worker hardware grant mismatch')
     if s.get('probe_schema_recovery_ref')!=a.get('probe_recovery_ref'):raise PermissionError('worker/permit recovery identity differs')
     stop_check()
@@ -149,7 +160,7 @@ def validate_wave(c,configs,out):
         allowed=[[r] for r in g['representatives']] if phase=='serial' else wave_ids(g['representatives'],int(phase[1:])) if phase in ('q4','q2') and int(phase[1:])in widths else []
         if any(s['approval']!=configs[0]['approval'] for s in configs):raise ValueError('mixed probe permit')
     else:
-        a=bound(configs[0]['formal_permit_ref']);report=bound(a['summary_ref'])
+        a=bound(configs[0]['formal_permit_ref']);report=formal_plan(c,a)
         allowed=scope.formal_waves(c,report,task_by_id(c,ids[0])['model'])
         if any(s['formal_permit_ref']!=configs[0]['formal_permit_ref'] or s['runtime_admission_ref']!=configs[0]['runtime_admission_ref'] for s in configs):raise ValueError('mixed formal runtime')
     if ids not in allowed or not Path(out).resolve().is_relative_to(ctx['probe_root'] if probe else ctx['control']):raise ValueError('fixed unified wave membership')
@@ -181,6 +192,7 @@ def technical_group(c,model,a):
         steps=history[-1]['steps'];test=r.get('final_test',{})
         if m['task']!=t or m['profile']!=p or m['identity']['commit']!=a['commit'] or m['identity']['profile_sha']!=digest(p) or m['identity']['protocol_sha']!=digest(c) or m['identity']['data_sha']!=a['data_bindings'][t['dataset']][t['id']]:raise ValueError('formal manifest profile/data/version')
         if a.get('resource_mode')is not None and any(m['identity'].get(k)!=a[k]for k in('resource_mode','resource_contract_ref')):raise ValueError('formal manifest resource binding')
+        if a.get('concurrency_policy')and any(m['identity'].get(k)!=a[k]for k in('concurrency_policy','concurrency_plan_ref','mandatory_probe','probe_admission_claim')):raise ValueError('formal manifest fixed concurrency binding')
         if r['id']!=t['id'] or r['commit']!=a['commit'] or r['protocol_sha']!=digest(c) or r['profile_sha']!=digest(p) or r['scientific_protocol']!=c['baseline_unified']['id'] or r['scheduler_updates']!=steps or r['scheduler_sha']!=digest(p['training']['scheduler']):raise ValueError('formal result scheduler identity')
         if t['task']=='M' and (p.get('metric_scope')!='all_channels' or p.get('supervised_channels')!=list(range(p['C'])) or p.get('output_order')!=p['features'] or r.get('metric_scope')!='all_channels' or r.get('elements')!=a_steps['test_windows_arithmetic_only']*p['pred_len']*p['C']):raise ValueError('genuine M all-channel supervision/evaluation/output order')
         import math
@@ -193,7 +205,7 @@ def technical_group(c,model,a):
     if a.get('resource_mode')is not None:
         from utils.ch3_native_execution import wave_resource_identities
         from m6_remaining_entry import same
-        summary=bound(a['summary_ref'])
+        summary=formal_plan(c,a)
         for i,ids in enumerate(scope.formal_waves(c,summary,model)):
             wave=scope.context(c)['control']/('group-'+model)/('wave-'+str(i));pr=bound(ref(wave/'process.json'))
             identities=wave_resource_identities(pr,a,wave/'memory.jsonl',ids)
@@ -205,6 +217,10 @@ def technical_group(c,model,a):
     result=dict(technical_complete=True,result_review='pending',model=model,task_ids=[t['id'] for t in expected],artifacts=rows)
     if a.get('resource_mode')is not None:result.update(resource_mode=a['resource_mode'],resource_contract_ref=a['resource_contract_ref'],resource_waves=resources)
     if a.get('startup_hardware_ref'):result['startup_hardware_ref']=a['startup_hardware_ref']
+    if a.get('concurrency_policy'):
+        formal_plan(c,a)
+        from utils import ch3_reviewed_concurrency as concurrency
+        result.update(concurrency.binding(c))
     return result
 
 
@@ -214,7 +230,7 @@ def run_group(c,a,model,runtime_ref):
     from utils.ch3_native_tasks import result_path
     from utils.ch3_m_execution import wave_passed
     from utils.ch3_type1_chain import stop_check,validate_runtime,CONTROL
-    ctx=scope.context(c);summary=bound(a['summary_ref']);waves=scope.formal_waves(c,summary,model);group=ctx['control']/('group-'+model)
+    ctx=scope.context(c);summary=formal_plan(c,a);waves=scope.formal_waves(c,summary,model);group=ctx['control']/('group-'+model)
     group.mkdir(parents=True,exist_ok=False);done=[]
     with GPULock(c):
         for n,ids in enumerate(waves):

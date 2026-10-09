@@ -44,4 +44,6 @@ def result_index(configs):
     value=dict(protocol=s.PROTOCOL,result_review='pending',rows=rows,coverage=dict(UrbanEV=urban_coverage[urban],EPF='all 35 fixed model/market pairs',M='all 168 fixed all-channel tasks'),legacy_paths_include_supplements=True,history_test_seen=True,no_automatic_main_table_replacement=not bool(fixed),no_metric_based_layer_selection=True,main_table_policy_ref=fixed,fixed_encoder_adoption=revision.get('fixed_encoder_adoption','complete'if fixed else None),no_old_new_selection=True,aggregation='separate dataset/fold/H, never average raw MSE across domains')
     from utils.ch3_type1_chain import PROBE_RECOVERY
     if PROBE_RECOVERY and hasattr(PROBE_RECOVERY,'resource_binding'):value.update(PROBE_RECOVERY.resource_binding())
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():value.update(concurrency_policy=concurrency.POLICY,concurrency_plan_ref=PROBE_RECOVERY.contract()['concurrency_plan_ref'],probe_admission_claim=False)
     return value

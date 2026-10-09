@@ -9,6 +9,10 @@ BASE='5bd62dc93d611b3271467a46fd16335b622e0af1'
 PROTOCOL='baseline-type1-followup-v3-recovery1'
 ID='m6-baseline-type1-followup-v3-recovery1'
 MODELS=('AMD','DLinear','PatchTST','iTransformer','TimeMixer','ModernTCN','TimeXer')
+EPF_GROUPING_POLICY='epf_all_baselines_4_plus_1_v1'
+EPF_MARKET_ORDER=('PJM','NP','BE','FR','DE')
+EPF_REVIEWED_MAIN_SHAPES_SHA={'AMD': ('fd87e7cf0093f270184f1e2616e772abc9c40cd407604c051346fb257427a5cc',), 'DLinear': ('ad79f0972427a5d23da8a11a05cc02584e3659a529a168c57b18d9401f72fc9a',), 'ModernTCN': ('4af40750ea2183827a5b2adba2061128dfce621ece4d31cd7fce9c5ef1cd7ede',), 'PatchTST': ('023b13b2564fca429636491069c3f995206b2efb26a0ea0eed0ba631d2ac1f64',), 'TimeMixer': ('d4136fc86153bfec282d075810583b3f24918664a87dd6eb8204cb1f37844dac',), 'TimeXer': ('81c765aded8c4ce1d01276e9cd5b52af058f024b6f1d14386e0b1ddc229c2c32',), 'iTransformer': ('0b355416edd72514bbf5ec25539aa084d3eb2c188fdf02aee915b47e0500912b',)}
+HISTORICAL_EPF_SPLIT_PROTOCOL_SHA='9a63ea039e571f4f8a3195798d54226f44b22284e95e43e26d27169576a27365'
 STAGES=('M_BASE','M_AMEND','URBAN_SUBSET','EPF_ALL','M_ALL')
 from utils.ch3_ms_seal_recovery import PACKAGE,RESULT
 PARENT_REF=dict(path=str(ROOT/'configs/ch3_baseline_ms_u96_oc01_v3.json'),sha256='6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09')
@@ -121,16 +125,40 @@ def validate(c):
         if any(m.get(k)!=v for k,v in mark_metadata(p).items()) or m['window_counts']!={'train':a['train_windows'],'validation':a['validation_windows']} or data['data_bindings'][t['dataset']][t['id']]!=digest(m):raise ValueError('exact T-dependent historical mark/window metadata required')
     return c
 def probe_groups(c):
+    """Default for all newly created EPF work: every baseline uses4+1."""
+    return _probe_groups(c,False)
+
+
+def historical_epf_probe_groups_v1(c):
+    """Read the exact frozen type1 split; never a new-task default."""
+    if c['baseline_unified']['stage']!='EPF_ALL'or digest(c)!=HISTORICAL_EPF_SPLIT_PROTOCOL_SHA:
+        raise PermissionError('exact historical EPF protocol required for3+2 projection')
+    return _probe_groups(c,True)
+
+
+def _probe_groups(c,historical_epf_split):
     stage=c['baseline_unified']['stage'];result=[]
     for model in MODELS:
         ts=[t for t in c['tasks']if t['model']==model]
+        if stage=='EPF_ALL'and not historical_epf_split:
+            if len(ts)!=5 or{t['dataset']for t in ts}!=set(EPF_MARKET_ORDER):raise ValueError('exact five EPF markets required')
+            ts=[next(t for t in ts if t['dataset']==market)for market in EPF_MARKET_ORDER]
         from utils.ch3_type1_ett import M_DATASETS
         if stage=='M_BASE':M_DATASETS=('ETTh1','Weather','Exchange')
         if stage=='M_AMEND':
             from utils.ch3_round2_amendment import DATASETS as M_DATASETS
-        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage in ('M_BASE','M_ALL','M_AMEND') else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer' else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
+        banks=[(ts,4,'cross-fold-f1-f2-H3-H12')] if stage=='URBAN_SUBSET' else [([t for t in ts if t['dataset']==d],4,'M-'+d+'-four-H')for d in M_DATASETS if d in c['datasets']] if stage in ('M_BASE','M_ALL','M_AMEND') else [(ts,4,'EPF-4-plus-1')] if model!='TimeXer'or not historical_epf_split else [([t for t in ts if t['dataset']in ('PJM','BE','FR')],4,'EPF-structure-PJM-BE-FR-batch32'),([t for t in ts if t['dataset']in ('NP','DE')],2,'EPF-structure-NP-DE-batch32')]
         for rows,q,label in banks:
             result.append(dict(id=model+'-'+label,model=model,representatives=[t['id']for t in rows],planned_q=q,coverage={t['id']:[t['id']]for t in rows},identities={t['id']:digest(profile(c,t))for t in rows},equivalence='own-profile independent six-step serial; fixed actual waves; type1 epoch behavior proved separately with no-model fixtures'))
+            if stage=='EPF_ALL'and not historical_epf_split:
+                profiles=[profile(c,t)for t in rows]
+                shapes=[dict(T=p['T'],pred_len=p['pred_len'],C=p['C'],batch=p['training']['batch'],eval_batch=p['training']['eval_batch'],structure=p['structure'])for p in profiles]
+                risks=[]
+                if len({digest(p)for p in shapes})!=1:risks.append('market batch or main model shape differs; resource review required')
+                if any(digest(p)not in EPF_REVIEWED_MAIN_SHAPES_SHA[model]for p in shapes):
+                    risks.append('main batch or model shape differs from reviewed EPF configuration; resource review required')
+                result[-1].update(grouping_policy=EPF_GROUPING_POLICY,resource_review_required=bool(risks),resource_risks=risks,
+                    equivalence='default4+1 scheduling; numerical equivalence is not claimed by grouping')
     return result
 def worker_counts(c,t):return dict(adam=6,backward=6,forward=10 if t['model']=='TimeMixer'and t['dataset']=='UrbanEV'else 8)
 def probe_budget(c):
@@ -158,6 +186,8 @@ def context(c):
 def decision_for(c,report,t):
     return report['decisions'][next(g['id']for g in probe_groups(c)if t['id']in g['representatives'])]
 def formal_waves(c,report,model):
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():return concurrency.formal_waves(c,report,model)
     waves=[]
     for g in probe_groups(c):
         if g['model']!=model:continue
@@ -166,5 +196,14 @@ def formal_waves(c,report,model):
         waves.extend(g['representatives'][i:i+q]for i in range(0,len(g['representatives']),q))
     return waves
 def plan(c):
+    from utils import ch3_reviewed_concurrency as concurrency
+    if concurrency.enabled():
+        row=concurrency.stage_plan(c)
+        return dict(protocol=c['baseline_unified']['id'],scope=ID,stage=c['baseline_unified']['stage'],
+            models=list(MODELS),task_ids=[t['id']for t in c['tasks']],profile_shas=row['profile_shas'],
+            concurrency_policy=concurrency.POLICY,concurrency_plan_ref=concurrency.recovery().contract()['concurrency_plan_ref'],
+            groups=row['groups'],formal_waves={m:formal_waves(c,row,m)for m in MODELS},
+            formal_budget=formal_budget(c),probe_budget=probe_budget(c),science_review='pending',
+            proposed_concurrency=True,automatic_probe=False,probe_admission_claim=False,additional_search=0,from_scratch=True)
     nominal=dict(decisions={g['id']:dict(status='Passed',concurrency=g['planned_q'])for g in probe_groups(c)})
     return dict(protocol=c['baseline_unified']['id'],scope=ID,stage=c['baseline_unified']['stage'],models=list(MODELS),task_ids=[t['id']for t in c['tasks']],profile_shas={t['id']:digest(profile(c,t))for t in c['tasks']},groups=probe_groups(c),formal_waves={m:formal_waves(c,nominal,m)for m in MODELS},formal_budget=formal_budget(c),probe_budget=probe_budget(c),science_review='pending',proposed_concurrency=True,additional_search=0,from_scratch=True)

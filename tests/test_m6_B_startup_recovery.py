@@ -20,7 +20,7 @@ def synthetic_gpu(args,**kwargs):
 def fixture():
     root=Path(tempfile.mkdtemp(prefix='synthetic-startup-',dir=b.PACKAGE/'fixtures'))
     package=root/'technical';package.mkdir();realpackage=b.PACKAGE
-    (package/'producer-delta-proof.v3.json').write_bytes((realpackage/'producer-delta-proof.v3.json').read_bytes())
+    (package/'producer-delta-proof.v11.json').write_bytes((realpackage/'producer-delta-proof.v11.json').read_bytes())
     for stage in b.STAGES:
         name=stage.lower()+'-plan.json';(package/name).write_bytes((realpackage/name).read_bytes())
     cs=q.configs()

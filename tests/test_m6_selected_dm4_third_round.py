@@ -72,10 +72,13 @@ class SelectedDM4(unittest.TestCase):
         self.assertTrue(all(x['profile']['training']['scheduler']['name']=='OneCycleLR'for x in a['stages']['PATCH_DM4']['rows']))
         c=q.configs()['M_ALL'];self.assertTrue(all(profile(c,t)['training']['scheduler']['name']=='type1_horizon_scaled_v1'for t in c['tasks']))
 
-    def test_new_shape_has_own_serial_q4_q2_q1_policy(self):
+    def test_new_shape_has_reviewed_fixed_q_without_mandatory_probe(self):
         c=q.configs()['M_ALL'];g=[g for g in s.probe_groups(c)if g['model']=='PatchTST'];self.assertEqual(len(g),6)
         self.assertEqual(sum(len(x['representatives'])for x in g),24)
-        self.assertTrue(all(x['planned_q']==4 for x in g));from utils.ch3_native_tasks import attempt_widths;self.assertEqual(attempt_widths(g[0]),(4,2)) # q1 consumes measured serial
+        self.assertTrue(all(x['planned_q']==4 for x in g))
+        from utils.ch3_reviewed_concurrency import stage_plan
+        fixed=[x for x in stage_plan(c)['groups']if x['model']=='PatchTST']
+        self.assertTrue(all(x['q']==4 and x['limitations']for x in fixed));self.assertEqual(s.probe_budget(c)['max_workers'],0)
         self.assertEqual(b.SEED_STAGES,());self.assertEqual(b.COMPLETED_STAGES,())
 
     def test_B_rejects_A_old_attempt_and_old_MAC(self):
@@ -143,7 +146,8 @@ class SelectedDM4(unittest.TestCase):
             stack.enter_context(patch.object(q,'seal_runtime',side_effect=lambda c,value:value));stack.enter_context(patch.object(q,'seal_boundary',side_effect=lambda c,r:exclusive(root/(c['baseline_unified']['stage']+'-boundary.json'),{'synthetic':True})))
             q.run(start);complete=bound(ref(q.CONTROL/'complete.json'))
             self.assertEqual(len(runs),371);self.assertEqual(len(set(runs)),371)
-            self.assertEqual(events,[('URBAN_SUBSET','probe'),('URBAN_SUBSET','formal'),('EPF_ALL','probe'),('EPF_ALL','formal'),('M_ALL','probe'),('M_ALL','formal')])
+            self.assertEqual(events,[('URBAN_SUBSET','formal'),('EPF_ALL','formal'),('M_ALL','formal')])
+            self.assertFalse((s.RESULT/'probe').exists())
             self.assertEqual(complete['executed_third_formal_runs'],371);self.assertEqual(complete['adopted_depth_formal_runs'],48)
 
     def test_new_handoff_MAC_bound_to_current_lifecycle(self):

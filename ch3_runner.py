@@ -69,6 +69,7 @@ def code_binding():
         files += ['configs/ch3_baseline_ms_u96_oc01_v3.json','configs/ch3_baseline_m_u96_oc01_v3.json',
                   'tests/test_m6_baseline_unified_v3.py']
     if (ROOT/'utils/ch3_type1_tasks.py').exists():
+        if (ROOT/'utils/ch3_reviewed_concurrency.py').exists():files += ['utils/ch3_reviewed_concurrency.py']
         files += ['utils/ch3_type1.py','utils/ch3_type1_tasks.py','utils/ch3_type1_chain.py','utils/ch3_type1_upstream.py',
                   'utils/ch3_type1_execution.py','utils/ch3_type1_summary.py','m6_type1_followup_entry.py','scripts/ch3/start_type1_followup.sh',
                   'configs/ch3_type1_urban_subset.json','configs/ch3_type1_epf_all.json','tests/test_m6_type1_followup.py']
@@ -508,6 +509,10 @@ def formal_identity(c, task, metadata, approval):
         if any(approval.get(k)!=v for k,v in binding.items()):raise ValueError('formal identity resource binding')
         result.update(binding)
         if approval.get('startup_hardware_ref'):result['startup_hardware_ref']=approval['startup_hardware_ref']
+    if approval.get('concurrency_policy')is not None:
+        from utils import ch3_reviewed_concurrency as concurrency
+        concurrency.validate_permit(c,approval)
+        result.update(concurrency.binding(c))
     return result
 
 

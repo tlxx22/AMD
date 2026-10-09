@@ -8,27 +8,28 @@ from utils import ch3_patchtst_depth_urban6_recovery as parent
 SCIENCE_PACKAGE=parent.EVENT_PACKAGE/'patchtst-width-urban-audit-v1/separate-entrypoints-v1/dm4-selection-third-round-v1'
 STARTUP_PACKAGE=SCIENCE_PACKAGE/'startup-timeout-recovery-v1'
 LEGACY_PACKAGE=STARTUP_PACKAGE/'ast-proof-repair-v1'
-PACKAGE=LEGACY_PACKAGE/'urban6-four-H-third-v1'
+PREVIOUS_PACKAGE=LEGACY_PACKAGE/'urban6-four-H-third-v1'
+PACKAGE=PREVIOUS_PACKAGE/'reviewed-concurrency-reuse-v1'
+PLAN_PACKAGE=PACKAGE/'timexer-epf-four-plus-one-v1/stage-plans-v1'
 SUPERSEDED_STARTUP_PROOF_REF={'path':str(STARTUP_PACKAGE/'producer-delta-proof.json'),'sha256':'9bf2b2cedb36fbe6a37ba6c4742b69364311403180170594b1b682e84723d5b9'}
 AST_PROOF_ALGORITHM='full-field-ast-json-v1'
-STARTUP_RECOVERY_REF={'path':str(PACKAGE/'startup-recovery.contract.v3.json'),'sha256':'e2ab52923a141aea222dbea3eeaabc0266110c14d7c3f35e5ae6a560049cd399'}
-CONTRACT_REF={'path':str(PACKAGE/'third-round-four-H.contract.v3.json'),'sha256':'e0b1dfecca6737d12122133437eceba13879bbf905652e2157f06798490cb7ac'}
+STARTUP_RECOVERY_REF={'path':str(PACKAGE/'startup-recovery.contract.v4.json'),'sha256':'9f30997bace0e310fb696a357b00009601aae3a95e08fc6592eff01b11cb90f6'}
+CONTRACT_REF={'path':str(PACKAGE/'third-round-reviewed-concurrency.contract.v3.json'),'sha256':'cda6b1a1ebd2e1eb4056899b3c01f36bb06caa73bc1c057f7de585bfd92b1722'}
 REUSE_REF=CONTRACT_REF
 from utils.ch3_patchtst_width_reproduction import SOURCE_REF
 LEGACY_SCOPE='m6-third-round-selected-patchtst-dm4-v1'
-ID='m6-third-round-selected-patchtst-dm4-urban6-four-H-v1'
-ATTEMPT='THIRD-PatchTST-enc2-dm4-Urban6-four-H-r1'
-SESSION='ch3-m6-third-dm4-urban6-fourH-r1'
-RESULT=parent.RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-third-selected-dm4-urban6-four-H-r1')
-LOG=PACKAGE/'B-urban6-four-H-launcher.log'
+ID='m6-third-round-dm4-urban6-four-H-reviewed-concurrency-v1'
+ATTEMPT='THIRD-PatchTST-dm4-Urban6-four-H-reviewed-q-r1'
+SESSION='ch3-m6-third-fourH-reviewed-q-r1'
+RESULT=parent.RESULT.with_name('baseline-unified-v3-ms-seal-m128-recovery1-third-selected-dm4-urban6-four-H-reviewed-q-r1')
+LOG=PACKAGE/'B-reviewed-concurrency-launcher.log'
+CONCURRENCY_POLICY='reviewed_concurrency_reuse_without_mandatory_probe_v1'
 ENTRY=ROOT/'m6_third_round_after_selection_entry.py'
 WRAPPER=ROOT/'scripts/ch3/start_third_round_after_selection.sh'
 STAGES=('URBAN_SUBSET','EPF_ALL','M_ALL')
 CURRENT_STAGE_RUNS={'URBAN_SUBSET':168,'EPF_ALL':35,'M_ALL':168}
-APPROVED_AST_CHANGES={'utils/ch3_third_round_after_selection.py':{
-    'contract','validate_revision','retained_refs','adopt_urban_probe',
-    'validate_saved_probe','continuation_actions','completion_counts',
-    'completion_record','validate_complete'}}
+APPROVED_AST_CHANGES={'utils/ch3_type1_chain.py':{'dynamic','validate_permit','create_permit','seal_runtime','validate_runtime','validate_boundary_light','seal_boundary','run'},
+    'utils/ch3_third_round_after_selection.py':{'contract','completion_record','validate_complete','validate_permit_link'}}
 THIRD_ROUND_ONLY=True
 INDEPENDENT_SCIENCE_QUEUE=False
 COMPLETED_PREFIX=False
@@ -38,6 +39,7 @@ _R6={}
 
 
 def contract():
+    from utils.ch3_type1_tasks import EPF_GROUPING_POLICY
     v=bound(CONTRACT_REF)
     if (v.get('purpose')!='third_round_user_selected_dm4_urban6_four_H_v1' or v.get('selected_d_model')!=4
         or v.get('stage_order')!=list(STAGES) or v.get('stage_runs')!=CURRENT_STAGE_RUNS
@@ -47,6 +49,9 @@ def contract():
         or v.get('Weather_d_model')!=128
         or v.get('Weather_changed')is not False or v.get('no_depth_redispatch')is not True
         or v.get('no_A_dispatch')is not True or v.get('execution_permitted')is not False
+        or v.get('epf_grouping_policy')!=EPF_GROUPING_POLICY
+        or v.get('concurrency_policy')!=CONCURRENCY_POLICY or v.get('automatic_probe')is not False
+        or v.get('probe_admission_claim')is not False
         or v.get('r6_source_ref')!=SOURCE_REF
         or any(v.get(k)!=x for k,x in resource_binding().items())):
         raise PermissionError('exact user-selected dm4 third-round contract required')
@@ -55,6 +60,10 @@ def contract():
 
 def resource_binding():return parent.resource_binding()
 def config_refs():return contract()['config_refs']
+
+
+def code_binding():
+    return {name:sha(ROOT/name)for name in('utils/ch3_reviewed_concurrency.py','utils/ch3_type1_execution.py','utils/ch3_third_round_after_selection.py','utils/ch3_type1_tasks.py')}
 
 
 def selected_main(value=None):
@@ -206,7 +215,8 @@ def startup_contract():
         or v.get('science_contract_ref')!=CONTRACT_REF or v.get('execution_attempt')!=ATTEMPT
         or v.get('session')!=SESSION or v.get('result_root')!=str(RESULT)
         or v.get('stage_runs')!=CURRENT_STAGE_RUNS or v.get('remaining_formal_runs')!=371
-        or v.get('scientific_change')is not True or v.get('execution_permitted')is not False
+        or v.get('max_run_epochs')!=contract()['max_run_epochs']
+        or v.get('scientific_change')is not False or v.get('execution_permitted')is not False
         or v.get('query_policy')!=dict(timeout_seconds=10,max_attempts=3,retry_delay_seconds=2,
             retry_exception='subprocess.TimeoutExpired',maximum_query_and_wait_seconds=34)):
         raise PermissionError('exact B technical startup contract, no scientific change')
@@ -336,47 +346,87 @@ def protected_ast_fingerprint(node):
 
 
 def verify_production_inheritance():
-    import ast
-    proof=bound(ref(PACKAGE/'producer-delta-proof.v3.json'))
-    previous=bound(startup_contract()['previous_producer_proof_ref'])
+    """Original66 plus exact reviewed execution deltas; mathematics/guard unchanged."""
+    import ast,subprocess
+    proof=bound(ref(PACKAGE/'producer-delta-proof.v11.json'))
+    previous_ref=startup_contract()['previous_producer_proof_ref'];previous=bound(previous_ref)
     registry=lambda value:{name:set(symbols)for name,symbols in value['protected_AST'].items()}
-    if (proof.get('purpose')!='B_four_H_exact_delta_v1'
-        or proof.get('AST_algorithm')!=AST_PROOF_ALGORITHM
-        or registry(proof)!=registry(previous)
+    if (proof.get('purpose')!='B_reviewed_concurrency_exact_delta_v1'
+        or proof.get('AST_algorithm')!=AST_PROOF_ALGORITHM or registry(proof)!=registry(previous)
         or sum(map(len,proof['protected_AST'].values()))!=66
-        or set(proof['after_code'])!=set(previous['after_code'])
+        or proof.get('parent_commit')!='0a0049a8fbe3505c7f3ca719b8c392df071a0e2c'
+        or proof.get('previous_proof_ref')!=previous_ref or proof.get('parent_AST')!=previous['protected_AST']
+        or proof.get('model_math_changed')is not False or proof.get('scientific_change')is not False
         or set(proof['protected_exact'])!=set(previous['protected_exact'])
-        or {k:v for k,v in proof['protected_exact'].items()if k!='utils/ch3_type1_summary.py'}!={k:v for k,v in previous['protected_exact'].items()if k!='utils/ch3_type1_summary.py'}
-        or proof.get('summary_source_delta')!=dict(before=previous['protected_exact']['utils/ch3_type1_summary.py'],after=proof['protected_exact']['utils/ch3_type1_summary.py'],reason='explicit full four-H coverage reporting; result sources and selection unchanged')
-        or proof.get('parent_commit')!='a019a099d6ce5e4972a52a269e18ce16ddae2630'
-        or proof.get('previous_proof_ref')!=startup_contract()['previous_producer_proof_ref']
-        or proof.get('model_math_changed')is not False or proof.get('scientific_change')is not True
-        or proof.get('parent_AST')!=previous['protected_AST']
-        or proof['before_code']!={**previous['protected_exact'],**previous['after_code']}):
-        raise ValueError('precise four-H scope delta with original66 protection')
+        or proof.get('approved_AST_changes')!={k:sorted(v)for k,v in APPROVED_AST_CHANGES.items()}):
+        raise ValueError('exact reviewed concurrency delta with original66 protection')
     changed={name:{symbol for symbol,h in symbols.items()if h!=previous['protected_AST'][name][symbol]}
         for name,symbols in proof['protected_AST'].items()}
     changed={name:symbols for name,symbols in changed.items()if symbols}
-    if changed!=APPROVED_AST_CHANGES or proof.get('approved_AST_changes')!={k:sorted(v)for k,v in APPROVED_AST_CHANGES.items()}:
-        raise ValueError('only explicit four-H scope/admission/count AST deltas allowed')
-    for name,h in proof['protected_exact'].items():
-        if sha(ROOT/name)!=h:raise ValueError('protected source changed: '+name)
-    for name,h in proof['after_code'].items():
-        if sha(ROOT/name)!=h:raise ValueError('exact reviewed startup implementation changed: '+name)
+    if changed!=APPROVED_AST_CHANGES:raise ValueError('only explicit reviewed scheduling AST deltas allowed')
+    exact_changes={k for k,h in proof['protected_exact'].items()if h!=previous['protected_exact'][k]}
+    if exact_changes!={'ch3_runner.py','utils/ch3_type1_tasks.py','utils/ch3_type1_summary.py'}:
+        raise ValueError('original math, adapter, guard and restricted tools remain byte-identical')
+    expected_files=set(previous['after_code'])|set(previous['protected_exact'])|{'utils/ch3_type1_execution.py','utils/ch3_reviewed_concurrency.py'}
+    if set(proof['after_code'])|set(proof['protected_exact'])!=expected_files:
+        raise ValueError('exact original and added execution source coverage')
+    for name,h in {**proof['protected_exact'],**proof['after_code']}.items():
+        if sha(ROOT/name)!=h:raise ValueError('exact reviewed source changed: '+name)
     for name,symbols in proof['protected_AST'].items():
-        tree=ast.parse((ROOT/name).read_text())
-        actual={n.name:protected_ast_fingerprint(n)
-            for n in tree.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
-        if any(actual.get(k)!=h for k,h in symbols.items()):raise ValueError('protected mathematics/runtime function changed: '+name)
+        now=ast.parse((ROOT/name).read_text());parent_tree=ast.parse(subprocess.check_output(['git','show',proof['parent_commit']+':'+name],cwd=ROOT,text=True))
+        actual={n.name:protected_ast_fingerprint(n)for n in now.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
+        prior={n.name:protected_ast_fingerprint(n)for n in parent_tree.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
+        if any(actual.get(k)!=h or prior.get(k)!=proof['parent_AST'][name][k]for k,h in symbols.items()):raise ValueError('protected mathematics/runtime function changed: '+name)
+    # The three changed formerly exact files receive full function-level delta
+    # protection, so author computations outside the declared control edits stay fixed.
+    for name,allowed in {'ch3_runner.py':{'code_binding','formal_identity'},'utils/ch3_type1_tasks.py':{'formal_waves','plan','probe_groups','_probe_groups','historical_epf_probe_groups_v1'},'utils/ch3_type1_summary.py':{'result_index'}}.items():
+        before=ast.parse(subprocess.check_output(['git','show',proof['parent_commit']+':'+name],cwd=ROOT,text=True));after=ast.parse((ROOT/name).read_text())
+        table=lambda tree:{n.name:protected_ast_fingerprint(n)for n in tree.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
+        x,y=table(before),table(after)
+        if {k for k in set(x)|set(y)if x.get(k)!=y.get(k)}!=allowed:raise ValueError('only approved control functions changed: '+name)
     from tools.restricted_regression.run_restricted import verify_bundle
-    if verify_bundle()!=proof['bundle_sha'] or proof['bundle_sha']!=previous['bundle_sha']:
-        raise ValueError('original restricted bundle changed')
+    if verify_bundle()!=proof['bundle_sha']or proof['bundle_sha']!=previous['bundle_sha']:raise ValueError('original restricted bundle changed')
     return proof
+
+
+def verify_stopped_four_H():
+    v=bound(contract()['stopped_four_H_ref']);inventory=bound(v['retained_artifact_inventory_ref'])
+    if (v.get('old_attempt')!='THIRD-PatchTST-enc2-dm4-Urban6-four-H-r1'
+        or v.get('old_formal_eligibility')is not False or v.get('old_probe_eligibility_for_new_queue')is not False
+        or v.get('may_resume')is not False or v.get('new_queue_completed_from_old_attempt')!=0
+        or v.get('new_queue_admission_credit_from_old_attempt')!=0):raise PermissionError('stopped four-H lifecycle never grants new credit')
+    for row in inventory['files']:
+        p=Path(row['path']);st=p.stat()
+        if p.is_symlink()or(st.st_size,st.st_mtime_ns)!=(row['size'],row['mtime_ns']):raise ValueError('stopped four-H artifact identity changed')
+        if row['sha256']is not None and sha(p)!=row['sha256']:raise ValueError('stopped four-H artifact bytes changed')
+    from utils import ch3_type1_chain as q
+    if any(q.same(i)for i in v['identities']):raise PermissionError('stopped four-H owner remains active')
+    import subprocess
+    if subprocess.run(['tmux','has-session','-t',v['old_session']],capture_output=True).returncode==0:raise PermissionError('stopped four-H session remains active')
+    if not Path(v['STOP_ref']['path']).exists()or sha(v['STOP_ref']['path'])!=v['STOP_ref']['sha256']:raise PermissionError('persistent stopped four-H STOP required')
+    return v
+
+
+def verify_concurrency_sources():
+    from utils import ch3_reviewed_concurrency as concurrency,ch3_type1_chain as q
+    plan=bound(contract()['concurrency_plan_ref']);history=bound(plan['history_ref'])
+    stopped_root=Path(bound(contract()['stopped_four_H_ref'])['STOP_ref']['path']).parents[2]
+    for c in q.configs().values():concurrency.stage_plan(c)
+    for value in history['sources'].values():
+        report=bound(value['report_ref']);decision=report['decisions'][value['group']]
+        if decision.get('status')!='Passed'or decision.get('concurrency')!=value['recorded_q']:raise ValueError('historical measured source only')
+        for r in(value['waves']+value['worker_config_refs']+value['formal_record_refs']):
+            if Path(r['path']).resolve().is_relative_to(stopped_root):raise PermissionError('stopped four-H evidence cannot grant new concurrency credit')
+            v=bound(r)
+            if r in value['waves']and(v.get('failure')is not None or any(v['returncodes'])):raise ValueError('failed historical wave cannot be presented as success')
+            if r in value['formal_record_refs']and v.get('technical_complete')is not True:raise ValueError('successful historical formal evidence required')
+    return plan
 
 
 def verify_source():
     historical_startup_failure()
     verify_stopped_B()
+    verify_stopped_four_H();verify_concurrency_sources()
     spec=contract();source=bound(SOURCE_REF);audit=bound(spec['width_source_audit_ref']);complete=bound(spec['width_complete_ref'])
     if audit.get('technical_complete')is not True or audit.get('producer_commit')!='7d9fec8c5f66e9f38dbf396bf8d1136276b8e78e'or audit.get('new_test_calls')!=0 or complete.get('technical_complete')is not True or complete.get('total_runs')!=40:raise ValueError('real independent width40 completion and read-only audit')
     for k in('PATCH_ENC1','PATCH_ENC2','probe/URBAN_SUBSET/complete.json','queue/controller/failure.json'):
@@ -391,12 +441,15 @@ def verify_source():
     for session in(parent.SESSION,A_SESSION):
         if subprocess.run(['tmux','has-session','-t',session],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:raise ValueError('source lifecycle still active')
     selected_main();bound(spec['selected_boundary_ref']);verify_production_inheritance()
+    from utils import ch3_type1_chain as q,ch3_type1_tasks as s
+    for stage,c in q.configs().items():
+        if bound(ref(PLAN_PACKAGE/(stage.lower()+'-plan.json')))!=s.plan(c):raise ValueError('current stage plan projection must match reviewed concurrency')
     return spec
 
 
 def anchors():
     v=contract()
-    return dict(execution_attempt=ATTEMPT,startup_recovery_ref=STARTUP_RECOVERY_REF,contract_ref=CONTRACT_REF,source_ref=SOURCE_REF,selection_ref=v['selection_ref'],selected_main_ref=v['selected_main_ref'],selected_boundary_ref=v['selected_boundary_ref'],withdrawn_B_ref=v['withdrawn_B_ref'],old_B_completed_credit=0,urban_horizons=[3,6,9,12],producer_delta_ref=ref(PACKAGE/'producer-delta-proof.v3.json'),candidate_config_refs=config_refs(),completed_old_new_formal=196,completed_depth_formal=48,completed_independent_width_formal=40,expected_remaining_formal=371,approved_third_formal=371,Weather_d_model=128,selected_nonWeather_d_model=4,**resource_binding())
+    return dict(execution_attempt=ATTEMPT,startup_recovery_ref=STARTUP_RECOVERY_REF,contract_ref=CONTRACT_REF,source_ref=SOURCE_REF,selection_ref=v['selection_ref'],selected_main_ref=v['selected_main_ref'],selected_boundary_ref=v['selected_boundary_ref'],withdrawn_B_ref=v['withdrawn_B_ref'],old_B_completed_credit=0,stopped_four_H_ref=v['stopped_four_H_ref'],stopped_four_H_completed_credit=0,concurrency_policy=CONCURRENCY_POLICY,epf_grouping_policy=v['epf_grouping_policy'],concurrency_plan_ref=v['concurrency_plan_ref'],automatic_probe=False,probe_admission_claim=False,urban_horizons=[3,6,9,12],producer_delta_ref=ref(PACKAGE/'producer-delta-proof.v11.json'),candidate_config_refs=config_refs(),completed_old_new_formal=196,completed_depth_formal=48,completed_independent_width_formal=40,expected_remaining_formal=371,approved_third_formal=371,Weather_d_model=128,selected_nonWeather_d_model=4,**resource_binding())
 
 
 def status():
@@ -416,6 +469,7 @@ def import_ms():
 
 
 def validate_permit_link(c,a,probe):
+    if probe:raise PermissionError('reviewed formal queue has no automatic probe authorization')
     if a.get('execution_attempt')!=ATTEMPT or a.get('probe_recovery_ref')!=REUSE_REF or c!=bound(config_refs()[c['baseline_unified']['stage']]):raise PermissionError('exact selected B lifecycle/config/permit')
     if a.get('base287_boundary_ref')is not None or a.get('round2_boundary_ref')is not None:raise PermissionError('historical MACs cannot authorize B')
 
@@ -438,7 +492,7 @@ def monitor_binding(configs):
 
 
 def worker_metadata(c):
-    v=contract();values=[CONTRACT_REF,SOURCE_REF,v['selection_ref'],v['selected_main_ref'],v['selected_boundary_ref'],v['width_source_audit_ref'],v['parent_M_ALL_ref'],v['urban_parent_ref'],v['frozen_urban_source_ref'],resource_binding()['resource_contract_ref'],ref(PACKAGE/'producer-delta-proof.v3.json')]
+    v=contract();values=[CONTRACT_REF,SOURCE_REF,v['selection_ref'],v['selected_main_ref'],v['selected_boundary_ref'],v['width_source_audit_ref'],v['parent_M_ALL_ref'],v['urban_parent_ref'],v['frozen_urban_source_ref'],resource_binding()['resource_contract_ref'],ref(PACKAGE/'producer-delta-proof.v11.json'),v['concurrency_plan_ref']]
     values.extend([STARTUP_RECOVERY_REF,startup_contract()['prior_failure_ref'],startup_contract()['previous_producer_proof_ref']])
     values.append(bound(v['parent_M_ALL_ref'])['baseline_unified']['data_ref'])
     for r in config_refs().values():values.extend([r,bound(r)['baseline_unified']['data_ref']])
@@ -492,12 +546,14 @@ def completion_counts():
 
 def completion_record(receipts):
     from utils import ch3_type1_chain as q
-    return dict(scope=ID,technical_complete=True,result_review='pending',stage_boundaries={s:receipts[q.STAGE_STATES[s][3]]for s in STAGES},selected_main_ref=contract()['selected_main_ref'],selection_ref=contract()['selection_ref'],adopted_original_new_formal_runs=196,adopted_depth_formal_runs=48,completed_independent_width_formal_runs=40,executed_third_formal_runs=371,total_third_formal_runs=371,withdrawn_B_ref=contract()['withdrawn_B_ref'],withdrawn_B_completed_credit=0,**resource_binding())
+    v=contract()
+    return dict(scope=ID,technical_complete=True,result_review='pending',stage_boundaries={s:receipts[q.STAGE_STATES[s][3]]for s in STAGES},selected_main_ref=contract()['selected_main_ref'],selection_ref=contract()['selection_ref'],adopted_original_new_formal_runs=196,adopted_depth_formal_runs=48,completed_independent_width_formal_runs=40,executed_third_formal_runs=371,total_third_formal_runs=371,withdrawn_B_ref=contract()['withdrawn_B_ref'],withdrawn_B_completed_credit=0,stopped_four_H_ref=contract()['stopped_four_H_ref'],stopped_four_H_completed_credit=0,concurrency_policy=CONCURRENCY_POLICY,epf_grouping_policy=v['epf_grouping_policy'],concurrency_plan_ref=contract()['concurrency_plan_ref'],probe_admission_claim=False,**resource_binding())
 
 
 def validate_complete(v):
     from utils import ch3_type1_chain as q
     if v.get('scope')!=ID or v.get('technical_complete')is not True or v.get('result_review')!='pending' or v.get('executed_third_formal_runs')!=371 or v.get('total_third_formal_runs')!=371 or v.get('withdrawn_B_completed_credit')!=0 or v.get('withdrawn_B_ref')!=contract()['withdrawn_B_ref'] or v.get('selected_main_ref')!=contract()['selected_main_ref'] or v.get('selection_ref')!=contract()['selection_ref']or set(v.get('stage_boundaries',{}))!=set(STAGES):raise ValueError('exact four-H B technical complete; withdrawn B excluded; result review separate')
+    if (v.get('concurrency_policy')!=CONCURRENCY_POLICY or v.get('epf_grouping_policy')!=contract()['epf_grouping_policy']or v.get('concurrency_plan_ref')!=contract()['concurrency_plan_ref']or v.get('probe_admission_claim')is not False or v.get('stopped_four_H_ref')!=contract()['stopped_four_H_ref']or v.get('stopped_four_H_completed_credit')!=0):raise PermissionError('current reviewed queue only; no stopped four-H/probe credit')
     for stage,r in v['stage_boundaries'].items():q.validate_boundary_light(r,stage)
     return v
 
@@ -518,12 +574,12 @@ def activate():
     old_selected,old_groups,old_budget=s.selected,s.probe_groups,s.probe_budget
     s.selected=lambda stage:[t for t in s.parent()['tasks']if t['dataset']=='UrbanEV'and t['fold']in range(1,7)and t['h']in(3,6,9,12)]if stage=='URBAN_SUBSET'else old_selected(stage)
     s.probe_groups=lambda c:urban_probe_groups(c)if c['baseline_unified']['stage']=='URBAN_SUBSET'else old_groups(c)
-    s.probe_budget=lambda c:urban_probe_budget(c)if c['baseline_unified']['stage']=='URBAN_SUBSET'else old_budget(c)
-    s.package=lambda stage:PACKAGE
+    s.probe_budget=lambda c:dict(nominal=dict(adam=0,backward=0,forward=0),caps=dict(adam=0,backward=0,forward=0),nominal_workers=0,max_workers=0,automatic_probe=False,manual_diagnostics='only on explicit user request under an applicable independent diagnostic authorization')
+    s.package=lambda stage:PLAN_PACKAGE
     s.context=lambda c:dict(original_context(c),fixture=PACKAGE/c['baseline_unified']['stage']/'fixtures')
     # Original protocol/profile identities remain in unchanged Urban/EPF configs.
     q.STAGE_STATES={stage:tuple(stage+suffix for suffix in('_PROBE','_AUTO_AUDIT','_FORMAL','_BOUNDARY'))for stage in STAGES}
-    q.STATES=('VERIFY_ADOPT_SELECTED_DM4_SOURCES','FOLLOWUP_PROTOCOL_PREFLIGHT',*(state for stage in STAGES for state in q.STAGE_STATES[stage]),'COMPLETE')
+    q.STATES=('VERIFY_ADOPT_SELECTED_DM4_SOURCES','FOLLOWUP_PROTOCOL_PREFLIGHT',*(state for stage in STAGES for state in q.STAGE_STATES[stage][2:]),'COMPLETE')
     q.CONTROL=RESULT/'queue/controller';q.LOG=LOG;q.SESSION=SESSION;q.ENTRY=ENTRY;q.WRAPPER=WRAPPER;q.PROBE_RECOVERY=sys.modules[__name__]
     amend.RESULT=RESULT/'round2-amendment';amend.summary=selected_main
     ACTIVE=True
