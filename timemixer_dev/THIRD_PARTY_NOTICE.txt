@@ -1,0 +1,13 @@
+TimeMixerUV subclasses the read-only TimeMixer author Model at
+https://github.com/kwuking/TimeMixer/tree/e24610583b36fdd8c76cc17a8df4e65759a5f460
+TimeMixer is distributed under Apache License 2.0. The enabled forecast
+method is locally adapted from models/TimeMixer.py::Model.forecast, with
+the two insertions documented in model.py. The original source and license
+remain available in the bound author repository; no ownership is claimed.
+License copy: LICENSE-TimeMixer.txt
+Upstream: https://github.com/kwuking/TimeMixer/blob/e24610583b36fdd8c76cc17a8df4e65759a5f460/LICENSE
+
+U and V implement the user-approved formulas independently. SOFTS (MIT)
+and Pathformer (no license file found at the audited commit) were read as
+scientific references; their implementations are not copied or imported.
+Exact commits, PDF checksums and source file checksums: source_binding.json.

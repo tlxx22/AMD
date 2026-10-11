@@ -1,0 +1,47 @@
+[
+  {
+    "log": "acceptance-final.log",
+    "exit": 0,
+    "elapsed_s": 23.4697629599832,
+    "tests": [
+      "tests.test_timemixer_uv"
+    ]
+  },
+  {
+    "log": "regression.log",
+    "exit": 1,
+    "elapsed_s": 2.3408719799481332,
+    "tests": [
+      "tests.test_fold_scaler_no_leakage",
+      "tests.test_target_offset",
+      "tests.test_m6_native_time_marks.NativeTimeMarkTests.test_historical_window_no_future_leak",
+      "tests.test_m6_native_time_marks.NativeTimeMarkTests.test_native_MS_calls_and_TimeXer_channel_reorder",
+      "tests.test_m6_native_time_marks.NativeTimeMarkTests.test_M_full_output_original_column_order",
+      "tests.test_m6_native_time_marks.NativeTimeMarkTests.test_other_model_calls_and_marks_rejection",
+      "tests.test_m6_native_time_marks.NativeTimeMarkTests.test_missing_wrong_mark_scope_shape_rejected"
+    ]
+  },
+  {
+    "log": "acceptance-final-r2.log",
+    "exit": 0,
+    "elapsed_s": 26.19506500288844,
+    "tests_run": 268,
+    "tests": ["tests.test_timemixer_uv"],
+    "role": "final complete implementation suite; all assertions passed"
+  },
+  {
+    "log": "regression-synthetic-final.log",
+    "exit": 0,
+    "elapsed_s": 7.070547885261476,
+    "tests_run": 13,
+    "tests": ["tests.timemixer_uv_regression"],
+    "role": "all originally selected assertions rerun with explicit generated CSV fixture"
+  },
+  {
+    "log": "resources-final.log",
+    "exit": 0,
+    "elapsed_s": 3.330923495348543,
+    "profile_rows": 30,
+    "role": "CPU construction and static parameter/tensor arithmetic; no forward"
+  }
+]

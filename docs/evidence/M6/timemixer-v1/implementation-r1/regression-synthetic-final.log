@@ -1,0 +1,18 @@
+test_constant_prices_are_safe_zero_on_train_and_not_clipped (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_constant_prices_are_safe_zero_on_train_and_not_clipped) ... ok
+test_future_pollution_cannot_change_fitted_scalers (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_future_pollution_cannot_change_fitted_scalers) ... ok
+test_same_fold_all_horizons_share_state_and_folds_are_independent (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_same_fold_all_horizons_share_state_and_folds_are_independent) ... ok
+test_statistics_axes_and_population_variance_are_explicit (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_statistics_axes_and_population_variance_are_explicit) ... ok
+test_target_transform_inverse_round_trip_numpy_and_torch (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch) ... ok
+test_all_72_report_counts_match_both_dataset_views (tests.test_target_offset.TargetOffsetTests.test_all_72_report_counts_match_both_dataset_views) ... ok
+test_invalid_horizon_is_rejected (tests.test_target_offset.TargetOffsetTests.test_invalid_horizon_is_rejected) ... ok
+test_label_formula_first_last_and_inclusive_final_label (tests.test_target_offset.TargetOffsetTests.test_label_formula_first_last_and_inclusive_final_label) ... ok
+test_historical_window_no_future_leak (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_historical_window_no_future_leak) ... ok
+test_native_MS_calls_and_TimeXer_channel_reorder (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_native_MS_calls_and_TimeXer_channel_reorder) ... ok
+test_M_full_output_original_column_order (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_M_full_output_original_column_order) ... ok
+test_other_model_calls_and_marks_rejection (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_other_model_calls_and_marks_rejection) ... ok
+test_missing_wrong_mark_scope_shape_rejected (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_missing_wrong_mark_scope_shape_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 1.478s
+
+OK

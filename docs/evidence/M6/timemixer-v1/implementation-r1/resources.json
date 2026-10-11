@@ -1,0 +1,734 @@
+{
+  "python": "/public/home/yueweiting/miniconda/envs/amd/bin/python",
+  "python_version": "3.11.15",
+  "torch": "2.0.1",
+  "numpy": "1.24.3",
+  "pypdf": "6.16.2",
+  "cpu_threads": 1,
+  "interop_threads": 1,
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "implementation": {
+    "__init__.py": "406ff7c3b3f1fb318a349ef07fe1f206ffeb8ff1cb8e40ee2a2771873d579157",
+    "adapter.py": "6833afe812322c1608f9a7b2c57416984e71a57f069d5165f87bf92a84a048f8",
+    "model.py": "8a532daac2115da9111f0a7d7ea2587b67ca0ab01fd3cca6a4109fab2c4fcc8c",
+    "modules.py": "82bac54e7a3ba7303990a82e14b9f21dc4a275ca8655e0ee3e854293526f424a",
+    "source.py": "6002041f057ee9add5f74f10f9cb5a39801a901e3e2f42be34d234d3ac2e9c0e",
+    "source_binding.json": "cd8556e233331b210e2873088291bb345e8de0da22ddad3ed7424a5a5c4f732d",
+    "spec.py": "dca60ad9ff6d8f5dd40c6b44078b2e6247d8b838562e80fd35c3381763ff1210"
+  },
+  "parameters": [
+    {
+      "dataset": "BE",
+      "L": 168,
+      "C": 3,
+      "D": 64,
+      "S": 4,
+      "P": 24,
+      "parameters": {
+        "B": 289185,
+        "B+U": 309866,
+        "B+V": 293281,
+        "B+U+V": 313962
+      }
+    },
+    {
+      "dataset": "DE",
+      "L": 168,
+      "C": 3,
+      "D": 64,
+      "S": 4,
+      "P": 24,
+      "parameters": {
+        "B": 289185,
+        "B+U": 309866,
+        "B+V": 293281,
+        "B+U+V": 313962
+      }
+    },
+    {
+      "dataset": "ETTh1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 75497,
+        "B+U": 89194,
+        "B+V": 78441,
+        "B+U+V": 92138
+      }
+    },
+    {
+      "dataset": "ETTh1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 192,
+      "parameters": {
+        "B": 93161,
+        "B+U": 106858,
+        "B+V": 97641,
+        "B+U+V": 111338
+      }
+    },
+    {
+      "dataset": "ETTh1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 336,
+      "parameters": {
+        "B": 119657,
+        "B+U": 133354,
+        "B+V": 126441,
+        "B+U+V": 140138
+      }
+    },
+    {
+      "dataset": "ETTh1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 190313,
+        "B+U": 204010,
+        "B+V": 203241,
+        "B+U+V": 216938
+      }
+    },
+    {
+      "dataset": "ETTh2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 75497,
+        "B+U": 89194,
+        "B+V": 78441,
+        "B+U+V": 92138
+      }
+    },
+    {
+      "dataset": "ETTh2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 192,
+      "parameters": {
+        "B": 93161,
+        "B+U": 106858,
+        "B+V": 97641,
+        "B+U+V": 111338
+      }
+    },
+    {
+      "dataset": "ETTh2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 336,
+      "parameters": {
+        "B": 119657,
+        "B+U": 133354,
+        "B+V": 126441,
+        "B+U+V": 140138
+      }
+    },
+    {
+      "dataset": "ETTh2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 190313,
+        "B+U": 204010,
+        "B+V": 203241,
+        "B+U+V": 216938
+      }
+    },
+    {
+      "dataset": "ETTm1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 75513,
+        "B+U": 89210,
+        "B+V": 78457,
+        "B+U+V": 92154
+      }
+    },
+    {
+      "dataset": "ETTm1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 192,
+      "parameters": {
+        "B": 93177,
+        "B+U": 106874,
+        "B+V": 97657,
+        "B+U+V": 111354
+      }
+    },
+    {
+      "dataset": "ETTm1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 336,
+      "parameters": {
+        "B": 119673,
+        "B+U": 133370,
+        "B+V": 126457,
+        "B+U+V": 140154
+      }
+    },
+    {
+      "dataset": "ETTm1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 190329,
+        "B+U": 204026,
+        "B+V": 203257,
+        "B+U+V": 216954
+      }
+    },
+    {
+      "dataset": "ETTm2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 75513,
+        "B+U": 89210,
+        "B+V": 78457,
+        "B+U+V": 92154
+      }
+    },
+    {
+      "dataset": "ETTm2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 192,
+      "parameters": {
+        "B": 93177,
+        "B+U": 106874,
+        "B+V": 97657,
+        "B+U+V": 111354
+      }
+    },
+    {
+      "dataset": "ETTm2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 336,
+      "parameters": {
+        "B": 119673,
+        "B+U": 133370,
+        "B+V": 126457,
+        "B+U+V": 140154
+      }
+    },
+    {
+      "dataset": "ETTm2",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 190329,
+        "B+U": 204026,
+        "B+V": 203257,
+        "B+U+V": 216954
+      }
+    },
+    {
+      "dataset": "Exchange",
+      "L": 96,
+      "C": 8,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 75505,
+        "B+U": 89202,
+        "B+V": 78449,
+        "B+U+V": 92146
+      }
+    },
+    {
+      "dataset": "Exchange",
+      "L": 96,
+      "C": 8,
+      "D": 16,
+      "S": 4,
+      "P": 192,
+      "parameters": {
+        "B": 93169,
+        "B+U": 106866,
+        "B+V": 97649,
+        "B+U+V": 111346
+      }
+    },
+    {
+      "dataset": "Exchange",
+      "L": 96,
+      "C": 8,
+      "D": 16,
+      "S": 4,
+      "P": 336,
+      "parameters": {
+        "B": 119665,
+        "B+U": 133362,
+        "B+V": 126449,
+        "B+U+V": 140146
+      }
+    },
+    {
+      "dataset": "Exchange",
+      "L": 96,
+      "C": 8,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 190321,
+        "B+U": 204018,
+        "B+V": 203249,
+        "B+U+V": 216946
+      }
+    },
+    {
+      "dataset": "FR",
+      "L": 168,
+      "C": 3,
+      "D": 64,
+      "S": 4,
+      "P": 24,
+      "parameters": {
+        "B": 289185,
+        "B+U": 309866,
+        "B+V": 293281,
+        "B+U+V": 313962
+      }
+    },
+    {
+      "dataset": "NP",
+      "L": 168,
+      "C": 3,
+      "D": 64,
+      "S": 4,
+      "P": 24,
+      "parameters": {
+        "B": 289185,
+        "B+U": 309866,
+        "B+V": 293281,
+        "B+U+V": 313962
+      }
+    },
+    {
+      "dataset": "PJM",
+      "L": 168,
+      "C": 3,
+      "D": 64,
+      "S": 4,
+      "P": 24,
+      "parameters": {
+        "B": 289185,
+        "B+U": 309866,
+        "B+V": 293281,
+        "B+U+V": 313962
+      }
+    },
+    {
+      "dataset": "UrbanEV",
+      "L": 12,
+      "C": 11,
+      "D": 64,
+      "S": 3,
+      "P": 1,
+      "parameters": {
+        "B": 70885,
+        "B+U": 76434,
+        "B+V": 74597,
+        "B+U+V": 80146
+      }
+    },
+    {
+      "dataset": "Weather",
+      "L": 96,
+      "C": 21,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 104433,
+        "B+U": 118130,
+        "B+V": 107377,
+        "B+U+V": 121074
+      }
+    },
+    {
+      "dataset": "Weather",
+      "L": 96,
+      "C": 21,
+      "D": 16,
+      "S": 4,
+      "P": 192,
+      "parameters": {
+        "B": 122097,
+        "B+U": 135794,
+        "B+V": 126577,
+        "B+U+V": 140274
+      }
+    },
+    {
+      "dataset": "Weather",
+      "L": 96,
+      "C": 21,
+      "D": 16,
+      "S": 4,
+      "P": 336,
+      "parameters": {
+        "B": 148593,
+        "B+U": 162290,
+        "B+V": 155377,
+        "B+U+V": 169074
+      }
+    },
+    {
+      "dataset": "Weather",
+      "L": 96,
+      "C": 21,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 219249,
+        "B+U": 232946,
+        "B+V": 232177,
+        "B+U+V": 245874
+      }
+    }
+  ],
+  "static_shapes": {
+    "Urban-F4-b2": {
+      "U_pair": {
+        "shape": [
+          2,
+          1,
+          11,
+          32
+        ],
+        "float32_bytes": 2816,
+        "MiB": 0.002685546875
+      },
+      "U_logits": {
+        "shape": [
+          2,
+          1,
+          11,
+          16
+        ],
+        "float32_bytes": 1408,
+        "MiB": 0.0013427734375
+      },
+      "U_alpha": {
+        "shape": [
+          2,
+          1,
+          12,
+          16
+        ],
+        "float32_bytes": 1536,
+        "MiB": 0.00146484375
+      },
+      "U_core": {
+        "shape": [
+          2,
+          1,
+          16
+        ],
+        "float32_bytes": 128,
+        "MiB": 0.0001220703125
+      },
+      "V_pi_and_weights_each": {
+        "shape": [
+          2,
+          1,
+          3,
+          1
+        ],
+        "float32_bytes": 24,
+        "MiB": 2.288818359375e-05
+      },
+      "Y_stack_existing_shape": {
+        "shape": [
+          2,
+          1,
+          11,
+          3
+        ],
+        "float32_bytes": 264,
+        "MiB": 0.00025177001953125
+      },
+      "V_hidden": {
+        "shape": [
+          2,
+          1,
+          3,
+          16
+        ],
+        "float32_bytes": 384,
+        "MiB": 0.0003662109375
+      }
+    },
+    "Urban-F4-b128": {
+      "U_pair": {
+        "shape": [
+          128,
+          1,
+          11,
+          32
+        ],
+        "float32_bytes": 180224,
+        "MiB": 0.171875
+      },
+      "U_logits": {
+        "shape": [
+          128,
+          1,
+          11,
+          16
+        ],
+        "float32_bytes": 90112,
+        "MiB": 0.0859375
+      },
+      "U_alpha": {
+        "shape": [
+          128,
+          1,
+          12,
+          16
+        ],
+        "float32_bytes": 98304,
+        "MiB": 0.09375
+      },
+      "U_core": {
+        "shape": [
+          128,
+          1,
+          16
+        ],
+        "float32_bytes": 8192,
+        "MiB": 0.0078125
+      },
+      "V_pi_and_weights_each": {
+        "shape": [
+          128,
+          1,
+          3,
+          1
+        ],
+        "float32_bytes": 1536,
+        "MiB": 0.00146484375
+      },
+      "Y_stack_existing_shape": {
+        "shape": [
+          128,
+          1,
+          11,
+          3
+        ],
+        "float32_bytes": 16896,
+        "MiB": 0.01611328125
+      },
+      "V_hidden": {
+        "shape": [
+          128,
+          1,
+          3,
+          16
+        ],
+        "float32_bytes": 24576,
+        "MiB": 0.0234375
+      }
+    },
+    "M-Weather-P720-b2": {
+      "U_pair": {
+        "shape": [
+          2,
+          21,
+          21,
+          32
+        ],
+        "float32_bytes": 112896,
+        "MiB": 0.107666015625
+      },
+      "U_logits": {
+        "shape": [
+          2,
+          21,
+          21,
+          16
+        ],
+        "float32_bytes": 56448,
+        "MiB": 0.0538330078125
+      },
+      "U_alpha": {
+        "shape": [
+          2,
+          21,
+          22,
+          16
+        ],
+        "float32_bytes": 59136,
+        "MiB": 0.056396484375
+      },
+      "U_core": {
+        "shape": [
+          2,
+          21,
+          16
+        ],
+        "float32_bytes": 2688,
+        "MiB": 0.0025634765625
+      },
+      "V_pi_and_weights_each": {
+        "shape": [
+          2,
+          21,
+          4,
+          720
+        ],
+        "float32_bytes": 483840,
+        "MiB": 0.46142578125
+      },
+      "Y_stack_existing_shape": {
+        "shape": [
+          2,
+          720,
+          21,
+          4
+        ],
+        "float32_bytes": 483840,
+        "MiB": 0.46142578125
+      },
+      "V_hidden": {
+        "shape": [
+          2,
+          21,
+          4,
+          16
+        ],
+        "float32_bytes": 10752,
+        "MiB": 0.01025390625
+      }
+    },
+    "M-Weather-P720-b128": {
+      "U_pair": {
+        "shape": [
+          128,
+          21,
+          21,
+          32
+        ],
+        "float32_bytes": 7225344,
+        "MiB": 6.890625
+      },
+      "U_logits": {
+        "shape": [
+          128,
+          21,
+          21,
+          16
+        ],
+        "float32_bytes": 3612672,
+        "MiB": 3.4453125
+      },
+      "U_alpha": {
+        "shape": [
+          128,
+          21,
+          22,
+          16
+        ],
+        "float32_bytes": 3784704,
+        "MiB": 3.609375
+      },
+      "U_core": {
+        "shape": [
+          128,
+          21,
+          16
+        ],
+        "float32_bytes": 172032,
+        "MiB": 0.1640625
+      },
+      "V_pi_and_weights_each": {
+        "shape": [
+          128,
+          21,
+          4,
+          720
+        ],
+        "float32_bytes": 30965760,
+        "MiB": 29.53125
+      },
+      "Y_stack_existing_shape": {
+        "shape": [
+          128,
+          720,
+          21,
+          4
+        ],
+        "float32_bytes": 30965760,
+        "MiB": 29.53125
+      },
+      "V_hidden": {
+        "shape": [
+          128,
+          21,
+          4,
+          16
+        ],
+        "float32_bytes": 688128,
+        "MiB": 0.65625
+      }
+    }
+  },
+  "interpretation": "Static float32 tensor arithmetic only: no GPU allocation, measured peak, throughput or concurrency admission. Autograd, copies, activations, optimizer and backbone add memory; do not sum these as peak."
+}

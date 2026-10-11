@@ -1,0 +1,63 @@
+{
+  "python": "/public/home/yueweiting/miniconda/envs/amd/bin/python",
+  "torch": "2.0.1",
+  "parameter_rows": 30,
+  "selected_rows": [
+    {
+      "dataset": "ETTh1",
+      "L": 96,
+      "C": 7,
+      "D": 16,
+      "S": 4,
+      "P": 96,
+      "parameters": {
+        "B": 75497,
+        "B+U": 89194,
+        "B+V": 78441,
+        "B+U+V": 92138
+      }
+    },
+    {
+      "dataset": "PJM",
+      "L": 168,
+      "C": 3,
+      "D": 64,
+      "S": 4,
+      "P": 24,
+      "parameters": {
+        "B": 289185,
+        "B+U": 309866,
+        "B+V": 293281,
+        "B+U+V": 313962
+      }
+    },
+    {
+      "dataset": "UrbanEV",
+      "L": 12,
+      "C": 11,
+      "D": 64,
+      "S": 3,
+      "P": 1,
+      "parameters": {
+        "B": 70885,
+        "B+U": 76434,
+        "B+V": 74597,
+        "B+U+V": 80146
+      }
+    },
+    {
+      "dataset": "Weather",
+      "L": 96,
+      "C": 21,
+      "D": 16,
+      "S": 4,
+      "P": 720,
+      "parameters": {
+        "B": 219249,
+        "B+U": 232946,
+        "B+V": 232177,
+        "B+U+V": 245874
+      }
+    }
+  ]
+}

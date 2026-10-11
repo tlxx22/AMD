@@ -1,0 +1,44 @@
+test_constant_prices_are_safe_zero_on_train_and_not_clipped (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_constant_prices_are_safe_zero_on_train_and_not_clipped) ... ok
+test_future_pollution_cannot_change_fitted_scalers (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_future_pollution_cannot_change_fitted_scalers) ... ok
+test_same_fold_all_horizons_share_state_and_folds_are_independent (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_same_fold_all_horizons_share_state_and_folds_are_independent) ... ok
+test_statistics_axes_and_population_variance_are_explicit (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_statistics_axes_and_population_variance_are_explicit) ... ok
+test_target_transform_inverse_round_trip_numpy_and_torch (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch) ... ERROR
+setUpClass (tests.test_target_offset.TargetOffsetTests) ... ERROR
+test_historical_window_no_future_leak (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_historical_window_no_future_leak) ... ok
+test_native_MS_calls_and_TimeXer_channel_reorder (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_native_MS_calls_and_TimeXer_channel_reorder) ... ok
+test_M_full_output_original_column_order (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_M_full_output_original_column_order) ... ok
+test_other_model_calls_and_marks_rejection (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_other_model_calls_and_marks_rejection) ... ok
+test_missing_wrong_mark_scope_shape_rejected (tests.test_m6_native_time_marks.NativeTimeMarkTests.test_missing_wrong_mark_scope_shape_rejected) ... ok
+
+======================================================================
+ERROR: test_target_transform_inverse_round_trip_numpy_and_torch (tests.test_fold_scaler_no_leakage.FoldScalerNoLeakageTests.test_target_transform_inverse_round_trip_numpy_and_torch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/public/home/yueweiting/大论文/AMD-timemixer-v1/tests/test_fold_scaler_no_leakage.py", line 173, in test_target_transform_inverse_round_trip_numpy_and_torch
+    bundle = UrbanEVFoldPreprocessor(UrbanEVRawData.load(root)).fit_transform(6, "F4")
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/public/home/yueweiting/大论文/AMD-timemixer-v1/utils/dataloader_urbanev.py", line 237, in load
+    paths = _require_files(root, names)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/public/home/yueweiting/大论文/AMD-timemixer-v1/utils/dataloader_urbanev.py", line 99, in _require_files
+    raise FileNotFoundError(f"required UrbanEV file is missing: {path}")
+FileNotFoundError: required UrbanEV file is missing: /public/home/yueweiting/大论文/AMD-timemixer-v1/data/UrbanEV/data/volume.csv
+
+======================================================================
+ERROR: setUpClass (tests.test_target_offset.TargetOffsetTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/public/home/yueweiting/大论文/AMD-timemixer-v1/tests/test_target_offset.py", line 53, in setUpClass
+    cls.preprocessor = UrbanEVFoldPreprocessor(UrbanEVRawData.load(root))
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/public/home/yueweiting/大论文/AMD-timemixer-v1/utils/dataloader_urbanev.py", line 237, in load
+    paths = _require_files(root, names)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/public/home/yueweiting/大论文/AMD-timemixer-v1/utils/dataloader_urbanev.py", line 99, in _require_files
+    raise FileNotFoundError(f"required UrbanEV file is missing: {path}")
+FileNotFoundError: required UrbanEV file is missing: /public/home/yueweiting/大论文/AMD-timemixer-v1/data/UrbanEV/data/volume.csv
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.499s
+
+FAILED (errors=2)

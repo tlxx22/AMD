@@ -1,5 +1,34 @@
 # M6：第三章正式实验与定稿
 
+**最新隔离开发定位（2026-10-11）**：见[M6-Timemixer专节](#m6-timemixer-implementation-r1)。J暂停新开发；依据本次用户通知，首对TimeMixer U/V implementation review Passed、281项CPU验收证据已审核。本轮工作区迁移自检及16项新路径复验通过，迁移增量待ChatGPT审核；无真实开发实验/Git closure。生产第三轮仍与本分支隔离。以下旧文件头及历史正文保留当时“未提交/未启动”事实，不代表当前生产停止。
+
+<a id="m6-timemixer-implementation-r1"></a>
+## M6-Timemixer：首对U/V实现与CPU验收送审
+
+首对候选实施授权已实际执行，设备`b82673a648b4`；本分支当前工作区=`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`，branch=`M6-Timemixer`，第三轮基点/当前HEAD=`5a1f34dbea9e906d3525f79b094b82efad2159b0`。首次创建前曾核验主仓库/二轮/三轮/TimeMixer完整HEAD及交接文档SHA、本地tracking与必要网络ref一致，同名本地/远端分支及初始目录不存在后才创建；这段创建记录不把当前路径伪造为最初创建路径。分支仍无upstream，未push。实际读取适用AGENTS，AGENTS未改。
+
+本轮按用户授权执行Git worktree正式移动，当前工作区已统一为新路径，迁移记录见外置送审根的`worktree-rename-r1/`。移动后26文件相对路径/SHA/mode、分支/HEAD/index均核对不变，旧目录不存在；原Git管理ID保留且gitdir已正确连接新路径。随后仅修改canonical、本专节及既有验收说明；模型、测试、结构配置及资源辅助脚本SHA不变。指定16项既有CPU合成测试全部通过、退出0，无skip或放宽断言；覆盖真实作者导入/子进程cwd、profile/任务、strict磁盘合成checkpoint及Urban C11/H3、M C7/P96、EPF L168带marks四臂forward。原281项日志/失败证据和已审核patch/manifest不改；最新送审必须使用`worktree-rename-r1/file-manifest.json`与`worktree-rename-r1/complete.patch`，本轮不重跑全套、不修CI1 marks排列或S1 PDM限制。
+
+最新科学与公式合同以[canonical新专节](../AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md#m6-timemixer-uv-dev-v1)为准。仍M6、不重走阶段、不进入M7/空间；J暂停新开发，旧J/AMD/baseline及负向证据不失效。工程ID=`timemixer-uv-dev-v1`为首个候选，不是最终论文模型或效果通过。B是原TimeMixer，四开关臂独立于J/N/S身份；第四章接入未定。
+
+**多分支文档治理补充**：本分支与第三轮生产分支分别维护自身canonical及本唯一M6 milestone，属于同一逻辑文档的不同Git分支版本，不允许长期存在互相冲突的最终权威文档。本轮只补本分支新增专节，保留共同基点和历史正文，不改生产文档、不跨分支合并、不新建平行状态文档。未来用户决定整合时，必须先核验双方最新完整Git SHA、文档SHA、共同祖先及各自相对祖先的实际文档diff，同时保留双方有效开发/实验记录，禁止整份覆盖；无Git文本冲突不等于无科学合同/状态语义冲突。授权、实验身份、结果采用或当前状态冲突先交ChatGPT审核和用户裁决，不擅自选择、删除、覆盖。是否/何时合并及最终时间模型仍由用户后续决定；本次修改前后SHA与增量diff保存在外置送审证据的`document-governance-r1/`，支持未来整合，不代表已审核或已整合。
+
+开发目标一为UrbanEV-F4四臂，目标三为固定UV的F1/F2/F3/F4输入消融；二者均只fold1、4×H3/6/9/12的8格等权平均，不能做笛卡尔积。目标一UV分别优于U/V、U/V分别优于B；目标三F4分别优于F2/F3、F2/F3分别优于F1；均不要求U/V或F2/F3排序及每格严格成立。目标二只B/UV：六M域各四P平均、五EPF各P24，共11域最多3个例外，主指标未定、不双指标硬门槛、不跨域原始误差平均。三个开发目标满足后才补其余Urban四fold并按24格重判正式效果；77/173为工作量参考，没有自动执行授权。
+
+Urban 275区域在样本维展开，L12/P1及H独立身份保留；FeatureSchema核对F1–F4为C6/8/9/11、volume/idx0，不重排；独立historical native marks、split/train-only scaler/价格天气/节点窗口继承，无空间交互。未来本分支允许完整train/validation/test开发，test反馈须记访问与影响、不能声称盲测，不参与梯度或scaler拟合。原B复用统一选定轮次同任务有效正式来源，不逐格择优；二轮/三轮训练协议及主指标在实质训练前统一决定。第三轮代码基点不构成第三轮协议选择。
+
+实际文件：新增`timemixer_dev/{modules,source,spec,model,adapter}.py`、包入口、`source_binding.json`、来源notice；独立`configs/timemixer_uv_structural_v1.json`无执行许可；新增定向验收和旧回归合成wrapper。没有改通用runner/loader、旧baseline配置、生产许可、AGENTS或Closed milestone。真实作者Model继承、原key保留；off/off直接作者forecast；启用仅最细norm后U和原FMM求和处V。独立seed子流、完整profile→model→prediction→同形loss和strict合成恢复已接通。
+
+来源：先实际获取/解析正式SOFTS NeurIPS2024和Pathformer ICLR2024 PDF、完整作者shallow clone，再实现；PDF额外复制到大论文`paper/`。外置只读参考目录为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-references-v1/`，不入本Git。SOFTS@`f5d35fd7c3e716b6383ce6d3cc42c131e32c3c44`/MIT；Pathformer@`ea85d82932215e171357da47b3bc82d502344758`/未找到许可文件，U/V独立实现不复制其代码。论文公式、源码调用链/依赖及保留/删除/改造见[来源审计](../evidence/M6/timemixer-v1/implementation-r1/source-audit.md)，完整PDF/文件SHA见绑定；不用裸main。
+
+CPU最终完整实现268/268，分组A关闭身份4、B/U8、C/V6、D任务与接入244（含240形状组合）、E工程6；另13/13相关旧合成回归，共281项有效通过。关闭初参/输出/loss/梯度/Adam更新/RNG零差异；新增逻辑参数finite非零梯度，9个启用fixture各3 Adam step为27，A组3对关闭等价另6步，最终完整套件共33；三次完整实现套件累计99个CPU合成Adam step。测试float32，关键代数补float64；无真实数据/旧checkpoint。初次误选旧回归入口出现两个缺文件error（未读到文件），日志保留；改用显式生成4344×275 CSV、生产parser和原测试断言，13项复验全部通过。资源脚本语法错误已修正，源PDF sidecar首次surrogate写入错误已改用可审计转义；未削弱断言/增skip/放宽容差。初轮266、补充后268日志保留，最终以同一实际字节下`acceptance-final-r2.log`为准，不拼接Passed。
+
+原CI1 marks.repeat的b/C排列限制原样保留；原PDM S1会IndexError也未修，当前profile S3/S4；V单模块S1零修正通过。两项均有具体来源及原B/增强对照，不能隐去或以此声称旧B已修。Urban F4参数B/U/V/UV=70,885/76,434/74,597/80,146；更多profile及主要张量形状见[资源JSON](../evidence/M6/timemixer-v1/implementation-r1/resources.json)。M Weather/b128/P720静态例中U pair[128,21,21,32]约6.891MiB，V pi[128,21,4,720]约29.531MiB；只是单张量float32算术，非GPU实测峰值、并发准入或正式batch选择。后续ChatGPT结合已有适用证据评估、优先q4，缺新probe不自动阻塞。
+
+验收环境为`/public/home/yueweiting/miniconda/envs/amd/bin/python`，Python3.11.15/torch2.0.1/numpy1.24.3/pypdf6.16.2；所有验收CUDA不可见、-B/禁止bytecode、OMP/MKL/torch线程1，未安装升级依赖、未生成共享作者pycache。必要保护复核不递归扫描实验产物，正常生产日志/进程变化不回滚；本轮无GPU查询/负载、真实train/validation/test、旧权重读取、生产启停或任何Git closure动作。
+
+首轮实现证据集中于`docs/evidence/M6/timemixer-v1/implementation-r1/`；完整含新增文件patch和逐文件SHA另存`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-implementation-r1/`，首轮获准参考/PDF副本保留。本轮仅移动本工作区、更新本分支文档及外置迁移增量证据，不修改生产/二轮/共享来源/真实产物；全部Git变更unstaged。**implementation自检通过；依据本次用户通知，首对U/V ChatGPT implementation review Passed、281项CPU证据已审核（针对绑定作者行为，不代表原作者无缺陷）；迁移自检通过，迁移后字节的ChatGPT review Pending；Git closure未执行；真实开发实验未执行；三个效果目标Not evaluated。** 本轮迁移增量交回审核，不声称ChatGPT已读取迁移后版本；审核后与首对实现统一Git收口，本轮不自动closure。以下为生产基点原文。
+
 **In Progress — N审核起点0a0049a8fbe3505c7f3ca719b8c392df071a0e2c；四H attempt已按用户指令safe-stop，owned进程/session退出且该attempt未来信用0。最新用户政策：未来新建EPF七baseline通用默认4＋1，当前56组全部固定q4；probe按需诊断，历史证据评估固定q计划直接正式调度；371项/5670最大run-epochs、Weather128等科学字段不变。本轮未提交候选、CPU/合成验收，无新许可/GPU/训练。**
 
 ## EPF通用默认4＋1与当前56组固定q4候选（本轮用户新决定）

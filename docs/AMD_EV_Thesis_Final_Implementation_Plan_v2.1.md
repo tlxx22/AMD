@@ -7,6 +7,8 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**最新定位（2026-10-11，隔离分支 M6-Timemixer）**：本轮用户决定及首对TimeMixer U/V实现合同见[§0.1新增专节](#m6-timemixer-uv-dev-v1)。第三轮生产仍独立推进，以下旧正文中的“当前/候选未提交/未启动”保留其历史时点，不用于推断生产现场状态。依据本次用户通知，首对U/V的ChatGPT implementation review Passed，281项CPU证据已审核；本轮工作区迁移自检通过、迁移增量review Pending，Git closure未执行、真实开发实验未执行、三个效果目标Not evaluated。
+
 本文件替代此前的 `AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`，作为后续实现、实验登记和论文写作的唯一权威方案。旧版及更早方案移入 `docs/archive/plans/`，它们只保留历史记录，不得参与当前实现决策。
 
 读取协作渠道（用户本次确认，M4 §69）：ChatGPT 优先通过 Remote Desktop Commander 从服务器直读本 canonical 和当前唯一 milestone，默认无需上传 Project。Codex 继续报告相对路径、变更类型、完整 SHA-256 和摘要；未由 ChatGPT 实际读取的修后版本不得宣称已核验。连接失败时采用可核对至对应 SHA 的片段/diff 或临时上传 fallback，旧上传记录保留历史。直读不改变权威优先级，也不授予任意服务器写入、test/checkpoint 读取或模型/训练启动权限。
@@ -49,6 +51,76 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 9. “模块临时关闭”可用于排障，不能冒充两个来源模块已获验证；两个近期来源模块是用户当前创新组织目标。若有限开发失败，保留失败证据和真实来源，后续变体或来源调整须依用户决定，不因数量目标自动新增候选或实验。
 
 ## 0.1 阶段顺序、候选身份与性能治理
+
+<a id="m6-timemixer-uv-dev-v1"></a>
+### M6-Timemixer：首对U/V工程候选与最新用户合同（2026-10-11）
+
+本节是本分支最新用户决定，优先于旧J路线和旧test/probe开发限制。仍在M6内部，不重新经历M0～M6、不进入M7、不实施空间模块；第四章如何接入新时间模型未定。J暂停新开发；旧J、AMD及全部baseline代码/配置/日志/checkpoint/结果/负向证据保留，旧证据不失效、不改名。新工程ID=`timemixer-uv-dev-v1`，不是最终论文名称或已验证效果；B专指绑定原TimeMixer，U为选择性变量交互，V为历史状态条件化尺度调节。`use_u/use_v`区分B、B+U、B+V、B+U+V，增强对象不登记为旧J/N/S/EL-AMD或原TimeMixer。
+
+本分支当前隔离工作区：`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`，branch=`M6-Timemixer`，基点/当前HEAD完整SHA=`5a1f34dbea9e906d3525f79b094b82efad2159b0`。取第三轮代码基点不等于选择第三轮训练协议；二轮/三轮协议、最终主指标、结果复用来源轮次仍待实质训练前统一决定，不逐数据集/H择优、不混用两套协议解释收益。原B优先复用选定轮次同任务的有效本地正式来源，不为新分支重训有效B；来源结果review可在训练准备时定向核验，未审核结果不得标Passed。
+
+当前工作区已通过Git正式移动统一为新路径，迁移记录见外置证据`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-implementation-r1/worktree-rename-r1/`。分支、基点、候选ID不变；移动瞬间26个文件的相对路径/SHA/mode不变，随后只更新现行文档与验收索引，模型、测试及结构配置源码SHA不变。指定16项新路径CPU合成复验通过，不重跑281项，不修原B或读取真实数据/checkpoint。原始日志、失败证据及已审核patch/manifest保留真实字节；后续送审使用该增量目录的最新manifest/完整patch，不能混用原版SHA。
+
+**多分支文档治理（用户补充）**：M6-Timemixer与第三轮生产分支独立推进，各自在自身工作区维护本canonical及唯一M6 milestone。这是同一逻辑文档的不同Git分支版本，不意味着允许长期保留互相冲突的最终权威文档。本轮只维护M6-Timemixer新增专节，保留共同基点及此前历史正文，不覆盖第三轮生产文档，不执行跨分支合并，不另建平行状态文档或第二份M6 milestone。
+
+后续仅在用户决定整合研究成果时，先核验双方最新完整Git SHA、两份文档各自SHA、共同祖先，以及双方相对共同祖先的实际文档diff。整合必须同时保留第三轮生产后续新增的有效实验记录与M6-Timemixer的有效开发、实验记录；不得以任一分支完整文档覆盖另一分支，也不得以Git自动合并无文本冲突推定科学合同或状态无语义冲突。
+
+授权、实验身份、结果采用或当前状态发生冲突时，先交ChatGPT审核和用户裁决，不擅自选择、删除或覆盖。是否合并Git分支、何时整合及最终采用哪个时间模型均为后续用户决策，本轮不提前执行。本分支保留文档修改前后完整SHA及Git diff作为未来整合依据；这些证据不代表已完成跨分支审核或整合。
+
+**科学目标与开发/正式边界**：
+
+- 目标一：UrbanEV-F4模块消融只用fold1、4和H3/6/9/12，四臂同F4/数据/训练/评价。`Ebar=(1/8)*sum_{f∈{1,4},H∈{3,6,9,12}} E[f,H]`。目标为`Ebar(UV)<Ebar(U)<Ebar(B)`且`Ebar(UV)<Ebar(V)<Ebar(B)`；不固定U/V排序，不要求每格严格成立。
+- 目标二：六个M数据集ETTh1/ETTh2/ETTm1/ETTm2/Weather/Exchange各P96/192/336/720；五个MS EPF市场PJM/NP/BE/FR/DEP24。仅B与UV，共11独立数据集；六M域各自四P平均、五EPF各自P24，最多3域未优于B，即至少8/11改善。不跨域原始MSE平均，不把报告MSE/MAE升级为每域每指标双硬门槛；主指标未定。ECL/CHARGED/PEMS等范围外任务不加入。
+- 目标三：固定完整UV的结构规则与训练协议，fold1、4全四H，保留全部F1/F2/F3/F4。沿既有FeatureSchema精确顺序：K=`[hour_sin,hour_cos,weekday_sin,weekday_cos,is_weekend]`，F1=`[volume]+K`/C6，F2=`[volume,e_price,s_price]+K`/C8，F3=`[volume,Ta,P,h]+K`/C9，F4=`[volume,e_price,s_price,Ta,P,h]+K`/C11；正式目标volume/idx0。目标`Ebar(F4)<Ebar(F2)<Ebar(F1)`及`Ebar(F4)<Ebar(F3)<Ebar(F1)`，F2/F3无固定排序；输入消融不与四臂做笛卡尔积。
+- 三个开发目标满足后才补齐目标一/三其余四fold，正式六fold×四H=24格等权平均并重新判断全fold效果；开发fold1/4只有结构/协议/数据/身份相同且审核通过时才复用。77新增开发run、后续96、最终173只是工作量参考，不是自动执行授权，也不每次结构迭代重跑全包。
+
+UrbanEV仍为275区域、累计月份六折，区域展开到样本维，C为特征数；L12，label_horizon与pred_len分离，P始终1。无跨区域空间交互。split、fold-train-only scaler、价格min-max、天气处理、节点顺序、窗口和historical native marks继承；F通道数不包含x_mark_enc，四臂同等提供marks。本分支允许未来使用完整train/validation/test实质开发：train梯度，validation按事先约定选checkpoint/早停；test可反馈/比较，但不参与梯度/scaler拟合/泄漏特征，并记录访问及开发影响，不称独立盲测。fold1/4效果实验须用各自完整split，不能替换成少量batch smoke。本轮只使用合成fixture，没有读取真实数据或旧checkpoint，未启动上述实验。
+
+**U第一实现合同（d_u32、d_c16、eps1e-5）**：只在最细尺度既有`normalize_layers[0](x,'norm')`后、CI的`permute/reshape(b*C,L,1)`前插入；带/不带marks路径均覆盖。Z0为已norm的[b,L,C]，X0为同窗口norm前既有输入，不额外读数据、不二次norm、不覆盖缓存、不原地修改输入。MS receiver=[target_idx]，sources=显式ordered aux且排target；M全部C接收并diagonal mask排自身value，全部更新从同一Z0同时计算。
+
+~~~text
+mu=mean_t(X0); sigma=sqrt(var_t(X0,unbiased=False)+eps)
+a=[mu,log1p(sigma)]
+e=LN(Linear_z(Z0_channel_history))+Linear_a(a)             # [b,C,32]，LN只在第一项
+v=V2(GELU(V1(e)))                                        # [b,C,16]
+ell_rj=Ao(GELU(Aq(e_r)+Ak(e_j)+bA))                       # Aq/Ak无bias，bA初始0
+alpha=masked_softmax_sources([ell,ell_null=0])             # [b,R,C+1,16]，v_null固定0
+core_r=sum_allowed(alpha_rj*v_j)                          # [b,R,16]
+gate_r=sigmoid(Linear_g(concat(e_r,core_r)))               # [b,R,L]
+delta_r=gate_r*Linear_out(core_r)                          # Linear_out无bias
+z'_r=z_r+gamma_U*delta_r                                  # gamma可学习共享标量，初始0.01，无clamp
+~~~
+
+MS仅改目标，其余通道逐元素不变；M同时改全通道。空aux/M-C1精确旁路；core0→delta0；支持非零target、非连续aux、常数/近零方差。U成对中间量[b,R,C,32]，M下不能宣传原STAR的通道线性复杂度。SOFTS只保留每变量表示→核心聚合→分发思想，不移植其backbone/head、多层STAR、训练随机池化/eval加权双路径。接收条件打分、掩码/null、历史水平/波动与门控历史残差为本项目改造，不宣称基础门控由本项目首次提出。
+
+**V第一实现合同（d_v16、rho固定0.5、LN eps1e-5）**：取最后PDM输出、predict_layers前的enc_out_list；只加读取视图，不改原预测头输入、不detach/no_grad。MS/CI0的[b,Ls,D]视为[b,1,Ls,D]，D为latent不能用target_idx切片；M/CI1的[b*C,Ls,D]按原b再C展开恢复[b,C,Ls,D]。
+
+~~~text
+m_rs=mean_t(G_rs); last_rs=G_rs[:,:,-1,:]
+q_rs=mean_t(abs(G_rs[:,:,1:,:]-G_rs[:,:,:-1,:]))             # Ls1则0
+h_rs=LN(GELU(Linear_h(concat(m,last,q))))+eta_s             # 各尺度共享h，eta[S,16]初始0
+hbar_r=mean_s(h_rs)
+u_rs=GELU(Linear_f(concat(h_rs,hbar_r)))
+a_rs=Linear_p(u_rs)                                       # 16→P，共享、无bias
+pi=softmax(a,dim=scale)                                   # [b,R,S,P]
+Y_s=original_future_multi_mixing(...)                      # [b,P,C]，含原CI0 out_res
+Y_base=stack(Y_s,dim=-1).sum(-1)
+correction_rp=0.5*sum_s((S*pi_rsp-1)*Y_s,r,p)
+Y_norm,r,p=Y_base,r,p+correction_rp
+w_rsp=0.5+0.5*S*pi_rsp; sum_s(w)=S
+~~~
+
+MS只给目标加修正，M全通道。均匀pi恢复原求和而非平均；S1修正0。之后原normalize_layers[0]反归一化一次再切任务目标，不能逐尺度denorm。V不依赖U core，不新增预测分支/dropout/辅助loss；不默认保存计算图诊断，显式诊断返回仅用于测试。V不输入label_horizon，无horizon embedding；P多位置logit由Linear_p生成。保留Pathformer的历史条件化尺度贡献选择思想，删除专家Transformer、额外Fourier/趋势分解、noisy top-k、Dispatcher和负载均衡；不是完整Pathformer移植。
+
+**工程与初始化**：`timemixer_dev/`继承只读绑定作者Model，保留原key而非整体backbone前缀；关闭时无新增参数及额外RNG消耗，直接super.forecast。启用时仅上述两处插入，不改norm/downsample/PDM/head/原残差或native marks复制。B按seed2024先构造；U/V分别在恢复外部CPU RNG的独立seed2024上下文初始化，U-only/UV与V-only/UV参数一致；普通新Linear Xavier uniform/bias0，LN weight1/bias0，V Linear_p为Normal(0,1e-3)，U out与V p无bias。无冻结/旧权重/warm-start/整体重初始化。作者四参数预测签名保留C输出，薄适配MS明确target切[b,P,1]、M[b,P,C]，loss同形拒绝广播。profile和task元数据可实际接通；结构spec绑定candidate/switch/task/fold/target/aux/feature/L/P/label_horizon/native profile/来源及新增实现SHA，训练协议/主指标未定且execution_authorized=false，不是正式训练许可。合成checkpoint同结构strict往返，跨开关/结构/任务/来源在写参前拒绝，不用全局strict=False。
+
+**实际自检与继承限制**：最新完整268项实现验收及13项相关合成回归通过；关闭初参/输出/loss/梯度/Adam更新/RNG bitwise一致，所有启用新增参数在非退化fixture有finite非零梯度；float32全任务形状和float64代数reference、norm缓存/单次denorm、strict合成checkpoint均覆盖。初次相关旧回归误选真实文件依赖入口，在新worktree缺文件检查失败，未读到真实文件；已保留失败并用显式生成CSV、原断言复验13/13。资源脚本括号错误也已修正并留记录。
+
+原作者CI1的marks.repeat按C再b重复，与变量b再C展开有继承的排列限制；本轮原样保留、no-op插入对照零差异。原PDM在S1索引第二尺度会IndexError；当前profile S3/S4，V单独S1零修正与原B/增强相同主干限制分别验证。不静默修B，不将旧B结果冒充已修实现；任何未来修复须另审身份和基线。
+
+来源首次审计实际获取两份正式PDF并复制到大论文paper，作者仓库专属外置只读clone。SOFTS@`f5d35fd7c3e716b6383ce6d3cc42c131e32c3c44`（MIT），Pathformer@`ea85d82932215e171357da47b3bc82d502344758`（未找到许可文件，独立公式实现、不复制源码）；TimeMixer@`e24610583b36fdd8c76cc17a8df4e65759a5f460`（Apache-2.0）。论文/代码差异及逐项保留/删除/改造、PDF/依赖SHA见[来源审计](evidence/M6/timemixer-v1/implementation-r1/source-audit.md)。实现、测试日志、参数与静态资源量级见[本轮验收证据](evidence/M6/timemixer-v1/implementation-r1/acceptance.md)。未GPU/probe/nvidia-smi/真实训练/真实validation/test/旧checkpoint读取；未修改生产启动许可、共享作者仓库、旧baseline/loader/runner。后续并发由ChatGPT结合适用历史证据评估，优先复用q4；缺少新probe不是自动阻塞条件。
+
+**停止点**：implementation自检通过；依据本次用户通知，ChatGPT对上一轮绑定作者行为的首对U/V implementation review **Passed**、281项CPU验收证据已审核；这不表示原作者无缺陷。目录迁移及16项新路径复验为本轮自检通过，迁移后字节的ChatGPT review **Pending**。Git closure **未执行**；真实开发实验 **未执行**；三个效果目标 **Not evaluated**。本分支全部变更保持unstaged，无commit/push/merge。以下保留生产基点历史正文，其“当前候选未提交/未启动”不覆盖本节和实际运行状态。
 
 **当前总览（M6，四H队列已停止；通用EPF默认4＋1、56组固定q4候选）**：N审核起点0a0049a8fbe3505c7f3ca719b8c392df071a0e2c。用户停止四H队列并撤销该attempt的全部准入/正式信用；owned进程及session退出。用户将probe由每批强制GPU门禁改为按需诊断，新独立候选按审核固定q计划直接执行Urban168→EPF35→M168，共371项/最大5670 run-epochs；Weather128及全部科学/数值配置不变。当前未提交、无新可执行许可/GPU/训练，待ChatGPT新字节审核。
 

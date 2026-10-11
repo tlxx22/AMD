@@ -1,0 +1,99 @@
+{
+  "TimeMixer": {
+    "class": "Model",
+    "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+    "defaults_source": {
+      "path": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+      "sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024",
+      "values": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 32,
+        "d_layers": 1,
+        "d_model": 16,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      }
+    },
+    "entry": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py",
+    "files": {
+      "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py": "48745b4bb647355e9845792a855df9c59fd7df7fcc664c765351fec390c4073e",
+      "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py": "ab492ea2f68459bbcf3cbffdd1beb75b24d0d70248d017a313a3b470316aaa2b",
+      "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py": "cc1c0bc65b7b094bbe83f988fb05b86272a59638c030c3781aa52ce8880379df",
+      "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py": "817d62f4aac54c8566e560f6d3785856e31c8ee51460279ee3d0a4823f11d4be",
+      "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "four_arg": true,
+    "module": "models.TimeMixer",
+    "modules": {
+      "layers": "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py",
+      "layers.Autoformer_EncDec": "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py",
+      "layers.Embed": "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py",
+      "layers.StandardNorm": "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py",
+      "models": "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py",
+      "models.TimeMixer": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py"
+    },
+    "repository": "/public/home/yueweiting/大论文/TimeMixer",
+    "root": "/public/home/yueweiting/大论文/TimeMixer",
+    "url": "https://github.com/kwuking/TimeMixer.git"
+  },
+  "U": {
+    "root": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-references-v1/SOFTS",
+    "commit": "f5d35fd7c3e716b6383ce6d3cc42c131e32c3c44",
+    "license": "MIT",
+    "files": {
+      "models/SOFTS.py": "71cd0b1d72055ff71a313139bf1e9801351f7798c7b392f679a3befd7c2f16e1",
+      "layers/Embed.py": "46b79fb6970000d721297f9a368a3269b66b1a6fbb723d649bd63a2859d0fe3b",
+      "layers/Transformer_EncDec.py": "5b02b4aa9ae14d2e4ac3951a84f53011f5d15586f7a6e4a1e2a355e8e5309e7f",
+      "exp/exp_long_term_forecasting.py": "480b1d2962694a93fa3bc6d01d481fa928bf3d6b8e586b8b8ff76e43c5bed950",
+      "run.py": "9a4649dd9585a3309103269f285db88498371a76a22eedf889e68433cdf5c6a0",
+      "LICENSE": "02ad41e7363e960b1fa91658d0c21bdebf9ccb9881323606412dd39e79a3a178"
+    },
+    "status": ""
+  },
+  "V": {
+    "root": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-references-v1/pathformer",
+    "commit": "ea85d82932215e171357da47b3bc82d502344758",
+    "license": "No license file found in tracked tree; no source copied",
+    "files": {
+      "models/PathFormer.py": "281136623b21804d0236b0caa5757f69e9e7aba00cfa472c7c1ef1d7625c3920",
+      "layers/AMS.py": "4cd8462587e071f141d1ceae0371bcfc91d5c17f8418454969e517944c43883e",
+      "layers/Layer.py": "69a421d966e66fa0ec9f5f9426e76a8ffbf3d3756a1cea613342c6578867f964",
+      "layers/Embedding.py": "1f0ab11dc68a4908f6735823d1a9c8ae3228c0668d1a353ebdc35848721a1a9b",
+      "layers/RevIN.py": "486c3d24e2d776c066e21b6f57b3bd556f501c210c58941de4d00a0ca3484c6b",
+      "utils/Other.py": "482b321b63f45e203951a76b60daf9adaefd8274c9b768e88477bdafa46cf7be",
+      "exp/exp_main.py": "136fac9c1e14af59acbc20dabc089983271183020ba9c9df3b7215627321ae5c",
+      "run.py": "d1ce4b96c716f5d1fad8d3b218fe4c0340c51d081d311f9f728e56cd5c3a1ba8"
+    },
+    "status": ""
+  },
+  "papers": {
+    "SOFTS-NeurIPS2024.pdf": {
+      "official_url": "https://proceedings.neurips.cc/paper_files/paper/2024/file/754612bde73a8b65ad8743f1f6d8ddf6-Paper-Conference.pdf",
+      "pages": 31,
+      "sha256": "1cd4341b064d41b6fca6f2c17a33b538b3110fce5f2bbba1a98198814f36e62e",
+      "copy": "/public/home/yueweiting/大论文/paper/SOFTS-NeurIPS2024.pdf",
+      "text_sidecar": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-references-v1/SOFTS-NeurIPS2024.txt"
+    },
+    "Pathformer-ICLR2024.pdf": {
+      "official_url": "https://proceedings.iclr.cc/paper_files/paper/2024/file/2be6705de7412adf107900add727a795-Paper-Conference.pdf",
+      "pages": 19,
+      "sha256": "6c865054161f7e94fecc533b21dbc652818315ef3ac3c057644ba8464691609f",
+      "copy": "/public/home/yueweiting/大论文/paper/Pathformer-ICLR2024.pdf",
+      "text_sidecar": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-references-v1/Pathformer-ICLR2024.txt"
+    }
+  }
+}
