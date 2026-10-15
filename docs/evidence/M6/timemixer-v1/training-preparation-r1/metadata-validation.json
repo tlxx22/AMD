@@ -1,0 +1,28 @@
+{
+  "start_commit": "491ce9848575f744125def9950e994a9bc5a65e8",
+  "validation_kind": "pure metadata and rational-weight arithmetic; no model construction or real data",
+  "checks": {
+    "goal_counts_24_24_29": true,
+    "77_unique_tasks": true,
+    "no_B_retraining": true,
+    "goal1_F4_three_arms_eight_each": true,
+    "goal3_UV_only_F1_F2_F3_eight_each": true,
+    "Urban_folds_H_P_channels_and_order": true,
+    "goal2_only_UV_24_M_5_EPF": true,
+    "M_shapes_inherited": true,
+    "EPF_L_unselected_96_or_168": true,
+    "37_existing_B_pair_keys": true,
+    "input_ablation_has_no_cross_feature_B_pair": true,
+    "F4_reuses_exact_eight_UV_identities": true,
+    "Urban_each_average_weights_sum_one": true,
+    "11_separate_domain_averages": true,
+    "no_execution_or_protocol_metric_choice": true,
+    "no_future_Urban_tasks": true
+  },
+  "check_count": 16,
+  "all_passed": true,
+  "new_tasks": 77,
+  "required_B_cells": 37,
+  "model_tests_rerun": false,
+  "training_or_evaluation": false
+}

@@ -97,10 +97,17 @@ def validate_times(times, dataset, d):
                 strictly_regular_sampling_claimed=False)
 
 
-def load(c,task,*,test_capability=None,path_override=None):
+def load(c,task,*,test_capability=None,path_override=None,resolved_profile=None):
     import numpy as np
     import pandas as pd
-    p=profile(c,task);d=c['datasets'][task['dataset']]
+    if resolved_profile is None:
+        p=profile(c,task)
+    else:
+        import copy
+        p=copy.deepcopy(resolved_profile)
+        if (p['dataset'],p['input_variant'],p['H']) != (task['dataset'],task['input_variant'],task['h']):
+            raise ValueError('explicit data profile/task identity mismatch')
+    d=c['datasets'][task['dataset']]
     final=test_capability is not None
     if final and test_capability!={'purpose':'ch3_formal_test','protocol_sha':digest(c),'run_id':task['id']}:
         raise PermissionError('explicit matching formal test capability required')

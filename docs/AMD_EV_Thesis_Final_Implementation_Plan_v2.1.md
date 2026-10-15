@@ -7,6 +7,10 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**最新修复定位（2026-10-15，repair-r1）**：ChatGPT已直读上一轮18文件及21/13通过日志，runner review为Needs repair，不授权closure/真实训练；首对U/V模型review仍Passed。本轮仅修复监督器拒绝请求的所有权边界、完整恢复前校验、波次/整批精确任务核账，见[本节修复记录](#m6-timemixer-runner-repair-r1)。第二轮协议、科学模型、77项范围和三个效果目标不变；修后字节待ChatGPT复审，旧自检通过记录保留。
+
+**最新定位（2026-10-15，M6-Timemixer训练接入）**：用户已选择第二轮完整协议，第三轮正式实验已完成；本分支已实际实现独立候选训练链路，见[最新接入合同](#m6-timemixer-runner-integration-r1)。首对U/V实现、迁移及此前6文件准备范围的审核结论沿用用户通知；本轮新增接线字节待ChatGPT审核。以下较早“协议未选/第三轮未完成/Pending”均为当时快照。真实开发训练未启动，效果目标Not evaluated；主判指标、实际启动批次、资源绑定及审核后Git closure仍待完成。
+
 **最新定位（2026-10-11，隔离分支 M6-Timemixer）**：本轮用户决定及首对TimeMixer U/V实现合同见[§0.1新增专节](#m6-timemixer-uv-dev-v1)。第三轮生产仍独立推进，以下旧正文中的“当前/候选未提交/未启动”保留其历史时点，不用于推断生产现场状态。依据本次用户通知，首对U/V的ChatGPT implementation review Passed，281项CPU证据已审核；本轮工作区迁移自检通过、迁移增量review Pending，Git closure未执行、真实开发实验未执行、三个效果目标Not evaluated。
 
 本文件替代此前的 `AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`，作为后续实现、实验登记和论文写作的唯一权威方案。旧版及更早方案移入 `docs/archive/plans/`，它们只保留历史记录，不得参与当前实现决策。
@@ -51,6 +55,36 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 9. “模块临时关闭”可用于排障，不能冒充两个来源模块已获验证；两个近期来源模块是用户当前创新组织目标。若有限开发失败，保留失败证据和真实来源，后续变体或来源调整须依用户决定，不因数量目标自动新增候选或实验。
 
 ## 0.1 阶段顺序、候选身份与性能治理
+
+<a id="m6-timemixer-runner-integration-r1"></a>
+### M6-Timemixer最新合同：第二轮协议与实际训练接入（2026-10-15）
+
+<a id="m6-timemixer-runner-repair-r1"></a>
+#### runner三项定向修复与复验（2026-10-15，repair-r1）
+
+上一轮18文件SHA/mode及原9份模型文件均经ChatGPT直接核对，21项端到端/13项回归通过是真实历史，但未覆盖三条异常路径：supervise在未取得锁或恢复控制权时也写STOP/failure；Adam活动参数state可缺失且CUDA RNG设备/格式校验不完整；自洽artifact未与实际child分配及当前attempt精确绑定，完成清单直接沿用传入ids。因此原runner review Needs repair，不能以旧自检通过替代审核。
+
+本轮先在自建CPU fixture复现上述问题，证据集中在原runner-integration-r1根下唯一repair-r1增量。修复后，所有恢复前置均先只读检查，合法owner/start_ticks/runtime转移后才允许失败记录与所属子进程清理；拒绝请求不改既有attempt，不发信号。checkpoint技术schema=v2，独立记录实际已建立Adam状态的参数名/step及训练设备RNG元数据，核对state/参数组/moment/步数；未参与计算的作者参数不伪造moment。全部检查在live写入前完成。GPU UUID来自已核验启动runtime（当前Torch2.0.1没有UUID属性），绑定CUDA_VISIBLE_DEVICES=0及完整可见设备RNG；CPU元数据测试不冒称GPU恢复数值实测。
+
+child记录expected task ID；回执需同时匹配完整task/arm/F/fold/H/seed、config/source/producer、结构spec、runtime/device，且处于本root/attempt/runs合法发布位置。每波及整批完成基于实际核验的精确ID集合，无重复/缺项；恢复子集不把旧完成项当本次重训。resolved JSON只更新实现源绑定及必要checkpoint schema，训练/结构/数据/77项24/24/29、37 B、8 F4复用和1340上限严格不变。定向用例、失败修复、分进程消费、最新完整manifest/patch及操作说明见repair-r1/acceptance.md；旧包、原21/13记录与原769–781消费不改。全部变更unstaged；无GPU/真实train/validation/test或旧checkpoint读取，无真实许可或closure，修后ChatGPT review Pending。
+
+最终同字节15/15定向用例通过（7项新增＋8项受影响原测试），42.506秒；最终main42/owned child13，共55次合成Adam update。本轮复现/失败复验/诊断全部另账main308/child70，共378；继承旧769–781后累计1147–1159，不倒改旧未知尾部。冷启动CPU backward等待触发的原45秒失败保留；最终双波CPU夹具用已预热CPU运行时fork真实监督器/worker并执行实际CLI，原batch16/两波12 updates/全部断言/45秒deadline保留，正式exec不变。三份冷CLI诊断实际完整worker产物保留；CPU interop限1仅作用于合成fixture。无原281/16或历史全量重跑，工程自检Passed不替代ChatGPT复审。
+
+当前工作区`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`，分支`M6-Timemixer`，本轮实际开发HEAD为`491ce9848575f744125def9950e994a9bc5a65e8`。已审核首对U/V与迁移的精确26文件已在该commit统一closure、单分支推送，三端0/0及当时clean证据沿用上一专节。本轮由已审核但未提交的6文件训练准备范围继续开发；旧准备包不覆盖，与本轮新增接线共同送审，全部保持unstaged，不自动再次closure。
+
+用户明确选择**第二轮完整实验协议**；B只复用第二轮同任务本地原始TimeMixer结果，不重训有效B、不逐域/H择优。第三轮371/371技术完成、5083 epochs，历史成果保留。两轮原始review已获接受，范围为来源、执行、原始指标与封存完整性，不代表本轮重新加载审查checkpoint tensor/optimizer/RNG，不等于效果gate。绑定生产文档提交`2a910ba83ef560d9eaafb1087979dd38c080df90`及`m6-original-round2-round3-result-review-v1-20261015/`原始三份JSON，完整SHA见本轮证据；原artifact的pending字段保留历史。现场生产已进至`a6a373c96ec9ed553b6a4d47282fabe974936086`，额外提交仅为PatchTST文档来源政策，不引入本分支、不合并、不采用展示值。
+
+新`configs/timemixer_uv_round2_resolved_v1.json`逐任务从已审核baseline-sources的second_round.profile/config引用派生，并核对最新原始审计37个TimeMixer配对单元。UrbanEV L12/P1/batch及eval128/20 epochs/patience5；EPF L96/P24/128/20/5；ETTh1/2、ETTm1/2、Exchange L96/128/10/None；Weather L96/128/20/10。Weather的B实际完成轮数不替代增强模型上限。fresh seed2024、Adam float32 accumulation1、wd1e-7、基础betas0.9/0.999、eps1e-8、真实OneCycle max_lr0.01/pct_start0.2/cos/动态beta1及其余参数完全继承原profile；初始化LR名义0.0004，成功optimizer update后推进一次，validation/test不推进，早停不重缩放。D/S/PDM/head、marks、shuffle/drop_last、eval尾batch、线程/worker等继承对应第二轮配置，不优化原B。
+
+77任务为目标一F4 U/V/UV共24、目标三UV F1/F2/F3共24、目标二UV M24+EPF5共29，37个已有B配对键，B重训0。F1–F3仅派生schema及必需输入维度/数据身份，训练字段保持同fold/H的F4来源；F4精确引用目标一8个UV结果，不重复训练。全部范围最大1340 run-epochs，每项窗口/batch/OneCycle steps及optimizer-step上限在新配置中可核账。旧非执行计划及来源快照保留，不把旧round3选项当可执行方案；其余四Urban fold的96任务未创建。覆盖清单不等于启动批次，科学配置的execution_authorized始终false。
+
+实际入口`timemixer_train_entry.py`连接解析、真实utils.ch3_data loader/scaler/windows/native marks、增强适配、Adam/OneCycle、train、validation MSE严格best/早停、best checkpoint、一次完整test、metrics/history/manifest/checksum和原子发布。构造/update/validation/test均走候选独立身份；仅对loader增加显式resolved_profile窄接口，默认baseline路径不变；未修改U/V数学或既有主干/预测适配文件。loss同形，M全通道/MS目标，SSE/SAE/元素计数含eval尾batch。train独占梯度，validation按第二轮MSE选best；test可用于开发分析但不逐epoch选best，不参与scaler拟合。效果gate主判指标仍未批准，不把训练MSE或同时报告MSE/MAE转为双硬门槛。
+
+恢复只支持同完整身份的封存epoch边界：先校验task/arm/F/L/P/H/seed/全部训练参数/data/source/schema、checksum、key/shape/dtype、optimizer组/moment、scheduler LR/beta1/update、BestState、journal和RNG，再写live状态；恢复Python/NumPy/Torch/CUDA RNG及DataLoader generator、真实epoch/step，不支持任意batch级回滚补训。test claim不明则拒绝自动再测，已有合法test-result在封存恢复时复用。失败staging保留；Python与系统checksum一致后原子发布，完成结果不可覆盖，成功身份不能因文档commit或报告指标改变而重复训练。
+
+固定显式task ID批次由单一守护总启动器按技术审计推进波次，q≤4、失败/STOP阻止后续波次，只处理本包owner/start_ticks匹配的进程。优先tmux、其次systemd-run --user、最后nohup+setsid；操作命令与非执行binding模板见外置证据。复用第二轮Urban/M真实TimeMixer q4重叠证据；所选EPF L96/b128历史记录仅单路，EPF q4/4+1属于结合小幅新增张量的待审核工程推断，不以第三轮L168/b32冒充实测依据。保留启动时GPU身份/余量、全局锁、clean三端commit、source/config/data、q计划及STOP检查，正常启动不进入强制probe链，运行期GPU轮询0。本轮无GPU查询/模型负载，无真实训练许可或真实结果根。
+
+最终同字节CPU端到端21/21及有限loader回归13/13通过；最终suite精确190次Adam update。全部尝试已封账769，另有早期超时子进程0–12次未封账，故累计769–781，不能猜精确总数；该轮失败及最终完整证据均保留。失败修复、计数、回归及保护核验详见`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-runner-integration-r1/acceptance.md`；原281/16项证据复用、不机械重跑。CI=1 marks排列与S=1 PDM限制仍按绑定作者行为保留，不静默修B。当前工程自检Passed，ChatGPT本轮review Pending、真实开发实验未执行、三个效果目标Not evaluated。审核及Git closure后，用户仍须最后一次明确启动；主判指标、具体批次与资源计划绑定不能由本轮代码自动决定。多分支文档治理及三个目标原科学定义继续遵守下方合同，最新合同覆盖较早状态快照而不改写历史。
 
 <a id="m6-timemixer-uv-dev-v1"></a>
 ### M6-Timemixer：首对U/V工程候选与最新用户合同（2026-10-11）

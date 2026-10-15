@@ -1,9 +1,72 @@
 # M6：第三章正式实验与定稿
 
+**最新修复定位（2026-10-15）**：见[M6-Timemixer runner三项修复](#m6-timemixer-runner-repair-r1)。上一轮18文件与21/13通过证据已由ChatGPT直读，但runner review Needs repair；首对U/V模型review仍Passed。本轮针对所有权拒绝副作用、恢复前完整校验和精确完成核账修复，第二轮科学合同不变；修后待复审、不closure、不启动真实训练。原自检通过及失败记录保留。
+
+**最新定位（2026-10-15）**：见[M6-Timemixer实际训练接入](#m6-timemixer-runner-integration-r1)。第二轮完整协议已由用户选定；第三轮371/371、5083 epochs已完成，两轮原始review获接受，范围按下节登记。候选worker/恢复/artifact/固定波次启动器已实际接通，本轮CPU证据及接线字节待ChatGPT审核，全部unstaged；未启动真实训练。主判指标、具体启动批次与资源绑定待最终启动合同确认。以下此前“协议未选/第三轮Pending/接线缺口”仅是历史快照。
+
+**最新训练准备定位（2026-10-11）**：见[M6-Timemixer基线与计划记录](#m6-timemixer-baseline-plan-r1)。首对实现及迁移review Passed；精确26文件已closure并单分支push，三端0/0及当时clean边界已独立保存。本轮随后新增来源核对与77项非执行计划，全部unstaged、待ChatGPT审核；协议/主指标未选，无真实训练启动授权。以下此前定位及送审快照保留当时事实，当前以本专节最新准备记录为准。
+
 **最新隔离开发定位（2026-10-11）**：见[M6-Timemixer专节](#m6-timemixer-implementation-r1)。J暂停新开发；依据本次用户通知，首对TimeMixer U/V implementation review Passed、281项CPU验收证据已审核。本轮工作区迁移自检及16项新路径复验通过，迁移增量待ChatGPT审核；无真实开发实验/Git closure。生产第三轮仍与本分支隔离。以下旧文件头及历史正文保留当时“未提交/未启动”事实，不代表当前生产停止。
 
 <a id="m6-timemixer-implementation-r1"></a>
 ## M6-Timemixer：首对U/V实现与CPU验收送审
+
+<a id="m6-timemixer-runner-integration-r1"></a>
+### 第二轮完整协议与训练链路接入送审（2026-10-15）
+
+<a id="m6-timemixer-runner-repair-r1"></a>
+#### runner定向修复与复验（2026-10-15，repair-r1）
+
+起点HEAD仍`491ce9848575f744125def9950e994a9bc5a65e8`，M6-Timemixer工作区不变；前置18路径/SHA/mode及空index核对一致。ChatGPT发现：旧supervise在锁占用/live owner/已完成恢复拒绝时进入异常块写STOP/failure；Adam state只做合法ID子集检查，允许实际活动状态丢失，CUDA RNG缺设备/长度检查；合法自洽回执未绑定child预期task及当前attempt，complete直接复制传入ids。已在本轮临时锁、空负载owner与新合成checkpoint/artifact复现，未用真实生产负例，原U/V数学9文件未改。
+
+修复一：先在全局锁与恢复前置只读检查通过后转移owner，归档的是旧控制快照；只有本次claim的PID/start_ticks/runtime_ref仍与owner相符，运行失败才写STOP/failure并处理所属进程。锁占用、旧owner活着、完成attempt、恢复授权/来源不符等拒绝不改原文件、不移历史、不发信号。修复二：checkpoint技术schema=v2，显式保存Adam活动参数名/step，完整匹配state与参数组/moment/进度，原作者unused参数允许无状态；严格设备/RNG格式/形状/长度检查与私有对象验证先于live写入。当前Torch2.0.1无GPU UUID属性，设备UUID从已核验启动runtime绑定，CUDA_VISIBLE_DEVICES=0及完整可见CUDA状态必需；CPU仅测试设备元数据拒绝，不声称GPU恢复数值Passed。
+
+修复三：每child保存expected task ID，回执与完整task/arm/F/fold/H/seed、实际config/source/producer、结构spec/runtime/device绑定并限制当前root/attempt合法runs路径；每波精确集合核对后才推进，整批complete按实际校验集合生成。明确恢复子集只核本次执行项，旧已完成结果保留/汇总但不重训。相关源码绑定及实际保存resolved JSON同步；除技术schema/来源外逐任务科学配置严格不变，77/24+24+29、37 B/0 B重训、8 F4复用及1340上限不变，不增seed或任务。
+
+全部本轮证据在`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-runner-integration-r1/repair-r1/`；acceptance.md登记复现/复验/首次失败、main与owned child真实合成消费及选择原测试的理由，operations.md是修后操作说明，最新manifest/完整patch及相对原18文件增量独立保存。旧r1 manifest/patch、21/13记录、原失败日志和769–781消费均保留，不回填未知尾部；技术修复消费另账，不是新增科学训练额度。无281/16/历史全量回归，无GPU/真实train/validation/test、旧checkpoint或真实许可；所有变更unstaged，修后ChatGPT review Pending，真实训练与效果目标仍Not evaluated，禁止closure/启动。
+
+最终repair-attempt7-final同字节15/15、42.506秒，通过7项新增（19种恢复损坏副本、8种CUDA纯元数据负例、5种supervise拒绝、8种回执负例及恢复子集/实际resolved核对）与8项原受影响测试；合法epoch恢复全状态/batch顺序精确相等，test-once/不明claim、两波12 updates审计推进及失败1 update停队列均验证。最终suite main42/child13=55；本轮含复现/首次失败/三份CPU诊断共main308/child70=378（本轮预登记总上限438）。旧769–781原账不改，累计1147–1159。首次共享夹具重复身份、测试进程替身/STDOUT适配错误和45秒冷启动等待均保留失败；不删断言/增skip/放宽deadline或容差。最终双波测试恢复原batch16/窗口/12 updates，只以CPU专属预热fork创建真实CLI监督器/worker，生产exec不变；冷CLI完整worker的三份诊断保留。CPU interop限1为合成线程约束，未改真实训练线程/模型数学。当前工程自检Passed，ChatGPT修后review Pending。
+
+起点为实际closure commit `491ce9848575f744125def9950e994a9bc5a65e8`，branch=`M6-Timemixer`，工作区`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`。首对U/V实现review、迁移3文档增量/16项review Passed；前轮6文件准备范围亦已审核，仍未提交。本轮保留旧准备包的manifest/patch与原始字节，新增范围联合送审；不stage/commit/push/merge，不更改候选`timemixer-uv-dev-v1`，不进入M7。
+
+**状态与B采用**：用户确认第三轮371/371技术完成、5083 epochs；两轮原始review已接受，覆盖来源、执行、原始指标与封存完整性，不能冒称新读取checkpoint tensor/optimizer/RNG或效果gate Passed。本轮对需用37个第二轮TimeMixer单元与新task审计逐项核对producer/profile/protocol/data SHA、原始MSE/MAE与result/manifest引用一致，不重审742任务/5373文件，不读取旧checkpoint、不重新评价真实test。采用绑定`/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-original-round2-round3-result-review-v1-20261015/`：round2-raw-result-review.json SHA=`b69ebfce815d029bb2819f4ea33fa7c60f13ca74ccbe3f432dce3e3937bd4783`；round3-raw-result-review.json SHA=`cbee1e91b61b63d0bd3a0dfa890c1ca28b3987e4d7d66b0a5a02b3ada21563dd`；task-audit.v2.json SHA=`1dbc648f6e9a9243f06937578622561d0fb92ad3fb1e35a8766472be22bfd74f`。原JSON pending保留历史，采用依据是本次用户通知与生产`2a910ba83ef560d9eaafb1087979dd38c080df90`文档绑定，不回写artifact。实际生产HEAD已为`a6a373c96ec9ed553b6a4d47282fabe974936086`，新增仅PatchTST文档政策；只读保护其当前字节，不合并或复制生产文档，不采用展示值。
+
+**协议已定**：全部增强任务逐项继承已审核baseline-sources中第二轮精确profile及配置引用；新[完整resolved配置](../../configs/timemixer_uv_round2_resolved_v1.json)只含第二轮。Urban L12/P1/b128/20/pat5，EPF L96/P24/b128/20/pat5，五个非Weather M L96/b128/10/None，Weather L96/b128/20/pat10。batch/eval128、fresh seed2024、Adam float32/accum1/wd1e-7/betas0.9,0.999/eps1e-8，真实OneCycle max_lr0.01、pct_start0.2、cos、momentum0.85/0.95、div25/final10000/three_phase=false，每个成功update推进一次；初始化LR名义0.0004，eval不推进，早停不重新缩放。结构D/S/PDM/head及全部其他profile字段继承，Weather B实际20/13/15/16不充当新任务epoch上限；不加载B旧权重，不冻结backbone，不修改CI1 marks或S1 PDM行为。
+
+**任务核账**：77项＝目标一24＋目标三24＋目标二29；37个已有B配对键、B重训0、F4精确复用8个目标一UV结果、最大1340 run-epochs。每项完整保存schema/target/aux、独立marks、结构来源、训练参数、split窗口/batch/steps_per_epoch及epoch/update上限。F1/F2/F3只改同fold/H F4的schema与必需输入维度/数据身份，训练规则不变；实际loader按真实F定义构造，不能用F4内容冒充。旧非执行计划和五份来源材料保留，未创建其余四fold的96项，也未选择实际启动的77项批次。新科学配置execution_authorized=false；运行许可独立于结构spec和范围计划。
+
+**实际接线**：`timemixer_train_entry.py`、`timemixer_dev/{training_config,worker,training_state,artifacts,launcher,summary}.py`及`scripts/ch3/start_timemixer_uv.sh`交付真实worker与守护链。构造、train/update、validation/test全部使用增强适配独立身份；`utils/ch3_data.load`仅增加显式resolved_profile可选入口，baseline默认逻辑不变，复用原loader/scaler/windows/marks、Schedule与BestState/finite。完整保存config/spec/source/data/environment/真实argv、command与launch历史、worker日志、history/update计数、best/last状态、一次完整test角色/结果、metrics/manifest与checksum。Python及系统SHA核对后原子发布，完成后不可覆盖；失败保留staging/checkpoint和真实消耗。不长期monkeypatch原runner/作者，不修改已审核U/V模型数学、原adapter或共享作者仓库。
+
+恢复限定完整同身份epoch边界，先检查checksum/journal与全task/arm/F/L/P/H/seed/训练/data/source/schema，再检查key/shape/dtype、optimizer参数组/moment、OneCycle LR/beta1/updates、BestState及全部RNG，之后才写live模型/optimizer。恢复Python/NumPy/Torch/CUDA RNG、loader generator、真实epoch/step；不支持未封存batch回滚，不清零加训。test claim不明时拒绝自动重测；已合法保存test-result在封存恢复中复用。validation严格MSE选best及patience，test完整访问一次、M全通道/MS目标按SSE/SAE/元素数聚合且尾batch不丢。主判指标仍待用户明确，不能把训练MSE或报告双指标当成三个效果目标已批准硬门槛；汇总缺项/主指标未知不报科学Passed，完整数值条件也与result review分开。
+
+**固定批次与资源**：总启动器只消费明确task ID子集和独立审核后binding，不默认派发77项；同批固定波次仅在技术审计通过后推进，失败/STOP停止后续，按owner PID/start_ticks只清理所属进程。q4上限方案复用第二轮Urban/M真实TimeMixer并发记录；第二轮EPF L96/b128所选记录为单路，新增U/V张量静态估计下的EPF q4/4+1仍属待审推断，不能借第三轮b32当b128实测。保留全局GPU锁、启动时GPU UUID/余量、clean三端commit/config/source/data/q绑定、STOP；无强制probe链、无运行期GPU轮询。tmux空负载守护/STOP与真实CPU子进程双波推进/失败停止定向验收，systemd/nohup仅语法准备。未创建真实训练根、未生成真实可消费许可、未查询GPU或运行真实模型。
+
+单一外置增量为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-runner-integration-r1/`：acceptance.md登记各组CPU结果、失败/修复、实际合成更新及有限回归；operations.md给出语法核验的启动/日志/状态/完成/安全STOP/受限恢复命令，非执行binding模板不预填未来commit。完整patch相对HEAD含上一轮6文件，incremental.patch相对本轮开始快照，最新manifest绑定当前全部字节；旧包不覆盖。最终完整21/21同字节CPU验收及相关loader回归13/13通过，最终suite精确190次Adam update；全部尝试769次已封账，早期超时子进程另有0–12次无法追溯，累计769–781（预先上限880）。首次LR名义值断言、重复身份fixture及命令导入问题已修正；双波用例原45秒deadline/全部断言保留，最终复验通过，原失败日志不删除。原281/16证据沿用、不重跑全套。真实数据仅必要stat/既有绑定核对，工程测试CSV均合成并走真实loader；checkpoint测试仅本轮合成状态。当前工程自检Passed，ChatGPT本轮review Pending、Git closure未执行、真实训练未执行、效果目标Not evaluated；审核与closure后仍由用户最后一次启动，待定主指标/具体批次/资源绑定不阻塞本轮代码实现。
+
+<a id="m6-timemixer-baseline-plan-r1"></a>
+### 基线来源核验与非执行开发计划（2026-10-11）
+
+依据本次用户通知，首对U/V implementation review、worktree迁移/3文档增量/16项新路径验收review均Passed；针对绑定作者行为，不表示原作者无缺陷。第一段只对已审核manifest的26个精确文件stage/commit/push：真实commit=`491ce9848575f744125def9950e994a9bc5a65e8`，parent=`5a1f34dbea9e906d3525f79b094b82efad2159b0`。本地HEAD=origin/M6-Timemixer=网络端同名ref、ahead/behind=0/0、worktree/index clean，26个blob及Git mode、三份审核文档SHA保持不变；保护工作区及不可变baseline tag核验无本轮范围变化。独立closure证据在`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-closure-r1/`。没有重跑281/16项模型测试，没有为closure改写送审快照。
+
+全部closure启用条件成立后，从这个实际clean commit开始第二段。当前工作区仍`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`、branch=`M6-Timemixer`、candidate=`timemixer-uv-dev-v1`；M6内既定训练准备，不新建阶段、不改U/V/原B/共享作者、不重取论文、不进入M7。
+
+**B来源定向核验**：需37格＝UrbanEV-F4 fold1/4×H3/6/9/12的8＋六M域四H的24＋五EPF H24的5。当前采用链指向选定dm4第二轮371格索引，53个TimeMixer单元与此前固定enc2索引完全相同；本轮37格按原采用关系为MS13、基础M128 8、amend1 16。保存manifest/result/runtime引用SHA、config canonical digest/精确profile、实际训练commit、history/budget、严格validation MSE选best、合法早停及test-once记录均核对；实际训练commit分别为`df6a16403e10d51097db8c88829909c533d15652`、`760b9dd7162d200c11b8836a7c9ece41822dfcf1`、`b97392a179b55b4bffb2bf0e3b85267bb0b07750`，各六份关键源码Git blob与manifest绑定一致。37格可进入后续配对审查；采用索引technical_complete=true、result_review=pending，本轮只称“保存结构化元数据与采用链核对通过”，不冒称全artifact审核Passed。amend1 16格没有直接raw-config source项，明确记录该缺项，以实际读取文件SHA、canonical protocol digest和精确profile绑定，不伪造原manifest。
+
+第三轮核验当前合法attempt=`THIRD-PatchTST-dm4-Urban6-four-H-reviewed-q-r1`的controller/upstream/config/main/boundary及停止队列信用0；读取时URBAN_SUBSET_FORMAL，37个确切TimeMixer任务路径尚无结果，全部Pending。不等待其完成，不借用旧停止attempt或展示值；其余16个Urban格仅保留索引定位，正式补齐前另审。两轮均绑定TimeMixer作者`e24610583b36fdd8c76cc17a8df4e65759a5f460`及相同入口SHA，未改变结构以追齐论文。
+
+**实际协议差异**：TimeMixer第二轮均OneCycle(max_lr0.01、pct_start0.2、cos及动态beta1)；第三轮initial_lr1e-4、type1_horizon_scaled_v1及固定基础betas。Urban两轮L12/batch128/20/5、P1；EPF第二轮L96/batch128/20/5，对比第三轮L168/batch32/10/3；六M域均L96/batch128，非Weather10/None、Weather最新有效20/10。Weather第二轮四H实际完成20/13/15/16轮，best11/3/5/6，不能从旧20/None或Weather10快照抄值。ETTm1/2保留K5/freq=t历史marks，其他域K4/h；各格features/target/aux/structure及marks规则两轮相同。详表及完整调度参数见[协议与接线核对](../evidence/M6/timemixer-v1/training-preparation-r1/protocol-comparison.md)。
+
+保存MSE/MAE均train-standardized；MS目标元素聚合，M全通道元素聚合，MS-target诊断不替代M。开发Urban8格、正式24格等权；六M域各四H平均、五EPF各H24，不跨域原始误差平均，不双指标硬门槛。主指标、统一二/三轮协议及B配对/result review仍待决定，不逐域/H择优、不因某轮B较弱而选协议。本轮只访问已保存test指标/history，没有新test评价；不称盲测。真实数据SHA/scaler不重算，checkpoint/二进制payload不读取、不扫描、不补SHA；缺失审核范围明确保留。
+
+**非执行计划**：[configs/timemixer_uv_development_plan_v1.json](../../configs/timemixer_uv_development_plan_v1.json)绑定上述实际closure commit，training_protocol/main_metric=undecided、execution_authorized=false。目标一F4三新增臂24，目标三UV F1/F2/F3 24，目标二UV M24+EPF5=29，合计77；无B重训。目标三F4精确复用目标一8个UV同身份结果，输入与模型消融不做笛卡尔积。77是候选完整覆盖，不是每轮套餐或本轮获准启动批次；其余四Urban fold的96项未创建，仅保留三目标达标审核后补齐条件。EPF L保持未选、来源选项96/168，避免假装已选训练协议。16项纯元数据/有理权重核对通过，包括任务唯一性、24/24/29、37个B配对键、8个F4复用、11域各自平均和范围防扩张；没有模型构造或真实数据评价。
+
+当前薄适配已支持profile→model→prediction→同形loss及合成strict恢复；真实runner的构造/update/validation/test仍接旧adapter，候选独立ID路由、F1–F3任务/profile派生、选定scheduler/BestState与正式artifact/spec/optimizer/RNG身份绑定、资源审核及独立启动授权仍需具体接线。可复用既有data/marks/scaler/window、Adam/scheduler/BestState、MS/M指标与审计设施；本轮没有实现训练入口或扩建runner/队列/许可平台。CI1 marks排列及S1 PDM限制保留；若后续要修，先裁决修后身份与B可复用性，不自动重训B，也不凭缺新probe阻塞当前准备。
+
+本轮新增证据集中于`docs/evidence/M6/timemixer-v1/training-preparation-r1/`：baseline-sources.json、source-bindings.json、protocol-comparison.md、metadata-validation.json；外置执行/失败记录、clean起点、完整增量patch与SHA在`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-training-preparation-r1/`。canonical和此前implementation/迁移/closure材料保持原字节；只在本M6专节登记新实质发现。元数据工具的schema假设与AST列表调用错误已按实际内容修正并留失败记录，未修改模型测试断言或放宽SHA核验。
+
+**第二段停止点**：B配对来源与非执行计划就绪，新增材料未stage/commit/push、ChatGPT review Pending；第一段26文件closure仍为已成功事实。真实开发实验未执行，三个效果目标Not evaluated；统一协议/主指标及真实训练启动授权未取得，不启动GPU/probe/真实train/validation/test，不加载真实checkpoint。以下首对实现与迁移专节保留此前送审时事实。
+
+### 首对实现与迁移送审快照（保留原文）
 
 首对候选实施授权已实际执行，设备`b82673a648b4`；本分支当前工作区=`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`，branch=`M6-Timemixer`，第三轮基点/当前HEAD=`5a1f34dbea9e906d3525f79b094b82efad2159b0`。首次创建前曾核验主仓库/二轮/三轮/TimeMixer完整HEAD及交接文档SHA、本地tracking与必要网络ref一致，同名本地/远端分支及初始目录不存在后才创建；这段创建记录不把当前路径伪造为最初创建路径。分支仍无upstream，未push。实际读取适用AGENTS，AGENTS未改。
 
