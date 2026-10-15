@@ -25,6 +25,7 @@ from timemixer_dev.training_state import read,validate as validate_state,file_sh
 from timemixer_dev.artifacts import audit
 from timemixer_dev.launcher import batch,validate_authorization,stop,status
 from timemixer_dev.summary import summarize
+from timemixer_dev.gate_policy import policy
 from utils.ch3_onecycle import configuration,Schedule
 from utils.ch3_contract import BestState
 from tests.test_runner import _assert_nested_equal
@@ -57,7 +58,7 @@ def fixture(folder,dataset='UrbanEV',variant='F4',arm='UV',H=3,epochs=3,patience
         frame=pd.DataFrame({name:np.sin(np.arange(n)/13+i)+np.arange(n)/100+rng.randn(n)*.2 for i,name in enumerate(p['features'])});frame.insert(0,'date',clock.strftime('%Y-%m-%d %H:%M:%S'));frame.to_csv(path,index=False)
     d['path']=str(path);d.pop('source_admission',None)
     tr['scheduler']=configuration(epochs,2);t['profile_sha']=digest(p);t['arithmetic']=arithmetic(data,p,t['fold'])
-    config=dict(schema=real['schema'],candidate_id=real['candidate_id'],training_protocol='synthetic_round2_pipeline_v1',purpose='synthetic',synthetic_root=str(folder),tasks=[t],existing_B={},F4_reuse={},gate_main_metric=None,execution_authorized=False)
+    config=dict(schema=real['schema'],candidate_id=real['candidate_id'],training_protocol='synthetic_round2_pipeline_v1',purpose='synthetic',synthetic_root=str(folder),tasks=[t],existing_B={},F4_reuse={},gate_policy=policy(),execution_authorized=False)
     validate(config)
     return config,t['id'],path
 
@@ -72,7 +73,7 @@ class Pipeline(unittest.TestCase):
         c=actual_config();self.assertEqual(len(c['tasks']),77);self.assertEqual(sum(t['arithmetic']['max_epochs'] for t in c['tasks']),1340);self.assertEqual(len(c['existing_B']),37)
         for t in c['tasks']:
             p=t['structural_source_profile'];self.assertEqual(p['training'],t['baseline_training']);self.assertEqual(p['T'],12 if t['dataset']=='UrbanEV' else 96);self.assertEqual(t['arithmetic']['max_optimizer_steps'],p['training']['epochs']*p['training']['scheduler']['steps_per_epoch'])
-        self.assertIsNone(c['gate_main_metric']);self.assertFalse(c['execution_authorized'])
+        self.assertEqual(c['gate_policy'],policy());self.assertNotIn('gate_main_metric',c);self.assertFalse(c['execution_authorized'])
         self.assertEqual(len(c['F4_reuse']),8)
 
     def test_four_arms_actual_update_validation_test_and_off_reference_exact(self):

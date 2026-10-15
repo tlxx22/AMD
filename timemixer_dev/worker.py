@@ -16,6 +16,7 @@ from .spec import StructuralSpec
 from .training_config import ROOT,validate,digest
 from .training_state import atomic_json,file_sha,snapshot,save,read,restore,validate as validate_state
 from .artifacts import publish,audit
+from .gate_policy import validate_config_policy
 from utils.ch3_contract import BestState
 from utils.ch3_onecycle import Schedule
 from utils.ch3_data import load,batches
@@ -34,8 +35,14 @@ def synthetic_root_allowed(folder):
     return folder.parent==ROOT and folder.name.startswith('.uv-runner-')
 
 def successful_identity(identity):
-    # A documentation commit or a reporting-metric choice does not grant retraining.
-    return digest({k:v for k,v in identity.items() if k not in ('producer_commit','gate_main_metric')})
+    # Scientific training identity is independent of report/config wrapper hashes.
+    # StructuralSpec binds model implementation; task/profile/data bind training.
+    value=copy.deepcopy({k:identity[k] for k in ('candidate_id','task','profile','structural_spec',
+                  'data_sha','purpose','reference_original','training_protocol')})
+    implementation=value['structural_spec']['implementation']
+    core=('__init__.py','adapter.py','model.py','modules.py','source.py','spec.py','source_binding.json')
+    value['structural_spec']['implementation']={k:implementation[k] for k in core}
+    return digest(value)
 
 def source_binding():
     paths=list((ROOT/'timemixer_dev').glob('*.py'))+list((ROOT/'timemixer_dev').glob('*.json'))
@@ -116,9 +123,9 @@ def run_worker(config,task_id,root,attempt,*,device='cpu',resume=False,path_over
     opt=torch.optim.Adam(model.parameters(),lr=tr['lr'],betas=tuple(tr['betas']),eps=tr['eps'],weight_decay=tr['weight_decay'])
     scheduler=Schedule(opt,tr['scheduler']);generator=torch.Generator().manual_seed(2024)
     env=environment()
-    identity=dict(schema='timemixer-uv-run-identity-v1',candidate_id=task['candidate_id'],task=task,profile=p,structural_spec=spec,
+    identity=dict(schema='timemixer-uv-run-identity-v2',candidate_id=task['candidate_id'],task=task,profile=p,structural_spec=spec,
                   config_sha=digest(config),data_sha=digest(metadata),environment=env,source=source_binding(),purpose=config['purpose'],
-                  reference_original=reference_original,training_protocol=config['training_protocol'],gate_main_metric=None if synthetic else launch_context['gate_main_metric'],
+                  reference_original=reference_original,training_protocol=config['training_protocol'],gate_policy=copy.deepcopy(validate_config_policy(config)),
                   execution_device=dict(device=device,gpu_uuid=None if synthetic else launch_context['gpu_identity']['uuid']))
     import subprocess
     identity['producer_commit']=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()

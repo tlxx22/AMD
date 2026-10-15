@@ -7,7 +7,7 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('action',choices=('resolve','worker','supervise','status','stop','summary','preflight','waves'))
     for name in ('config','task-id','root','attempt','runtime','runtime-sha','receipt','authorization','task-list','output','synthetic-fixture-path','synthetic-fault'):parser.add_argument('--'+name)
     parser.add_argument('--empty-synthetic',action='store_true');parser.add_argument('--resume',action='store_true')
-    parser.add_argument('--main-metric',choices=('mse','mae'))
+    parser.add_argument('--gate-policy',help='optional exact versioned policy JSON; cannot override the approved contract')
     a=parser.parse_args()
     if a.action=='resolve':
         from timemixer_dev.training_config import derive
@@ -41,7 +41,8 @@ def main():
         result=stop(a.root,a.attempt) if a.action=='stop' else status(a.root,a.attempt)
     else:
         from timemixer_dev.summary import summarize
-        result=summarize(json.loads(Path(a.config).read_text()),a.root,a.attempt,a.main_metric)
+        policy=json.loads(Path(a.gate_policy).read_text()) if a.gate_policy else None
+        result=summarize(json.loads(Path(a.config).read_text()),a.root,a.attempt,policy)
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':main()

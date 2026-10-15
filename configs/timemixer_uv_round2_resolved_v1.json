@@ -4,7 +4,6 @@
   "candidate_id": "timemixer-uv-dev-v1",
   "purpose": "development",
   "training_protocol": "round2_complete_onecycle_v3",
-  "gate_main_metric": null,
   "execution_authorized": false,
   "preparation_head": "491ce9848575f744125def9950e994a9bc5a65e8",
   "review_refs": {
@@ -24641,23 +24640,65 @@
     "scripts/ch3/start_timemixer_uv.sh": "d61822e58b77f0af082b5bed78ad981caf2f6c8be19c2667a016a49a1698c105",
     "timemixer_dev/__init__.py": "406ff7c3b3f1fb318a349ef07fe1f206ffeb8ff1cb8e40ee2a2771873d579157",
     "timemixer_dev/adapter.py": "6833afe812322c1608f9a7b2c57416984e71a57f069d5165f87bf92a84a048f8",
-    "timemixer_dev/artifacts.py": "fe2f6deac53fbbc92b221cbf87cba98ea07763a511c1805be254ec6c2db72253",
-    "timemixer_dev/launcher.py": "621c2ce7e40ea81eaf4e6dba8a362c28382a7e10bedda437e98e7bf8a6747cbc",
+    "timemixer_dev/artifacts.py": "2285d55aca5b062cd80f43cb4c7e0825410b7c19ee5bb97eb27be7a407efc128",
+    "timemixer_dev/gate_policy.py": "0473e8e4d8f5636988be0f54d59dacc675eccd477854e9cc20530233ec61eea6",
+    "timemixer_dev/launcher.py": "b8c6a4680a911955c3bd017277e3358a7b129d83bf45ccd6145ba842adff5e8b",
     "timemixer_dev/model.py": "8a532daac2115da9111f0a7d7ea2587b67ca0ab01fd3cca6a4109fab2c4fcc8c",
     "timemixer_dev/modules.py": "82bac54e7a3ba7303990a82e14b9f21dc4a275ca8655e0ee3e854293526f424a",
     "timemixer_dev/source.py": "6002041f057ee9add5f74f10f9cb5a39801a901e3e2f42be34d234d3ac2e9c0e",
     "timemixer_dev/source_binding.json": "cd8556e233331b210e2873088291bb345e8de0da22ddad3ed7424a5a5c4f732d",
     "timemixer_dev/spec.py": "dca60ad9ff6d8f5dd40c6b44078b2e6247d8b838562e80fd35c3381763ff1210",
-    "timemixer_dev/summary.py": "b862b997bbbdea20622573c236d7f0dc4234205ba755b45dc29701886f082a44",
-    "timemixer_dev/training_config.py": "7dcd55fa16dc9d2c7c8014bb42876ab684b9c6da07c9620792b5645231db5456",
+    "timemixer_dev/summary.py": "dad0ab121c58f135d22caae084cb6e443a05a428a1bdb64380e81e7c9d440b0a",
+    "timemixer_dev/training_config.py": "81161cbdb70fbe4a5dca3199792026a7fcba986c24f3f346476658404334e0f8",
     "timemixer_dev/training_state.py": "91445253fae7d93a2bfe7366e8f16741b66357a59d3a5d53852b7d676494595b",
-    "timemixer_dev/worker.py": "7582cc4a4607320156033283c891f0cc5bec91d73615109a38b43c8e4f12fc2f",
-    "timemixer_train_entry.py": "606865f53f3ecd027709625ed995964cfd3fa25e3f75941c88a11d9efacf1559",
+    "timemixer_dev/worker.py": "3ca42451e3dc69332061cc98a99807da23301ddf85219a9c77cd264a84b27928",
+    "timemixer_train_entry.py": "d6d649be409c98a51afa66b2c536a12212f1ec0894f19232f5fcc8e4faefd056",
     "utils/ch3_contract.py": "df4e6c591c9cd6ac6ddd5c8df1410bcde950bf88b7f282fef924ed5aee3e4e0a",
     "utils/ch3_data.py": "b15989be3fb043b92018d8728613c0fed9c2579e07e38afcd672be908bb45f4e",
     "utils/ch3_onecycle.py": "4ef29940086df62be523640031a906366419c947896dd46cec48a7d71da40de0",
     "utils/ch3_time_marks.py": "d949c9985538ac8108608fde3a90e330a4d05f325b64fbf4a8583299d675f76b",
     "utils/dataloader_urbanev.py": "a725a1da5ff1adf2e3f4a6d593a6291c2a8344bac83f8ed7490f742ccd5b1059",
     "utils/feature_schema.py": "1db7c6bd5d9d47fdeb8ff9df74812cd665b78733704d31abb5de94efcced64ae"
+  },
+  "gate_policy": {
+    "schema": "timemixer-uv-dual-gate-v1",
+    "metrics": [
+      "mse",
+      "mae"
+    ],
+    "comparison": "strict_less_unrounded",
+    "urban": {
+      "folds": [
+        1,
+        4
+      ],
+      "horizons": [
+        3,
+        6,
+        9,
+        12
+      ],
+      "weight": "equal_1_over_8"
+    },
+    "goal1": "UV<U<B and UV<V<B for each metric",
+    "goal3": "F4<F2<F1 and F4<F3<F1 for each metric; exact F4 reuse",
+    "goal2": {
+      "scheme": "A",
+      "minimum_wins_per_metric": 8,
+      "datasets": 11,
+      "independent_winner_sets": true,
+      "intersection_requirement": false,
+      "M_horizons": [
+        96,
+        192,
+        336,
+        720
+      ],
+      "EPF_horizons": [
+        24
+      ],
+      "within_dataset_weight": "equal",
+      "cross_dataset_raw_average": false
+    }
   }
 }

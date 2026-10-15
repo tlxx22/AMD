@@ -7,6 +7,8 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**现行用户合同（2026-10-15，M6-Timemixer双指标）**：MSE/MAE均为硬要求，目标二采用两个指标各自至少8/11改善的方案A；首批UrbanEV-F4的24任务已确认，见[现行专节](#m6-timemixer-dual-gate-r1)。第二轮完整训练协议不变。此前runner三项修复review已Passed，并已精确closure至`05d254341c9b5e63c3f5cd0499e6ffd7933d1440`、三端0/0且clean；本轮双指标接线待ChatGPT审核、未closure。q4资源准入尚未最终核准，GPU0 UUID/余量未知，无真实训练许可或启动。下列较早“单主指标未定/首批待确认/Needs repair/Pending/未提交”均为各自时点快照，由本专节覆盖当前合同。
+
 **最新修复定位（2026-10-15，repair-r1）**：ChatGPT已直读上一轮18文件及21/13通过日志，runner review为Needs repair，不授权closure/真实训练；首对U/V模型review仍Passed。本轮仅修复监督器拒绝请求的所有权边界、完整恢复前校验、波次/整批精确任务核账，见[本节修复记录](#m6-timemixer-runner-repair-r1)。第二轮协议、科学模型、77项范围和三个效果目标不变；修后字节待ChatGPT复审，旧自检通过记录保留。
 
 **最新定位（2026-10-15，M6-Timemixer训练接入）**：用户已选择第二轮完整协议，第三轮正式实验已完成；本分支已实际实现独立候选训练链路，见[最新接入合同](#m6-timemixer-runner-integration-r1)。首对U/V实现、迁移及此前6文件准备范围的审核结论沿用用户通知；本轮新增接线字节待ChatGPT审核。以下较早“协议未选/第三轮未完成/Pending”均为当时快照。真实开发训练未启动，效果目标Not evaluated；主判指标、实际启动批次、资源绑定及审核后Git closure仍待完成。
@@ -58,6 +60,23 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 <a id="m6-timemixer-runner-integration-r1"></a>
 ### M6-Timemixer最新合同：第二轮协议与实际训练接入（2026-10-15）
+
+<a id="m6-timemixer-dual-gate-r1"></a>
+#### 现行双指标硬验收、目标二方案A与首批确认（2026-10-15）
+
+用户已确认MSE、MAE分别为硬要求。全部使用未舍入值和严格小于，相等不计改善；训练仍用第二轮完整协议：fresh/seed2024、MSE loss、validation MSE严格best、原OneCycle和早停不变，MAE不参与checkpoint选择。两个指标是效果验收政策，不新增模型候选、seed、科学任务或训练协议。
+
+目标一：UrbanEV-F4，fold1、4×H3/6/9/12的8格等权平均；MSE和MAE各自同时要求`UV<U<B`且`UV<V<B`。不要求U/V固定排序或每格均改善。目标三：同一完整UV的F1～F4，仍按同8格等权；两指标各自同时要求`F4<F2<F1`且`F4<F3<F1`，F2/F3不排序，F4精确引用目标一8个UV结果而不重复训练。
+
+目标二采用方案A：ETTh1、ETTh2、ETTm1、ETTm2、Weather、Exchange各自按H96/192/336/720等权平均；PJM、NP、BE、FR、DE各用H24。11个独立数据集分别与第二轮同任务B比较，MSE胜出域数≥8且MAE胜出域数≥8；两集合可以不同，不要求交集≥8，不跨域平均原始误差。现有train-standardized评价空间、MS目标/M全通道SSE/SAE/元素数聚合及eval尾batch不丢保持不变。
+
+首批已由用户确认：现存精确24 ID，UrbanEV-F4 fold1/4×四H×U/V/UV，B复用8格、不重训；顺序为U-f1、U-f4、V-f1、V-f4、UV-f1、UV-f4，每组H3/6/9/12形成候选q4波次，共6波。每run最多20 epochs，总上限480 run-epochs；其余53项保留在77项/1340最大run-epochs开发覆盖中，本轮不执行，也不增加后续96项正式补齐任务。前三开发目标达标后才按原条件补齐Urban全六fold。
+
+工程改用`timemixer-uv-dual-gate-v1`完整政策对象，launch/run-identity/owned-runtime使用v2，配置、CLI、worker、回执及汇总一致拒绝旧单指标/字符串“both”或不匹配政策。checkpoint技术schema仍v2，完整恢复身份继续严格校验；原checkpoint/result/test记录不改写、不迁移。完整结构spec的历史非执行`main_metric=undecided`字段不承担训练合同，现行策略以resolved/启动合同中的gate_policy为准。成功训练保护键绑定task/profile/数据/模型核心实现，排除报告策略、报告封装源码及提交差异；报告政策变化不授予重复训练权，完整运行/恢复来源仍严格绑定全部源码。
+
+汇总按精确task ID及B配对覆盖分目标判断，拒绝重复/外国ID、完整task不符、错B配对和非法指标；通过既有completed registry跨批汇总。首批24项齐全可输出目标一两指标条件及联合数值结论；目标二/三缺项保持Not evaluated，全77项完整前不输出三个目标总达标。工程完成、数值Met/Not met、result review Pending分开，自动数值达标不等于result review Passed。原21/13、修后15及281项证据继续有效，本轮仅做双指标及受影响CPU复验，详见外置`M6-Timemixer-runner-integration-r1/dual-gate-r1/acceptance.md`。
+
+首对U/V及此前runner修复review Passed的依据为用户本轮审核通知；当前HEAD为上述真实closure提交，新双指标字节仍待ChatGPT审核、全部unstaged。本轮不GPU查询/模型负载、不访问真实train/validation/test或旧checkpoint、不stage/commit/push。资源继续参考第二轮UrbanEV batch128历史q4和U/V静态张量；上轮单次GPU0查询10秒超时，不伪造UUID/余量或q4实测。外置首批材料保持review_approved=false、后续审核commit和GPU身份未填，不可消费；资源准入、真实许可绑定和用户最后启动仍未完成。
 
 <a id="m6-timemixer-runner-repair-r1"></a>
 #### runner三项定向修复与复验（2026-10-15，repair-r1）

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from .spec import CANDIDATE_ID
 from utils.ch3_contract import digest
+from .gate_policy import policy, validate_config_policy
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEW_ROOT = ROOT.parent / 'amd-execution-evidence/m6/m6-original-round2-round3-result-review-v1-20261015'
@@ -61,6 +62,7 @@ def validate_task(task, purpose):
     return task
 
 def validate(config):
+    validate_config_policy(config)
     if config['schema']!='timemixer-uv-round2-training-v1' or config['training_protocol']!=('round2_complete_onecycle_v3' if config['purpose']=='development' else 'synthetic_round2_pipeline_v1'): raise ValueError('training schema/protocol mismatch')
     if config['purpose'] not in ('development','synthetic'): raise ValueError('purpose required')
     if config['execution_authorized'] is not False:raise ValueError('scientific configuration is not a launch authorization')
@@ -80,6 +82,9 @@ def validate(config):
         expected|={(2,d,1,h,'M','UV') for d,h in itertools.product(('ETTh1','ETTh2','ETTm1','ETTm2','Weather','Exchange'),(96,192,336,720))}
         expected|={(2,d,1,24,'MS','UV') for d in ('PJM','NP','BE','FR','DE')}
         if {(t['goal'],t['dataset'],t['fold'],t['h'],t['input_variant'],t['arm']) for t in config['tasks']}!=expected:raise ValueError('development grid expanded/changed')
+        for t in config['tasks']:
+            expected_id='|'.join((CANDIDATE_ID,t['dataset'],t['input_variant'],'f'+str(t['fold']),'h'+str(t['h']),t['arm'],'s2024'))
+            if t['id']!=expected_id:raise ValueError('exact scientific task ID required')
         if set(config['F4_reuse'].values())!={t['id'] for t in config['tasks'] if t['goal']==1 and t['arm']=='UV'}:raise ValueError('F4 reuse identity mismatch')
         if set(config['existing_B'])!={t['baseline_pair_cell_id'] for t in config['tasks'] if t['goal']!=3} or any(t['baseline_pair_cell_id'] is not None for t in config['tasks'] if t['goal']==3):raise ValueError('B pairing/input ablation roles')
     return config
@@ -118,7 +123,7 @@ def derive():
                          data_config=data,data_stat=stat_refs,baseline_prefix_metadata=metadata.get('prefixes',{}),
                          baseline_record_prefix={k:metadata[k] for k in ('parsed_records','record_prefix_sha256','fingerprint_semantics') if k in metadata},arithmetic=arithmetic(data,p,t['fold'])))
         paired[b['cell_id']]=dict(round=2,task_id=a['run_id'],mse=a['mse'],mae=a['mae'],metric_space='train-standardized',result_ref=s['result_ref'],profile_sha=s['profile_sha256'],review_scope='accepted source/execution/raw metrics/sealed integrity; no fresh tensor/optimizer/RNG load audit',review_accepted_by_user=True)
-    config=dict(schema='timemixer-uv-round2-training-v1',candidate_id=CANDIDATE_ID,purpose='development',training_protocol='round2_complete_onecycle_v3',gate_main_metric=None,execution_authorized=False,
+    config=dict(schema='timemixer-uv-round2-training-v1',candidate_id=CANDIDATE_ID,purpose='development',training_protocol='round2_complete_onecycle_v3',gate_policy=policy(),execution_authorized=False,
                 preparation_head='491ce9848575f744125def9950e994a9bc5a65e8',review_refs={n:dict(path=str(REVIEW_ROOT/n),sha256=h) for n,h in REVIEW_SHAS.items()},tasks=rows,existing_B=paired,
                 F4_reuse=plan['goal3']['F4_same_identity_reuse'],max_run_epochs=1340,max_optimizer_steps=sum(t['arithmetic']['max_optimizer_steps'] for t in rows),
                 global_lock='/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/project-gpu0.lock',q_max=4,

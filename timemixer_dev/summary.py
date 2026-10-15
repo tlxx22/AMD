@@ -1,47 +1,129 @@
-"""Read-only saved-result aggregation; complete coverage before scientific gates."""
+"""Audited saved-result aggregation with exact, independent goal coverage."""
 from pathlib import Path
 import json
+import math
 from .artifacts import audit
+from .gate_policy import validate_policy, validate_config_policy
+from .training_config import validate
+from utils.ch3_contract import digest
 
-def summarize(config,root,attempt,main_metric=None):
-    rows={}
+DOMAINS = ('ETTh1','ETTh2','ETTm1','ETTm2','Weather','Exchange','PJM','NP','BE','FR','DE')
+METRICS = ('mse', 'mae')
+
+def checked_metrics(value):
+    for name in METRICS:
+        v = value[name]
+        if type(v) not in (int, float) or not math.isfinite(v) or v < 0:
+            raise ValueError('nonfinite or invalid saved metric')
+    return value
+
+def aggregate(config, records, gate_policy=None):
+    """Pure saved-metadata calculation, also used by the audited disk reader."""
+    validate(config)
+    configured = validate_config_policy(config)
+    if gate_policy is not None:
+        validate_policy(gate_policy)
+        if gate_policy != configured:
+            raise ValueError('gate policy differs from recorded startup contracts')
+    tasks = {t['id']:t for t in config['tasks']}
+    rows = {}
+    for task, metrics in records:
+        if task['id'] in rows:
+            raise ValueError('duplicate result identity')
+        if task['id'] not in tasks or task != tasks[task['id']] or metrics['task_id'] != task['id']:
+            raise ValueError('foreign or mismatched exact summary task identity')
+        rows[task['id']] = checked_metrics(metrics)
+    if config['purpose'] == 'development':
+        for t in tasks.values():
+            expected = '|'.join((t['task'],'TimeMixer',t['dataset'],str(t['fold']),str(t['h']),str(t['seed'])))
+            if t['baseline_cell_id'] != expected or (t['goal'] != 3 and t['baseline_pair_cell_id'] != expected):
+                raise ValueError('wrong B pairing identity')
+            b = config['existing_B'][expected]
+            if b['round'] != 2 or b['profile_sha'] != t['baseline_profile_sha'] or b['metric_space'] != 'train-standardized' or b['review_accepted_by_user'] is not True:
+                raise ValueError('wrong B paired profile/source')
+            checked_metrics(b)
+
+    def mean(items):
+        return {m:math.fsum(v[m] for v in items)/len(items) for m in METRICS} if items else None
+    def group(ids):
+        present = sorted(set(ids) & rows.keys())
+        return dict(count=len(present), required=len(ids), task_ids=present,
+                    missing_task_ids=sorted(set(ids)-rows.keys()),
+                    mean=mean([rows[k] for k in present]), complete=bool(ids) and set(ids)<=rows.keys())
+
+    urban = {}
+    bkeys = sorted({t['baseline_pair_cell_id'] for t in tasks.values() if t['goal']==1})
+    bitems = [checked_metrics(config['existing_B'][k]) for k in bkeys if k in config['existing_B']]
+    urban['B'] = dict(count=len(bitems), required=8, mean=mean(bitems), complete=len(bkeys)==len(bitems)==8, cell_ids=bkeys)
+    for arm in ('U','V','UV'):
+        urban[arm] = group([t['id'] for t in tasks.values() if t['goal']==1 and t['arm']==arm])
+    inputs = {v:group([t['id'] for t in tasks.values() if t['dataset']=='UrbanEV' and t['arm']=='UV' and t['input_variant']==v]) for v in ('F1','F2','F3','F4')}
+    domains = {}
+    for ds in DOMAINS:
+        selected = [t for t in tasks.values() if t['goal']==2 and t['dataset']==ds]
+        entry = group([t['id'] for t in selected])
+        base = [config['existing_B'][t['baseline_pair_cell_id']] for t in selected if t['baseline_pair_cell_id'] in config['existing_B']]
+        entry.update(candidate=entry['mean'], B=mean(base))
+        entry['complete'] &= len(base)==len(selected)
+        domains[ds] = entry
+
+    goals = {}
+    coverages = {1:all(v['complete'] and v['count']==8 for v in urban.values()),
+                 3:all(v['complete'] and v['count']==8 for v in inputs.values()),
+                 2:all(v['complete'] and v['required']==(4 if ds in DOMAINS[:6] else 1) for ds,v in domains.items())}
+    for goal in (1,2,3):
+        state = dict(coverage_complete=coverages[goal], engineering_completion='Complete' if coverages[goal] else 'Partial', numerical_conditions_met=None,
+                     numerical_status='Not evaluated', result_review='Pending', metrics={})
+        if coverages[goal]:
+            for metric in METRICS:
+                if goal in (1,3):
+                    vals = {k:v['mean'][metric] for k,v in (urban if goal==1 else inputs).items()}
+                    conditions = ({'UV<U<B':vals['UV']<vals['U']<vals['B'], 'UV<V<B':vals['UV']<vals['V']<vals['B']} if goal==1 else
+                                  {'F4<F2<F1':vals['F4']<vals['F2']<vals['F1'], 'F4<F3<F1':vals['F4']<vals['F3']<vals['F1']})
+                    state['metrics'][metric] = dict(means=vals, conditions=conditions, conditions_met=all(conditions.values()))
+                else:
+                    winners = [ds for ds,v in domains.items() if v['candidate'][metric]<v['B'][metric]]
+                    state['metrics'][metric] = dict(winner_count=len(winners), winners=winners, conditions_met=len(winners)>=8)
+            state['numerical_conditions_met'] = all(v['conditions_met'] for v in state['metrics'].values())
+            state['numerical_status'] = 'Met' if state['numerical_conditions_met'] else 'Not met'
+        goals['goal'+str(goal)] = state
+    complete = set(rows)==set(tasks) and all(coverages.values())
+    numerical = all(v['numerical_conditions_met'] for v in goals.values()) if complete else None
+    return dict(required=len(tasks),completed=len(rows),coverage_complete=complete,
+                engineering_completion='Complete' if set(rows)==set(tasks) else 'Partial',
+                gate_policy=configured,goals=goals,numerical_conditions_met=numerical,
+                numerical_status=('Met' if numerical else 'Not met') if complete else 'Not evaluated',
+                scientific_gate='Pending result review' if complete else 'Not evaluated',result_review='Pending',
+                Urban_module=urban,Urban_inputs=inputs,nonUrban=domains,
+                cross_dataset_raw_MSE_average=False,F4_reused_without_new_run=True)
+
+def summarize(config, root, attempt, gate_policy=None):
+    validate_config_policy(config)
+    if gate_policy is not None:
+        validate_policy(gate_policy)
+    records = []
     if attempt is None:
         from .worker import RUN_NAMESPACE
-        registry=(Path(root) if config['purpose']=='synthetic' else RUN_NAMESPACE)/'completed'
-        paths=[]
+        registry = (Path(root) if config['purpose']=='synthetic' else RUN_NAMESPACE)/'completed'
+        paths = []
         if registry.exists():
             for p in registry.iterdir():
-                if p.name.endswith('.tmp'):continue
-                value=json.loads(p.read_text())
-                if value.get('status')=='completed' and value['receipt']['manifest']['identity']['config_sha']==__import__('utils.ch3_contract',fromlist=['digest']).digest(config):paths.append(Path(value['receipt']['path']))
+                if p.name.endswith('.tmp'):
+                    continue
+                value = json.loads(p.read_text())
+                if value.get('status')=='completed' and value['receipt']['manifest']['identity']['config_sha']==digest(config):
+                    paths.append(Path(value['receipt']['path']))
     else:
-        folder=Path(root)/attempt/'runs';paths=list(folder.iterdir()) if folder.exists() else []
-    recorded_metrics=set()
-    for p in paths:
-            receipt=audit(p);m=receipt['metrics'];task=receipt['manifest']['identity']['task']
-            if task['id'] in rows:raise ValueError('duplicate result identity')
-            if receipt['manifest']['identity']['config_sha'] != __import__('utils.ch3_contract',fromlist=['digest']).digest(config):raise ValueError('summary configuration identity')
-            rows[task['id']]=(task,m)
-            recorded_metrics.add(receipt['manifest']['identity']['gate_main_metric'])
-    if not set(rows)<={t['id'] for t in config['tasks']}:raise ValueError('foreign summary task identity')
-    if main_metric is not None and recorded_metrics!={main_metric}:raise ValueError('main metric differs from recorded startup contracts')
-    def mean(items):
-        return {metric:sum(m[metric] for m in items)/len(items) for metric in ('mse','mae')} if items else None
-    urban={};inputs={};domains={}
-    for arm in ('B','U','V','UV'):
-        items=[v for k,v in config['existing_B'].items() if '|UrbanEV|' in k] if arm=='B' else [m for t,m in rows.values() if t['goal']==1 and t['arm']==arm]
-        urban[arm]=dict(count=len(items),mean=mean(items),complete=len(items)==8)
-    for variant in ('F1','F2','F3','F4'):
-        items=[m for t,m in rows.values() if t['dataset']=='UrbanEV' and t['arm']=='UV' and t['input_variant']==variant]
-        inputs[variant]=dict(count=len(items),mean=mean(items),complete=len(items)==8)
-    for ds in ('ETTh1','ETTh2','ETTm1','ETTm2','Weather','Exchange','PJM','NP','BE','FR','DE'):
-        tasks=[t for t in config['tasks'] if t['goal']==2 and t['dataset']==ds];items=[rows[t['id']][1] for t in tasks if t['id'] in rows];base=[config['existing_B'][t['baseline_cell_id']] for t in tasks]
-        domains[ds]=dict(count=len(items),required=len(tasks),candidate=mean(items),B=mean(base),complete=len(items)==len(tasks))
-    complete=len(rows)==len(config['tasks']) and all(x['complete'] for x in urban.values()) and all(x['complete'] for x in inputs.values()) and all(x['complete'] for x in domains.values())
-    result=dict(required=len(config['tasks']),completed=len(rows),coverage_complete=complete,Urban_module=urban,Urban_inputs=inputs,nonUrban=domains,main_metric=main_metric,scientific_gate='Not evaluated',cross_dataset_raw_MSE_average=False,F4_reused_without_new_run=True)
-    if complete and main_metric in ('mse','mae'):
-        u={k:v['mean'][main_metric] for k,v in urban.items()};f={k:v['mean'][main_metric] for k,v in inputs.items()}
-        wins=sum(v['candidate'][main_metric]<v['B'][main_metric] for v in domains.values())
-        gates=dict(goal1=u['UV']<u['U']<u['B'] and u['UV']<u['V']<u['B'],goal3=f['F4']<f['F2']<f['F1'] and f['F4']<f['F3']<f['F1'],goal2_improved_datasets=wins,goal2=wins>=8)
-        result.update(gates=gates,numerical_conditions_met=bool(gates['goal1'] and gates['goal2'] and gates['goal3']),scientific_gate='Pending result review',result_review='Pending')
-    return result
+        folder = Path(root)/attempt/'runs'
+        paths = list(folder.iterdir()) if folder.exists() else []
+    for path in paths:
+        receipt = audit(path)
+        identity = receipt['manifest']['identity']
+        task = identity['task']
+        if identity['config_sha']!=digest(config) or receipt['manifest']['task_id']!=task['id']:
+            raise ValueError('summary configuration/task identity')
+        validate_policy(identity.get('gate_policy'))
+        if identity['gate_policy']!=config['gate_policy']:
+            raise ValueError('gate policy differs from recorded startup contracts')
+        records.append((task,receipt['metrics']))
+    return aggregate(config,records,gate_policy)

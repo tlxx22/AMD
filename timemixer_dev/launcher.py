@@ -11,6 +11,7 @@ import sys
 import time
 import uuid
 from .training_config import ROOT,validate,digest,sha
+from .gate_policy import validate_policy, validate_config_policy
 
 def proc_start(pid):
     text=Path('/proc/'+str(pid)+'/stat').read_text();return text[text.rfind(')')+2:].split()[19]
@@ -26,12 +27,15 @@ def batch(config,ids):
 
 def validate_authorization(config,config_path,ids,authorization):
     from .worker import source_binding
-    if authorization.get('schema')!='timemixer-uv-launch-v1' or authorization.get('review_approved') is not True:raise PermissionError('actual post-closure reviewed launch binding required')
+    if authorization.get('schema')!='timemixer-uv-launch-v2' or authorization.get('review_approved') is not True:raise PermissionError('actual post-closure reviewed dual-policy launch binding required')
+    try:
+        validate_config_policy(config);validate_policy(authorization.get('gate_policy'))
+        if 'main_metric' in authorization or 'gate_main_metric' in authorization or authorization['gate_policy']!=config['gate_policy']:raise ValueError('legacy/mismatched policy')
+    except ValueError as error:raise PermissionError('dual gate policy startup contract') from error
     if authorization.get('commit')!=git('rev-parse','HEAD') or git('status','--porcelain=v1'):raise PermissionError('reviewed clean commit required')
     head=git('rev-parse','HEAD')
     if git('rev-parse','origin/M6-Timemixer')!=head or git('ls-remote','--heads','origin','refs/heads/M6-Timemixer').split()[0]!=head:raise PermissionError('three-end source binding')
     if authorization.get('config_sha256')!=sha(config_path) or authorization.get('task_ids')!=ids or authorization.get('source_binding')!=source_binding():raise PermissionError('exact config/tasks/source binding')
-    if authorization.get('main_metric') not in ('mse','mae'):raise PermissionError('gate main metric must be confirmed in startup contract')
     resource=authorization.get('resource_plan',{})
     if resource.get('q_max')!=4 or resource.get('waves')!=batch(config,ids) or resource.get('mandatory_probe') is not False or not resource.get('reviewed_evidence_refs'):raise PermissionError('reviewed exact q4 wave/resource evidence binding required')
     for ref in resource['reviewed_evidence_refs']:
@@ -70,7 +74,11 @@ def validate_worker_context(config,task_id,context):
     grant=runtime['authorization_ref']
     if sha(grant['path'])!=grant['sha256']:raise PermissionError('authorization changed')
     authorization=json.loads(Path(grant['path']).read_text())
-    if authorization.get('review_approved') is not True or authorization.get('commit')!=runtime['commit'] or authorization.get('task_ids')!=runtime['task_ids']:raise PermissionError('runtime/grant identity')
+    if authorization.get('schema')!='timemixer-uv-launch-v2' or authorization.get('review_approved') is not True or authorization.get('commit')!=runtime['commit'] or authorization.get('task_ids')!=runtime['task_ids']:raise PermissionError('runtime/grant identity')
+    try:
+        validate_config_policy(config);validate_policy(runtime.get('gate_policy'));validate_policy(authorization.get('gate_policy'))
+        if runtime.get('schema')!='timemixer-uv-owned-runtime-v2' or 'main_metric' in authorization or 'gate_main_metric' in runtime or runtime['gate_policy']!=config['gate_policy'] or authorization['gate_policy']!=runtime['gate_policy']:raise ValueError('runtime policy mismatch')
+    except ValueError as error:raise PermissionError('runtime dual gate policy') from error
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='0' or runtime['gpu_identity']['index']!='0' or runtime['gpu_identity']['uuid']!=authorization['gpu_uuid']:raise PermissionError('runtime CUDA mapping/GPU UUID identity')
     if sha(runtime['config_ref']['path'])!=runtime['config_ref']['sha256']:raise PermissionError('runtime config bytes changed')
     return runtime
@@ -88,6 +96,11 @@ def prepare_resume(folder,ids,authorization,synthetic=False,*,archive=True,confi
         ref=authorization['previous_runtime_ref']
         if sha(ref['path'])!=ref['sha256']:raise PermissionError('previous runtime evidence changed')
         previous=json.loads(Path(ref['path']).read_text())
+        if previous.get('schema')!='timemixer-uv-owned-runtime-v2':raise PermissionError('resume requires dual policy runtime v2')
+        try:
+            validate_policy(previous.get('gate_policy'));validate_policy(authorization.get('gate_policy'))
+            if previous['gate_policy']!=authorization['gate_policy']:raise ValueError('resume policy mismatch')
+        except ValueError as error:raise PermissionError('resume dual gate policy') from error
         if previous['commit']!=authorization['commit'] or not set(ids)<=set(previous['task_ids']):raise PermissionError('resume source/task identity')
         if config is not None:
             from .worker import source_binding
@@ -126,10 +139,12 @@ def verify_child_receipt(child,config,folder,runtime,runtime_ref):
     verified=audit(path)
     if verified!=receipt:raise ValueError('wave completion receipt mismatch')
     task=next(t for t in config['tasks'] if t['id']==child['expected_task_id']);m=receipt['manifest'];identity=m['identity']
+    if runtime.get('schema')!='timemixer-uv-owned-runtime-v2':raise ValueError('receipt requires dual policy runtime v2')
     if m['task_id']!=child['expected_task_id'] or identity['task']!=task or receipt['metrics']['task_id']!=child['expected_task_id']:raise ValueError('receipt assigned task/arm/F/fold/H/seed mismatch')
     p=task['structural_source_profile'];spec=StructuralSpec.from_profile(p,use_u=task['use_u'],use_v=task['use_v'],task=task['task'],fold=task['fold']).value
     if identity['config_sha']!=digest(config) or identity['profile']!=p or identity['structural_spec']!=spec or identity['source']!=runtime['source_binding'] or identity['producer_commit']!=runtime['commit']:raise ValueError('receipt configuration/source/producer mismatch')
-    if identity['purpose']!=config['purpose'] or identity['training_protocol']!=config['training_protocol'] or identity['candidate_id']!=config['candidate_id'] or identity['reference_original'] is not False or identity['gate_main_metric']!=runtime['gate_main_metric']:raise ValueError('receipt run identity mismatch')
+    validate_policy(identity.get('gate_policy'));validate_config_policy(config);validate_policy(runtime.get('gate_policy'))
+    if identity.get('schema')!='timemixer-uv-run-identity-v2' or 'gate_main_metric' in identity or identity['purpose']!=config['purpose'] or identity['training_protocol']!=config['training_protocol'] or identity['candidate_id']!=config['candidate_id'] or identity['reference_original'] is not False or identity['gate_policy']!=runtime['gate_policy'] or identity['gate_policy']!=config['gate_policy']:raise ValueError('receipt run identity mismatch')
     expected_device=dict(device='cpu' if runtime['synthetic'] else 'cuda:0',gpu_uuid=None if runtime['synthetic'] else runtime['gpu_identity']['uuid'])
     if identity['execution_device']!=expected_device:raise ValueError('receipt execution device identity mismatch')
     provenance=None if runtime['synthetic'] else dict(runtime_ref=runtime_ref,authorization_ref=runtime['authorization_ref'])
@@ -168,10 +183,10 @@ def supervise(config_path,ids,root,attempt,authorization_path=None,*,empty_synth
         if real:
             if os.environ.get('CUDA_VISIBLE_DEVICES')!='0':raise PermissionError('real supervisor requires explicit CUDA_VISIBLE_DEVICES=0')
             startup=gpu_startup(authorization)
-        runtime=dict(schema='timemixer-uv-owned-runtime-v1',owner_pid=os.getpid(),owner_start=proc_start(os.getpid()),nonce=uuid.uuid4().hex,
+        runtime=dict(schema='timemixer-uv-owned-runtime-v2',owner_pid=os.getpid(),owner_start=proc_start(os.getpid()),nonce=uuid.uuid4().hex,
                      task_ids=ids,waves=waves,commit=git('rev-parse','HEAD'),config_sha=digest(config) if config else None,source_binding=source_binding(),
                      authorization_ref=dict(path=str(authorization_path),sha256=sha(authorization_path)) if real else None,synthetic=not real,
-                     config_ref=dict(path=str(config_path),sha256=sha(config_path)) if config else None,gate_main_metric=authorization['main_metric'] if real else None,gpu_identity=startup if real else None)
+                     config_ref=dict(path=str(config_path),sha256=sha(config_path)) if config else None,gate_policy=validate_config_policy(config) if config else None,gpu_identity=startup if real else None)
         runtime_path=folder/('runtime-'+runtime['nonce']+'.json')
         runtime_content=json.dumps(runtime,sort_keys=True,ensure_ascii=False,indent=2,allow_nan=False)+'\n'
         import hashlib
@@ -215,7 +230,7 @@ def supervise(config_path,ids,root,attempt,authorization_path=None,*,empty_synth
             children=[]
         if len(completed_ids)!=len(ids) or set(completed_ids)!=set(ids):raise ValueError('exact batch completion set mismatch')
         from .summary import summarize
-        result=summarize(config,root,attempt,authorization['main_metric'] if real else None)
+        result=summarize(config,root,attempt)
         atomic_json(folder/'summary.json',result);atomic_json(folder/'complete.json',dict(technical_complete=True,task_ids=completed_ids,waves=len(waves),scientific_gate=result['scientific_gate']))
     except BaseException as error:
         if not controls_attempt(folder,claim):raise

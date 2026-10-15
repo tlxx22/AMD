@@ -35,6 +35,10 @@ def audit(path):
     if claim!={'identity_sha':m['identity_sha'],'calls':1,'best_epoch':m['best']['epoch']}:raise ValueError('test claim identity/count')
     identity=m['identity'];config=json.loads((path/'config.json').read_text());data=json.loads((path/'data-metadata.json').read_text());test_data=json.loads((path/'test-data-metadata.json').read_text())
     if digest(config)!=identity['config_sha'] or digest(identity)!=m['identity_sha'] or json.loads((path/'identity.json').read_text())!=identity:raise ValueError('artifact configuration/run identity')
+    if identity.get('schema')=='timemixer-uv-run-identity-v2':
+        from .gate_policy import validate_config_policy,validate_policy
+        validate_config_policy(config);validate_policy(identity.get('gate_policy'))
+        if 'gate_main_metric' in identity or identity['gate_policy']!=config['gate_policy']:raise ValueError('artifact gate policy identity')
     if digest(data)!=identity['data_sha'] or digest(test_data)!=result['test_data_sha'] or data['scaler']!=test_data['scaler'] or data['test_observations_accessed'] is not False or test_data['test_observations_accessed'] is not True:raise ValueError('data identity/scaler/test roles')
     if json.loads((path/'spec.json').read_text())!=identity['structural_spec'] or json.loads((path/'environment.json').read_text())!=identity['environment']:raise ValueError('spec/environment identity')
     tr=identity['profile']['training'];best=BestState(tr['patience']);per_epoch=tr['scheduler']['steps_per_epoch']
