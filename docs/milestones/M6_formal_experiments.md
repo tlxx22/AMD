@@ -1,6 +1,6 @@
 # M6：第三章正式实验与定稿
 
-**In Progress — 生产代码HEAD5a1f34dbea9e906d3525f79b094b82efad2159b0；第三轮371项技术完成，5083 epochs，98波/371 worker退出0。第二轮371有效来源与第三轮新371分别完成本轮原始元数据/来源审计，Codex分别建议review通过，待ChatGPT直读确认；效果gate不裁决。原始pending/封存产物不改，旧停止attempt信用0，公开展示隔离候选未合入。本轮仅权威文档与外置审计，未提交，不关闭M6。**
+**In Progress — 训练代码producer5a1f34dbea9e906d3525f79b094b82efad2159b0；第三轮371项技术完成，5083 epochs，98波/371 worker退出0。第二轮371有效来源与第三轮新371分别完成本轮原始元数据/来源审计，ChatGPT已分别接受原始review Passed（范围为报告声明的来源、执行、原始指标及封存完整性，不含效果gate或新鲜checkpoint内容加载审查）；效果gate不裁决。原始pending/封存产物不改，旧停止attempt信用0，公开展示代码未合入，本次仅文档迁移。本轮仅两份权威文档静态合并，未提交，不关闭M6。**
 
 ## 两轮原始正式结果review与完成后审计（2026-10-15，北京时间）
 
@@ -22,6 +22,36 @@ Codex分别建议第二轮、第三轮在上述元数据/来源/封存完整性�
 
 本轮新增GPU查询、模型计算、训练、validation/test、checkpoint加载、许可与arm均为0；仅更新这两份权威文档和专用外置审计材料。未stage/commit/push，修后文档与review报告待ChatGPT直读审核，不声称新字节已被审核；不进入M7或M6-TimeMixer开发。
 
+
+## M6第二轮与第三轮M任务PatchTST公开主表展示投影候选（2026-10-10）
+
+**本次仅迁移文档的边界**：以下保留2026-10-10旧PatchTST隔离候选的新增章节。其源码、配置、CLI、18项验收、第三轮运行中及待训练结束后合入等表述，均是当时隔离候选的历史记录，不代表生产N已合入展示代码或当前仍在训练；本次不迁移任何代码、配置、测试或运行入口，也不重做所述验收。
+
+两轮原始review及其文档closure `7e917f2fba8962fcfdaad0f155b8dacdf6d43d41`（parent `5a1f34dbea9e906d3525f79b094b82efad2159b0`）完整保留，原审计来源和历史待审核措辞按各自时点保存。文中第二、第三轮是旧候选形成时的范围，不否定用户后来确认的长期适用决定；本次不实现或扩写长期规则代码、后续轮次接口或新的展示方案。
+
+用户明确固定两轮相同的结果展示来源：M任务中PatchTST的ETTh1、ETTh2、ETTm1、ETTm2、Weather，H96/192/336/720共20格/轮，统一采用TimeMixer原论文PatchTST公开主表结果；Exchange四H始终取各轮自己的本地正式结果，第三轮不能借用第二轮。两轮合计40个展示位置复用同一套20组公开数值，其他六baseline、MS/UrbanEV/EPF及每轮其余351个位置的展示数值不变。该决定不是超参数重选、训练信用替换或新增实验，不取消当前及后续已批准任务。
+
+**PatchTST公开结果的论文表述边界（用户明确决定）**
+
+第二轮和第三轮M任务的PatchTST公开结果采用规则及真实来源，由工程记录负责准确保存和追溯。
+
+对于这些公开结果在毕业论文中如何引用、说明，以及放置于何处，由用户在论文写作阶段自行决定。本阶段不预设具体章节、表格注释位置或表述方案。
+
+后续论文写作助手不应仅因读取本工程记录，就自行指定说明位置、主动制定相关写作任务或直接向论文正文插入未经用户确定的来源说明。涉及具体写法时，以用户当轮明确要求为准。
+
+本条不改变公开结果与本地复现结果的真实来源身份，也不意味着对今后所有论文写作建议的一般性禁止。
+
+实际读取TimeMixer: Decomposable Multiscale Mixing for Time Series Forecasting（ICLR 2024），https://arxiv.org/pdf/2405.14616 。原PDF SHA-256为`a599b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d`。正文Table 2（PDF第6页）五域四H平均MSE/MAE依次为ETTh1 0.516/0.484、ETTh2 0.391/0.411、ETTm1 0.406/0.407、ETTm2 0.290/0.334、Weather 0.265/0.285；附录Table 13（第17页）20组逐H值逐项核对并录入机器表。不使用Table 14搜索结果或其它论文转引，Exchange无此公开来源。原文仅三位小数，官方Table 2均值与已舍入Table 13算术均值分别记录；用两表各自±0.0005的舍入区间兼容性检查，不伪造隐藏高精度。pypdf的旋转域名提取限制已由原文网页文本和原表行序交叉核对。
+
+机器规则`m_patchtst_timemixer_published_main_v1`位于`configs/ch3_m_patchtst_timemixer_published_main_v1.json`，SHA-256=`80c966d316532f9e468fe16892afb2e110e47586a6086b971fd402bfd9bb1327`。`utils/ch3_m_display.py`提供只读两轮投影、逐H表、域内四H均值及逐H/域均值排名；排名按三位显示精度、并列最优/次优处理，仅在同域七个M模型齐备时可用，不跨域平均绝对误差、不混排MS。每条展示记录保留round/dataset/H/model、source_kind、公开Table 13位置或本轮result引用、原本地结果引用及规则SHA。公开值没有本地run_id/checkpoint/producer或完成信用；原训练身份仅保留在original_local。第三轮本地尚未完成的任务和Exchange仍Pending，公开20格可展示不代表整轮完成，technical complete、result_review及效果gate分开。
+
+原始`ch3_round2_amendment.summary()`及`ch3_type1_summary.result_index()`保持原技术审计语义和函数AST；新增`display_summary()`与`display_result_index()`接入共享CLI的second-round/third-round展示出口。独立只读CLI`python -B -m utils.ch3_m_display --context … --context-sha …`消费精确SHA的封存第二轮371索引及第三轮真实配置/许可/startup硬件引用，只读取final result/manifest元数据。它不替代控制器complete检查、不访问checkpoint内容、不执行模型、GPU或test。正式比较展示改用投影，技术审计及所有源采用仍消费原始本地记录。
+
+本轮隔离基线为生产N `5a1f34dbea9e906d3525f79b094b82efad2159b0`；生产第三轮session `ch3-m6-third-fourH-reviewed-q-r1`、controller3206/start_ticks221625995仍运行。独立detached worktree为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/m-patchtst-timemixer-published-main-v1-isolated-20261010/code`，证据位于同级`review/`。本次只改隔离源码/文档，生产N/W/R、旧索引、共享操作材料与正在写入的实验artifact保持原字节及运行状态。Urban168→EPF35→M_ALL168、371项/5670最大run-epochs、56组q4、event-driven资源合同、数值/test-once边界、非Weather PatchTST dm4及Weather完整128/heads16/encoder2/ff256配置均不变。
+
+轻量CPU/合成18项Passed，0 failure/error/skip，约1秒；覆盖两轮20/351、同一公开表、各轮Exchange、原始API AST、均值/排名/并列、SHA/alias/任务身份负例、重复投影、Pending和零训练信用、真实只读CLI及科学配置不变。实际只读导出通过，第二轮371个本地结果已有来源，第三轮快照观察到16个Urban结果，M/Exchange未完成；不把逐任务文件观察当作第三轮技术封存。48个原PatchTST M24的result/manifest引用SHA匹配，未读取checkpoint。首轮真实导出因候选将startup.authorization_sha误解为文件SHA而拒绝；对照生产生成器确认它是JSON规范摘要，按真实口径修正并补负例，失败输出保留。修后审计钩子确认导出写入0、外部命令0、GPU查询0、原始数据/checkpoint读取0。详细日志、两轮差异/排名、逐文件inventory和完整patch见独立review包。
+
+当前为未stage/commit/push、未生成新许可的隔离候选，尚未经ChatGPT审核新字节；当前生产展示出口尚未切换。仅在第三轮训练结束、原技术审计完成、生产clean/idle之后，才可由ChatGPT审核安排精确合入、必要来源保护绑定及Git closure，再正式切换展示口径。不得将此候选或新文档字节注入运行中的controller，也不得修改正在使用的producer证明、许可或共享脚本。
 
 ## EPF通用默认4＋1与当前56组固定q4候选（本轮用户新决定）
 
