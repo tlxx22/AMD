@@ -54,7 +54,7 @@ def gpu_startup(authorization):
     last=None
     for n in range(3):
         try:
-            lines=subprocess.check_output(['nvidia-smi','--query-gpu=index,uuid,memory.total,memory.free','--format=csv,noheader,nounits'],text=True,timeout=10).splitlines()
+            lines=subprocess.check_output(['nvidia-smi','--query-gpu=index,uuid,memory.total,memory.free','--format=csv,noheader,nounits'],text=True,timeout=60).splitlines()
             fields=next(x.split(',') for x in lines if x.split(',')[0].strip()=='0');index,uid,total,free=[v.strip() for v in fields]
             if uid!=authorization['gpu_uuid'] or float(free)<max(8192,float(total)*.1):raise PermissionError('startup GPU identity/free-memory gate')
             return dict(index=index,uuid=uid,total_MiB=float(total),free_MiB=float(free))

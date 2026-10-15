@@ -7,6 +7,8 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**现行GPU查询修复（2026-10-16，M6-Timemixer）**：双指标12路径审核已Passed并closure至`f48c9104913ca9ab9f38bff605fc6cf3657126f9`。用户SSH、ChatGPT Desktop Commander及本轮Codex均已成功完成GPU管理查询，实际耗时分别为19.796秒、13.166773566秒、13.073184480秒，证明原10秒上限过短。本轮只将候选启动查询改为60秒，最多3次且仅超时重试不变；9项无模型复验通过，源码/绑定增量待审核，见[查询修复专节](#m6-timemixer-gpu-timeout-repair-r1)。不再将此前超时解释为硬件故障或要求先联系管理员，不恢复强制serial/q4 probe；旧记录保留。首批24及第二轮/双指标合同不变，长训练尚未启动、无可消费许可。
+
 **现行用户合同（2026-10-15，M6-Timemixer双指标）**：MSE/MAE均为硬要求，目标二采用两个指标各自至少8/11改善的方案A；首批UrbanEV-F4的24任务已确认，见[现行专节](#m6-timemixer-dual-gate-r1)。第二轮完整训练协议不变。此前runner三项修复review已Passed，并已精确closure至`05d254341c9b5e63c3f5cd0499e6ffd7933d1440`、三端0/0且clean；本轮双指标接线待ChatGPT审核、未closure。q4资源准入尚未最终核准，GPU0 UUID/余量未知，无真实训练许可或启动。下列较早“单主指标未定/首批待确认/Needs repair/Pending/未提交”均为各自时点快照，由本专节覆盖当前合同。
 
 **最新修复定位（2026-10-15，repair-r1）**：ChatGPT已直读上一轮18文件及21/13通过日志，runner review为Needs repair，不授权closure/真实训练；首对U/V模型review仍Passed。本轮仅修复监督器拒绝请求的所有权边界、完整恢复前校验、波次/整批精确任务核账，见[本节修复记录](#m6-timemixer-runner-repair-r1)。第二轮协议、科学模型、77项范围和三个效果目标不变；修后字节待ChatGPT复审，旧自检通过记录保留。
@@ -60,6 +62,17 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 <a id="m6-timemixer-runner-integration-r1"></a>
 ### M6-Timemixer最新合同：第二轮协议与实际训练接入（2026-10-15）
+
+<a id="m6-timemixer-gpu-timeout-repair-r1"></a>
+#### GPU管理查询60秒窄修复与首批q4准备（2026-10-16）
+
+用户最新证据分别来自用户SSH与ChatGPT Desktop Commander，Codex仅转录这两份交接观察，不冒称亲自执行。两者均返回NVML index0、UUID `GPU-3d365efd-300b-f527-e8fe-703fb0cfb738`、总显存81920MiB、余量81222MiB；耗时超过10秒。Codex本轮独立执行同一身份/显存查询一次，timeout=60，实际13.073184480秒、exit0、stderr空，得到相同输出；随后必要计算进程查询一次，timeout=60，实际12.781181385秒、exit0，未返回本设备计算占用记录；全局锁可取得且已释放。这些只是当时的管理可用性快照，启动时仍重新检查，不等于CUDA训练、GPU恢复数值或U/V显存峰值实测。
+
+可执行源码唯一变化为`launcher.gpu_startup`中nvidia-smi timeout10→60；最大3次、仅TimeoutExpired重试、两次重试间隔、NVML index0/UUID匹配、max(8192MiB,10%总显存)余量门槛、资源锁、owner/start_ticks、失败停队列及STOP原样保留。物理minor2与本轮NVML index0不能混同，CUDA本地训练仍为cuda:0，不改cuda:2，不换卡或容器映射。9项定向mock测试验证成功解析和timeout60、UUID/显存拒绝、绝对及比例门槛、有限超时重试、非超时不重试、supervise拒绝不创建worker或改写既有attempt；无模型计算、Adam更新或GPU负载，原281/21/15/22套件不重跑。
+
+用户已撤回“必须补serial/q4短轨迹、梯度/状态和makespan”前置；并发回归现行简化政策，复用第二轮UrbanEV/TimeMixer batch128正式q4历史、U/V实际结构的静态张量与当前显存/占用/锁快照评估首批6波q4，不因缺新probe阻塞，不把原B历史并发冒称U/V实测峰值。首批精确24 ID、6波顺序、480最大run-epochs、B复用8、余53保留，第二轮MSE loss/validation严格best/OneCycle及双指标方案A均不变。resolved只更新launcher这一项来源SHA，其余task/profile/data/optimizer/gate_policy/训练上限逐项相同，未重新derive科学配置。
+
+新执行证据、来源区分、资源评估及现行60秒外置启动材料集中在`M6-Timemixer-first-batch-admission-r1/timeout-repair-r1/`；旧3×10秒、UUID定向10秒日志/脚本和旧送审包保持原字节。修后ChatGPT review Pending，变更全部unstaged、index空，不commit/push；实际修后commit待审核closure后填写，template保持review_approved=false，不生成可消费许可，不代用户启动长训练。此前双指标closure成功事实不因本次新改动而失效；真实实验未执行、效果Not evaluated。
 
 <a id="m6-timemixer-dual-gate-r1"></a>
 #### 现行双指标硬验收、目标二方案A与首批确认（2026-10-15）
