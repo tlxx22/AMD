@@ -50,7 +50,28 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 ## 0.1 阶段顺序、候选身份与性能治理
 
-**当前总览（M6，四H队列已停止；通用EPF默认4＋1、56组固定q4候选）**：N审核起点0a0049a8fbe3505c7f3ca719b8c392df071a0e2c。用户停止四H队列并撤销该attempt的全部准入/正式信用；owned进程及session退出。用户将probe由每批强制GPU门禁改为按需诊断，新独立候选按审核固定q计划直接执行Urban168→EPF35→M168，共371项/最大5670 run-epochs；Weather128及全部科学/数值配置不变。当前未提交、无新可执行许可/GPU/训练，待ChatGPT新字节审核。
+**当前总览（M6，第二轮与第三轮原始结果review候选）**：生产代码HEAD为5a1f34dbea9e906d3525f79b094b82efad2159b0。第三轮Urban168＋EPF35＋M168共371项技术完成、5083 epochs、98波371 worker正常退出，旧停止attempt信用0。第二轮371有效来源沿精确选定索引复核；两轮分别形成Codex原始review通过建议，待ChatGPT审核，原result_review=pending与全部原始产物不改。公开PatchTST展示候选继续隔离未合入；本轮仅文档和外置只读审计，未stage/commit/push，不关闭M6、不进入后续开发。
+
+### M6两轮原始正式结果review与完成后审计（2026-10-15，北京时间）
+
+本轮按用户要求审计原始本地正式结果，不应用TimeMixer公开PatchTST展示投影，不合入或修改隔离展示候选。生产代码/配置版本为`5a1f34dbea9e906d3525f79b094b82efad2159b0`；N/W/R三端0/0、起始clean，冻结baseline tag保持。实际controller3206/start_ticks221625995、最后group child33673/start_ticks260750755及371个worker原生命周期均退出，session不存在；21个group child按原`wait_owned()`逐组正常退出后才封存，早期child身份并非全部逐一归档，不能伪称有额外进程档案。
+
+第二轮沿第三轮原始`complete.selected_main_ref`精确取源（SHA `e6a5729c0856882f237c9f53c989a6b98557900794f15e4b27deb5fe7cb3c876`）：有效371格MS203/M168；非Weather PatchTST20格为本地encoder2/dm4补充结果，Weather4格仍为本地encoder2/dm128。相对r6固定enc2索引20替换、351逐字段保留；未选择dm8/旧dm16不混入、不逐格择优。371有效来源复算3928 epochs、Adam/backward各8380125、forward9516367，原final_test共371次。
+
+第三轮当前新attempt严格Urban168→EPF35→M_ALL168，共371项、56组固定q4、98波/371 worker退出0；EPF七模型4＋1。任务完整唯一，无failed/running/staging/额外任务，正常队列无PROBE/AUTO_AUDIT。Urban实际2815 epochs/95项合法提前停止，EPF331/7，M_ALL1937/4，合计5083 epochs（上限5670）；Adam/backward各13234060、forward14943092，原final_test371次。运行期GPU遥测依批准政策不采集，缺失值不补0；不宣称持续显存余量或GPU忙时实测。
+
+两轮742项逐任务核对profile/protocol/producer、permit/runtime/worker来源、数据prefix/scaler与节点/特征顺序metadata、native time marks、M全通道/MS目标通道、history连续性、strict validation-best/tie与合法早停、weighted SSE/SAE/elements、finite、scheduler digest/update、实际计数和test-once/best引用。5373份只读JSON/history等文件的Python/系统checksum一致；真实`verify_production_inheritance()`、`verify_source()`和`validate_complete()`通过，66项AST、bundle及六个producer Git blob源码身份通过；complete六类篡改负例拒绝。首次审计夹具/schema解释错误和所有诊断日志保留，生产实现及数值阈值未改。
+
+checkpoint共1484份best/last精确复用既有成功closeout的SHA封存，当前path/size/mtime与封存时序一致，未发现缺失checksum引用；本轮未重新hash其文件字节、未反序列化，不能声称tensor/optimizer/RNG/scheduler保存内容已加载审查。数据审计复用冻结配置、批准data-binding和真实guard前缀访问记录；本轮不读原始CSV/test、不新增全文件hash或独立scaler重算，既有source-admission局限保持。过期owner的MAC仅作封存来源核对，不重放或伪造启动授权。
+
+有效格不等于历史训练总次数：第二轮相关完整正式执行399（MS203＋M84＋M_AMEND112）＋层数48＋宽度40＝487，实际5138 epochs/487次原final_test，其中116次完成来源未进入当前371格；第三轮另371次，不能再把第二轮有效371重复相加。两H停止attempt保留4个中断staging/19完整epoch，最后持久化33997/34000/37244；四H停止attempt波账678/678/904原样，逐worker下界678/679/905及未知尾部原样，二者正式test0、完成/准入信用0，不退款或恢复。该487/858核账仅覆盖本轮索引相关完整正式家族，不冒称所有历史probe/部分尝试总成本。
+
+Codex分别建议第二轮、第三轮在上述元数据/来源/封存完整性范围内通过原始result review；这是待ChatGPT确认的非执行建议，不把任何原始`result_review=pending`改写为Passed，不关闭M6。效果gate不裁决。第三轮M的TimeMixer、DLinear及PatchTST部分四H均值退步真实保留；逐域/逐H配置与history差异可追溯，不能仅因较差、best在末epoch、合法早停或单seed就判技术失败，也无因果证据认定某个lr或收敛原因。不追加训练、seed、test或代用户选择后续TimeMixer协议。
+
+本轮外置包：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-original-round2-round3-result-review-v1-20261015/`。两份非执行review：`round2-raw-result-review.json`（SHA `b69ebfce815d029bb2819f4ea33fa7c60f13ca74ccbe3f432dce3e3937bd4783`）与`round3-raw-result-review.json`（SHA `cbee1e91b61b63d0bd3a0dfa890c1ca28b3987e4d7d66b0a5a02b3ada21563dd`）；报告`raw-result-review-report.md`（SHA `00b069afc142dee3c20a3d8e6a90c9a73684e4c6831cfae0d16d7e9948c6e125`）及精确逐任务CSV/来源JSON、原始均值排名和HTML表分别保存。Urban每fold内四H等权平均，EPF五市场H24，M各域四H及均值，不跨域平均原始误差；未舍入排名，九位小数展示、最优粗体/次优真正下划线。既定公开展示政策不撤销，但尚未应用；未来合入隔离候选须协调本轮生产文档增量，不得用旧副本覆盖。
+
+本轮新增GPU查询、模型计算、训练、validation/test、checkpoint加载、许可与arm均为0；仅更新这两份权威文档和专用外置审计材料。未stage/commit/push，修后文档与review报告待ChatGPT直读审核，不声称新字节已被审核；不进入M7或M6-TimeMixer开发。
+
 
 ### M6后续新EPF实验通用默认4＋1（本轮用户新决定）
 
