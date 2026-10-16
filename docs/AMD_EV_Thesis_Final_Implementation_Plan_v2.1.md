@@ -7,6 +7,12 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**现行同源v2实现送审（2026-10-16，M6-Timemixer）**：用户通知机制证据及最小建议已获ChatGPT审核，批准实施U实际残差限幅、V补充目标趋势上下文。独立候选`timemixer-uv-dev-v2`已完成模型及训练接线、32项同字节CPU验收，见[同源v2合同](#m6-timemixer-v2-implementation-r1)。v1源码/配置/结果/诊断保持原字节；此前两份文档增量与本轮v2统一送审，当前实现review Pending，不先单独closure。v2真实训练未执行、三个效果目标Not evaluated；v1原/新目标一Not met保留。以下“仅建议、未实现第二版”等文字是前轮时点。
+
+**现行诊断边界（2026-10-16，替代指令）**：现有U/V的受限CPU机制诊断已完成，见[诊断职责与送审](#m6-timemixer-mechanism-diagnosis-r1)。本轮只提出一组最小改造建议，未实现第二版模型；由ChatGPT先综合决定是否值得改。若需U2/V2，新来源论文的检索、阅读、选择及组合设计必须回ChatGPT，Codex不自行选源或植入。首批原/新目标一仍Not met，目标二/三Not evaluated；诊断不替代完整split效果或最终结果审核。此前撤销的诊断指令不再授权，本轮以256窗口、9路径、无梯度的新合同为准。
+
+**现行首批完成与结果后口径（2026-10-16，M6-Timemixer）**：首批24项已在`437b43b5ace68329ceb5a18cf75952baaa9103c4`完成，累计297 run-epochs、909136 optimizer updates。Codex完成只读artifact审计及48份best/last的CPU内容核查，自检Passed；本批ChatGPT result review Pending。目标一原八格平均与用户本轮新定的逐fold四H平均均为数值Not met；目标二/三Not evaluated。见[首批审计与结果后分析](#m6-timemixer-first-batch-review-r1)。以下“尚未启动/未closure/Pending”等旧定位保留其时点，不代表当前现场；不因效果差重跑，不自动启动其余53项或补fold。
+
 **现行GPU查询修复（2026-10-16，M6-Timemixer）**：双指标12路径审核已Passed并closure至`f48c9104913ca9ab9f38bff605fc6cf3657126f9`。用户SSH、ChatGPT Desktop Commander及本轮Codex均已成功完成GPU管理查询，实际耗时分别为19.796秒、13.166773566秒、13.073184480秒，证明原10秒上限过短。本轮只将候选启动查询改为60秒，最多3次且仅超时重试不变；9项无模型复验通过，源码/绑定增量待审核，见[查询修复专节](#m6-timemixer-gpu-timeout-repair-r1)。不再将此前超时解释为硬件故障或要求先联系管理员，不恢复强制serial/q4 probe；旧记录保留。首批24及第二轮/双指标合同不变，长训练尚未启动、无可消费许可。
 
 **现行用户合同（2026-10-15，M6-Timemixer双指标）**：MSE/MAE均为硬要求，目标二采用两个指标各自至少8/11改善的方案A；首批UrbanEV-F4的24任务已确认，见[现行专节](#m6-timemixer-dual-gate-r1)。第二轮完整训练协议不变。此前runner三项修复review已Passed，并已精确closure至`05d254341c9b5e63c3f5cd0499e6ffd7933d1440`、三端0/0且clean；本轮双指标接线待ChatGPT审核、未closure。q4资源准入尚未最终核准，GPU0 UUID/余量未知，无真实训练许可或启动。下列较早“单主指标未定/首批待确认/Needs repair/Pending/未提交”均为各自时点快照，由本专节覆盖当前合同。
@@ -62,6 +68,43 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 <a id="m6-timemixer-runner-integration-r1"></a>
 ### M6-Timemixer最新合同：第二轮协议与实际训练接入（2026-10-15）
+
+<a id="m6-timemixer-v2-implementation-r1"></a>
+#### 同源v2：两项已批准修订、独立身份与统一送审（2026-10-16）
+
+本轮用户已批准实施上一轮同源最小建议，机制review Passed依据为用户交接；不等于ChatGPT已经读取本轮新实现。Codex完成实现、独立训练链路及CPU合成验收，停在统一送审，不commit/push、不真实训练。仍由ChatGPT决定是否需要替代机制；新U2/V2来源检索、阅读、选择及组合必须交回ChatGPT，Codex没有选择或下载新来源。
+
+新增包`timemixer_dev_v2/`、入口`timemixer_train_v2_entry.py`、脚本`scripts/ch3/start_timemixer_uv_v2.sh`及`configs/timemixer_uv_round2_resolved_v2.json`，候选ID为`timemixer-uv-dev-v2`。v1的包、入口/脚本、配置/测试、24项产物及诊断保持原字节；稳定checkpoint验证/恢复和loader/OneCycle/BestState只读复用。候选与结构修订贯穿spec/task/checkpoint/runtime/receipt/registry，v2恢复在写入live状态前拒绝v1或错误趋势模式；v2 fresh不加载旧B/U/V/UV权重。只保留U/V两个独立开关，无混合旧新模块的额外臂。
+
+U仅将原实际残差`r=gamma_U*delta`改为`s*tanh(r/s)`，其中`s=sqrt(mean_t((z_r-mean_t(z_r))^2)+1e-5)`、`z_r:[b,R,L]`取修改前Normalize后历史。s/z正常反向，无额外detach/clamp/温度；原核心、选择、null/gate/gamma初始化及插入点保留，新增参数0。这只限制历史直接改变量，不保证最终预测改变量有界。V在CI0读取同一次pre_enc送往原out_res的实际目标趋势，增加mean/last/mean-abs-diff三项，使h输入3D→3D+3、新增48权重；CI1没有原始趋势预测旁路，保持原3D计算。原rho=.5、求和、预测头、PDM、单次denorm、MS/M及marks语义不改。
+
+第二轮完整训练、MSE loss、validation MSE严格best、OneCycle/早停均继承原resolved，不重新搜索参数。77项非执行覆盖保持24/24/29、37格B/0重训、8格同v2 F4复用和1340 run-epochs上限；首批只准备24个新ID/6波/480上限，没有真实启动许可。新政策`timemixer-uv-dual-gate-v2`在训练前明确：目标一每fold独立四H、MSE/MAE各需`UV<U<B`且`UV<V<B`，不得跨fold抵消；目标三仍两fold八格等权及同v2 F4复用；目标二仍方案A两个指标各至少8/11、集合可不同。旧原运行及结果后分析政策不倒改。
+
+32项本轮定向CPU复验全部通过；原首轮失败、冷exec双波45秒超时及其8次子进程更新保留，复验准确范围为既有CPU fork/runpy实际v2双波入口与冷CLI元数据，不冒称冷exec双波通过。累计154次主进程、16次子进程合成Adam更新，真实CSV/checkpoint读取、真实test新增前向、GPU查询/负载均0。完整证据统一于`amd-execution-evidence/m6/M6-Timemixer-v2-implementation-r1/`。新实现及操作材料review Pending；q4沿既有简化政策准备，无强制probe，实时资源及最终许可留到审核closure后，用户最后启动。
+
+<a id="m6-timemixer-mechanism-diagnosis-r1"></a>
+#### 先诊断、最小改造建议待审与来源职责（2026-10-16）
+
+Codex负责现有实现、已保存实验、受限诊断及可行性分析；ChatGPT收到回执后先综合分析，再决定现有U/V是否值得修改。如需新U2/V2，来源检索、阅读、选择、组合与最终结构由ChatGPT完成；Codex不得自行选择替代论文/模块，或自动串联换模块、实现、训练。本轮仅在外置`mechanism-diagnosis-r1/`生成证据与待审建议，模型/训练器/loader/resolved/原gate_policy保持原字节。
+
+新合同固定fold1/4、四H、F4，每cell train/validation各256个确定性窗口、正常四臂及五种同权重推理旁路共9条路径；实际32份best严格CPU加载，4096条窗口记录、640次完整模型forward/37120次样本呈现，backward/optimizer/test新增预测均0。8项合成工具与4项保存证据核账通过；U有效改写及V实际路由/趋势修正等证据见唯一M6专节和外置报告。这里只建议U残差限幅、V补齐原始目标趋势路由上下文，未冻结新候选或授予实现/训练；旧24项负向结果和完整test反馈保留，诊断样本不替代效果判断。
+
+用户已接受首批报告声明范围内的审计结果，不代表ChatGPT重新执行全部二进制核查；本轮机制分析review Pending，不自动升级为本批最终result review Passed。目标一每fold四H双指标合同、目标二方案A、目标三现行平均及F4复用不变。下一步由ChatGPT裁决，无论改现有模块还是换来源，均不自动启动其余53项、补fold或进入M7。以下历史Pending等保留当时事实。
+
+<a id="m6-timemixer-first-batch-review-r1"></a>
+#### 首批24项完成审计与结果后逐fold口径（2026-10-16）
+
+60秒查询修复review及精确closure已完成，实际训练/当前HEAD为`437b43b5ace68329ceb5a18cf75952baaa9103c4`，分支`M6-Timemixer`、工作区`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`不变。首批UrbanEV-F4、fold1/4×H3/6/9/12×U/V/UV共24项、6波已技术完成；B复用第二轮8格原始结果，不重训。原第二轮完整训练、seed2024、MSE loss、validation MSE严格best、OneCycle及早停均保留；累计297 run-epochs、909136次optimizer update，每run保存一次validation-best完整test。其余53项没有执行。
+
+本轮先按原commit、resolved SHA `4839ccdaf2c2e67edcf2bfda86cf6786c96f2e7a64b17599bd7d3879aaf618a5`和实际launch/runtime完成只读审计，再更新本文。24个run/receipt精确覆盖、staging空、无failure；owner/最后一波子进程已退出。`progress.json`的最后RUNNING为历史快照，结合complete、日志及回执判断完成，未改写原产物。552个run payload及补充655个attempt文件经Python/系统checksum核对；实际CPU读取本批48份best/last，检查模型key/shape/dtype/finite、活动Adam状态/step、scheduler/LR/beta1、BestState/进度、journal与RNG格式。909136条更新记录逐条对照原OneCycle；validation严格best/早停、test一次记录及SSE/SAE/elements算术一致。只核对B保存result/history/manifest/config与split/scaler等元数据，不加载B checkpoint；真实数据仅stat、保存绑定比对，不重新拟合或test。该CPU审计不等于CUDA恢复或数值重演。
+
+**本轮用户新决定是结果后分析口径**：目标一在每个fold内对四H等权平均，每fold的MSE、MAE均需`UV<U<B`且`UV<V<B`，不能跨fold抵消；不要求每H排序或U/V固定顺序。本批只评价fold1、4。原启动合同仍是`timemixer-uv-dual-gate-v1`两fold八格平均，原artifact/runtime/config不倒改；新规则单独保存为外置`timemixer-goal1-post-result-foldwise-v1`，明确是在结果后采用。目标二双指标方案A、目标三原八格平均及F4精确复用不变。拟展示fold1/2与fold3/4仍每fold独立，不启动fold2/3，不取消fold5/6既有范围。
+
+独立复算：fold1的B/U/V/UV平均MSE分别为0.8799985234060477/0.7221074375925883/0.8857283813446492/0.7253898270369060，MAE为0.6812829584677624/0.6290863032376651/0.6846251659191515/0.6307765886190554；fold4对应MSE为0.4452133901119243/0.4479314834009702/0.4469254870560853/0.4407666137673125，MAE为0.47075887906978064/0.49591115391139867/0.47215586068961524/0.4907956106821219。原八格平均两指标均满足UV<U<B，但V<B不成立；新逐fold两fold均不满足完整链式要求，原/新目标一数值均Not met。目标二、三Not evaluated，不宣称整个候选效果Passed。
+
+诊断边界：U在fold1改善，fold4未保持；V两fold平均均未优于B；UV在fold4的MSE下降约0.999%、MAE上升约4.256%。fold4 U/UV四H的best validation两指标均优于B，但test MAE均较差；V的fold4 H6拖累平均，其best epoch1、6轮正常早停，与B best epoch20不同。这些是保存history事实，不自动归因为技术失败。已核对身份、数据/选择/调度/聚合及封存路径；gamma_U、V权重有限统计不证明路由饱和、尾部误差变化或外生变量因果作用。缺少激活、尺度修正与逐样本残差分布；下一轮可建议另行授权的固定train/validation窗口诊断，本轮不补真实test forward、不新增候选/seed/搜索/训练。
+
+证据集中于首批结果根下`first-batch-review-r1/`：只读审计、48份CPU二进制核查、来源与原产物SHA、可复算原/新口径、每H/每fold相对B和UV相对U/V、history/参数统计、图表及8项纯保存指标fixture测试。审计检查器命令日志格式假设、渲染器summary字段定位及amd环境缺绘图库的失败日志均保留；仅绘图使用既有系统Python，无安装，未修改训练产物或放宽数值判断。技术完成24/24；artifact audit自检Passed；本批ChatGPT result review Pending；本轮文档/外置分析待审核、全部unstaged，不commit/push，不进入正式补fold或M7。
 
 <a id="m6-timemixer-gpu-timeout-repair-r1"></a>
 #### GPU管理查询60秒窄修复与首批q4准备（2026-10-16）
