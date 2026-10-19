@@ -7,6 +7,12 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**最新v5原论文来源补齐（2026-10-19，M6-Timemixer）**：用户提供的`paper/crossformer.pdf`已按SHA/21页核验并完成定向方法对照，见下方现有[v5专节](#m6-timemixer-v5-implementation-r1)增量。用户通知ChatGPT已实际阅读并确认U无需结构返工，v5模型/训练接线及原工程证据review Passed；本轮仅来源绑定、resolved来源SHA、delivery测试及两份文档更新，新字节仍待审核。10项无模型来源/交付复验Passed；模型与科学字段不变，未重跑38项，v5效果Not evaluated、真实训练未授权。以下HTTP403/缺论文/Pending保留原时点，不代表当前原件仍缺失。
+
+**最新v5内部接入联合送审（2026-10-19，M6-Timemixer）**：用户采用ChatGPT固定的Crossformer/ModernTCN来源与公式，`timemixer-uv-dev-v5`已完成分段目标条件化变量交互U、潜在时间细化V、完整训练/恢复/封存/汇总接线及38项定向CPU验收，见[v5专节](#m6-timemixer-v5-implementation-r1)。这不是v4 repair：U插入最细embedding后、首个PDM前，V插入最后PDM后、原future_multi_mixing前；off/off直接作者路径。Urban参数B/U/V/UV实算70885/80485/88229/97829。Crossformer固定源码/Apache-2.0已取得，但官方PDF返回403，论文阅读未齐，未声称论文审核Passed；按用户例外继续独立实现与CPU验收，真实训练入口保留来源阅读检查。ModernTCN复用43页正式PDF并对照3.1/3.2/附录G。主/子累计合成Adam251/24（含失败复验及已披露的初始主预算超2），真实训练/真实test新前向/GPU均0。v5效果Not evaluated，新字节ChatGPT review Pending；无真实grant或启动。v4结果/机制在原报告声明范围已获用户通知接受，不等于ChatGPT重载checkpoint或CUDA恢复；旧目标一Not met、目标二/三未评价和所有负向记录保留。
+
+**最新v4完成后统一审计与完整诊断（2026-10-19，M6-Timemixer）**：合法训练commit `831f6192ff48ecd84edaf2302496f48edf941109`的24项已完成，独立复算310 run-epochs/963215 updates；655文件与48份best/last CPU状态自检Passed。详见[v4完成后专节](#m6-timemixer-v4-postrun-diagnosis-r1)。本轮只补v4完整validation/test各24次离线诊断，48项均通过限定scope；旧B/v3完整数组复用，原正式test_calls=1及全部产物不改。fold1 MSE组合排序成立而MAE不成立，目标一整体Not met、目标二/三Not evaluated。采用头真实动态，U减轻fold4低历史均值代价但削弱fold1收益，V/UV仍有状态内MAE代价及共训补偿；不据此冻结主干或自动再加门。本轮result/机制新包待ChatGPT综合审核。新模块不必残差或输出层，TimeMixer backbone不变；来源检索、选择、具体结构与插入点由ChatGPT裁决，Codex本轮未选新来源、实现v5或训练。以下未训练/Pending保留原时点。
+
 **最新v4联合实现送审（2026-10-18，M6-Timemixer）**：依据用户采用的ChatGPT结构合同，`timemixer-uv-dev-v4`已完成独立模型、训练/恢复/封存/汇总接线及40项定向CPU合成验收。保留v3的SOFTS/APT修正提案，新增各自54/22维采用分数，与固定0分“不修正”选项竞争；没有近常数硬mask、新来源或训练政策变化。详见[v4统一专节](#m6-timemixer-v4-implementation-r1)。主/子合成Adam更新81/8，原B关闭与恢复exact保持；v4效果Not evaluated、新实施字节ChatGPT review Pending、未授权真实训练及Git closure。此前完整split方法与主要结论按用户交接在声明范围内已获接受，不宣称ChatGPT独立重算全包SHA或网络端；旧失败、诊断访问和各时点Pending原样保留。
 
 **最新完整split续接与误差定位（2026-10-18，M6-Timemixer）**：用户在旧停止后明确批准仅本次使用`cpu_gpu_fullsplit_diagnostic_v2`，界为`abs(cpu-saved)<=1e-6+1e-5*abs(saved)`。旧1项数组复用、新增63项完成，64项均通过新政策；旧1e-6检查false、51份停止材料和常规数值表不改。累计validation32/test32、22584个CPU batch/2886400次呈现，33次best加载（首个B重载只做test），backward/Adam/GPU均0。见[续接与完整误差定位](#m6-timemixer-v3-full-split-error-continuation-r1)：fold4历史低均值/低波动占比增加，组内相对误差变化同时存在；test输出修正更正，near-constant组在两split均有直接残差MAE代价。正式成绩仍用原GPU，目标一Not met、目标二/三Not evaluated；新CPU分组不等于GPU逐样本等价。只提出待ChatGPT裁决的历史可见增量风险控制需求，未实施v4/选择新来源/训练或closure。以下停止和旧review快照保留原时点。
@@ -82,6 +88,34 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 ### M6-Timemixer最新合同：第二轮协议与实际训练接入（2026-10-15）
 
 <a id="m6-timemixer-v4-implementation-r1"></a>
+<a id="m6-timemixer-v5-implementation-r1"></a>
+#### v5：分段目标条件化变量交互与潜在时间细化（2026-10-19，联合待审）
+
+**原论文来源补齐增量（同日，source-completion-r1）**：用户提供原件`/public/home/yueweiting/大论文/paper/crossformer.pdf`，SHA-256 `a5fcad16cd810492124af3efad2fa18f7c5f9556fb303bb88360cceaf396183a`、18,941,392 bytes、21页，版本标识“Published as a conference paper at ICLR 2023”。本轮不联网、不重下载、不修改原件；ChatGPT已实际阅读/对照的事实来自本轮用户明确交接，Codex也实际提取文本并核对目标章节。原HTTP403响应、acquisition_ref、paper-acquisition/source-material-status及失败日志原字节保留；当前Crossformer.paper状态单独更新为`verified_method_read`，原失败引用只代表历史下载。
+
+**来源边界及无模型复验**：§3.1式1/2保留分段变量轴，删除原可学习位置嵌入；§3.2式3/4及图2原TSA先时间后变量，v5只做同段目标条件化变量交互，不继承时间阶段/router/完整残差归一化FFN，不声称router线性复杂度；§3.3原HED/head/trainer不继承。D.1式9支持左复制首值补齐；D.2式10/Table7明确已有协变量接法与ETTh1日历实验，不能写成原论文没有协变量实验，也不外推UrbanEV价格/天气结论。形态/统计、mask/null、32→3D恢复和TimeMixer embedding0接口是本项目改造，PDM/V继续时间加工不是原TSA数学等价替换。U无需修改公式/插入点，model/modules/source.py及材料检查函数保持原SHA，ModernTCN/TimeMixer不改。
+
+只同步保存resolved的28项执行来源中source_binding.json一项SHA，77项tasks、结构/训练/数据字段、37格B、8格同版F4、指标政策和首批24项/6波顺序逐字段不变。10项定向检查（4项更新delivery＋6项来源/元数据）通过；真实论文通过，模拟Pending、缺path/sha、错误SHA仍拒绝，旧版本/未审核grant仍拒绝，无GPU/worker/supervise执行。旧38项计算证据在未变源码范围继续适用，不声称本轮重跑。旧主251/子24及初始超2成本不改；本轮模型forward/backward/optimizer/Adam/真实train-validation-test/GPU/checkpoint加载全部0。
+
+新不可执行材料仅在`M6-Timemixer-v5-implementation-r1/source-completion-r1/launch-preparation/`；template只改变source_binding和config_sha256，task/policy逐字节沿用，commit=null、review_approved=false、默认不恢复。为严格只改这两项，template.notice保留旧缺论文草案措辞，其历史含义和当前来源已齐在新operations中明确；旧启动材料不覆盖，无真实attempt/grant。模型/接线原review已Passed不等于本轮最终来源字节已审核：最终联合24路径及本轮5路径增量待ChatGPT直读，v5效果Not evaluated、真实训练未授权，不先提交缺来源旧包或进入新开发轮次。
+
+- **来源及真实材料状态**：TimeMixer原commit `e24610583b36fdd8c76cc17a8df4e65759a5f460`不变。Crossformer固定`c10c8eadb153d1dd9798250967747ca3ebb81383`（Apache-2.0），ModernTCN固定`56a9a2c018385cd5acef015378cae7f084d1b11c`（MIT），仓库置于外置`M6-Timemixer-v5-references-r1`、不执行作者训练器/安装依赖。Crossformer官方PDF一次HTTP403，响应保存为bin，不能声称已取得/读论文；按用户明确例外继续已冻结公式实现，实际训练前必须补齐阅读，v5真实准入显式拒绝缺口。ModernTCN正式PDF复用43页，SHA `2e1681606501b715185e9ffa78dbda9ba2e829799e1ed4cea29fa5c1f8f13944`，已对照正文3.1/3.2及附录G。SOFTS/APT/Pathformer仅历史，不是v5当前来源。
+- **U合同**：p=stride=3个采样点、左复制首值补齐，分段原变量轴上的mu/sigma/z与`LN(Linear3→32(z))+Linear2→32(mu,log1p(sigma))`。4×8头同段目标query/辅助K/V，MS按ordered aux排除target，M每接收者排除自身，固定null score/value=0。context经零初始化无bias `32→3D`恢复完整L位置并裁左补，仅直接加到embedding0；MS为[b,L,D]，M按b-major/variable-minor展平[b*C,L,D]。不改输入、B Normalize/pre_enc/原趋势旁路；允许随后PDM向粗尺度传播。保留DSW分段/变量轴思想，删除TSA时间阶段、router、层级与原head/trainer；新增统计、mask/null、位置恢复和内部接口，不称完整Crossformer复现或router线性复杂度。
+- **V合同**：最后PDM输出的finest G先LN(D)，转[B_eff,D,L]做replicate边界的depthwise7+3、groups=D，再转回并加`Linear2D→D(GELU(LinearD→2D(Q)))`，末层weight/bias全0；其余Xavier/零bias、LN1/0。仅直接替换finest后走原future_multi_mixing/head/尺度求和/一次denorm。保留ModernTCN时间DW/特征PW及大小核思想；删除stem/stages/ConvFFN2/BN/RevIN/head/重参数合并，latent D不是原变量C。V自然读取U影响后的真实PDM表示，不保留v4只读Y0约束。
+- **初始化和接口边界**：B seed2024与参数key不变；模块独立CPU RNG上下文、恢复外部RNG，同模块单臂/UV初参相同，无新dropout。off/off直接super().forecast；开启复制仅加两处内部表示跳连，私有多尺度方法调用真实`_Model__multi_scale_process_inputs`。删除旧输出Delta/kappa/原型/采用softmax，不宣称新输出变化或误差有界。MS保留原C轴和target-only loss，但非目标原生输出可随共享latent改变；M全C监督。CI1旧marks repeat及S1 PDM限制照留，新U变量展开不采用旧marks错误排列。
+- **协议、范围与独立身份**：从审核v4 resolved逐任务派生，仅变候选/结构/源码/入口/产物/task ID；data/profile/scaler/marks/L/P/H/seed/batch、fresh float32 Adam/OneCycle/MSE loss/validation MSE严格best/原patience不变。Urban H与P1、EPF96/24/target2、M长P均保留。77项仍24/24/29、37格原B复用、8格同v5 F4复用、1340最大run-epochs；首批按原v4实际清单映射24ID、6波、480run-epochs/1485300updates，非执行。目标一逐fold双指标、目标二方案A、目标三八格原合同与严格未舍入比较不变。旧v1–v4权重/grant/结果拒绝冒充，技术schema够用则不机械改号，完整身份先验再写live状态。
+- **验收、成本与资源**：最终执行源码38项CPU自检通过，含独立公式/两处插入、off/init/output/gradient/Adam-OneCycle/RNG exact、四臂实际worker、原loader合成CSV、恢复/完整test一次/封存/重复与错误身份/所有权/波次保护及指标配置。fork/runpy双波与冷CLI元数据范围分别声明，45秒双波deadline未改；不重跑历史整套。累计合成更新主251/子24，包含失败复验；原主160预算因套件后检查曾超2次至162，日志保留，后续先登记工程复验增量主256/子24并改为每step前检查，未改科学预算、断言或数值容差。Urban参数70885/80485/88229/97829，U=3456+96D、V=4D²+15D；M为O(N*C²) attention及按B_eff/L/D计V资源。保留首批q4候选/既有A800 batch128证据，未作GPU峰值/当前余量声明，不恢复强制probe；60秒/最多3次/仅超时重试、UUID/余量/锁/STOP不降级。
+- **送审与停止点**：`M6-Timemixer-v5-implementation-r1`包含完整源码/来源分类diff、保存resolved与28项source核对、科学/资源对照、失败复验/消费及不可执行操作模板。commit=null、review_approved=false、无真实attempt；本轮真实训练/真实validation/test新前向、旧真实checkpoint读取和GPU均0。v4报告在原范围被接受，目标一Not met/目标二三未评价及完整诊断访问保留；不否定TimeMixer既有变量/时间建模，不承诺内部接入解决fold4。旧两份文档增量与v5一并送审，全部unstaged/index空，不commit/push/merge/新候选或M7。新字节待ChatGPT审核、v5效果Not evaluated，真实训练未授权。
+
+<a id="m6-timemixer-v4-postrun-diagnosis-r1"></a>
+#### v4完成后审计、采用机制与完整split定位（2026-10-19，统一待审）
+
+- **真实完成与审计范围**：原许可SHA `87efe60ac37b68aced753052f20ad62634c2af89e2e530724d8674712d364212`，原训练commit如文件头；24精确任务/6波、310 run-epochs/963215 updates、正式test24次。655文件Python/系统checksum及48份best/last的模型/活动Adam/scheduler/BestState/journal/RNG格式CPU检查通过，无optimizer创建、CUDA恢复或轨迹重演。owner及末波退出，最后RUNNING快照不改。原实现审核沿用用户通知，本轮结果及机制材料不是ChatGPT已审核。
+- **额外访问及数值政策**：仅本批24 best/48 split采用`v4_cpu_gpu_fullsplit_diagnostic_r1`，归一化MSE/MAE/SSE/SAE满足`abs(cpu-saved)<=1e-6+1e-5*abs(saved)`、finite/equal_nan=false，48项全通过；身份/窗口/标签/scaler/marks及数量精确对应。只新增test/validation各24次诊断访问；16938 batch/2164800呈现，另11次/44样本验证观测与合法开关，backward/Adam/GPU为0。旧B/v3前向0。常规数值表、关闭/恢复exact和科学严格排序不改；总体接近不证明CPU/GPU逐样本或小组等价，正式成绩仍用原GPU。
+- **主要发现**：fold1 MSE组合排序满足、MAE不满足；fold4 U/V/UV MAE均值仍高于B，目标一Not met。U最低历史mean组test条件ΔMAE由v3约+0.07430降到v4+0.00313，但fold1整体收益减弱，不能说全部低状态均坏或只是固定收缩。fold4 V/UV的最终bias约+0.10481/+0.10745；UV实际加权U/V均值约-0.18350/+0.33856，合法移除再归一化与固定权重删除明显不同，支持共训补偿而非独立互补收益。null锚定自己的Y0，不能当作历史独立B保护。mean组成变化与组内相对误差变化同时存在，不能称因果分解。
+- **下一步职责边界**：本轮不冻结新的小修方案，也不自动继续调温度/kappa/门。保留目标条件化辅助选择和历史时间—状态信息需求，可以讨论原变量表示、联合embedding/PDM或预测映射之前的功能接口；不再将模块限定为输出残差。是否保留SOFTS/APT来源、改变接入或换源，由ChatGPT综合新证据决定。Codex不得自行选论文/仓库、实现新模块或训练。改变loss/LR/patience/seed/数据/冻结/选点属于另行科学取舍，不混入纯模块比较。
+- **证据与停止点**：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/timemixer-uv-v4-development-runs/urbanev-f4-f1f4-uv-v4-first-batch-v1/first-batch-review-diagnosis-r1/`保存完整结果、逐样本/状态分组、采用与几何诊断、计数及SHA。原artifact/runtime/config/gate_policy与旧诊断/失败保持；本轮仅canonical/M6增量和外置材料，unstaged/index空、不closure、不实施v5/新来源/其余53项。目标二方案A与目标三八格/F4复用合同不变，未评价。
+
 #### v4：固定不修正选项竞争的输出采用（2026-10-18，联合送审）
 
 **依据与边界。** 本轮基于`33e92b150a439ad5dd3d3298e0244835afa9ccd5`，当前工作区仍为`/public/home/yueweiting/大论文/TimeMixer-U+V-v1`、分支`M6-Timemixer`，起点仅两份已知文档unstaged/index空。用户确认ChatGPT已直接阅读完整split报告、方法、执行/保护记录和最新文档，接受声明范围内的方法与主要结论；未宣称本轮独立重算全部SHA或网络端。Codex核对实际引用的续接evidence-manifest SHA `bbe1a5af64fdf332248777e733c5680f393340076bb9798c8168e89c1546a6e3`及Git现场，不重跑64项诊断。旧CPU跨设备专用界、旧false、额外32次test诊断访问及v1/v2/v3目标一Not met均保留；该界不用于本轮关闭/恢复exact或科学排序。本轮是新结构实施，非v3故障repair；没有新选源、真实训练或旧权重微调授权。
