@@ -7,6 +7,10 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**最新v6 r2接口诊断裁决与文档closure（2026-10-20）**：用户通知ChatGPT已审核`interface-diagnostic-r1`并review Passed，范围为四份状态、登记样本、CPU eval及已实施开关干预：4次checkpoint加载/4次构造、32次完整前向/800次呈现，128条任务窗口记录/120个不同物理历史区间；test/backward/optimizer/训练/GPU均0，不包含CUDA恢复或训练重演。U消息/PDM配对差异增大已有直接证据，所测端点target gamma趋零的主因解释被削弱；offU/offBoth仍异常但不是独立B，尚未定位最初训练根因，不能推出冻结主干；V-last即时作用小不证明训练期间完全无影响。r2工程Passed、首批result review Passed、目标一Not met及目标二/三Not evaluated分别保留。既定任务内必要诊断/技术修复/复验/重试额度由ChatGPT/Codex合理安排，预先登记、实际核账并保留失败成本，不要求用户逐次批准数字；不授权效果择优重跑或本轮真实训练。以下Pending文字保留原时点，新结构按新revision独立登记。见[现有v6专节](#m6-timemixer-v6-implementation-r1)。
+
+**最新v6 r2独立有限接口诊断（2026-10-20，新分析统一送审）**：已审核结果文档以`78ae3c3ad2fd11f84ca0d62e1de14e96fed3b319`普通commit/push闭环，原训练commit仍为`2825c690261c0c785ed401ec38c3bb1480351b8c`。随后独立读取指定4份best/last、构造4模型，完成32次CPU前向/800次呈现，固定128条train/validation窗口记录；观测器输出/持久状态/RNG exact，test/backward/optimizer/训练/GPU均0。实测last的U更新/原finest embedding RMS比约63.31和102.11，两层PDM配对差异累计倍率约7659.53和13565.77；目标gamma远离0，denorm并非所测极端放大的位置。关U/双支路仍有大输出，UV-last的V额外即时变化相对很小；不由此推断训练根因、主干损坏或freeze必要性。详见现有[v6专节](#m6-timemixer-v6-implementation-r1)及结果根`interface-diagnostic-r1/REPORT.md`。本次新诊断待ChatGPT审核；原结果review Passed范围、目标一Not met、目标二/三未评价及旧0前向账不改。新增文档保持unstaged/index空，无新结构、来源或训练许可。
+
 **最新v6 r2首批结果裁决与文档closure（2026-10-20）**：用户通知ChatGPT已审核`first-batch-review-diagnosis-r1`，首批产物与结果review Passed，限身份、24项/6波、248 run-epochs/737045 updates/24次原正式test、封存核账及CPU保存状态审计；不包括CUDA恢复、训练重演或机制因果证明。既有r2工程Passed沿用，目标一Not met、目标二/三Not evaluated。本次只closure已审核结果文档；原训练commit仍为`2825c690261c0c785ed401ec38c3bb1480351b8c`，不改旧AUTH/runtime/checkpoint。当前r2配对不继续小修或原样重跑；保留U目标条件辅助交互需求并重审接口，V能力/位置/来源交回ChatGPT。随后授权的四状态有限接口诊断独立记账，新机制结果待审核，新来源/公式/组合尚未冻结；不回填旧审计的“0真实前向”。详见现有[v6专节](#m6-timemixer-v6-implementation-r1)。以下送审/Pending等均保留各自历史时点。
 
 **最新v6 r2首批完成后审计与可行性分析（2026-10-20，统一送审）**：工程已closure到`2825c690261c0c785ed401ec38c3bb1480351b8c`，用户批准的r2首批24项/6波已完成，独立核账248 run-epochs、737045 updates、24次原正式test；655文件/552封存payload及48份best/last CPU状态自检Passed。目标一逐fold双指标Not met，目标二/三Not evaluated。新的关键证据是U8/8、UV8/8在best后均出现过≥100倍best validation MSE的恶化，B/V各0/8；U/V参数均确有学习，不能归因于零初始化失活。U有局部完整收益但需较大表示接口改造，当前V末端时间子算子的继续投入依据不足，建议交ChatGPT重新考虑分工/位置/来源，不机械小修。详见[现有v6专节](#m6-timemixer-v6-implementation-r1)本轮增量。当前新result/机制报告待ChatGPT审核；本轮无真实CSV读取、新前向/梯度/optimizer/GPU操作，无新候选、许可或训练。以下送审/未训练/Pending保留原时点。
@@ -97,6 +101,24 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 <a id="m6-timemixer-v4-implementation-r1"></a>
 <a id="m6-timemixer-v6-implementation-r1"></a>
+#### v6 r2有限接口诊断已审核裁决（2026-10-20，文档closure）
+
+用户明确通知`interface-diagnostic-r1`的ChatGPT review Passed，限所绑定四份best/last、固定train/validation样本、CPU eval模式与normal/offU/offV/offBoth既定干预。实际4次反序列化/4次构造、32次完整模型forward/800次呈现，128条task-window记录、120个不同原node/历史区间；test/backward/optimizer/训练/GPU为0，未验证CUDA恢复或训练重演。原REPORT SHA `276b9a71060e9ca6f8b0241462f3a0df298c5fd9095d43de15dbc4ac98892852`及122文件诊断包保持封存，closure回执另置同级`interface-diagnostic-closure-r1/`。本轮不追加真实诊断，不把新增审核写回原AUTH/runtime/checkpoint或旧0前向审计。
+
+接受的证据是U消息及PDM有限配对差异显著增大、所测target gamma趋零主因解释被削弱、关U/双支路仍有大输出；共训后主干不等于独立B，未定位最初训练根因，不据此冻结主干。V-last即时作用小也不等于训练全程无影响。r2工程Passed、首批结果review Passed、目标一Not met分别保留，目标二/三Not evaluated，248 run-epochs/737045 updates/24次原正式test及所有历史成本不改。
+
+用户已委托ChatGPT/Codex合理安排既定任务内必要诊断/技术修复/复验/重试额度，执行前登记、实际核账、保留失败成本，无需逐次向用户申请数字批准；不允许效果择优重跑，正常早停/Not met保留。后续新结构按独立revision，不覆盖r2。用户本轮选定XLinear/TimeBridge的v6 r3冻结合同，仅授权独立实现/接线/必要合成检查，未授权真实训练或新AUTH；新实施字节须另送审。
+
+#### v6 r2有限接口诊断：独立授权、实际观察与限制（2026-10-20，待审）
+
+第一段仅两份权威文档closure，实际commit `78ae3c3ad2fd11f84ca0d62e1de14e96fed3b319`，当时本地/tracking/network一致、0/0且clean；外置回执在结果根`first-batch-review-closure-r1/`。这是文档commit，不写回原训练AUTH/runtime/checkpoint。第二段新证据只在`interface-diagnostic-r1/`，先固定计划/绑定/样本，再逐份CPU读取f1/H3 U的best5/last10与f4/H12 UV的best1/last6。实际4次反序列化（旧48份审计外新增读取）、4次构造、24核心+8观测一致性=32完整forward、800次呈现，固定128条task/split/window记录；无失败或重试forward。原fold-train scaler直接复用、fit0，四载体每任务仅解析到validation末端（648/2634条），总8次前缀解析/13128条数值记录；共享文件缓冲与fold间日期重叠如实记录，未构建test或取test标签。CPU线程1/eval/inference_mode、原float32；test/backward/optimizer构造与step/训练/GPU均0。
+
+四状态观测器均输出exact，参数/持久buffer/CPU及Python/NumPy RNG、输入/marks和开关恢复保全；Normalize临时mean/stdev缓存与持久状态区分。24核心路径finite，原float32 denorm重构与尺度求和exact。validation固定32条中，U更新/原embedding RMS比best为1.014/1.638、last为63.309/102.113；last消息RMS19.940/15.392、桥接更新83.360/106.236，两层PDM后normal-offU的finest差异RMS为638500.84/1441179.32。其累计有限差异倍率约7659.53/13565.77，支持实际增益链疑点，不能称Jacobian或梯度冲突。原趋势旁路同状态开关间exact不变，跨best/last共同训练后也变大，不能确定谁先改变。
+
+目标Normalize gamma四状态约2.7144/4.6035/1.1153/4.4256，原eps=1e-5、分母gamma+eps²无零/非finite；配对恒等式`Δy=stdev/(gamma+eps²)*Δq`已按保存张量核对，float32舍入残差另存。validation normal-offU的最终/denorm前差异RMS比约0.1592/0.1474/0.3217/0.1668，削弱所测端点“目标gamma趋零导致极端逆放大”，不排除中途瞬态、其他通道或输入Normalize的间接作用。UV-best少数窗口gain略大于1，不宣称永不放大。U-last关U的validation MSE仍约228988.50，UV-last关双支路仍约64837.06；这是增强模型自己的共训主干，不是独立B，不能据此判主干损坏或自动freeze。UV-last V更新/输入RMS约1.30e-6，normal-offV目标最终差异RMS约0.1521；两组BN统计/affine/counter完整且eval冻结，离线批统计与running比较不构成train反事实，不证明BN因果。
+
+新证据支持重审消息/bridge/PDM的表示坐标与增益链、同时区分共同训练路径，削弱“只改denorm或只关闭一次U就能解释全部”的说法；并未证明改吃normalized seasonal X就是修复，raw_x已被loader预处理且U已有DSW/pre_norm，可能包含有用辅助水平信息。当前r2配对仍不小修/原样重跑，U保留功能需求、V能力/位置/来源交回ChatGPT；新来源/公式/组合未冻结。7项纯数组/元数据自检及实际观察一致性通过，两处前置外置元数据格式错误保留、模型消费0；未重跑原32项或历史套件。全部小样本误差仅解释本次输入，不替代原成绩/gate，不宣称已测梯度冲突、变量因果、test尾部或全部24项根因。原655文件与执行来源保全另有SHA核验；本段新文档未提交，机制报告待ChatGPT审核。
+
 #### v6 r2已审核结果裁决与独立诊断边界（2026-10-20）
 
 用户明确传达ChatGPT裁决：既有r2工程Passed沿用；`first-batch-review-diagnosis-r1`首批产物与结果review Passed，范围为身份、24项/6波、248 run-epochs、737045 updates、24次原正式test、保存结果/封存完整性和CPU状态审计证据，不包含CUDA恢复、训练重演或机制因果证明。目标一Not met，目标二/三Not evaluated。原REPORT、清单、消费记录与文档快照不改，文档closure新回执置于结果根同级`first-batch-review-closure-r1/`；实际文档commit与原训练commit分开记录，不写回原训练身份。
@@ -658,6 +680,8 @@ state及metric的rtol均0、equal_nan=false。唯一当前有效loss例外是Tim
 
 <a id="experiment-authorization-and-technical-failures"></a>
 ### 实验授权、必要检查与技术失败处理
+
+**用户最新委托（2026-10-20）**：既定任务内必要诊断、技术故障修复、复验及重试的合理额度，由ChatGPT/Codex判断；新增消耗须在执行前登记原因、预期额度和累计口径，执行后核账并保留全部失败成本。不将“应登记额度”解释为“必须由用户亲自批准每个次数或必要增量”。该委托不授予效果不佳时无规则重跑择优、扩大模型/数据/搜索或突破科学合同的许可；正常早停和效果Not met原样保留，新结构以新revision登记且不覆盖旧结果。当前r3实施合同只授权实现与合成检查，不授权真实训练、AUTH或队列启动。
 
 用户批准的是要完成的实验方案：模型、数据/任务、fold/H、seed、训练/评价设置、搜索范围和明确资源限制；不要求用户管理每份准入文件、每个SHA或每次参数更新计数。
 
