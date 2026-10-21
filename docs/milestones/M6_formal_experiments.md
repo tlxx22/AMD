@@ -1,5 +1,9 @@
 # M6：第三章正式实验与定稿
 
+**ModernTCN v1 免重复探针准入与启动交接（2026-10-22）**：用户最新决定取代此前待探针流程。原ModernTCN-UrbanEV-F4 q4准入Passed、正式队列技术完成及本版已审CPU主干/初始化/梯度/有限性/接线证据，结合相同Urban L12/P1/C11/batch128/float32与U/V额外激活、反向及优化器开销的差异评估，接受Urban首批q4；不声称本版GPU峰值、数值串并行或加速比实测。16.5MiB仅为V共享基中间量。原探针计划撤销且未执行、旧包及Pending历史保留；本次接受记录为外置 `M6-ModernTCN-UV-v1-launch-authorization-r1/resource-reuse-acceptance.json`，不另设机械审批。工程Passed沿用，效果三个目标Not evaluated。
+
+先执行用户授权的TimeMixer v6 r4 owned STOP：监督器及四worker退出、共享锁释放，12完成/4中止staging/8未启动，history保存195 epochs、journal确认554011 updates下限、尾部未知，12份test claim/result保留。没有补test/恢复，原failure文字保留并在 `M6-Timemixer-v6-r4-user-stop-r1` 声明用户主动停止语义，不伪造全批效果结论。此次仅本工作区两文档增量普通commit/push，21已审文件及29依赖不改；实际新commit外置绑定正式AUTH和元数据preflight。首批24项/六波q4/480 run-epochs/1485300更新，其他29MS保留，B_ref=B_cfg=cfg_adapted_v1。用户最后启动，Codex不运行start/supervise/worker、不创建真实attempt，不改启动时UUID/空闲门槛/锁/STOP保护。
+
 **ModernTCN-U+V v1 工程审核闭环（2026-10-22）**：ChatGPT已直接核验23路径、来源/配置、CPU证据及训练/恢复/汇总/门禁，实施与CPU工程review Passed；GPU资源review Pending，三个效果目标Not evaluated，正式完成0。原送审包 `M6-ModernTCN-UV-v1-implementation-r1` 的REPORT SHA-256=`8e3bbd0aa004c635d11e4c4a4b5738d88a2f970787516944f7ac506d5611088e`，file-manifest SHA-256=`c21f44feee56e7767ea648d899905d89532c63d8c48ad2bd5cab195aae98598f`。本轮不重跑15项CPU模型检查，仅增量文档、精确23路径普通commit/push；21个非文档文件保持已审核字节，原失败/计数/报告不改。实际提交与SHA记录在独立 `M6-ModernTCN-UV-v1-review-closure-r1`，不把工程通过写为真实效果或CUDA恢复通过。
 
 53项MS、13格B、8格同版F4复用及三个严格效果目标不变；B_ref=B_cfg=`cfg_adapted_v1`，`paper_C1_r8_v1`仍未执行。首批24项、U-f1/U-f4/V-f1/V-f4/UV-f1/UV-f4六波q4、最大480 run-epochs／1,485,300更新；其余29项保留。资源探针仅在TimeMixer自然结束、设备无须避让负载及原共享mutex非阻塞取得后允许；本次发现其监督器与四worker仍活跃，故探针未执行，GPU查询/锁取得尝试均0，不自动等待。本轮仅准备外置探针与非执行绑定，不创建真实AUTH/attempt，不操作TimeMixer。新增GPU证据须待ChatGPT审核，真实长训练仍由用户最后启动。

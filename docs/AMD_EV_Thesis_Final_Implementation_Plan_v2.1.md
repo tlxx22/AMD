@@ -7,6 +7,10 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**ModernTCN v1 启动交接最新决定（2026-10-22）**：用户明确撤销未执行的q1/q4数值、OOM及性能探针，接受依据既有证据复用与差异评估准入Urban首批q4。历史ModernTCN-UrbanEV-F4准入concurrency=4/status=Passed及正式队列technical_complete，与本版已审CPU工程、相同L12/P1/C11/batch128/float32主干条件和U/V额外计算/反向/优化器开销共同支持本次接受；16.5MiB共享基中间量不是总峰值，不声称本版GPU峰值、串并行数值或加速比已实测。接受记录见外置 `M6-ModernTCN-UV-v1-launch-authorization-r1/resource-reuse-acceptance.json`；旧Pending及探针包保留历史，计划取消且执行0，不再作为许可阻塞。工程Passed沿用，三个效果目标仍Not evaluated。
+
+同一用户决定已先通过原owned STOP停止TimeMixer v6 r4及后续派发，监督器/四worker退出、共享锁释放。保留12完成、4中止staging、8未启动；已保存195 epochs、journal确认554011 updates下限，未持久化尾部未知；保存12次test，无补跑/补test/恢复。原程序failure通用措辞不改，语义为用户主动停止，详见外置 `M6-Timemixer-v6-r4-user-stop-r1`。只在本ModernTCN工作区增量文档提交，21实现文件/配置及29运行依赖原字节保持。随后绑定实际文档commit生成首批24项真实AUTH与元数据preflight；六波q4/480 epochs/1485300更新、53MS与B_ref=B_cfg不变，其余29MS保留未启动。真实长训练最后由用户启动，本轮不代启，不生成正式attempt；原GPU UUID/空闲门槛、mutex/owned STOP等保护保持。
+
 **ModernTCN-U+V v1 工程审核闭环（2026-10-22）**：按用户转达的 ChatGPT 服务器直读裁决，固定实现、来源绑定、15项CPU定向检查及训练/恢复/汇总/门禁的工程 review Passed；不包含 GPU 资源实测、CUDA恢复或真实效果。审核原包 `M6-ModernTCN-UV-v1-implementation-r1` 的 REPORT SHA-256 为 `8e3bbd0aa004c635d11e4c4a4b5738d88a2f970787516944f7ac506d5611088e`，file-manifest 为 `c21f44feee56e7767ea648d899905d89532c63d8c48ad2bd5cab195aae98598f`。本轮仅两文档增量及审核23路径普通提交，21个实现/配置/测试文件保持审核字节；原送审与失败成本不改。实际提交与逐文件SHA由独立 `M6-ModernTCN-UV-v1-review-closure-r1` 回执绑定，不递归回填本文。
 
 保留53项MS、13格配对B和8格同版F4复用，B_ref=B_cfg=`cfg_adapted_v1`；`paper_C1_r8_v1`仍未执行。首批24项／六波q4、480 run-epochs／1,485,300更新仅为后续上限，其他29项保留，当前完成0、三个效果目标均Not evaluated。GPU资源review仍Pending；只允许既定空闲条件下的独立合成q1/q4探针，不能消费正式任务许可。本次只读核对发现TimeMixer所属监督器与四worker仍活跃，因此不执行探针、不查询GPU、不尝试取得锁、不等待或操作该训练；独立外置探针材料保留待执行。未生成真实训练AUTH/attempt，后续资源证据须交ChatGPT核验，长训练由用户最后启动。以下待审文字保留原时点。
