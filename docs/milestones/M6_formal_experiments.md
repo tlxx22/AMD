@@ -1,5 +1,13 @@
 # M6：第三章正式实验与定稿
 
+**ModernTCN-U+V v1 工程审核闭环（2026-10-22）**：ChatGPT已直接核验23路径、来源/配置、CPU证据及训练/恢复/汇总/门禁，实施与CPU工程review Passed；GPU资源review Pending，三个效果目标Not evaluated，正式完成0。原送审包 `M6-ModernTCN-UV-v1-implementation-r1` 的REPORT SHA-256=`8e3bbd0aa004c635d11e4c4a4b5738d88a2f970787516944f7ac506d5611088e`，file-manifest SHA-256=`c21f44feee56e7767ea648d899905d89532c63d8c48ad2bd5cab195aae98598f`。本轮不重跑15项CPU模型检查，仅增量文档、精确23路径普通commit/push；21个非文档文件保持已审核字节，原失败/计数/报告不改。实际提交与SHA记录在独立 `M6-ModernTCN-UV-v1-review-closure-r1`，不把工程通过写为真实效果或CUDA恢复通过。
+
+53项MS、13格B、8格同版F4复用及三个严格效果目标不变；B_ref=B_cfg=`cfg_adapted_v1`，`paper_C1_r8_v1`仍未执行。首批24项、U-f1/U-f4/V-f1/V-f4/UV-f1/UV-f4六波q4、最大480 run-epochs／1,485,300更新；其余29项保留。资源探针仅在TimeMixer自然结束、设备无须避让负载及原共享mutex非阻塞取得后允许；本次发现其监督器与四worker仍活跃，故探针未执行，GPU查询/锁取得尝试均0，不自动等待。本轮仅准备外置探针与非执行绑定，不创建真实AUTH/attempt，不操作TimeMixer。新增GPU证据须待ChatGPT审核，真实长训练仍由用户最后启动。
+
+来源与证据边界沿用ChatGPT已核对的[FiLM](https://arxiv.org/pdf/1709.07871)、[Non-stationary Transformers](https://arxiv.org/pdf/2205.14415)、[CondConv](https://arxiv.org/pdf/1904.04971)和[Dynamic Convolution](https://arxiv.org/pdf/1912.03458)：U是条件特征调制/统计回注加目标条件辅助汇聚、低秩跨特征调制；直接FiLM可适配，当前U未证明更优，同q下其三个投影比直接FiLM两个投影多512参数。Non-stationary Transformers Table 6已有DeFF统计回注。V是条件卷积的受约束专家改造，参数下降伴随容量限制，不等于已证明计算/显存/延迟降低。本次不实现或运行新对照，不改模型与训练科学合同；以下历史待审状态保留原时点。
+
+**当前分支新增 ModernTCN-U+V v1（2026-10-22，工程统一送审）**：在 `ModernTCN-U+V`／`M6-ModernTCN-UV-v1` 独立工作区，从源项目实际已提交 `0fe117517a3dff6bc4f3c66a9228a72dda06f525` 派生；不操作仍在进行的TimeMixer训练、源码、输出、队列或锁。按用户冻结合同完成U/V两处内部接入、独立53项MS配置、原生loader/Adam/OneCycle/严格best/一次test/恢复与原子发布接线。15项合成CPU定向检查最终覆盖通过（17次用例执行）；48/0主/子Adam、130次完整合成forward／259次呈现、58次backward及6次局部autograd.grad，失败与计数器补账保留。新实现待ChatGPT审核，三个效果目标Not evaluated，完成数0；无真实AUTH/attempt、训练、真实数据模型前向、真实checkpoint读取或GPU操作。详见 [ModernTCN v1增量](#m6-moderntcn-uv-v1)。以下TimeMixer等记录保留各自时点。
+
 **最新v6 r4工程审核闭环与首批启动交接（2026-10-21）**：用户确认ChatGPT已直接读取服务器实际源码、配置、测试及执行证据，r4实现与25项定向合成验收工程review Passed；原送审REPORT SHA为`99ae63eb0e4895a778469e0d9109b47eca85e09c24a6b82f8bb55b16e6d2f631`，file-manifest SHA为`5d30aec2d6d6435283b12869b26ff5d83d5a85471553de786f5f23bacbb91c14`。本轮保持20个新增实现文件的审核字节与科学合同，仅增量登记裁决并办理22路径普通commit/push、实际commit绑定、正式AUTH和元数据preflight；实际commit及结果由独立外置闭环/授权回执记录，不递归回填本文。r4仍0项完成，三个效果目标Not evaluated；53项MS及目标二10格至少7格严格胜配对B的合同不变。只授权UrbanEV F4首批24项、原顺序6波q4，最大480 run-epochs/1485300更新；其余29项MS保留待后续安排，原B只复用。真实训练由用户最后启动，本轮不运行start/supervise/worker、模型或GPU查询。以下待审/无AUTH等文字保留原历史时点；详见同一[r4专节](#m6-timemixer-v6-r4-revision)。
 
 **当前v6 r4定向修订（2026-10-21，统一送审）**：ChatGPT已审核r3首批结果审计及限定CPU机制观察，review Passed，原REPORT SHA为`d5e7d4793ff2eb02fe2582fcc83ec7ffc00f75e99c478c0b45aa3ff349d9441b`；r3目标一Not met、目标二/三Not evaluated。按本轮唯一冻结方案新增独立`timemixer_dev_v6_r4`及入口/配置：U保留目标条件辅助控制器，只改为沿D范数保持的方向接口；V只改稳定真L轴MA3差分和逐token/head的Q/K RMS规范化。新增参数0，科学任务只保留53项MS，r4从0完成开始；r3的24完成/29保留未执行及全部历史成本不回写。25项定向合成用例最终覆盖通过，42次用例执行及初始化/夹具故障与复验保留；主/子Adam56/0、完整合成forward189/1473次呈现、反向68次、合成checkpoint反序列化16次；真实checkpoint反序列化/真实数据模型前向/真实训练/GPU均0。新字节待ChatGPT审核，r4三个效果目标均Not evaluated，无正式训练AUTH或attempt。详见同一[v6 r4增量](#m6-timemixer-v6-r4-revision)。
@@ -1805,3 +1813,20 @@ M_AMEND与M_ALL独立新配置分别为`configs/ch3_round2_m_amend1_weather20_pa
 最终同一代码版本定向套件29/29 Passed（419.892秒），覆盖56项差异、133政策和上限保持、两种scheduler的真实formal循环/BestState/合成checkpoint保存恢复、合法早停与跑满20轮、截断/停止后多训/test重复拒绝、新旧许可隔离、完整混合来源恢复顺序及四个剩余阶段各一次AUTO_AUDIT；formal不回放完整probe，运行期远端查询为0。7份Python内存语法、JSON、bash-n、tracked diff-check、三份新增文件EOF/whitespace及qualified bundle验证通过。父准备上下文没有导入torch；合成scheduler/checkpoint套件使用CPU PyTorch事件替身，禁止业务模型、Adam构造和CUDA初始化，真实数据读取/训练/评价均0。现有入口fresh-only不变。
 
 首轮28项中的两处失败/一处错误及日志保留：worker夹具缺少实际子组专用导入路径、无torch断言受测试顺序污染、旧全配置相等断言需绑定本条批准的Weather差异；保护断言保留，未加skip或放宽政策。外置机械检查曾误解no-index的差异退出码及annotated tag对象/commit区别，诊断记录保留，未改文件权限或tag。最大剩余343项仍4270 run-epochs，正式Adam/backward/forward上限2107840/2107840/2468060，probe上限6162/6162/8240，不因patience改变增加额度。最终候选为8 modified＋3 untracked共11文件，index为空，未stage/commit/push或生成可执行许可；新result/log/session仍未创建，待ChatGPT实际字节审核。
+
+<a id="m6-moderntcn-uv-v1"></a>
+## ModernTCN-U+V v1：实现、接线与有限CPU送审（2026-10-22）
+
+本分支独立工作区 `ModernTCN-U+V`，分支 `M6-ModernTCN-UV-v1`，父HEAD `0fe117517a3dff6bc4f3c66a9228a72dda06f525`。起点读取源TimeMixer当前已提交HEAD及clean状态后创建；没有checkout/reset/stash/clean原工作区，没有操作TimeMixer进程、队列、锁、环境和输出。共享作者ModernTCN固定 `56a9a2c018385cd5acef015378cae7f084d1b11c`，只读继承实际Model并版本化最小forward适配，原生公共state key和注册但未执行的参数保留。
+
+科学合同及公式见 [canonical对应专节](../AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md#m6-moderntcn-uv-v1)。U只在首stage首block的FFN1 drop2后、FFN2前作用目标槽；V只在原native_dw与block.norm之间增加输入条件低秩时间滤波，router只读一次RevIN后的Z。原RevIN、两个原核内部BN、block.norm、FFN顺序、残差、head与denorm均保留。实际B宽度为dims[0]=64，禁止用无关d_model512解释模型。初始化先完整B，再独立CPU子流；关闭模块不注册该模块参数。默认关闭的诊断只返回统计，U分开乘性项/状态项/实际Delta，V分开router/DeltaK/DeltaH及eval下BN仿射后的Delta，不追加模型前向；train下不把局部BN affine式冒充批统计反事实。
+
+新 `configs/moderntcn_uv_round2_resolved_v1.json` 逐项绑定53项MS、13格ModernTCN B与原第二轮profile/结果SHA、8格同版F4复用，从0完成开始。目标一24、目标二5、目标三新增24；其余29保留，不继承TimeMixer完成数。目标二是五EPF十指标格至少七格严格胜B，缺项不缩分母，平局不算胜；目标一逐fold四H、目标三八格口径不变。B_ref=B_cfg=adapted；`configs/moderntcn_paper_C1_r8_v1_pending.json` 仅登记13格未来备选B结构，switch_approved=false，保持第二轮训练与正则化，不执行、不切B_ref、不改主表。
+
+15项独立定向用例最终通过，累计17次执行、0 skip。核心源数学与接线在首轮已通过；一项off/off更新测试误调Schedule方法名产生1次失败更新，改测试调用后复验，未放宽exact。四臂合成CSV经真实worker完成train/validation/严格best/一次test/校验封存；另一UV合成任务在合法epoch边界恢复，模型/Adam/scheduler/RNG/BestState/进度与连续执行exact。合成test共5次，不是正式test。新增schema、target/aux、候选/source身份拒绝在live写入前完成，成功产物不可覆盖。原训练器保护逻辑只作独立namespace版本派生，未重跑历史工程套餐或真实模型。
+
+实际消费：30次完整模型构造；130完整合成forward、259次样本呈现；58backward和6次局部autograd.grad；48主进程Adam、子进程0（上限64）；合成save/load为15/9。初始外置计数工具有截获缺口，原日志不覆盖，`initial-counter-reconciliation.json`用五份保存routes和精确测试控制流补齐；后续使用调用profiler。另保留首次元数据profile字段定位错误及global_lock/EPF前缀元数据修正。真实checkpoint、真实数据模型前向、真实训练、正式test及GPU均0。
+
+实测新增U参数：F1/F2/F3/F4=1685/1735/1760/1810；EPF=1610。V：Urban540、EPF2044；UV UrbanF4=2350、EPF=3654。包括作者未执行注册参数的UrbanF4 B/U/V/UV总数169929/171739/170469/172279，EPF126268/127878/128312/129922。共享基卷积的[B,C,D,4,N]临时张量与额外MAC单独统计；参数少不代表无代价，未测GPU峰值/并发性能。paper_C1_r8_v1的UrbanN3/Kv5及EPFN24/Kv47仅合成shape通过。
+
+统一外置包：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v1-implementation-r1/`；含REPORT、源/科学配置对照、任务/B引用、完整patch与manifest、失败与消费、合成产物、参数/资源、非执行模板及操作命令。非执行首批24任务按U fold1/4、V fold1/4、UV fold1/4分六波，最大480 run-epochs/1485300更新；q4只是待审分组，资源review Pending，commit=null、review_approved=false、resume=false，无真实AUTH/attempt。工作区变化全部未暂存、index空，不commit/push；新工程字节和三个效果目标分别为待ChatGPT审核／Not evaluated。
