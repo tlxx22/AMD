@@ -1,5 +1,11 @@
 # M6：第三章正式实验与定稿
 
+**最新v6 r4工程审核闭环与首批启动交接（2026-10-21）**：用户确认ChatGPT已直接读取服务器实际源码、配置、测试及执行证据，r4实现与25项定向合成验收工程review Passed；原送审REPORT SHA为`99ae63eb0e4895a778469e0d9109b47eca85e09c24a6b82f8bb55b16e6d2f631`，file-manifest SHA为`5d30aec2d6d6435283b12869b26ff5d83d5a85471553de786f5f23bacbb91c14`。本轮保持20个新增实现文件的审核字节与科学合同，仅增量登记裁决并办理22路径普通commit/push、实际commit绑定、正式AUTH和元数据preflight；实际commit及结果由独立外置闭环/授权回执记录，不递归回填本文。r4仍0项完成，三个效果目标Not evaluated；53项MS及目标二10格至少7格严格胜配对B的合同不变。只授权UrbanEV F4首批24项、原顺序6波q4，最大480 run-epochs/1485300更新；其余29项MS保留待后续安排，原B只复用。真实训练由用户最后启动，本轮不运行start/supervise/worker、模型或GPU查询。以下待审/无AUTH等文字保留原历史时点；详见同一[r4专节](#m6-timemixer-v6-r4-revision)。
+
+**当前v6 r4定向修订（2026-10-21，统一送审）**：ChatGPT已审核r3首批结果审计及限定CPU机制观察，review Passed，原REPORT SHA为`d5e7d4793ff2eb02fe2582fcc83ec7ffc00f75e99c478c0b45aa3ff349d9441b`；r3目标一Not met、目标二/三Not evaluated。按本轮唯一冻结方案新增独立`timemixer_dev_v6_r4`及入口/配置：U保留目标条件辅助控制器，只改为沿D范数保持的方向接口；V只改稳定真L轴MA3差分和逐token/head的Q/K RMS规范化。新增参数0，科学任务只保留53项MS，r4从0完成开始；r3的24完成/29保留未执行及全部历史成本不回写。25项定向合成用例最终覆盖通过，42次用例执行及初始化/夹具故障与复验保留；主/子Adam56/0、完整合成forward189/1473次呈现、反向68次、合成checkpoint反序列化16次；真实checkpoint反序列化/真实数据模型前向/真实训练/GPU均0。新字节待ChatGPT审核，r4三个效果目标均Not evaluated，无正式训练AUTH或attempt。详见同一[v6 r4增量](#m6-timemixer-v6-r4-revision)。
+
+**当前v6 r3首批审计、机制诊断与MS范围修订（2026-10-21，统一待审）**：实际工程/训练commit为`d29cc0e63a3f741605a65db1d2208a0baa55b8d7`，正式AUTH已按用户授权物化并由用户启动；首批24项/6波完成，独立核账400 run-epochs、1207328 updates、24次原正式test，655文件/48份best-last CPU保存状态自检Passed。目标一Not met，目标二/三Not evaluated；本轮新结果/机制尚待ChatGPT审核。登记后新增CPU有限诊断560次完整前向/32960次样本呈现，复用4096条固定train/validation窗口记录及匹配原B缓存；新test/backward/optimizer/训练/GPU均0。U有完整收益但出现小门/大carrier的共适配，V注意力高度集中且独立收益不足；建议审查接口/关系几何，不自动实施或换源。用户最新决定仅保留53项MS（24完成、29未执行），24项M退出后续；新目标二只与同任务原B比，五EPF市场10指标格至少7格严格胜B，不附加每指标各70%门槛。目标一/三保留，模块形式与来源抽取限制放开，最终新机制仍由ChatGPT选择。原77项resolved、AUTH/runtime和历史时点文字不改，详见同一[r3专节](#m6-timemixer-v6-r3-submodules)。
+
 **最新v6 r3工程裁决与精确closure（2026-10-20）**：ChatGPT已通过服务器直读审核当前r3送审字节，工程review Passed，范围为固定来源、冻结公式、完整接线、版本身份、定向合成检查、失败修复、消费核账及已声明的静态资源分析；不包含真实效果、CUDA恢复或GPU峰值实测。当前执行24路径工程closure及首批24项启动材料定版，实际新commit与逐文件SHA由外置`M6-Timemixer-v6-submodule-r3-closure-r1/`绑定，不回写旧训练身份或递归修改本文自身commit。r3真实结果尚无，目标一/二/三均Not evaluated；r2原工程/结果审核Passed、目标一Not met、目标二/三Not evaluated及历史成本原样保留。本轮不运行模型、checkpoint反序列化、GPU或真实训练；启动绑定仅为review_approved=false的待审草稿，未创建真实attempt。以下原送审/Pending文字保留历史时点，详见同一[r3专节](#m6-timemixer-v6-r3-submodules)。
 
 **最新v6 r3固定子模块实现（2026-10-20，统一送审）**：已审核r2接口诊断文档以`007ea7ec7161c0ecdc597c9c9e4868efa5e1a811`闭环，原122文件诊断包保全。按ChatGPT选定的XLinear/TimeBridge来源与冻结合同，新增独立`timemixer_dev_v6_r3`、配置/入口/启动脚本/测试；candidate仍v6，revision为r3，r2资产不改。U是目标条件辅助混合基控制的native-head门，V是真L轴关系Q/K与原坐标Value时间加工；原TimeMixer完整路径/科学字段保留，不声称已解决r2异常。25项定向合成检查覆盖通过（首轮23/25、仅修两处错误断言并复验2项），主/子合成Adam44/0、初始工程额度120/0，逐step预记账并保留失败；真实checkpoint/数据模型前向/训练/GPU均0。21种登记张量形状验证，Urban B/U/V/UV参数70885/71838/74982/75935，V最大M单份注意力静态378 MiB而非峰值实测。29项目执行文件/固定作者依赖与两论文绑定齐全；见现有[v6 r3专节](#m6-timemixer-v6-r3-submodules)。r3效果Not evaluated、工程待ChatGPT审核，未生成真实AUTH或attempt；新实现/文档未暂存、index空，不做实现closure。
@@ -61,6 +67,41 @@
 <a id="m6-timemixer-v4-implementation-r1"></a>
 <a id="m6-timemixer-v6-implementation-r1"></a>
 <a id="m6-timemixer-v6-r3-submodules"></a>
+
+<a id="m6-timemixer-v6-r4-revision"></a>
+**2026-10-21工程审核裁决、真实绑定与启动边界增量**：本轮用户传达ChatGPT对上述实际送审字节的工程review Passed，适用实现、完整接线、版本隔离、定向验收及保留的失败/消费证据，不包含真实效果、CUDA恢复或GPU峰值实测。沿用25项定向验收及原消费账，本轮不重新执行模型验收，不改变U沿D范数保持接口、V稳定MA3差分/逐token-head Q/K RMS及局部float64统计和float32点积/softmax；不改训练、数据、选best、早停或test-once政策。目标一逐fold四H等权双指标严格排序、目标二五EPF市场10指标格至少7格严格UV<B、目标三同r4八格双指标两条路径均沿用；r4效果仍Not evaluated，不借用r3成绩。
+
+本次只提交已审核20个新增文件及两份权威文档增量。原实现包原字节保留；实际closure commit、逐路径SHA和三端/clean检查置`M6-Timemixer-v6-submodule-r4-review-closure-r1/`，正式AUTH、preflight及操作说明置`M6-Timemixer-v6-submodule-r4-launch-authorization-r1/`。用户已授权物化review_approved=true的首批真实许可：UrbanEV F4、fold1/4、H3/6/9/12、U/V/UV，按fold1 U、fold4 U、fold1 V、fold4 V、fold1 UV、fold4 UV六波，每波最多q4；最大480轮/1485300更新。fresh seed2024、L12/P1/batch128、原B配对不变，默认不恢复；29项其余MS仍保留但未纳入本批授权，24项M历史不删。正式元数据preflight仅核验Git/配置/来源/授权/任务/data stat，不能称GPU准入或真实训练；未来启动仍由原监督器检查UUID/余量/锁和STOP归属，GPU查询60秒、最多3次、仅TimeoutExpired重试。启动命令交由用户执行，本轮不创建真实attempt。后续若需换模块，仍回ChatGPT作结果分析、文献比较和选型。本条是新增裁决，以下原送审文字保留历史事实。
+
+**2026-10-21：r3审核裁决与单一r4方向保持/关系规范化修订**
+
+用户传达ChatGPT已实际读取r3统一REPORT（SHA `d5e7d4793ff2eb02fe2582fcc83ec7ffc00f75e99c478c0b45aa3ff349d9441b`），首批结果审计和限定状态/固定train-validation样本的机制观察review Passed；不包含CUDA恢复、训练重演、test逐样本或训练根因证明。原r3为400 run-epochs/1207328 updates/24次正式test，目标一Not met，目标二/三Not evaluated。以下旧待审文字保留当时事实。本次不单独closure文档；与r4完整接线共同送审，HEAD仍为原`d29cc0e63a3f741605a65db1d2208a0baa55b8d7`。
+
+r4 candidate仍`timemixer-uv-dev-v6`，revision分别为`xlinear_vgm_direction_preserving_native_carrier_v6_r4`、`timebridge_stable_time_residual_head_rms_qk_v6_r4`，fusion仍`finest_post_pdm_v_then_native_head_u`。r3/r2源码、配置、AUTH/runtime、训练产物和证据保留；新包/入口/启动脚本/配置独立命名r4。U控制器初始化/aux basis的AST与r3一致，K8/有序aux/显式target/跨P共享不改；只在finest时间映射后、原native projection前计算`v=m*z; z_star=||z||2*v/||v||2`，零z恒等。范数仅沿D；bias、趋势和其他尺度不门控。用float64局部`logsigmoid`共同尺度抵消及缩放范数，原参数/主干仍float32；居中等价写法保留初始exact及门梯度，无gate==1旁路、无epsilon/门下界/额外增益/detach。非零z若出现数值零分母或不可表示输出明确异常。相对重标门与原m观测分别标明。它取消U整体调幅，不限制carrier绝对范数、不消除网络或门全部尺度自由度；可能删除有益幅度信息。
+
+V保持原位置、4×8无bias Q/K、raw Value、`alpha=.5*tanh(a)`及初始化，只将关系输入改为`((G-Gprev1)+(G-Gprev2))/3`后detach，并在每token/head沿8维用`sqrt(mean(q²)+1e-6)`规范化。RMS统计局部float64避免平方溢出，点积/softmax及Value聚合在原训练float32；无可学习温度/affine/Value-output projection/FFN/BN。首行和常值残差exact零，首query均匀；L12/96的通用pmax界约0.962994/0.750818，仅数学性质。差分式改变浮点舍入，明确属于r4，不冒称与r3逐位等价；soft attention或熵增加不等于独立V有效。U范数保持是项目修订，V规范化仅借鉴机制依据，不称原QKNorm或完整Swin V2。固定XLinear/TimeBridge/TimeMixer来源与许可继续绑定，未选择替代模块。
+
+外置`M6-Timemixer-v6-submodule-r4-implementation-r1/`保存来源分类diff、几何证据、测试/失败/消费和启动方案。16组旧U/UV validation数组独立复算平均cos(z,mz)范围0.608615–0.715824，g样本CV范围0.145529–0.252952，并保存cos/g/1g和W(mz)、gWz、差值分布及数组/weights SHA；只做数组运算，不加载旧模型，不证明g无用或导致泛化失败。25独立工程用例最终覆盖通过、42次执行、0 skip；预算主Adam96，实际56，子0；47次合成构造/189次完整前向/1473呈现、222次U/V模块调用、66次Tensor backward+2次autograd.grad、28个optimizer实例、16次合成checkpoint反序列化。首轮新夹具路径漏迁移在读取保护前拦截（已发生16更新保留），只将本轮误置新夹具移入r4失败证据，原r3文件未覆盖；float64初始恒等舍入用居中等价式修复；恢复fixture漏fold由身份保护拒绝，补齐后复用保存合成状态复验，未追加训练。失败日志、执行快照和实际消费保留，未放宽断言/容差或修改科学公式。
+
+新resolved只保留53项MS：目标一24、Urban UV F1/F2/F3目标三24、五EPF目标二5；13格原B和8格同r4 F4复用；总规划上限按保留任务重算1060轮/2999100更新，顶层预算漂移明确拒绝，未改子任务参数。逐任务原profile/data/scaler/marks/L/P/H/seed/batch/Adam/OneCycle/MSE/strict-validation-best/patience/test政策不改，原77项r3配置不改；24项M退出后续但历史不删。新目标二仍10指标格中至少7格严格UV<B，平局不计、缺项不缩分母，分别报告MSE/MAE比例但无各自70%门槛；不与全部baseline比。目标一逐fold四H等权双指标`UV<U<B且UV<V<B`；目标三原八格双路径，不能拿r3 F4填r4。r3历史已完成24/保留29未执行与r4零完成分别核账，r4三个目标均Not evaluated。
+
+参数与r3相同：Urban F4 B/U/V/UV为70885/71838/74982/75935；U953、V4097，新增加参数0。U接口额外O(BRPD)，不物化BRPDK；V注意力按真实MS B×4×L²核账，局部float64增加开销，静态张量量不称GPU峰值。仅准备首批24项/原6波q4/480轮/1485300更新的非执行模板（commit=null、review_approved=false、恢复false）；配置与29执行依赖绑定，未来GPU UUID/余量/全局锁/STOP和60秒最多3次仅超时重试不变。只做waves/语法/未授权拒绝等静态检查，不称正式授权或GPU preflight通过。新实现review后，后续同一工作任务完成精确closure、实际commit绑定、正式AUTH/preflight及用户最终启动，不再拆机械二次送审；本轮不实现其他方案、不长训练、不执行其余29项或M7。
+
+**2026-10-21首批完成、独立审计与机制证据（新内容待ChatGPT审核）**
+
+实际closure/训练commit为`d29cc0e63a3f741605a65db1d2208a0baa55b8d7`；真实授权`M6-Timemixer-v6-submodule-r3-launch-authorization-r1/AUTH.json` SHA为`e03eeb5bacaeef889c77dc995ec6a87b2fbb4d0aa5ca9eba67cb1fe7648797f3`，已由用户启动。结果根`timemixer-uv-v6-r3-development-runs/urbanev-f4-f1f4-uv-v6-r3-first-batch-v1`，attempt为`urbanev-f4-f1f4-v6-r3-first-r1`。本批24项/6波、400 run-epochs、1207328更新、24次原正式test已独立复算；655文件Python/系统checksum、552封存payload、48份best/last CPU状态与Adam/OneCycle/严格best/journal/RNG自检通过。owner及末波worker退出，staging空，无failure/STOP；progress末次RUNNING与77项summary Partial均保留历史语义。不是CUDA恢复或训练重演。既有工程review Passed沿用，本轮结果与机制review待ChatGPT；r2原结果/负向证据及248轮/737045更新等历史成本不变。
+
+原GPU保存未舍入成绩按逐fold四H等权：fold1 B/U/V/UV MSE为0.8799985234060477/0.7206958863319872/0.8924394982140433/0.7119601142900644，MAE为0.6812829584677625/0.6287908757276733/0.6883908202425839/0.6214121662545837；fold4 MSE为0.44521339011192423/0.4349178033873237/0.4509637957904126/0.4295493141718626，MAE为0.4707588790697806/0.4790179365940449/0.47552954185157986/0.47754034993244965。UV平均两fold均优于U，但V均值未胜B，fold4增强臂MAE未胜B，故目标一Not met。UV在f1/H6、f4/H3存在双指标局部代价，不被均值掩盖。目标二/三未执行，仍Not evaluated。r3 U/V/UV在best之后保存的validation MSE最高/best仅1.119965/1.066015/1.075966，没有复现r2百倍恶化；不排除未保存中途瞬态。
+
+新外置包为该结果根`first-batch-review-diagnosis-r1/`。预登记后只读反序列化审计48份状态，另诊断24份best，合计72次；模型构造48次。复用已核验旧固定16节点×16时间grid的train/validation缓存，共4096任务窗口记录、992不同物理历史区间；匹配原B16份trace复用，另8份B best仅SHA扫描、0反序列化/0前向。核心及观测一致性合计560完整CPU前向/32960呈现，非32960独立样本；新test/backward/optimizer/Adam/训练/GPU/真实CSV解析/scaler拟合均0。24模型观测器输出/输入/持久状态/RNG exact；原Normalize临时缓存与持久状态区分。7项工具检查、32组U/32组V保存张量原float32图exact及分组算术通过。首轮双精度重排式与float32输出之差的检查超界保留；修正比较对象为原运算顺序exact，没有提高容差、改模型或重推。另一次展示环境缺numpy成本0，改用既定amd环境，记录保留。
+
+本批实际B已有C→D混合、历史marks、两层PDM、12/6/3多尺度及完整时间映射，不能说没有变量/时间建模；L12/P1/H偏移、target-only及节点样本轴不混淆。固定样本中U门很小但随样本/latent变化、辅助局部输出敏感性非零，同时carrier很大；关U后的路径异常说明共训状态依赖幅度补偿，不是独立B损坏的证明。目标gamma远离0，当前denorm不是奇异放大主因。V多数非首query近硬选择，Q/K/alpha确有学习和非零输出作用；UV有部分即时增益，但完整V单臂证据弱。大关系尺度也使首MA3数学零行的float32残余在部分UV产生非均匀注意力，保留现象，不判作已定位训练根因。没有测到梯度冲突或r3 test尾部；所测validation低历史状态多改善，不能照搬旧候选低需求正偏解释。U值得保留目标条件交互需求并重审幅度接口，V需重审关系几何/预测端作用；外置报告仅给一组未实施、未冻结、可反驳的机制建议，最终由ChatGPT选择。
+
+**用户最新科学决定，替代较早范围和目标二/模块形式约束**：逐原ID映射77项为53项保留MS＝Urban F4目标一24＋Urban UV F1/F2/F3目标三24＋PJM/NP/BE/FR/DE MS H24五项；24已完成、29保留未执行。六M域×四H的24项退出后续执行，历史记录/成本不删、不转为新MS，已绑定77项resolved不原地改写。新目标二“除UrbanEV以外的数据集有70%以上的指标最优”，用户补充明确只与同任务原B比：dataset×H×metric为格，MSE/MAE各一格，当前10格至少7格严格UV<B；相等不计、缺项不从分母删除；分别报MSE/MAE比例但不追加两者各自≥70%的硬门槛。五格B采用身份已核对，不与全部baseline比赛、不跨轮择优；原11域/各8域目标二退休。目标一仍逐fold四H双指标UV<U<B且UV<V<B；目标三仍两fold八格双指标F4<F2<F1且F4<F3<F1，同版F4才可复用。未执行29项不自动获准。
+
+新U/V不强制或禁止残差；取消魔改程度、必须顶会来源小改及必须抽取block内部子模块的普遍前提，允许有依据的原创轻量模块。每项仍须解释任务缺口、计算、输入输出/位置、复杂度与验证，不能以堆层/参数代替机制。TimeMixer增强主线及可追溯原B保留；不因此修改数据、loss/LR/seed/选best/评价或test开发反馈政策。新来源、原创机制及最终组合仍回ChatGPT；本轮没有选源、实施新结构、生成AUTH、训练剩余29项或进入M7。
+
+以下2026-10-20送审/草稿/尚未训练等文字保留当时事实；本次只修改两份权威文档并保持unstaged/index空，原源码、配置、成功artifact与历史证据保持，完整报告/消费/样本/激活/范围映射及前后SHA/patch集中于上述唯一外置包。
 
 **2026-10-20工程审核裁决与closure增量**：用户明确传达ChatGPT服务器直读统一裁决：v6 r3工程review Passed。已审核原包`M6-Timemixer-v6-submodule-r3-implementation-r1`的REPORT SHA为`f449ffb33f473960f9ce4a8f4e00df7f9740baf1f0b804c9f8303b4a2cca2837`，file-manifest SHA为`8441222cf7370da62d0feb034d92590209fcee4661e086e238e1d19247dc8461`，complete/incremental.patch SHA均为`8131829734c28e7a3c4e6a6e2639cb9a0756d73f75211ab9284a15fdbecd8819`，evidence-manifest SHA为`f1ef0d80ecb39d1c4c8a5cd688a1d656767008e7c406d3f551303a8e2e404921`。范围为固定来源/冻结公式/完整训练恢复评价接线/版本身份/定向合成检查/失败修复/消费核账/已声明静态资源；不是效果、CUDA恢复或GPU峰值验证。25独立用例最终覆盖通过、27次执行，首轮两处断言失败与对应修复/复验成本保持；主/子合成Adam44/0、完整合成forward193/backward44，真实checkpoint反序列化/真实数据模型前向/真实训练/GPU均0。本轮沿用上述证据，不重跑模型或旧套件。
 

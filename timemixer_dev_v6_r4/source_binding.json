@@ -1,0 +1,130 @@
+{
+  "TimeMixer": {
+    "class": "Model",
+    "commit": "e24610583b36fdd8c76cc17a8df4e65759a5f460",
+    "defaults_source": {
+      "path": "/public/home/yueweiting/大论文/TimeMixer/run.py",
+      "sha256": "2d945cae47154e08e2a0aa8f794e2a25fb1bd5ce8ff3e070d2692326fe197024",
+      "values": {
+        "activation": "gelu",
+        "channel_independence": 1,
+        "d_ff": 32,
+        "d_layers": 1,
+        "d_model": 16,
+        "decomp_method": "moving_avg",
+        "down_sampling_layers": 0,
+        "down_sampling_method": "avg",
+        "down_sampling_window": 1,
+        "dropout": 0.1,
+        "e_layers": 2,
+        "embed": "timeF",
+        "factor": 1,
+        "freq": "h",
+        "moving_avg": 25,
+        "n_heads": 8,
+        "top_k": 5,
+        "use_future_temporal_feature": 0,
+        "use_norm": 1
+      }
+    },
+    "entry": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py",
+    "files": {
+      "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py": "48745b4bb647355e9845792a855df9c59fd7df7fcc664c765351fec390c4073e",
+      "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py": "ab492ea2f68459bbcf3cbffdd1beb75b24d0d70248d017a313a3b470316aaa2b",
+      "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py": "cc1c0bc65b7b094bbe83f988fb05b86272a59638c030c3781aa52ce8880379df",
+      "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py": "817d62f4aac54c8566e560f6d3785856e31c8ee51460279ee3d0a4823f11d4be",
+      "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "four_arg": true,
+    "module": "models.TimeMixer",
+    "modules": {
+      "layers": "/public/home/yueweiting/大论文/TimeMixer/layers/__init__.py",
+      "layers.Autoformer_EncDec": "/public/home/yueweiting/大论文/TimeMixer/layers/Autoformer_EncDec.py",
+      "layers.Embed": "/public/home/yueweiting/大论文/TimeMixer/layers/Embed.py",
+      "layers.StandardNorm": "/public/home/yueweiting/大论文/TimeMixer/layers/StandardNorm.py",
+      "models": "/public/home/yueweiting/大论文/TimeMixer/models/__init__.py",
+      "models.TimeMixer": "/public/home/yueweiting/大论文/TimeMixer/models/TimeMixer.py"
+    },
+    "repository": "/public/home/yueweiting/大论文/TimeMixer",
+    "root": "/public/home/yueweiting/大论文/TimeMixer",
+    "url": "https://github.com/kwuking/TimeMixer.git"
+  },
+  "XLinear": {
+    "url": "https://github.com/Zaiwen/XLinear.git",
+    "root": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/XLinear",
+    "commit": "8398e656e945da84a79e8b2f64af8f3f68842e19",
+    "files": {
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/XLinear/models/XLinear.py": "28b65f44f2bdbb63291beea32c6ee11b7ef5ed64c23ae89d70986f08c7c350f4",
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/XLinear/LICENSE": "07e157426966f9cd449e05294b694279898d0628917774406d823cb6cdaf5873",
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/XLinear/README.md": "530fd98896bae68b56480d948300e3c72dd2e6bfb6cfe6a3c6cd7b436d457cbe"
+    },
+    "license": {
+      "name": "MIT",
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/XLinear/LICENSE",
+      "sha256": "07e157426966f9cd449e05294b694279898d0628917774406d823cb6cdaf5873"
+    },
+    "paper": {
+      "status": "verified_method_read",
+      "path": "/public/home/yueweiting/大论文/paper/XLinear_ A Lightweight and Accurate MLP-Based Model for Long-Term Time Series Forecasting with Exogenous Inputs.pdf",
+      "sha256": "0c092bda5acb441009bab8b62b091edd256a5ca8492df963378cd8ae3f69c9bb",
+      "pages": 11,
+      "origin": "existing user-provided local PDF, preserved read-only",
+      "text_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/XLinear-paper.txt",
+      "text_sha256": "f95fe6c4126569e808853bf256b60f9b8327d1412b280bc3c10f213c78e5b461",
+      "reading_scope": "Embedding/TGM/VGM and prediction head; VGM Eq5/6 and Gating_Block lines162-177"
+    }
+  },
+  "TimeBridge": {
+    "url": "https://github.com/Hank0626/TimeBridge.git",
+    "root": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge",
+    "commit": "0f9a83fbc3e1260c9ddd527c522dff0ce4b9554b",
+    "files": {
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge/layers/Transformer_EncDec.py": "8c60fde6e9e5ff47f9524cb7d7ce2cbc80f6f4f706b9fc32bfd56d9120b49dc7",
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge/layers/SelfAttention_Family.py": "90b333e78699d9caeade7aae1f880f54607292a1e470ae9ad28adc4ed8776b26",
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge/LICENSE": "475078cc1f6de41e1b39c66b61aad6e870ddec14ce7132e18241ed74b9b3b6ff",
+      "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge/README.md": "66c12560c68cbafc4e552c3c03f843fa768af9e03962567f779f42753cffd8b2"
+    },
+    "license": {
+      "name": "MIT",
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge/LICENSE",
+      "sha256": "475078cc1f6de41e1b39c66b61aad6e870ddec14ce7132e18241ed74b9b3b6ff"
+    },
+    "paper": {
+      "status": "verified_method_read",
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge-ICML2025.pdf",
+      "sha256": "4dc544641cd166346b8f1a26103612bb4f0d0d605d80c02244e74d71c16df94a",
+      "pages": 26,
+      "origin": "https://raw.githubusercontent.com/mlresearch/v267/main/assets/liu25cb/liu25cb.pdf",
+      "text_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-Timemixer-v6-submodule-r3-implementation-r1/references/TimeBridge-paper.txt",
+      "text_sha256": "eca9947e7682bb22fc888e0218ad658ff941b6bb1c17841354b29826cc2913cb",
+      "reading_scope": "Section3.3 Eq3-6 and Figure3; PeriodNorm and IntAttention.temporal_attn/SelfAttention_Family projections+kernel"
+    }
+  },
+  "implementation_policy": "r4 project norm-preserving U interface; stable temporal differences and fixed head-RMS normalized Q/K V. No new source module selection; no QKNorm/Swin implementation copied.",
+  "extracted_components": {
+    "U": [
+      "XLinear Gating_Block two-linear ReLU/sigmoid core and shared Linear(L,D) history adaptor; receiver-conditioned effective basis diag(kappa(q))*A_mix"
+    ],
+    "V": [
+      "TimeBridge relationship Q/K vs raw Value separation and scaled dot-product time kernel; true-L causal left MA3 detach, no Value/output projections or parent block"
+    ]
+  },
+  "source_fact_boundary": {
+    "TimeBridge_original_PeriodNorm_axis": "last D in new_x[B*C,N,D], with no_grad in IntAttention.temporal_attn",
+    "r3_relation_axis": "true historical L, explicit project adaptation",
+    "XLinear_original_target_condition": "endogenous-derived global token already conditions VGM; do not claim absent",
+    "no_new_source_selection": true
+  },
+  "r4_method_basis": {
+    "U": "project revision, not XLinear Eq4-7",
+    "V": "projection-head RMS q/k with fixed eps and sqrt8; not original QKNorm learnable scale or full Swin V2 cosine attention",
+    "references": {
+      "XLinear": "https://arxiv.org/abs/2601.09237",
+      "TimeBridge": "https://arxiv.org/html/2410.04442v3",
+      "QKNorm": "https://aclanthology.org/2020.findings-emnlp.379.pdf",
+      "SwinV2": "https://arxiv.org/abs/2111.09883"
+    },
+    "no_external_implementation_import": true
+  }
+}
