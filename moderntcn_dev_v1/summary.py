@@ -43,6 +43,10 @@ def aggregate(config, records, gate_policy=None):
                 raise ValueError('wrong B paired profile/source')
             checked_metrics(b)
 
+    if config.get('task_scope') == 'development_extension_f6_epf_3arm_v1':
+        from .extension_scope import aggregate_extension
+        return aggregate_extension(config, rows)
+
     def mean(items):
         return {m:math.fsum(v[m] for v in items)/len(items) for m in METRICS} if items else None
     def group(ids):

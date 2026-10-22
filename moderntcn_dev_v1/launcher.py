@@ -20,6 +20,9 @@ def proc_start(pid):
 def git(*args):return subprocess.check_output(['git','-C',str(ROOT),*args],text=True,timeout=30).strip()
 
 def batch(config,ids):
+    if config.get('task_scope') == 'development_extension_f6_epf_3arm_v1':
+        from .extension_scope import waves
+        return waves(config, ids)
     if not ids or len(ids)!=len(set(ids)) or not set(ids)<={t['id'] for t in config['tasks']}:raise ValueError('explicit unique nonempty subset required')
     tasks={t['id']:t for t in config['tasks']};groups={}
     for id in ids:
@@ -28,6 +31,8 @@ def batch(config,ids):
 
 def validate_authorization(config,config_path,ids,authorization):
     from .worker import source_binding
+    from .extension_scope import validate_launch_scope
+    validate_launch_scope(config, ids, authorization)
     if authorization.get('schema')!='moderntcn-uv-launch-v2' or authorization.get('review_approved') is not True:raise PermissionError('actual post-closure reviewed dual-policy launch binding required')
     if authorization.get('candidate_id')!=CANDIDATE_ID or authorization.get('structural_revision')!=REVISION:raise PermissionError('ModernTCN v1 candidate/revision launch binding required')
     try:

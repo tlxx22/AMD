@@ -71,9 +71,17 @@ def validate(config):
     ids=[t['id'] for t in config['tasks']]
     if len(ids)!=len(set(ids)): raise ValueError('duplicate task')
     for t in config['tasks']:validate_task(t,config['purpose'])
+    scope = config.get('task_scope', 'development_original_53_v1')
+    if scope not in ('development_original_53_v1', 'development_extension_f6_epf_3arm_v1'):
+        raise ValueError('unknown scientific task scope')
+    if scope == 'development_extension_f6_epf_3arm_v1' and config['purpose'] != 'development':
+        raise ValueError('extension requires original real development protocol')
     if config['purpose']=='development':
         from .training_state import SCHEMA
         if config.get('checkpoint_schema')!=SCHEMA:raise ValueError('checkpoint technical schema binding')
+        if scope == 'development_extension_f6_epf_3arm_v1':
+            from .extension_scope import validate_extension
+            return validate_extension(config)
         from collections import Counter
         if len(ids)!=53 or Counter(t['goal'] for t in config['tasks'])!={1:24,3:24,2:5}:raise ValueError('exact 53 MS scope required')
         if sum(t['arithmetic']['max_epochs'] for t in config['tasks'])!=1060:raise ValueError('1060 MS epoch cap required')

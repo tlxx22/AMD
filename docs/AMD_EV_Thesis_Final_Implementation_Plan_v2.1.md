@@ -7,6 +7,8 @@ version: "v2.1-R1（替代版：修复数据双接口、目标输出、状态接
 
 # 0. 文档定位
 
+**ModernTCN v1 首批完成审计与fold6＋EPF三臂扩展（2026-10-22，统一送审）**：原首批24项/6波技术完成，独立产物及CPU保存状态自检Passed（655文件、48份best/last只读反序列化）；核账370 run-epochs、1,038,487 updates、24次原正式test。目标一Not met，目标二/三Not evaluated；新结果与扩展实现仍待ChatGPT审核。用户批准新增批次27项：Urban F4 fold6四H×U/V/UV 12项＋EPF五市场三臂15项，9波q4，最多540 run-epochs/1,867,620 updates。22个新科学身份＋原5个EPF UV身份，原53项历史及24项输入消融保留，合并75个唯一身份；扩展批次完成0。模型/模块及原53项配置不改，仅新增精确scope与队列/汇总分派。17项CPU元数据/保存指标fixture通过，无模型前向、Adam或GPU。新字节统一待审，未commit、无可消费AUTH/新attempt，下一任务经实质审核后连续closure/实际commit绑定/AUTH/preflight/用户启动。
+
 **ModernTCN v1 启动交接最新决定（2026-10-22）**：用户明确撤销未执行的q1/q4数值、OOM及性能探针，接受依据既有证据复用与差异评估准入Urban首批q4。历史ModernTCN-UrbanEV-F4准入concurrency=4/status=Passed及正式队列technical_complete，与本版已审CPU工程、相同L12/P1/C11/batch128/float32主干条件和U/V额外计算/反向/优化器开销共同支持本次接受；16.5MiB共享基中间量不是总峰值，不声称本版GPU峰值、串并行数值或加速比已实测。接受记录见外置 `M6-ModernTCN-UV-v1-launch-authorization-r1/resource-reuse-acceptance.json`；旧Pending及探针包保留历史，计划取消且执行0，不再作为许可阻塞。工程Passed沿用，三个效果目标仍Not evaluated。
 
 同一用户决定已先通过原owned STOP停止TimeMixer v6 r4及后续派发，监督器/四worker退出、共享锁释放。保留12完成、4中止staging、8未启动；已保存195 epochs、journal确认554011 updates下限，未持久化尾部未知；保存12次test，无补跑/补test/恢复。原程序failure通用措辞不改，语义为用户主动停止，详见外置 `M6-Timemixer-v6-r4-user-stop-r1`。只在本ModernTCN工作区增量文档提交，21实现文件/配置及29运行依赖原字节保持。随后绑定实际文档commit生成首批24项真实AUTH与元数据preflight；六波q4/480 epochs/1485300更新、53MS与B_ref=B_cfg不变，其余29MS保留未启动。真实长训练最后由用户启动，本轮不代启，不生成正式attempt；原GPU UUID/空闲门槛、mutex/owned STOP等保护保持。
@@ -3757,6 +3759,17 @@ helper预算（Adam/backward/forward）：补做112/1400=608000/608000/734673；
 最终定向复验84/84 Passed（此前82/82及83/83通过记录同时保留），0 failure/error/skip，真实model construction/forward/backward/Adam/GPU initialization全部0。实际调度分支证明四阶段probe尾部0、AUTO_AUDIT各1，formal完整审计/数值回放/raw读取0，runtime完整manifest扫描各1；合成tmux持久等待及owned safe-stop通过。JSON/AST/bash-n/bundle SHA/git diff --check通过，全部修后SHA、完整patch、固定来源/预算/调用次数及失败账由本轮外置包绑定；该Passed是CPU验收，不是实际GPU准入、科学结果review或ChatGPT对新候选的审核。
 
 <a id="m6-moderntcn-uv-v1"></a>
+**2026-10-22首批审计与27项扩展增量**
+
+首批实际训练commit为`5ff5ea17732891556270789aeb504e2ab356ecfb`。24项身份/回执、runtime六波、成功registry、封存成员及Python/系统checksum、history/update journal、严格validation MSE best/早停/OneCycle LR和beta1、一次正式test与SSE/SAE/elements完成核查；48份best/last在CPU只读检查保存参数/BN buffer、活动Adam、scheduler、BestState、进度与RNG格式。未构造模型/optimizer、未执行恢复或CUDA恢复/训练重演；key/shape按保存参数名与同臂/同profile状态核对，不能冒称新模型载入验证。655原文件保持。首批370轮/1038487更新/24test；原53计划Partial不等于首批失败。fold1四H MSE B/U/V/UV=0.8650273498189662/0.6931539555005402/0.8830968997368811/0.6979381201822326；fold4=0.4522708881943221/0.45604676476825784/0.44917289620612294/0.4267214645241454。双指标逐fold目标一Not met，目标二/三Not evaluated；不把效果差判作技术失败，新结果review Pending。
+
+独立配置`configs/moderntcn_uv_extension_f6_epf_3arm_v1.json`使用`task_scope=development_extension_f6_epf_3arm_v1`，仍走受保护development链路。冻结27项完整科学字典/参考SHA，明确九波：U Urban4、U PJM/NP/BE/FR4、U DE1；V同序；UV同序。原53项精确网格继续校验，原配置字节不改；五EPF UV完整task身份复用、fresh尚未执行，另增22身份，不覆盖原24完成任务。fold6继续M1累计六个月切分端点[3475,3909,4344]，train-only scaler/节点275/特征/标签不变；四H每epoch batches=7435/7429/7422/7416。EPF各285 batches/epoch，C3/target2/有序aux[0,1]/L96/P24保持。预算独立复算Urban1782120＋EPF85500=1867620 updates，27×20=540 epochs。9格B只读引用第二轮cfg_adapted_v1，不重训/重test、不切换paper结构。
+
+原目标一仅fold1/4，fold6只是扩展比较；新汇总分列fold6各H/四H均值及EPF B/U/V/UV。目标二仅完整五市场UV十指标格至少七格严格胜B，不因缺项缩分母，不加单指标70%门槛；U/V仅解释独立贡献。目标三原八格与输入消融保留，本批不判目标一/三，也不把27项技术完成误判为全局覆盖失败。checkpoint/成功registry/test-once/恢复/STOP保护不改；旧AUTH/runtime仍绑定旧执行字节，不能用于新配置。五EPF UV保留成功身份键，防止将同一科学任务重命名择优重跑；正常恢复还须原独立恢复许可及检查。
+
+资源沿历史ModernTCN-UrbanEV-F4与ModernTCN-EPF-compatible-0 q4 Passed、首批实际q4完成及已审CPU证据进行差异评估，免新增探针。fold6每步形状不变；EPF共享基激活约9MiB、Urban约16.5MiB，EPF动态基卷积MAC为110886912、Urban30277632，计入反向/优化器风险，均非GPU总峰值实测。正式启动仍保留UUID、余量、共享锁和owned保护。17项定向元数据/fixture通过；两项外置交付工具问题（schema字段名、模板继承旧路径/额度）修复并保留前件/日志，追加模型消费0。原15项模型验收复用，不重跑；本轮48次已训练状态CPU读取之外，模型构造/forward/backward/optimizer/真实新test/GPU均0。
+
+统一外置证据：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v1-extension-f6-epf-implementation-r1`。含审计、精确27配置/31执行依赖、9B、9波、来源与预算、资源复用、测试失败修复及patch/SHA。规划新结果根`moderntcn-uv-v1-development-runs/urbanev-f6-epf-3arm-uv-v1-extension-v1`、attempt=`urbanev-f6-epf-3arm-moderntcn-uv-v1-extension-r1`，均未创建。非执行模板commit=null/review_approved=false；本轮只送新范围实质审核，不生成可消费AUTH，不stage/commit/push。以下历史记录保留原时点。
 ## M6 ModernTCN-U+V v1：冻结方案实现（2026-10-22，新工作区送审）
 
 本候选 `moderntcn-uv-dev-v1` 从实际父提交 `0fe117517a3dff6bc4f3c66a9228a72dda06f525` 的已提交字节派生，独立目录 `/public/home/yueweiting/大论文/ModernTCN-U+V`，分支 `M6-ModernTCN-UV-v1`。只在新工作区新增 `moderntcn_dev_v1`、入口、启动脚本、配置和永久定向测试；原TimeMixer工作区、共享作者代码、训练进程及历史产物不改。作者ModernTCN固定commit `56a9a2c018385cd5acef015378cae7f084d1b11c`，实际绑定第二轮源码及MIT许可；没有重新选源或下载论文。详细证据在 `amd-execution-evidence/m6/M6-ModernTCN-UV-v1-implementation-r1/`。
