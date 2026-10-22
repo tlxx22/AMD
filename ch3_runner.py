@@ -487,6 +487,9 @@ def restore_state(path,model,opt,identity,generator,scheduler=None):
 
 
 def formal_identity(c, task, metadata, approval):
+    if c.get('c1_baseline'):
+        from moderntcn_c1.worker import identity
+        return identity(c, task, metadata, approval)
     p=profile(c,task)
     result=dict(purpose='ch3_formal',run_id=task['id'],input_variant=task['input_variant'],
                 protocol_sha=digest(c),profile_sha=digest(p),data_sha=digest(metadata),
@@ -1001,6 +1004,9 @@ def probe_worker(c,task,out,device='cuda:0',capture_states=False,backend_name=No
     return result
 
 def formal_worker(c,task,out,approval,resume=False):
+    if c.get('c1_baseline'):
+        from moderntcn_c1.worker import guard
+        guard(c, task, out, approval, resume)
     import torch
     from utils.ch3_data import load,batches
     out=Path(out);p=profile(c,task)
@@ -1047,6 +1053,9 @@ def formal_worker(c,task,out,approval,resume=False):
     if saved['identity']!=expected_best_identity:raise ValueError('best identity mismatch')
     model.load_state_dict(saved['model'],strict=True);del saved
     # Only the separately approved formal worker can enter this final test path.
+    if c.get('c1_baseline'):
+        from moderntcn_c1.worker import claim_test
+        claim_test(out, identity, best.epoch)
     datasets,test_metadata=load(c,task,test_capability={'purpose':'ch3_formal_test','protocol_sha':digest(c),'run_id':task['id']})
     result=evaluate(model,batches(datasets['test'],p,'test'),p,'cuda:0')
     result.update(id=task['id'],input_variant=task['input_variant'],purpose='ch3_formal',protocol_sha=digest(c),best_epoch=best.epoch,

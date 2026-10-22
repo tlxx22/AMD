@@ -1,5 +1,17 @@
 # M6：第三章正式实验与定稿
 
+**2026-10-22 ModernTCN C.1 第二轮固定重跑与27→53接续（用户新决定）**：独立worktree `ModernTCN-C1-baseline`、分支 `M6-ModernTCN-C1-baseline-v1`，父提交 `900fb19c792251ca549ef8c4cebcc3b725d5fe22`。当前ModernTCN-U+V的fold6＋EPF三臂27项／9波仍按原AUTH/runtime执行，不停训、不改原运行worktree。新原生B仅采用 `paper_C1_r8_v1`：单block、D64/r8、large51/small5、patch8/stride4；无U/V，不清理作者未执行参数，不改原RevIN/BN/head、loss、优化器、OneCycle、scaler、数据和评价。
+
+范围：Urban六fold×四H=24 MS，五EPF H24=5 MS，ETTh1/ETTh2/ETTm1/ETTm2/Weather/Exchange各四H=24 M，共53项／14波／860 run-epochs／2,164,920 updates（Urban2,085,780、EPF28,500、M50,640）。M只恢复原生ModernTCN baseline覆盖；ECL、其他六baseline、增强M、额外seed/搜索不执行。父profile从第二轮最终371格映射逐份SHA定位，三个父协议逐字段对照；仅结构白名单及必要新身份变化。Weather相同结构仍按新科学决定fresh，不把重跑说成旧技术失败。
+
+新目标二B_ref为C.1，五EPF×双指标10格至少7格严格胜配对B，旧B_cfg为cfg_adapted_v1；新B未完成则Not evaluated。目标一采用完整UV、w/o U、w/o V消融，不再要求单臂胜B，逐fold四H与双指标比较保留；旧链式排序不作调度停止条件。目标三仍按原输入消融合同。旧许可/结果/成本和裁决不倒改。
+
+工程：复用第二轮原生B adapter、loader、MS/M损失路由及训练循环；新增C.1分派、授权/封存/test-once与owned等待器。25个独立CPU元数据/数组fixture最终通过，累计37次执行，保留一次fixture mock导入污染失败及修复；父协议定位错误另记。原数值训练函数AST比对保持，模型构造/完整模型forward/backward/Adam/真实checkpoint读取/真实数据模型前向/GPU均0；原adapter数组路由3次，非模型运行。q4采用既有证据复用与差异评估接受，本轮未重新实测；Weather C21/N24/D64/r8/P<=720的既有q4覆盖主要大激活，CUDA workspace等不冒称已测。
+
+本轮授权连续完成精确closure、真实commit绑定、正式AUTH和无GPU元数据preflight，停在用户一次arm之前，状态prepared。链条每45秒读取上游小型状态；仅精确27项/9波回执封存、staging空且所属进程退出后解锁，等待共享mutex，再查启动GPU UUID/余量（60秒/最多3次/仅超时重试），执行14波。STOP/失败/身份异常阻断后续，无自动重跑；本链owned STOP不触碰上游。外置 `M6-ModernTCN-C1-round2-rerun-v1/` 绑定全部SHA/实际提交/许可/证据，不声称ChatGPT已读取本轮新增代码。
+
+完成后新目录生成53格替换映射及371格新revision，其余318格保持；不覆盖旧表、不逐格择优，新EPF与已保存UV比较目标二，不重新test增强模型。Codex自检、ChatGPT结果review和数值效果分别记录。旧任务分波耗时约7.47小时，新结构规划12–24小时（不含上游等待，非实测）。
+
 **ModernTCN v1 首批完成审计与fold6＋EPF三臂扩展（2026-10-22，统一送审）**：原首批24项/6波技术完成，独立产物及CPU保存状态自检Passed（655文件、48份best/last只读反序列化）；核账370 run-epochs、1,038,487 updates、24次原正式test。目标一Not met，目标二/三Not evaluated；新结果与扩展实现仍待ChatGPT审核。用户批准新增批次27项：Urban F4 fold6四H×U/V/UV 12项＋EPF五市场三臂15项，9波q4，最多540 run-epochs/1,867,620 updates。22个新科学身份＋原5个EPF UV身份，原53项历史及24项输入消融保留，合并75个唯一身份；扩展批次完成0。模型/模块及原53项配置不改，仅新增精确scope与队列/汇总分派。17项CPU元数据/保存指标fixture通过，无模型前向、Adam或GPU。新字节统一待审，未commit、无可消费AUTH/新attempt，下一任务经实质审核后连续closure/实际commit绑定/AUTH/preflight/用户启动。
 
 **ModernTCN v1 免重复探针准入与启动交接（2026-10-22）**：用户最新决定取代此前待探针流程。原ModernTCN-UrbanEV-F4 q4准入Passed、正式队列技术完成及本版已审CPU主干/初始化/梯度/有限性/接线证据，结合相同Urban L12/P1/C11/batch128/float32与U/V额外激活、反向及优化器开销的差异评估，接受Urban首批q4；不声称本版GPU峰值、数值串并行或加速比实测。16.5MiB仅为V共享基中间量。原探针计划撤销且未执行、旧包及Pending历史保留；本次接受记录为外置 `M6-ModernTCN-UV-v1-launch-authorization-r1/resource-reuse-acceptance.json`，不另设机械审批。工程Passed沿用，效果三个目标Not evaluated。

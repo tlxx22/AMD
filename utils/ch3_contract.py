@@ -332,6 +332,9 @@ def task_by_id(c, run_id):
 
 
 def profile(c, task):
+    if c.get('c1_baseline'):
+        from moderntcn_c1.contract import profile as c1_profile
+        return c1_profile(c, task)
     if c.get('type1_followup'):
         from utils.ch3_type1_tasks import profile as type1_handler
         return type1_handler(c,task)
@@ -369,6 +372,9 @@ def profile(c, task):
 
 
 def validate_manifest(c):
+    if c.get('c1_baseline'):
+        from moderntcn_c1.contract import validate as c1_validate
+        return c1_validate(c)
     if c.get('type1_followup'):
         from utils.ch3_type1_tasks import validate as type1_handler
         return type1_handler(c)
