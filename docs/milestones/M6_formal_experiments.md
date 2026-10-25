@@ -1,5 +1,33 @@
 # M6：第三章正式实验与定稿
 
+**当前M6：v5工程review Passed，精确closure→正式AUTH/preflight→用户启动交接（2026-10-25）**。用户确认ChatGPT通过Desktop Commander实际直读审核固定v5实现、guard集成、新目标一与定向CPU验收；批准九格V3等价单臂引用，十八项新U/UV必须fresh。12项用例最终覆盖通过，21次执行含两类失败及修复，原日志/成本保留，不记作21次全Passed；未改科学公式或放宽容差。Urban/EPF q4基于既有证据复用与差异评估接受，本轮未重新GPU实测；guard旧GPU exact与本版CPU接线证据复用，不保证整批12.1%提速。v5三个效果目标仍Not evaluated，工程Passed不代替效果或结果review。
+
+本次提交仅已审25路径（23新增字节保持＋两文档授权增量），配置execution_authorized=false/preparation_head不改；实际H5、正式AUTH及元数据preflight回执置独立`M6-ModernTCN-UV-v5-review-closure-r1`和`M6-ModernTCN-UV-v5-launch-authorization-r1`。范围18fresh U/UV＋9V引用，六波4/4/1/4/4/1、q4、360run-epochs/1245080updates；保留完整27格后Urban_OK AND同一EPF市场四比较的目标一，目标二10格至少7格胜B_cfg，目标三本批不执行。B/V不重训或重test，无旧权重warm-start；不按中途效果取消波次。Codex不运行start/supervise/worker或模型/GPU探针，真实长训练由用户最后启动；启动时SSH/17890保持至真实runtime、首波worker身份及日志确认，随后既有本地核验自动推进。旧v4审计及下文待审记录均保留历史时点，未来生成的closure/AUTH不预称ChatGPT已读。
+
+**当前M6增量：v5实现、集中guard集成及新版目标一统一送审（2026-10-25）**。用户已转达ChatGPT对v4保存产物/结果、限定机制观察和guard限定CPU/GPU exact证据的review Passed；不含CUDA恢复/训练重演，不保证整批提速。v4的240 epochs/761159 updates/18原test、目标二3/10、原计数修正与失败日志保留。下方旧“待审/未集成”是历史时点；本轮新字节尚待ChatGPT实质审核。
+
+当前目标一严格为`Urban_OK AND EPF_OK`：完整27评价格覆盖；fold6四H等权的双指标分别UV<U且UV<V；五EPF中存在同一市场，双指标同时胜两个单臂（四比较）。不跨市场拼接，不加U<B/V<B或每H全胜；平局不胜，缺项Not evaluated、重复拒绝。summary列Urban四比较、全部EPF四比较、合格市场/个数和整体状态，覆盖/贡献/review分开。新政策回看v3 Urban=false、EPF合格4；v4 Urban=false、EPF合格0，均不满足整体，不修改旧许可或报告。目标二B_ref=B_cfg、十格七胜；目标三同revision的fold6输入消融保持未执行，C.1历史不采用。
+
+唯一v5身份`moderntcn-uv-dev-v5`：u=`target_state_conditioned_grouped_variable_mixing_v5`，v=`target_state_conditioned_low_rank_temporal_filter_post_ffn1_v3`，fusion=`post_ffn1_v_then_conditional_native_ffn2pw1_v5`。原h经V3后按D-major/C-minor输入native ffn2pw1；在其输出a0、原dropout/GELU前加`Q_d(q_b⊙P_dx_d)`，原FFN2其余部分/skip/head/denorm不变。q使用旧目标条件辅助统计公式，float32顺序与复制同A/e/b的参照exact；无旧Wh/Wo/Wb。P/Q groups=D、宽度8、Q零，A逐变量Xavier后P逐组Xavier，隔离CPU子流17011/17021。控制器aux排除target，native算子含全部C；不冻结native W、不增dynamic bias/额外规范化/门/损失。U F1/F2/F3/F4参数6293/8391/9440/11538、EPF3146；UV F4/EPF12110/5222，V3原字节复用。
+
+来源由ChatGPT选定：CondConv固定1904.04971v3 §3/4.3.1、LoRA固定2106.09685v2 §4.1–4.2已本轮局部核对，PDF/SHA外置。此为独立公式化设计，不是完整LoRA/CondConv复现；native W fresh不冻结，q动态不能静态merge，无alpha、零推理成本或首次原创主张；EPF C3时R8不构成压缩。ODConv/FiLM/iTransformer/VCformer只登记先前比较理由，不实现；v5不引入TFT运行依赖。统计条件不足、与native能力重复、过拟合、失去旧Wb收益及U/V交互均未被排除，新效果三个目标Not evaluated。
+
+已审guard实际集成到v5 worker：loss检查→backward→全部gradient集中检查→Adam→全部parameter集中检查→scheduler。函数/异常类AST一致，保持grad=None/合法零梯度/无活动梯度拒绝及首错顺序。同一v5两种guard两步CPU完整更新exact及故障边界通过，既有GPU exact证据复用；旧48.710527→42.816987ms（12.0991%）仅原q1 fixture，本轮GPU未测，不参与模块效果选择。
+
+12项定向用例最终通过（21次用例执行，8初始化错误＋1测试范围错误及修复完整保留，无skip或放宽容差）。首次多view初始化限制用no_grad初始化修复；跨batch形状归约exact的不当fixture改成同形状样本独立性与各形状对旧公式exact，数学实现未改。累计构造进入34（28完成/6失败）、forward59/样本118、backward36、Adam18、optimizer构造8、局部模块forward6/controller62/autograd4、合成state保存/读取各1。真实checkpoint、真实数据模型前向、真实训练、新test、GPU查询/负载全0；仅元数据操作另有一次工作目录不正确导致git只读命令失败，未修改任何文件。
+
+准备9格原v3 V等价引用＋18 fresh U/UV（六波4/4/1/4/4/1，q4，360epochs/1245080updates），保留原task/producer/config/source/seal/SHA及完整科学profile，不能把引用计为v5 fresh。V-only非零train/eval、梯度、两步Adam/scheduler/BN/RNG等价证据有效；不重训/重test B/V。q4基于既有证据复用与差异评估接受，本轮未重新实测，factor 3/6MiB不代表总峰值。配置execution_authorized=false；模板commit=null/review_approved=false，无可消费AUTH/runtime/attempt。本轮全部unstaged/index空，不commit/push。报告与逐文件清单：`amd-execution-evidence/m6/M6-ModernTCN-UV-v5-conditional-variable-operator-implementation-r1/`。下一次新字节实审通过后再连续closure→实际commit→AUTH/preflight→用户启动；本轮不训练。
+
+**当前ModernTCN v4完成后审计与独立性能原型（2026-10-25，新增材料待ChatGPT审核）**：18项fresh U/UV、6波技术完成，另9格V3为批准的等价引用。保存产物及36份best/last CPU状态自检通过：240 run-epochs、761159 updates、18次原test；不包含CUDA恢复或训练重演。原493个attempt文件及源码/config/AUTH/runtime保持，历史工程review Passed沿用，本轮结果review尚待ChatGPT。完整证据外置于`amd-execution-evidence/m6/M6-ModernTCN-UV-v4-postrun-review-diagnosis-r1/`。
+
+单fold6四H等权test，新U MSE/MAE=0.4873333399443312/0.4584405083355131，UV=0.43402062615148995/0.4470054787572279，引用V3=0.4318767256921122/0.4428699701890627。UV对新U下降10.9397%/2.4943%，对V3上升0.4964%/0.9338%：目标一覆盖完成，V加入新U的平均正向贡献有数值支持，新U加入V的平均正向贡献未支持；保留H3双指标及H12 MSE局部收益。目标二对B_ref=B_cfg=cfg_adapted_v1仅3/10（MSE FR；MAE NP/FR），Not met；目标三Not evaluated。C.1不采用，不跨版本逐格择优，test已作为开发反馈，单seed不宣称显著。
+
+限定CPU观察仅Urban H6/H12、PJM、BE的新U/UV best共8模型，复用固定train/validation样本：新U内容、选择及输出通路有实际响应；offU和独立train均值selection的收益依状态/指标而异，不能把即时依赖等同独立消融、把熵或非零参数当效果，也未证明LN或选择器是唯一根因。V保留正向证据；当前新U需要重新审视任务适配，继续去LN/加宽/换位的小修依据不足，返回ChatGPT综合比较机制；本轮未选新来源、未实施下一模型。科学审计/观察实际36次CPU状态读取、8构造、124完整forward/6976呈现，backward/optimizer/new test/GPU为0。
+
+性能与科学独立裁决：仅外置原型集中读回原finite/nonzero布尔判据，保持三个拒绝边界、参数顺序、训练数学与检查频率。CPU12项边界fixture通过；q1合成Urban F4 UV batch128的3步成对更新及原路径自身重复中，输出/loss/全部梯度/参数/BN/Adam/scheduler/CPU-CUDA RNG exact通过。四步/方法短计时中位48.711ms→42.817ms（1.138倍，下降12.10%），不外推整批、EPF、q4或历史耗时。历史文件时间与进程tick时基冲突保留，不能还原精确epoch/step时长或历史负载。原型未接入生产worker，待本轮审核后在下一相关实现一次集成；速度不参与模块去留。
+
+性能另计累计6个fresh合成模型、23forward/2944呈现、19backward/19Adam、6optimizer构造、4次GPU管理查询，无真实数据/test/checkpoint；包括首次日志字段冲突导致的3构造/1更新失败成本，原日志保留，修复复验未放宽exact。合计本轮14构造、147forward/9920呈现；真实训练/新test为0。GPU锁与本轮进程已释放，未干预其他任务。只修改本canonical和唯一M6，unstaged/index空，不commit/push、新AUTH或下一训练；以下均保留原历史时点。
+
 **当前ModernTCN v4工程审核与启动交接（本轮新增裁决）**：按用户转达的ChatGPT通过Desktop Commander实际直读审核，v4固定实现、版本隔离及限定CPU验收工程review Passed。已审REPORT SHA-256=`f22c3f53eec66e74139de0c8038b777794026c425069330e9e8b55b9deab18e8`，file-manifest SHA-256=`08ce8d3ace77118e4c6855c7747e92c81cc94d0bbd925481f7d893f92e766e35`。九格v3 V-only等价单臂引用批准，保留原task/producer/config/source/identity及封存SHA，不计v4 fresh或新增test；旧U不能冒充新U，新U/UV十八项必须fresh，禁止旧权重warm-start。
 
 本批Urban/EPF q4基于既有证据复用与差异评估接受；本轮未重新实测GPU峰值、CUDA恢复或训练数值轨迹，不补探针。v4仍为待验证科学方案，三个效果目标全部Not evaluated，不继承v3的8/10。原计数漏拦截、错误日志、按完成控制流补账及失败成本保留。B_ref=B_cfg=cfg_adapted_v1，C.1历史不采用；单fold6及五EPF、原训练/评价合同均不改。
