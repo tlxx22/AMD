@@ -1,0 +1,29 @@
+ModernTCN author source is read-only, commit 56a9a2c018385cd5acef015378cae7f084d1b11c.
+The adapter preserves native Model construction, registered unused parameters and native block operations; only two explicit local additions. U/V are the frozen project design, not a full reproduction of an unselected external module.
+
+MIT License
+
+Copyright (c) 2024 luodhhh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Unchanged project V3 and reviewed v5 collected guards are reused.
+New U is an independent implementation of the user-frozen conditional Cayley formula.
+OFT 2306.07280v3 is a design reference, not an execution dependency; no OFT author code copied.
+No TFT, PEFT or diffusers dependency.
