@@ -1,5 +1,35 @@
 # M6：第三章正式实验与定稿
 
+**当前M6：v9固定实现工程review Passed，精确closure及正式启动交接（本轮）**。用户确认ChatGPT已通过Desktop Commander实际直读审核v9实现/接线/版本隔离/限定CPU验收，工程review Passed。12个实际用例通过，无skip或容差放宽；另一次导入前SyntaxError与修复保留，0模型消费，不计作第13个通过用例。九格原V3等价引用批准，18项新U/UV必须fresh；q4基于既有证据复用与差异评估接受，本轮未重新GPU实测。v9所有效果仍Not evaluated；固定tanh/网格、EPF容量、bias冗余与共训风险仍未解决，不宣称CUDA恢复/长轨迹重演、GPU峰值或速度验证。
+
+本轮提交严格限原file-manifest的25路径：23新增原字节＋两文档授权裁决增量。原head/最终H/三次样条递推/1/I/初始化/V3/guard及训练评价协议不改，配置execution_authorized=false/preparation_head保持，旧v8增量及封存E材料/失败/历史不回写。H9于提交后据实读取，由外置closure回执及正式AUTH绑定；本文不递归填写自身commit/SHA。仅三端一致0/0/clean后继续正式AUTH和轻量preflight，固定18fresh＋9V、六波4/4/1/4/4/1、q4及360epochs/1245080updates；Codex不代启长训练。用户保持SSH/17890至真实runtime匹配AUTH/H9且首波worker身份/日志正常，后续按原本地检查推进。新closure/AUTH字节未预称ChatGPT已读取；下方待审、未启动均为原历史时点。
+
+**当前M6：v8保存结果/限定机制review Passed，v9唯一样条目标读出实现统一送审（本轮）**。用户确认ChatGPT实读v8的142证据成员/143校验、40依赖、45V引用、9B与678非文档保护文件；原18fresh/195epochs/434012updates/18test、36状态CPU审计证据在声明范围接受，非ChatGPT重跑、CUDA恢复或唯一根因证明。目标一Not met（Urban失败、EPF仅BE）、目标二6/10 Not met、目标三NE；7个score＋2个组合异序FP32 Failed及double定位边界不回写。新U自身适配不足、UV优于U而弱于V、局部lag作用及反证保留；下方待审/未启动均是原时点。
+
+v9保留V3，替换U为`native_linear_preserving_bounded_cubic_spline_target_readout_v9`；fusion=`native_v3_block_then_mean_spline_target_head_before_denorm_v9`。原单RevIN、stem/DW/BN/FFN1、V3(h,原Z0,原X)、FFN2及H skip顺序不改；最终target H[64,N]以D-major/N-minor flatten为a，native shared Linear head一次。tanh(a)进入固定G5/degree3扩展12节点、8个三次B样条，唯一coef[P,64N,8]零初始化；F.linear后除I=64N，仅normalized target加delta后单denorm。无旧lag/扣除/加回、无额外门/幅度/bias/归一化/grid更新或来源训练策略；关闭U原V3、双关作者B。原B全部注册参数及隔离RNG保持。
+
+来源为用户已选KAN 2404.19756v5 §2.2、KANMixer 2508.01575v2 head消融/式(10)(11)、TimeKAN 2502.06910v1式(7)/附录B；固定HTML、提取文本、许可标识及SHA保存，公式独立实现、无参考框架安装。保留KAN固定范围劣于动态网格的反证；KANMixer不是本项目head瓶颈证明，其clip/宽度搜索/发散换seed重启不采用；TimeKAN原Chebyshev非本版B样条。没有新输入信息，原主干已非线性；固定tanh饱和、分辨率、EPF容量增长、常量样条与native bias冗余、主干/V共训仍存在，均为待验证风险，不宣称根因修复/因果解释/通用逼近或效果保证。
+
+工程自检12项最终通过；1次导入前测试拼接SyntaxError保留（重复def，0模型消费），随后10项模型/数学＋2项元数据用例成功，无skip或阈值放宽。专门neutral/native/V-only/guard/BN/RNG exact与异序FP32 atol2e−6/rtol2e−5分列；非零接线确认最终H、原head一次、target-only与denorm前加回，独立递推/局部导数通过。26模型构造、59完整forward/118样本呈现、36backward、18Adam/8optimizer构造、11外部局部U forward、52basis调用（含完整路径）、6局部autograd、合成state写/读1/1；真实checkpoint/数据模型前向/训练/新test/GPU=0。旧guard字节、worker边界及源/恢复/封存/目标政策仅版本派发复用，不重复GPU套餐。
+
+实测U Urban6144、EPF294912；V572/2076；UV6716/296988；knots48bytes。原B全参数保留，EPF并非几百参数模块。basis/degree中间量、tanh、反向保存、coef/grad/Adam、输出副本与workspace分别评估，静态分项不是总峰值；沿正式q4建议复用、mandatory_probe=false，正式资源接受待新实现审核。本版速度/峰值/恢复未GPU实测。V-only非零Urban/EPF train/eval、state/grad/BN/RNG、两步Adam/OneCycle exact支持九格原V3引用，保留原producer/task/config/source/metrics/spec/seal，非本版fresh/test。18新U/UV必须fresh，六波4/4/1/4/4/1，上限360epochs/1245080updates，无warm-start。
+
+原B_cfg、数据/schema/scaler、MS/fold6、seed2024/batch128/float32/MSE/Adam/OneCycle/max20/patience5/strict-best/test-once全保留。Goal1完整27格后的Urban四H双指标胜两臂AND同一EPF市场四严格比较、Goal2十格≥7、Goal3未执行均保持；不增seed/search/F1–F3、不进入M7。v9三个效果全部NE，仅非执行配置/任务/template（commit=null/review_approved=false），无正式AUTH/runtime/attempt/preflight/start。40实际执行依赖、23新增与两文档均unstaged/index空，未commit/push；统一E9=`amd-execution-evidence/m6/M6-ModernTCN-UV-v9-spline-readout-implementation-r1`。Codex工程自检与ChatGPT新字节审核分开，停止在统一送审，不提前进入closure或训练。
+
+**当前M6：v8完成后保存审计、任务适配与真实lag作用限定诊断（2026-10-27，统一送审）**。18fresh新U/UV与6波实际完成，9V3是等价引用不计fresh/test；原195 run-epochs/434012 updates/18次test。493原attempt文件、414 payload双checksum、18receipt/registry/claim、strict-best/patience、数据/scaler/profile/test角色及36份best/last CPU状态自检通过；Q/K/Value/O、valid/source_index/overlap、target/aux、Adam活动/步数、scheduler/RNG/BN一致。原owner/末child退出、staging空、无STOP/failure；progress RUNNING保留快照，缺逐波PID时间线不补造。工程Passed沿已审核实现，本轮Codex保存自检、ChatGPT结果/机制待审、科学门槛分开；不是CUDA恢复/重演，下方旧未启动和待审时点不回写。
+
+27格完整：Urban四H等权U=0.5050652840749048/0.46958247201742187，V3=0.4318767256921122/0.4428699701890627，UV=0.44600312523535224/0.45476666176042935。UV对U test −11.69397%/−3.15510%，对V +3.27093%/+2.68627%；U比B +1.79283%/+1.44842%，新U先有自身适配问题。完整validation对U MSE好而MAE略差，对V两指标差。目标一Urban=false、EPF仅BE四比较成立，整体Not met；目标二6/10 Not met：MSE PJM/BE/FR、MAE NP/BE/DE；目标三未评价。H3/H6占UV−V净MSE86.4194%、MAE80.5766%；H12完整validation/test小收益保留。BE test联合正例但validation对V非双胜，PJM两split弱于两单臂，DE验证优势丢失，不能统一解释。8个Urban fresh best1/2、总6/7；best1已有7416或7435次更新，非初始化未训练。单seed/开发test限制保持，不更换B、不拼优胜格、不重选best或重跑。
+
+BE U best4 val=1.056595019980061，epoch5=12.63441094522087，倍率11.95766657；epoch4→5训练minibatch loss均值0.790824→27.163848、p99约6.30010→362.51243、max11.54691→714.53882。285步/轮、所有记录finite、LR/beta1符合原OneCycle；没有epoch5 checkpoint，best4/last9无法定位当轮模块/BN/梯度原因，有限尖峰不是自动技术失败，不加裁剪/改LR/patience。完整历史轨迹及动态训练loss分布保存，后者不冒充固定权重train-eval。
+
+固定train/validation核心仅H3/H6、PJM、BE的8个U/UV best，先normal/offU；4个UV只追加同alpha、Value改读当前位置的功能干预。H3 V3缓存缺失才补1份原best，其余V3从已审E3→E5预测链复用，truth/顺序/样本键/scaler exact。H3/H6 UV validation normal MSE0.260080/0.408339，取消位移变0.298117/0.419126，说明真实对齐局部有用；BE normal0.685866，取消位移0.659089反而更好。即时干预非独立训练消融，可能离开训练支持，不据此统一删lag。Urban后7/EPF后13位置alpha共享是原定义；早段合法源数量单列，mask不是学得时变关系。score时间均值项/中心化项RMS比在UV validation H3/H6/PJM/BE约2.48/3.05/7.12/2.30，Q/K的D轴LN非时间去均值；不由其直接选新归一化或温度。
+
+同UV状态V引起的晚段alpha L1变化均值H3/H6/PJM/BE约0.819/1.219/1.235/1.652，Value和局部U输出也变化。缓存拆分选择项、内容项及交互项均非普遍可忽略，分量不正交，不作100%贡献或历史梯度冲突证据。H6 UV对独立V的validation子样本ΔMSE=−0.002657+0.035739=+0.033082，即使140/256样本改善仍净恶化；d含独立主干/选点差异，不是U支路。H3 U last固定train/validation均更差，H6/PJM在train也有劣势，不能全归于test漂移。H3 U/UV、H6 U的MAE及BE UV的MSE存在子样本/完整validation异号，逐项保留、全量优先。没有追加offV/offBoth或score来自h的完整路径网格。
+
+8模型观察器input/output/持久state/RNG保全，RevIN临时缓存单列；48批原序target/FFN2重建、48缓存score原序重建exact。异序FP32 tol2e−6/2e−5下score展开7次、V→U分解2次Failed保留，最大绝对残差0.000183106/5.24521e−6；缓存double恒等定位最大约1.70530e−13/1.77636e−14，不覆盖失败或称CUDA实测。纯缓存后处理1次NumPy bool_ JSON错误只修序列化，保留工具/traceback/patch并重做缓存计算，不改模型/数学/容差。新增CPU加载37（本版36＋H3 V3 1，各一次）、构造9、完整forward160/呈现9280；project/transport各128含完整104＋局部24，unshift聚合24，score分解48、V影响分解24、组合double定位2；缓存后处理失败/复验各48批原序＋48批double，合计96/96。完整backward/optimizer构造更新/真实训练/新test/GPU/checkpoint写入均0。
+
+裁决待ChatGPT审核：V保留独立正向能力，非永久不可替换；新U有局部lag内容作用但整体适配不足，组合未获合同支持。继续改lag范围/LN/温度/rank/加门缺少定向依据，优先交ChatGPT重新比较辅助内容能力，保留H12/BE与所有负向反证，不强造v9公式。选型必须说明原生已有能力、新能力及删除语义；允许局部替换但不自动授权换整个backbone/数据/协议。速度不参与筛选，未做新probe或优化。原生产源码/许可/493产物不变，仅canonical/本M6增量unstaged/index空，不commit/push、不新AUTH/attempt；统一REPORT、成绩/轨迹、预登记/样本、缓存/失败/消费/逐份SHA在`amd-execution-evidence/m6/M6-ModernTCN-UV-v8-postrun-review-diagnosis-r1`，新字节尚未返回ChatGPT实读。
+
 **当前M6：v8工程review Passed，精确closure→正式AUTH/preflight→用户启动交接（2026-10-27）**。用户确认ChatGPT已Desktop Commander实际直读审核固定实现、接线、版本隔离与限定CPU验收，review Passed。12独立用例最终通过、14次执行为13成功＋1历史Error，保留漏os导入和等效lag断言整理后的定向复验，未改模型公式/容差；包说明订正及摘要刷新为可执行AST不变，原快照保留。批准九格V3显式等价引用，十八项新U/UV必须fresh；q4按既有证据与差异评估接受，本轮未重新GPU实测。v8三个效果目标仍Not evaluated，不把时滞匹配写成真实因果或已证明互补，不宣称真实训练、CUDA恢复/重演、峰值或速度已验证。
 
 精确closure仅已审25路径（23新增原字节＋两文档裁决），配置execution_authorized=false/preparation_head、原公式/mask/LN/初始化/guard保持。送审包、来源HTML、V证明、失败/日志/patch与v7合法审计增量不改写。H8只在实际提交后读取，外置closure回执与正式AUTH绑定，不递归回填本文。固定18fresh U/UV＋9V、六波4/4/1/4/4/1、q4、360epochs/1245080updates及原goal1/2/3/data/训练/test-once合同保持。Codex不执行start/supervise/worker或GPU查询；正式AUTH轻量preflight后由用户启动，SSH/17890保持至匹配AUTH/H8的runtime、首波worker身份及日志正常，再由既有本地核验推进。新closure/AUTH不预称ChatGPT已直读，旧待审/未启动文字保留原时点。
