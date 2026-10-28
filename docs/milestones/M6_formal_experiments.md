@@ -1,5 +1,33 @@
 # M6：第三章正式实验与定稿
 
+## v10结果与输入消融scope：review Passed，精确closure及正式启动交接
+
+用户确认ChatGPT已通过Desktop Commander服务器直读审核：v10已完成结果review Passed，同模型输入scope工程review Passed。原10fresh/130轮/37050 updates/10原test核账通过，17引用不计新增成本；20份CPU状态是Codex执行、ChatGPT审核证据，不是ChatGPT重跑/CUDA恢复。Goal1 Met（Urban通过、EPF仅NP）；Goal2 Met 7/10（MSE NP/BE/DE；MAE NP/BE/FR/DE），PJM双指标和FR MSE未胜B、单seed/开发test限制保留。输入scope 8组通过；计数钩子漏记与模板路径修正历史保留，30次前向/60次呈现补账获接受，不重跑验收。
+
+批准F1/F2/F3各H3/6/9/12完整UV十二fresh＋四格F4的v9→v10 P1批准引用，三波4/4/4、q4，最大240轮/1782120更新、最多12次新增正式test；F4新增训练/test0，不迁移checkpoint。candidate/revision、原模型、schema/data/scaler/seed、MSE/Adam/OneCycle/max20/patience5/strict-best/test-once不变。Goal3仍NE，完整16格每指标四H未舍入等权F4<F2<F1且F4<F3<F1，无F2/F3或逐H排序；Goal1/2只引用已审27格结果。资源基于既有证据与差异评估接受，本轮未重新实测，不宣称GPU峰值、速度或CUDA恢复已通过。
+
+本次只精确closure十九路径：17新增原内容＋两文档批准增量；新启动脚本100755，原model.py EOF特例不涉及本批。ER/EI报告、manifest、proof、goals.json及旧许可/产物/失败全部封存，Pending保留送审历史；配置execution_authorized=false/preparation_head保持。实际新提交H_input在外置回执及正式AUTH绑定；三端0/0/clean后同轮继续AUTH/preflight和用户一次启动，无额外草稿审批或probe。用户保持SSH/17890至匹配H_input/AUTH的runtime、首波四worker PID/start及日志正常，后续三波原本地核验自动推进。真实长训练由用户最后启动，效果差不能择优重跑，不提前宣布Goal3满足/第三章定稿/M7；不预称ChatGPT已读取本轮之后产生的closure/AUTH。
+
+## v10：完成后保存审计与同模型Goal3输入消融准备（2026-10-29，统一待审）
+
+实际执行提交`ef38340a6fbe7a98cdc73270e4da121cf17ee70f`，五EPF U/UV 10fresh、4波、10receipts完成。277原attempt文件/230 payload、46依赖、45V3/48P1引用文本、9B结果、manifest/history/journal/claim/seal/registry双checksum核验；20份本批best/last各CPU读取一次，coef[6,1536,8]、固定M/knots、Adam活动/步数、scheduler/OneCycle LR与beta1、RNG/BN/finite、strict-best/patience、data/scaler及test一次边界通过。原成本130轮/37050 updates/10原test，17引用不计本版fresh或新增test。无保存审计模型前向/optimizer/恢复；不是CUDA重演。staging空、无STOP/failure、原owner/末child退出；progress RUNNING是历史快照，不回写，不补造逐波PID或中间状态。
+
+完整27格=10fresh＋9V3＋8v9 P1，producer/consumer分开：Goal1数值Met（Urban通过；EPF仅NP满足同市场双指标对两单臂四比较）；Goal2数值Met 7/10，MSE NP/BE/DE，MAE NP/BE/FR/DE。PJM双指标、FR MSE未胜B_cfg仍完整列出；Goal3 NE。没有继承v9 BE或拼接旧EPF优胜格。v9整版比较、27格CSV/Markdown、B_cfg百分比、各自MSE-best validation及保存轨迹见外置`M6-ModernTCN-UV-v10-postrun-review-r1`。既有工程Passed、本轮保存自检Passed、ChatGPT新结果review待审、科学数值Met分别登记；不称单seed窄幅优势显著稳定或独立盲测。
+
+本条用户授权Goal3实际准备，候选/revision仍原v10，U/V公式、head/P1执行、guard/训练协议及旧生产文件均不改。新增`moderntcn_input_ablation_v10`窄职责scope及独立配置/entry/script，模型直接调用原v10 adapter/model/spec；不monkeypatch旧白名单，不把真实任务标为synthetic。新scope仅F1/F2/F3四H、Urban/MS/fold6/UV十二fresh；旧EPF/F4/U-only/V-only/错scope拒绝，身份和成功namespace隔离。原训练循环除task_scope身份增量后AST一致，控制函数diff单列；实际依赖60项。
+
+F1 C6=volume＋日历，F2 C8=volume＋价格＋日历，F3 C9=volume＋天气＋日历；F4 C11沿原schema。所有variant严格使用`utils/feature_schema.py`有序features/target0/aux/fingerprint。原loader共同列预处理/同train scaler/节点与时间窗口不变；合成四schema×四H共同特征和target逐位一致，未新增真实数据前向。原native参数随C改变如实保留：F1/F2/F3/F4 UV总119045/141317/152837/176645，U6144/V572/增量6716不变，复用原已审计数，未删unused项凑参数。
+
+F4四格仅引用原P1_v9_reuse的Urban/F4/fold6/UV条目，producer commit `385f53b458f1140c143c2c1edc558b2ceb9e24b7`；P1 proof SHA `e746ac1a1c43cb9c28846834b60e159946aafdea2b29c290b9e13eb998f9c268`。本条明确批准此v9→v10等价链用于Goal3，逐项绑定原metrics/manifest/spec/config/seal/data-metadata和profile/scaler/seed；无checkpoint迁移或F4重训/test。独立input coverage16=12fresh＋4引用，不与模块27混算，Goal1/2只引用新结果包。
+
+三波F1四H→F2四H→F3四H，4/4/4、q4；每H每轮7435/7429/7422/7416，最大240 epochs/1782120 updates，未来最多12次新test，F4新增0。原L12/P1/H3/6/9/12、275节点、split[3475,3909,4344]、seed2024/batch128/eval128/float32/MSE/Adam/OneCycle/max20/patience5/strict validation MSE best/test-once保持。Goal3每指标四H未舍入等权F4<F2<F1且F4<F3<F1；F2/F3不排序、不要求逐H胜，不加B链；缺项NE、平局不通过、重复/错身份拒绝。未满足不自动换seed/改模型/重跑。
+
+8组定向CPU合成用例8次通过，0失败/skip，未放宽exact或既定FP32容差。三F实际原模型短链、F1 epoch边界接续、test-once/封存/错scope/F/H/knots拒绝在live写入前验证；F4来源、Goal3缺项/平局/不要求F2-F3排序及非执行模板先于网络/GPU/模型拒绝通过。新增5构造、30完整前向/60呈现、12backward、12主Adam更新/10优化器构造（含shadow）、合成state写12/读6、合成test3、子Adam0。前向计数alias钩子漏计保留原0记录，按3份封存routes及明确控制流补为30/60，修工具但不重跑；非执行模板初稿继承旧EPF路径/说明，经静态检查修正并保留前件，两项均未改变模型公式/容差。审计另外20次真实CPU state读取，真实数据模型前向/真实训练/新正式test/GPU全0。
+
+资源分别评估OOM与数值：沿Urban F4正式q4与原模型证据，C降低、L/P/D/N及U/V主要运算保持，仍计反向、各degree basis、carrier/BN、原全部参数/Adam/workspace。结论“基于既有证据复用与差异评估接受；本轮未重新实测。”不新增OOM/数值/恢复/并发/性能probe，不测GPU速度，不将参数量当峰值。全局锁、UUID/余量、PID-start、STOP、test-once及成功不可覆盖保护保持；原初始Git联网之后，worker/后续波次仍仅本地核验，没有新后台SSH联网检查或接续平台。
+
+统一输入证据`M6-ModernTCN-UV-v10-input-ablation-preparation-r1`含12任务/3波/policy/F4证明、60依赖、资源、不可执行template和启动/日志/status/epoch-best/tmux/完成/owned STOP草案。configuration execution_authorized=false，template commit=null/review_approved=false，无正式AUTH/runtime/真实attempt；本轮未运行真实preflight/start/supervise/worker。两文档与17新文件全部unstaged、index空，无commit/push，新scope/结果包待ChatGPT实质审核；通过后下一轮连续closure→实际commit→正式AUTH/preflight→用户一次启动。本轮不宣布Goal3满足、第三章定稿或进入M7，下方所有旧时点保留。
+
 ## v10：工程review Passed，精确closure与正式启动交接（本轮）
 
 用户确认ChatGPT已通过Desktop Commander实际直读审核v10实现、版本接线、两类等价引用及限定CPU验收，工程review Passed。批准8格v9 Urban P1 U/UV与9格原V3显式引用，保留真实producer/task/commit/profile/data/结果封存SHA，不计fresh或新增test，等价结果引用不授权checkpoint迁移；五EPF U/UV十项全部fresh。12独立用例最终通过，14执行=13成功＋1引用顺序Error；dataset/H/fold/arm唯一键修复及前置工具故障原样保留，无skip或容差放宽。q4基于既有证据复用与差异评估接受；本轮未重新实测。Urban分项来自批准引用，整体Goal1/Goal2仍Not evaluated，不能继承旧BE；Goal3 NE。不宣称新版速度、GPU峰值、CUDA恢复或长轨迹重演已通过。
