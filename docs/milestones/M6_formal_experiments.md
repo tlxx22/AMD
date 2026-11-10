@@ -1,5 +1,11 @@
 # M6：第三章正式实验与定稿
 
+## GPU可见性身份绑定修正：窄范围验收通过，新字节统一待审
+
+旧AUTH-r1正式preflight退出1并已保全，retry2未创建。ChatGPT已只读确认隐藏GPU与启动器`CUDA_VISIBLE_DEVICES=0`导致torch_build仅多四行；本轮按启动器环境采集新证据，未修改environment.py或启动器。10行旧文本SHA为`b384ae4b0a6c7e141a83e78638b2d557a7f3b843b4d63a9104672e65ee239205`，14行新文本SHA为`8c454fd3f128eca1154bd540123adafcf6b7111ea3a165b5ec433d4baf937a93`；精确增加CUDA Runtime 11.8、完整NVCC架构flags、CuDNN 8.7、Magma 2.6.1，去除四行后旧文本逐字节相同。同一torch._C SHA为`1277e4be87e0b15987f796117a7422c7a445b4df9213ecf2ddc3de718b0d66fc`；其他身份字段、测量设置与原证据相同，CUDA未初始化。新target SHA为`b29414000d07ee0fdc570fe3b513b0ebcaf3805473dfc3b642602998ae4ec41d`，位于外置`M6-ModernTCN-UV-v10-ch3-supplement-cuda-visibility-binding-r1/environment/target-visible-gpu0.json`。
+
+retry2配置仅environment_ref变化，130执行源码、技术追溯、case SHA、旧12引用/新35任务及29新波、全部预算保持。8项窄范围断言组通过，包含新全字段verify通过、旧绑定继续拒绝、旧AUTH/旧模板/新false-null模板拒绝；未重跑正式preflight、原入口全集或模型验收。1次采集snapshot＋2次verify内部snapshot，均受限import-only；新增真实checkpoint、模型构造/前向/backward/Adam、GPU查询/负载、真实训练与test均0。原target、旧AUTH及所有失败证据不覆盖，原两次负载失败与12项测量成本不改。Goal1/2 Met、Goal3 Not met和单seed/开发test边界保持，S8仍未执行；本轮仅配置与三文档unstaged/index空、不commit/push，无新正式AUTH/runtime/attempt。新字节等待ChatGPT统一审核，之后按实际新commit closure并派生AUTH-r2，不声称本轮已验证真实GPU恢复或性能。
+
 ## 2026-11-11：环境修复审核裁决及retry2启动交接
 
 用户确认ChatGPT已直读11项目路径/737证据/130源码及12旧receipt/60payload，环境接线和12项继承工程review Passed，限声明范围。原12E正式保留，原producer/runtime/venv身份不倒填；新35项/29波续办准备已审，原47/41逻辑范围及全部预算不变。12独立CPU用例/18执行与30次分离入口导入证据按适用范围复用，不再验收或重复测旧12项。按数值库实际路径/所查SHA、GPU UUID、flags与计时协议的差异评估接受保留，不宣称跨环境逐位一致或修后GPU实测通过。旧两次失败、原成本及单seed/历史test限制保持；Goal1/2 Met、Goal3 Not met不变。真实TimeXer恢复、剩余性能、C/P及S8尚待用户启动；本次仅精确closure、正式AUTH和轻量preflight准备，不代启，不进入M7。原E送审历史封存，实际新commit/许可由外置回执绑定。

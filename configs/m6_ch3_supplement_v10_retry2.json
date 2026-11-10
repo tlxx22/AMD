@@ -30,8 +30,8 @@
   },
   "cpu_threads": 4,
   "environment_ref": {
-    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-environment-repair-r1/environment/target.json",
-    "sha256": "1a51c117bf87130f3aaa0d7769626d5c27bbb4facdfc193b1979de701b9f2ed6"
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-cuda-visibility-binding-r1/environment/target-visible-gpu0.json",
+    "sha256": "b29414000d07ee0fdc570fe3b513b0ebcaf3805473dfc3b642602998ae4ec41d"
   },
   "execution_authorized": false,
   "execution_jobs": [
