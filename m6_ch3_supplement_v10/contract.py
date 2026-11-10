@@ -61,13 +61,20 @@ def validate(config):
         raise ValueError('fixed queue/budget required')
     if config['execution_authorized'] is not False:
         raise ValueError('source config remains non-authorizing')
+    from .continuation import is_retry2
+    if config.get('attempt') == 'ch3-supplement-v10-retry2' or any(k in config for k in ('environment_ref', 'inherited_receipts_ref', 'execution_jobs', 'execution_waves')):
+        if not is_retry2(config):
+            raise ValueError('partial execution fields require the exact retry2 continuation')
     if config.get('technical_continuation'):
         validate_continuation(config)
     return config
 
 
 def validate_continuation(config):
-    """Only the first technical retry of the sealed, zero-success attempt."""
+    """Dispatch the two explicitly scoped technical continuations."""
+    from .continuation import is_retry2, validate_retry2
+    if is_retry2(config):
+        return validate_retry2(config)
     chain = config['technical_continuation']
     if chain.get('schema') != 'm6-ch3-gpu-pid-repair-retry1' or config['attempt'] != 'ch3-supplement-v10-retry1':
         raise ValueError('exact technical retry identity required')
@@ -114,8 +121,20 @@ def validate_permission(config_path, auth):
     if auth.get('gpu_uuid') != config['gpu_uuid'] or auth.get('global_lock') != config['global_lock']:
         raise PermissionError('GPU UUID/shared lock binding mismatch')
     resources = auth.get('resource_plan', {})
-    if resources.get('waves') != config['waves'] or resources.get('q_max') != 4 or resources.get('mandatory_probe') is not False:
+    from .continuation import is_retry2, execution_waves
+    if resources.get('waves') != execution_waves(config) or resources.get('q_max') != 4 or resources.get('mandatory_probe') is not False:
         raise PermissionError('exact queue/resource acceptance required')
+    if is_retry2(config):
+        if resources.get('phase_concurrency') != config['phase_concurrency']:
+            raise PermissionError('continuation phase concurrency mismatch')
+        for key in ('environment_ref', 'inherited_receipts_ref', 'technical_continuation',
+                    'execution_jobs', 'execution_waves', 'original_wave_indices',
+                    'inherited_completed_jobs', 'continuation_budget'):
+            if auth.get(key) != config[key]:
+                raise PermissionError('continuation authorization mismatch: '+key)
+        if auth.get('logical_waves') != config['waves']:
+            raise PermissionError('logical wave authorization mismatch')
+        load_ref(config['environment_ref'])
     for p, h in config['source_binding'].items():
         if sha(ROOT/p) != h:
             raise PermissionError('source changed: ' + p)

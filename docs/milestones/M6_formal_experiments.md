@@ -1,5 +1,17 @@
 # M6：第三章正式实验与定稿
 
+## 2026-11-11：环境修复审核裁决及retry2启动交接
+
+用户确认ChatGPT已直读11项目路径/737证据/130源码及12旧receipt/60payload，环境接线和12项继承工程review Passed，限声明范围。原12E正式保留，原producer/runtime/venv身份不倒填；新35项/29波续办准备已审，原47/41逻辑范围及全部预算不变。12独立CPU用例/18执行与30次分离入口导入证据按适用范围复用，不再验收或重复测旧12项。按数值库实际路径/所查SHA、GPU UUID、flags与计时协议的差异评估接受保留，不宣称跨环境逐位一致或修后GPU实测通过。旧两次失败、原成本及单seed/历史test限制保持；Goal1/2 Met、Goal3 Not met不变。真实TimeXer恢复、剩余性能、C/P及S8尚待用户启动；本次仅精确closure、正式AUTH和轻量preflight准备，不代启，不进入M7。原E送审历史封存，实际新commit/许可由外置回执绑定。
+
+## 2026-11-11：环境依赖修复与12项成功结果继承（新字节待审）
+
+retry1第13项E-UrbanEV-TimeXer-b1因amd缺reformer_pytorch导入失败；原生产使用额外依赖venv，当前启动器选错依赖环境，不是用户命令/PID修复失效。已完成前12项UrbanEV E（UV/AMD/DLinear/ModernTCN/PatchTST/TimeMixer各b1/b16），12receipt/60payload SHA再核对一致、owner及失败child原身份退出；旧failure不清除。成功测量6600调用/56100呈现；失败TimeXer已CPU读取权重但未完成构造/CUDA迁移/预热计时，未知耗时峰值不补造；first-r1的旧GPU加载和历史PID缺口继续保留。
+
+本轮实际接通指定既有venv的解释器/prefix/pyvenv.cfg/关键依赖路径版本SHA；统一前台、监督器及sys.executable worker，错amd/缺依赖/身份变化在runtime或权重加载前拒绝。数值核心库同路径/所查字节和测量元数据一致，12项按差异评估保留；不是完整GPU等价实测。新技术retry2保留原47/41逻辑集合，仅35项执行/29波（首TimeXer b1），继承索引不复制或改写旧receipt；O和CSV来源逐行记录真实producer。E剩余11000调用/93500呈现，S8/160轮617120更新、C1008、P3/test0及原case选择不变，旧主表/Goal1/2 Met/Goal3 Not met不变。
+
+12独立CPU用例、18执行全部通过；封包工具另保留1次返回码处理失败：git diff --no-index --check对新增文件返回1且诊断为空，工具原误要求0；已按实际差异返回码修正封包判定，不修改实现字节或放宽格式检查。首轮ResourceWarning修复后只复验受影响项，另保留执行前静态补丁落点纠正。两轮15入口独立导入覆盖七baseline、UV v9/v10和补充控制/绘图/敏感性模块，CUDA未初始化；不读取真实checkpoint、不构造模型、不前向/backward/Adam或查询GPU。合成两来源图表完成读取、拒绝错源并核验12＋35=47及29新波，不等于真实恢复/性能成功。全部源码/三文档unstaged、index空；E=`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-environment-repair-r1`含完整证据及不可执行模板。retry2目录未创建，未正式preflight/AUTH/启动，新实现统一待ChatGPT审核。
+
 **PID修复工程审核裁决与retry1启动交接。** 用户确认ChatGPT已通过Remote Desktop Commander实际直读审核：固定3.10平台PID归属、拒绝与证据保存、技术retry1绑定工程review Passed；范围限已读源码/来源及11独立CPU用例最终通过、14执行12成功2历史失败，mtime取证选择修复及原失败保留。CPU验收未运行真实GPU；旧first-r1至少发生一次权重恢复/模型构造/CUDA加载，0预热/计时/训练/test，历史GPU PID列表缺失，仍不能排除当时外部负载。修复只白名单映射后的一个driver PID，未知/额外PID/缺自身仍拒绝，证据先保存，管理检查不进入计时区；修后真实GPU执行尚未验证。原Goal1/2 Met、Goal3严格链Not met不变，原送审E/Pending及旧失败产物封存不改。本次进入精确closure及用户启动交接，新技术attempt `ch3-supplement-v10-retry1`准备就绪、未启动；原47job/41wave、S8/160轮617120更新/test0及固定case-selection保持。规划路径为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1`，不能称已创建或已有新效果。配置execution_authorized=false及preparation_head保持，正式AUTH仅在closure成功后另绑定实际commit；真实负载由用户最后启动。运行期间不修改绑定工作区，完成后再登记实际结果。
 
 **补充包首次启动技术失败及PID归属修复（待审）。** 原输入消融review Passed、Goal1/2 Met及Goal3严格链Not met不变。补充队列已由用户实际尝试启动，旧`ch3-supplement-v10-first-r1`完成0/47、S完成0/8；首E项已发生至少一次真实权重恢复、模型构造及CUDA加载，在预热/计时前被GPU归属保护拒绝，0预热/计时/训练/新test，显存与耗时未保存不补造，不能称旧尝试GPU消费0。旧runtime/failure/AUTH/config/日志/case-selection及空job目录保持。当前3.10.0-1127.el7.x86_64平台已实证local PID与/proc/self/sched首行p->pid不同；原事故GPU PID列表缺失，不能百分百排除事发外部负载。修复只针对新补充控制代码：同一存活leader的status Pid/Tgid、stat start、namespace和sched原文前后绑定，目标GPU仅白名单一个driver PID，未知/额外PID/缺自身均拒绝，原始管理查询与判定在抛错前落盘；启动前/模型加载前/计时前后有界检查不进入计时区。原模型/guard/benchmark科学算术不改。11独立CPU控制用例最终通过，14执行12成功2失败；两次失败来自测试mtime取证歧义，改为本次唯一新增文件定位并定向复验，原失败保留。仅CPU控制及本机自身/parent-child /proc，真实模型/权重加载/CUDA/真实GPU查询/forward/backward/Adam均0；550次成功计时控制空回调两次共1100次，不是模型前向。新技术attempt仅规划`ch3-supplement-v10-retry1`，47job/41wave及S8/160轮617120更新/test0完全不变，固定沿原case nodes=['105','408']/indices=[2,54]、2023-01-30至02-05目标周；不恢复checkpoint、不增加科学额度或择优重跑。新配置/不可执行模板commit=null、review_approved=false，未创建新runtime/attempt、未正式preflight或启动。修后证据在`M6-ModernTCN-UV-v10-ch3-supplement-gpu-pid-repair-r1`，统一待ChatGPT审核，旧Pending历史不倒改。

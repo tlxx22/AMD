@@ -10,6 +10,7 @@ import traceback
 import math
 from .contract import ROOT, SCOPE, read, sha, load_ref, write_new, validate_permission
 from .gpu_identity import check_gpu_identity
+from .continuation import is_retry2, execution_jobs, execution_waves, complete_summary
 from moderntcn_input_ablation_v10.launcher import proc_start, gpu_startup
 
 
@@ -20,6 +21,10 @@ def git(*args):
 def preflight(config_path, auth_path):
     auth = read(auth_path)
     c = validate_permission(config_path, auth)
+    if is_retry2(c):
+        from .environment import verify, check_imports
+        verify(c)
+        check_imports(c)
     head = git('rev-parse', 'HEAD')
     if head != auth['commit'] or git('status', '--porcelain') or git('rev-parse', '@{upstream}') != head:
         raise PermissionError('clean bound HEAD/tracking required')
@@ -50,6 +55,16 @@ def local_context(config_path, runtime_path):
     if sha(runtime['auth_ref']['path']) != runtime['auth_ref']['sha256']:
         raise PermissionError('AUTH changed')
     c = validate_permission(config_path, auth)
+    if is_retry2(c):
+        from .environment import verify
+        verify(c)
+        for key in ('environment_ref', 'inherited_receipts_ref', 'execution_jobs',
+                    'execution_waves', 'original_wave_indices', 'continuation_budget',
+                    'technical_continuation'):
+            if runtime.get(key) != c[key]:
+                raise PermissionError('runtime continuation mismatch: '+key)
+        if runtime.get('config_ref') != dict(path=str(config_path), sha256=sha(config_path)):
+            raise PermissionError('runtime config mismatch')
     if runtime['commit'] != auth['commit'] or git('rev-parse', 'HEAD') != auth['commit'] or git('status', '--porcelain'):
         raise PermissionError('local committed source changed')
     owner = read(Path(runtime_path).parent/'owner.json')
@@ -85,7 +100,10 @@ def validate_result(config, job, result):
 
 def run_job(config_path, runtime_path, job_id):
     c = local_context(config_path, runtime_path)
-    job = next(j for j in c['jobs'] if j['id'] == job_id)
+    selected = [j for j in execution_jobs(c) if j['id'] == job_id]
+    if len(selected) != 1:
+        raise PermissionError('inherited/unknown job cannot execute in this attempt')
+    job = selected[0]
     folder = Path(runtime_path).parent
     def stop():
         if (folder/'STOP').exists():
@@ -101,6 +119,10 @@ def run_job(config_path, runtime_path, job_id):
         from .plots import completed
         result = completed(c, folder)
     validate_result(c, job, result)
+    if is_retry2(c) and job['phase'] == 'E':
+        expected = load_ref(c['environment_ref'])['measurement_fields']
+        if any(result.get(k) != v for k, v in expected.items()):
+            raise ValueError('actual measurement environment differs from inherited conditions')
     output = folder/('plots' if job['phase'] == 'O' else job_id)
     files = {str(p.relative_to(folder)): sha(p) for p in sorted(output.rglob('*')) if p.is_file()}
     if not files:
@@ -126,13 +148,18 @@ def supervise(config_path, auth_path):
         (folder/'logs').mkdir()
         (folder/'receipts').mkdir()
         runtime_path = folder/'runtime.json'
-        write_new(runtime_path, dict(scope=c['scope'], commit=auth['commit'], config_ref=dict(path=str(config_path), sha256=sha(config_path)), auth_ref=dict(path=str(auth_path), sha256=sha(auth_path)), gpu=gpu, waves=c['waves']))
+        runtime = dict(scope=c['scope'], commit=auth['commit'], config_ref=dict(path=str(config_path), sha256=sha(config_path)), auth_ref=dict(path=str(auth_path), sha256=sha(auth_path)), gpu=gpu, waves=c['waves'])
+        if is_retry2(c):
+            runtime.update({key: c[key] for key in ('environment_ref', 'inherited_receipts_ref',
+                           'execution_jobs', 'execution_waves', 'original_wave_indices',
+                           'continuation_budget', 'technical_continuation')})
+        write_new(runtime_path, runtime)
         write_new(folder/'owner.json', dict(pid=os.getpid(), start=proc_start(os.getpid()), runtime_sha256=sha(runtime_path)))
         children = []
         try:
             from .readonly import prepare_case
             prepare_case(c, folder)
-            for wave_number, wave in enumerate(c['waves'], 1):
+            for wave_number, wave in enumerate(execution_waves(c), 1):
                 if (folder/'STOP').exists():
                     raise InterruptedError('owned STOP')
                 children = []
@@ -157,10 +184,14 @@ def supervise(config_path, auth_path):
                         target = (folder/name).resolve()
                         if not target.is_relative_to(folder.resolve()) or sha(target) != expected:
                             raise ValueError('job payload checksum changed')
-                write_new(folder/f'wave-{wave_number}-complete.json', dict(jobs=wave))
+                original_index = c['original_wave_indices'][wave_number-1] if is_retry2(c) else wave_number
+                write_new(folder/f'wave-{wave_number}-complete.json', dict(jobs=wave, original_wave_index=original_index))
             if (folder/'STOP').exists():
                 raise InterruptedError('STOP received before final publication')
-            write_new(folder/'complete.json', dict(technical_complete=True, jobs=len(c['jobs']), fresh_sensitivity=8, test=0, scientific_claim='no replacement of main table'))
+            if is_retry2(c):
+                write_new(folder/'complete.json', complete_summary(c, folder))
+            else:
+                write_new(folder/'complete.json', dict(technical_complete=True, jobs=len(c['jobs']), fresh_sensitivity=8, test=0, scientific_claim='no replacement of main table'))
         except BaseException:
             if any(p.poll() is None for _, p in children):
                 if not (folder/'STOP').exists():
@@ -173,6 +204,11 @@ def supervise(config_path, auth_path):
 
 def status(folder):
     folder = Path(folder)
+    c = load_ref(read(folder/'runtime.json')['config_ref']) if (folder/'runtime.json').exists() else {}
+    if is_retry2(c):
+        from .continuation import validate_retry2
+        validate_retry2(c)
+    inherited = 12 if is_retry2(c) else 0
     receipts = [read(p) for p in sorted((folder/'receipts').glob('*.json'))]
     by_phase = {phase: sum(r['job']['phase'] == phase for r in receipts) for phase in ('E', 'C', 'P', 'S', 'O')}
     epochs = {}
@@ -193,6 +229,10 @@ def status(folder):
             except (FileNotFoundError, ProcessLookupError):
                 pass
     return dict(completed_by_phase=by_phase, fresh_completed=by_phase['S'],
+                inherited_completed=inherited, execution_completed=len(receipts),
+                logical_completed=inherited+len(receipts), logical_total=47,
+                logical_completed_by_phase={k: v+(inherited if k == 'E' else 0) for k, v in by_phase.items()},
+                inherited_waves=inherited, execution_waves_total=len(execution_waves(c)) if c else None,
                 waves_completed=len(list(folder.glob('wave-*-complete.json'))),
                 epochs=epochs, active_owned_children=active,
                 complete=(folder/'complete.json').exists(), failure=(folder/'failure.json').exists(),

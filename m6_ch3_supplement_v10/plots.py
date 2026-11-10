@@ -1,5 +1,6 @@
 """CSV/JSON and figures share the same values; never invoke a model."""
 import csv
+import json
 from pathlib import Path
 import numpy as np
 from .contract import read, write_new
@@ -78,17 +79,25 @@ def chart(path, points, xlabel, ylabel, tick_labels=None, scatter=False):
 
 
 def completed(config, folder):
+    from .continuation import resolve
     folder = Path(folder)
     out = folder/'plots'
     out.mkdir(exist_ok=False)
     e, sensitivity = [], []
+    sources = {}
+    results = {}
+    for job in config['jobs']:
+        if job['phase'] != 'O':
+            results[job['id']], sources[job['id']] = resolve(config, folder, job)
+    write_new(out/'source-ledger.json', sources)
     for job in config['jobs']:
         if job['phase'] in ('E', 'S'):
-            r = read(folder/job['id']/'result.json')
+            r = results[job['id']]
+            lineage = json.dumps(sources[job['id']], ensure_ascii=False, sort_keys=True)
             if job['phase'] == 'E':
-                e.append(dict(dataset=job['dataset'], model=job['model'], batch=job['batch'], median_batch_ms=r['median_batch_ms'], median_sample_ms=r['median_sample_ms'], stdev_batch_ms=r['stdev_batch_ms'], registered_parameters=r['parameters'], peak_allocated_bytes=r['peak']['max_allocated'], resident_allocated_bytes=r['resident']['allocated'], peak_reserved_bytes=r['peak']['max_reserved']))
+                e.append(dict(dataset=job['dataset'], model=job['model'], batch=job['batch'], median_batch_ms=r['median_batch_ms'], median_sample_ms=r['median_sample_ms'], stdev_batch_ms=r['stdev_batch_ms'], registered_parameters=r['parameters'], peak_allocated_bytes=r['peak']['max_allocated'], resident_allocated_bytes=r['resident']['allocated'], peak_reserved_bytes=r['peak']['max_reserved'], source_lineage=lineage))
             else:
-                sensitivity.append(dict(dataset=job['dataset'], G=job['G'], R=job['R'], mse=r['validation']['mse'], mae=r['validation']['mae'], best_epoch=r['best_epoch'], epochs=r['epochs'], updates=r['updates'], provenance='fresh validation only'))
+                sensitivity.append(dict(dataset=job['dataset'], G=job['G'], R=job['R'], mse=r['validation']['mse'], mae=r['validation']['mae'], best_epoch=r['best_epoch'], epochs=r['epochs'], updates=r['updates'], provenance='fresh validation only', source_lineage=lineage))
     table(out/'efficiency.csv', e)
     table(out/'sensitivity-fresh.csv', sensitivity)
     for dataset in ('UrbanEV', 'PJM'):
@@ -101,7 +110,7 @@ def completed(config, folder):
                 chart(out/(dataset+f'-error-latency-b{batch}-'+metric), points, 'Median batch latency (ms)', 'Original saved test '+metric.upper(), scatter=True)
         center = config['sensitivity_centers'][dataset]
         rows = [r for r in sensitivity if r['dataset'] == dataset]
-        rows.append(dict(dataset=dataset, G=5, R=4, mse=center['validation']['mse'], mae=center['validation']['mae'], best_epoch=center['best_epoch'], epochs=center['epochs'], updates=center['updates'], provenance='original center reference; zero new training'))
+        rows.append(dict(dataset=dataset, G=5, R=4, mse=center['validation']['mse'], mae=center['validation']['mae'], best_epoch=center['best_epoch'], epochs=center['epochs'], updates=center['updates'], provenance='original center reference; zero new training', source_lineage=json.dumps(center, ensure_ascii=False, sort_keys=True)))
         table(out/(dataset+'-sensitivity.csv'), rows)
         for metric in ('mse', 'mae'):
             for axis, fixed in [('G', 'R'), ('R', 'G')]:
@@ -110,10 +119,11 @@ def completed(config, folder):
     for metric in ('mse', 'mae'):
         series = {}
         for model in ('ModernTCN', 'TimeMixer', 'UV'):
-            r = read(folder/('P-'+model)/'result.json')
+            r = results['P-'+model]
             series[model] = r['metrics'][metric]
         figure(out/('PJM-position-'+metric), range(1, 25), series, 'Position inside fixed P=24', 'validation '+metric.upper())
-        table(out/('PJM-position-'+metric+'.csv'), [dict(position=i+1, **{m: v[i] for m, v in series.items()}) for i in range(24)])
+        lineage = json.dumps({m: sources['P-'+m] for m in series}, ensure_ascii=False, sort_keys=True)
+        table(out/('PJM-position-'+metric+'.csv'), [dict(position=i+1, **{m: v[i] for m, v in series.items()}, source_lineage=lineage) for i in range(24)])
     selection = read(folder/'case-selection.json')
     case = {m: np.load(folder/('C-'+m)/'predictions.npz') for m in ('ModernTCN', 'TimeMixer', 'UV')}
     for region in range(2):
@@ -123,6 +133,7 @@ def completed(config, folder):
             raise ValueError('case truth/order mismatch')
         series = {'Truth': truth, **{m: v['physical_prediction'][sl, 0, 0] for m, v in case.items()}}
         figure(out/('UrbanEV-node-'+str(selection['nodes'][region])), selection['target_times'], series, 'Target time (H6 rolling P1)', 'Volume (original dataset units)')
-        table(out/('case-'+str(region)+'.csv'), [dict(target_time=selection['target_times'][i], **{m: float(v[i]) for m, v in series.items()}) for i in range(168)])
+        lineage = json.dumps({m: sources['C-'+m] for m in ('ModernTCN', 'TimeMixer', 'UV')}, ensure_ascii=False, sort_keys=True)
+        table(out/('case-'+str(region)+'.csv'), [dict(target_time=selection['target_times'][i], **{m: float(v[i]) for m, v in series.items()}, source_lineage=lineage) for i in range(168)])
         write_new(out/('case-'+str(region)+'-metrics.json'), {m: dict(mse=float(np.square(v-truth).mean()), mae=float(np.abs(v-truth).mean())) for m, v in series.items() if m != 'Truth'})
     return dict(status='completed', test=0, note='sensitivity and measurements do not replace main-table results')

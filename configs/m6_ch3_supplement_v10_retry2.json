@@ -1,0 +1,2618 @@
+{
+  "attempt": "ch3-supplement-v10-retry2",
+  "budget": {
+    "case_presentations": 1008,
+    "max_epochs": 160,
+    "max_updates": 617120,
+    "performance_calls": 17600,
+    "performance_conditions": 32,
+    "pjm_full_validation_passes": 3,
+    "sensitivity_tasks": 8,
+    "test": 0
+  },
+  "continuation_budget": {
+    "case_presentations": 1008,
+    "execution_jobs": 35,
+    "execution_waves": 29,
+    "inherited_jobs": 12,
+    "inherited_performance_calls": 6600,
+    "inherited_performance_presentations": 56100,
+    "inherited_waves": 12,
+    "logical_jobs": 47,
+    "logical_waves": 41,
+    "max_epochs": 160,
+    "max_updates": 617120,
+    "pjm_full_validation_passes": 3,
+    "remaining_performance_calls": 11000,
+    "remaining_performance_presentations": 93500,
+    "sensitivity_tasks": 8,
+    "test": 0
+  },
+  "cpu_threads": 4,
+  "environment_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-environment-repair-r1/environment/target.json",
+    "sha256": "1a51c117bf87130f3aaa0d7769626d5c27bbb4facdfc193b1979de701b9f2ed6"
+  },
+  "execution_authorized": false,
+  "execution_jobs": [
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeXer-b1",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeXer-b16",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-iTransformer-b1",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-iTransformer-b16",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-UV-b1",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-UV-b16",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-AMD-b1",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-AMD-b16",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-DLinear-b1",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-DLinear-b16",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-ModernTCN-b1",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-ModernTCN-b16",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-PatchTST-b1",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-PatchTST-b16",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeMixer-b1",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeMixer-b16",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeXer-b1",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeXer-b16",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-iTransformer-b1",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-iTransformer-b16",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "dataset": "UrbanEV",
+      "id": "C-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "C"
+    },
+    {
+      "dataset": "UrbanEV",
+      "id": "C-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "C"
+    },
+    {
+      "dataset": "UrbanEV",
+      "id": "C-UV",
+      "model": "UV",
+      "phase": "C"
+    },
+    {
+      "dataset": "PJM",
+      "id": "P-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "P"
+    },
+    {
+      "dataset": "PJM",
+      "id": "P-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "P"
+    },
+    {
+      "dataset": "PJM",
+      "id": "P-UV",
+      "model": "UV",
+      "phase": "P"
+    },
+    {
+      "G": 3,
+      "R": 4,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G3-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 7,
+      "R": 4,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G7-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 2,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G5-R2",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 6,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G5-R6",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 3,
+      "R": 4,
+      "dataset": "PJM",
+      "id": "S-PJM-G3-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 7,
+      "R": 4,
+      "dataset": "PJM",
+      "id": "S-PJM-G7-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 2,
+      "dataset": "PJM",
+      "id": "S-PJM-G5-R2",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 6,
+      "dataset": "PJM",
+      "id": "S-PJM-G5-R6",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "id": "O",
+      "phase": "O"
+    }
+  ],
+  "execution_waves": [
+    [
+      "E-UrbanEV-TimeXer-b1"
+    ],
+    [
+      "E-UrbanEV-TimeXer-b16"
+    ],
+    [
+      "E-UrbanEV-iTransformer-b1"
+    ],
+    [
+      "E-UrbanEV-iTransformer-b16"
+    ],
+    [
+      "E-PJM-UV-b1"
+    ],
+    [
+      "E-PJM-UV-b16"
+    ],
+    [
+      "E-PJM-AMD-b1"
+    ],
+    [
+      "E-PJM-AMD-b16"
+    ],
+    [
+      "E-PJM-DLinear-b1"
+    ],
+    [
+      "E-PJM-DLinear-b16"
+    ],
+    [
+      "E-PJM-ModernTCN-b1"
+    ],
+    [
+      "E-PJM-ModernTCN-b16"
+    ],
+    [
+      "E-PJM-PatchTST-b1"
+    ],
+    [
+      "E-PJM-PatchTST-b16"
+    ],
+    [
+      "E-PJM-TimeMixer-b1"
+    ],
+    [
+      "E-PJM-TimeMixer-b16"
+    ],
+    [
+      "E-PJM-TimeXer-b1"
+    ],
+    [
+      "E-PJM-TimeXer-b16"
+    ],
+    [
+      "E-PJM-iTransformer-b1"
+    ],
+    [
+      "E-PJM-iTransformer-b16"
+    ],
+    [
+      "C-ModernTCN"
+    ],
+    [
+      "C-TimeMixer"
+    ],
+    [
+      "C-UV"
+    ],
+    [
+      "P-ModernTCN"
+    ],
+    [
+      "P-TimeMixer"
+    ],
+    [
+      "P-UV"
+    ],
+    [
+      "S-UrbanEV-G3-R4",
+      "S-UrbanEV-G7-R4",
+      "S-UrbanEV-G5-R2",
+      "S-UrbanEV-G5-R6"
+    ],
+    [
+      "S-PJM-G3-R4",
+      "S-PJM-G7-R4",
+      "S-PJM-G5-R2",
+      "S-PJM-G5-R6"
+    ],
+    [
+      "O"
+    ]
+  ],
+  "global_lock": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/project-gpu0.lock",
+  "gpu_uuid": "GPU-3d365efd-300b-f527-e8fe-703fb0cfb738",
+  "inherited_completed_jobs": [
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-UV-b1",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-UV-b16",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-AMD-b1",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-AMD-b16",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-DLinear-b1",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-DLinear-b16",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-ModernTCN-b1",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-ModernTCN-b16",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-PatchTST-b1",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-PatchTST-b16",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeMixer-b1",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeMixer-b16",
+      "model": "TimeMixer",
+      "phase": "E"
+    }
+  ],
+  "inherited_receipts_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-environment-repair-r1/audit/inherited-receipts.json",
+    "sha256": "4cdf8e1c1e9cd3556c25ddda77194c757321426a09ff1a2dc993d0a72f124481"
+  },
+  "jobs": [
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-UV-b1",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-UV-b16",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-AMD-b1",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-AMD-b16",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-DLinear-b1",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-DLinear-b16",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-ModernTCN-b1",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-ModernTCN-b16",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-PatchTST-b1",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-PatchTST-b16",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeMixer-b1",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeMixer-b16",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeXer-b1",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-TimeXer-b16",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-iTransformer-b1",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "UrbanEV",
+      "id": "E-UrbanEV-iTransformer-b16",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-UV-b1",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-UV-b16",
+      "model": "UV",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-AMD-b1",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-AMD-b16",
+      "model": "AMD",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-DLinear-b1",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-DLinear-b16",
+      "model": "DLinear",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-ModernTCN-b1",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-ModernTCN-b16",
+      "model": "ModernTCN",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-PatchTST-b1",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-PatchTST-b16",
+      "model": "PatchTST",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeMixer-b1",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeMixer-b16",
+      "model": "TimeMixer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeXer-b1",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-TimeXer-b16",
+      "model": "TimeXer",
+      "phase": "E"
+    },
+    {
+      "batch": 1,
+      "dataset": "PJM",
+      "id": "E-PJM-iTransformer-b1",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "batch": 16,
+      "dataset": "PJM",
+      "id": "E-PJM-iTransformer-b16",
+      "model": "iTransformer",
+      "phase": "E"
+    },
+    {
+      "dataset": "UrbanEV",
+      "id": "C-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "C"
+    },
+    {
+      "dataset": "UrbanEV",
+      "id": "C-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "C"
+    },
+    {
+      "dataset": "UrbanEV",
+      "id": "C-UV",
+      "model": "UV",
+      "phase": "C"
+    },
+    {
+      "dataset": "PJM",
+      "id": "P-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "P"
+    },
+    {
+      "dataset": "PJM",
+      "id": "P-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "P"
+    },
+    {
+      "dataset": "PJM",
+      "id": "P-UV",
+      "model": "UV",
+      "phase": "P"
+    },
+    {
+      "G": 3,
+      "R": 4,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G3-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 7,
+      "R": 4,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G7-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 2,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G5-R2",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 6,
+      "dataset": "UrbanEV",
+      "id": "S-UrbanEV-G5-R6",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 3,
+      "R": 4,
+      "dataset": "PJM",
+      "id": "S-PJM-G3-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 7,
+      "R": 4,
+      "dataset": "PJM",
+      "id": "S-PJM-G7-R4",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 2,
+      "dataset": "PJM",
+      "id": "S-PJM-G5-R2",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "G": 5,
+      "R": 6,
+      "dataset": "PJM",
+      "id": "S-PJM-G5-R6",
+      "model": "UV",
+      "phase": "S"
+    },
+    {
+      "id": "O",
+      "phase": "O"
+    }
+  ],
+  "ledger_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1/source/source-ledger.final.json",
+    "sha256": "c6246b10403ddfb869a915101858f195fdba3aedfb95d24e4949b77d22b0be2d"
+  },
+  "main_results": [
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.3948109255725797,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "8b62816c99e5571ecf3a239e7bc4c489557b9911f43a361544272e0912008041",
+      "model": "AMD",
+      "mse": 0.3979009409961851,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5221087870462289,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "328ccabe73ad892bead600503777285e38a29926d170183702073d3e7e6e3368",
+      "model": "AMD",
+      "mse": 0.5946917011131809,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5683904428402959,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "29adb0cafcb5c66e47afdd95cd7ffc56f479011900756523e9b008d5565b0d03",
+      "model": "AMD",
+      "mse": 0.6717803186713347,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5264858592066279,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "ddc352cae0966f28b5ae35527ab27ecb44af06cbaae028bddc966e2ef7f57197",
+      "model": "AMD",
+      "mse": 0.5825179536132175,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.27478485712639505,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "890e86d8fb9e82f15012f7bdf3adb927b41c5894189086e72f4e6fea892c9421",
+      "model": "AMD",
+      "mse": 0.17256275259655238,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.28585334021515957,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "c0bef325ad0cdc46149504f4cb2e7e4682a5731632a8fb241bbfc9bfd5f8ef4b",
+      "model": "AMD",
+      "mse": 0.2686583583644947,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.48277720631774734,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "c6bfbf6edb5162e8e082ac933f9114cee0c06dff194416a1ed6a17514ff8f589",
+      "model": "AMD",
+      "mse": 0.719475818399731,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.37265277637882965,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "5a762911cff788e9a45a409dfb79a6b2180184bfa6176d2bc1ed88c2498916d1",
+      "model": "AMD",
+      "mse": 0.713016595689916,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.4824746053793635,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-AMD/AMD-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "781e3fa09ed6ec02980af727c3113dd3b4d90f4f3618bc5cdd68db8f183e4a1c",
+      "model": "AMD",
+      "mse": 0.5623198098515283,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.4528933867667521,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "97597b5cf5124ac4dd1c4f65c536005be316b6a4514aea60633cf2c216f48b25",
+      "model": "DLinear",
+      "mse": 0.42483349656974617,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.6052415277438695,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "0c046f2bf174f1d14d3054904abdfe99c354e6bcf0102b2318ea0d6dfeee0e4c",
+      "model": "DLinear",
+      "mse": 0.615065941882532,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.632722666276274,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "579a88f997eba3494a2a8dc54b0a38a786967148e58f07f27544b4d3848e44dc",
+      "model": "DLinear",
+      "mse": 0.677866011294014,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5735601186833174,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "e4016231c2ef5b6fabe712fb38931a884feffb7ad40a5ca80a1922377bfecd44",
+      "model": "DLinear",
+      "mse": 0.5639867538228612,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.23045206262465698,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "0c9a5061dba699dde33c8ce3f125d501368569f68e15860554413e76bca4057b",
+      "model": "DLinear",
+      "mse": 0.11959850027600565,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.369986065958216,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "0cfdee59f5c1ce21702dea325026714593304c081ac3fa89c0b7f7e0dd74c2d3",
+      "model": "DLinear",
+      "mse": 0.3510050393005067,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.37961928755683183,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "f4dd325a779a4c9afbbdca4e995f02defb61dfec96ddcd00a19067a35d26b855",
+      "model": "DLinear",
+      "mse": 0.5197450481700243,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.3547304763881676,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "320e8eb7f608c18a7c06de26aea304fdfaa6c509e79efa0b2da3d32f3ea45130",
+      "model": "DLinear",
+      "mse": 0.5730942459490604,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.5003747112836539,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-DLinear/DLinear-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "ba7ded38e00334741277f33493a8fe61ff2316331cd3ae3a9d737c734bca878a",
+      "model": "DLinear",
+      "mse": 0.5895680175704189,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.4177973409214877,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "7345f961c8aadb2a860e6b03e058e6ad74b04f93e1a5734492a21985ee0045f1",
+      "model": "PatchTST",
+      "mse": 0.42690520568629275,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5296002325563781,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "fafb6d23b3c0aa97282029ab83262a4fc07cd3cbde59beae17e85bc3d6e54a91",
+      "model": "PatchTST",
+      "mse": 0.6202964570234807,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5815841189228176,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "6d0bb4b518c364ca671ff48266bb2b997191af2173f1b579305ef77257ffd95a",
+      "model": "PatchTST",
+      "mse": 0.7030173617671143,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5287915640179559,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "63c6249549a6fdbf9db1c670ed80de932331d652bcee41b732c2934dbf386b43",
+      "model": "PatchTST",
+      "mse": 0.596884430681731,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.23983077232385158,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "e74c9eb7a907662b14c0baae92a62370a72acfb0a89cf963d5ee5f91a3a0dcaa",
+      "model": "PatchTST",
+      "mse": 0.12645620088089,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.33429821798713744,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "33a63120ed6138b29fbc4c006da87776b802e226e16b286caa428fb7aed6c418",
+      "model": "PatchTST",
+      "mse": 0.3243108246592422,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.3278021107115814,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "1ba3d974091189fa3249d2a59b4c2eea3388cff6a13e8d9fa29d578e6b2ef150",
+      "model": "PatchTST",
+      "mse": 0.47422469733457506,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.3021546165406827,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "bedde1945ece1d3a8b94ebb5ac3cc50bba9e3627c2d1eefd3b1cc8a65c6f7762",
+      "model": "PatchTST",
+      "mse": 0.5129041361300903,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.5130149209786367,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-PatchTST/PatchTST-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "71d2a54a825ea729eeacac4c3e5121be7b1fd6266f0ffd078e03cd86a39b495b",
+      "model": "PatchTST",
+      "mse": 0.6062891686396895,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.37937930824786037,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "d3450c61be5e07e8ea325a357c26fb43dcf2b0afe75d87525376f46d66456ac4",
+      "model": "iTransformer",
+      "mse": 0.37252960175835825,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.48514225724845333,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "0d28390633dc03261d402e799bc3377edd6e2ce400693c9d6e86bb56c58ad340",
+      "model": "iTransformer",
+      "mse": 0.5590056650027525,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5431091576198847,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "bf944fa721e11f07d221cc889c70399d0cb866103fe3f3669e8a2eb157798235",
+      "model": "iTransformer",
+      "mse": 0.6416335560774499,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5147139760670466,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "1e69a5991af1ef61d7525fde2680dd261b6fa61e2fdbea76fe92ce7bfedb8e49",
+      "model": "iTransformer",
+      "mse": 0.5714617750988222,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.29227185173688286,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "cc5d0bef1d5064d2fd9fadf6b5caaf3893632c09eda522532a4b4fc896ac5704",
+      "model": "iTransformer",
+      "mse": 0.18084102972958943,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.33681576604587654,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "14c08788c2fc4580a0807bdfceec24ae2b6ce433d8d4af5d4c3c3768fe9c5c97",
+      "model": "iTransformer",
+      "mse": 0.3243693084668374,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.3434649872704803,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "cd392626dcea4cd86239ac9337cd86be3e548cf8718528ac16a9a381d393abca",
+      "model": "iTransformer",
+      "mse": 0.5028492630843973,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.3061047730549116,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "0d2fb509dafb0a8c6e9639a06626684a78662b23aa745b865497a636cc96aac4",
+      "model": "iTransformer",
+      "mse": 0.5314617358026772,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.5118608637046067,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-iTransformer/iTransformer-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "f6dcbed76496dbe6204ade6dd63e28cbf02ee53dd493b92052e454970da80f0f",
+      "model": "iTransformer",
+      "mse": 0.5813642664774535,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.3450641661227805,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "69cc24f7313a50bc3451769522610ced7b4840c582fe46f3a9172af7e0b5c561",
+      "model": "TimeMixer",
+      "mse": 0.32299487824995415,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.4749435482803621,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "111be43e13fe5100caf56e59117133b2f0dfd6d5d7132559cfcd147d64742506",
+      "model": "TimeMixer",
+      "mse": 0.5194617342184095,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.522116139803196,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "4ebd6a4c074ca20012e5ebb28a1ec72c0b78da2c5b6da50838082de2b918ccb5",
+      "model": "TimeMixer",
+      "mse": 0.5954650840773693,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5063501336749194,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "b74aa5bdc852eed55cb006c95a95ef48a0fba763a9cd85c7a0998787df7f3ce6",
+      "model": "TimeMixer",
+      "mse": 0.556309717339703,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.2800395311668522,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "ceaa0fdf66f932d3a9bf472d81145ec5e2f4eaeb338df4dfd267d766f9908187",
+      "model": "TimeMixer",
+      "mse": 0.16908176555847468,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.31660872351610364,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "4c2f60e3246fa6924fd0316c48e9da1c0a6892a1ef69933f96861af65852851c",
+      "model": "TimeMixer",
+      "mse": 0.29611811360193374,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.335604254193963,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "058ceda0b93eb8f6bc8fa8fb9a2b8fbffc653370451bf3607c8b27092e5c4658",
+      "model": "TimeMixer",
+      "mse": 0.48252036786999153,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.2933820947291092,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "afc409541779c8ff1cdd0e2d19c38f6392fa57fab620372200c9c0c7400382f3",
+      "model": "TimeMixer",
+      "mse": 0.5177319197222171,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.43150332654381474,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeMixer/TimeMixer-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "d9e9af9bab477456ae515d35b68302e0d428b97aade6f83e7556b07431633035",
+      "model": "TimeMixer",
+      "mse": 0.45078847693515134,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.35285804908862506,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "9acc44e475c74042f2c1c8d9fa1d58e031b33ad20421048ecb28ccefd58f68a6",
+      "model": "ModernTCN",
+      "mse": 0.3293056214679185,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.46864054279717876,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "9edadd8271e2e121d63ea2e7e39a758163ae8c50727eeebfce55ffd9456e5a3e",
+      "model": "ModernTCN",
+      "mse": 0.5055911722083016,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5198712910545096,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "3ce682f40ad2cd9c88595e0350bf1015578a93c43b4ba4308258ecb6c5196760",
+      "model": "ModernTCN",
+      "mse": 0.5914982033449403,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5101422823938999,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "77258607f704bfb4f51af9dd275d552ce1b0d28e1b77684ed58eab853e2a50ca",
+      "model": "ModernTCN",
+      "mse": 0.5582841348950591,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.21374988711862303,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "fd0695d31ae0c3eae9e8ef8594404c29ab22aedeed1a69ea570557bad9c49d07",
+      "model": "ModernTCN",
+      "mse": 0.10948877872907625,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.30046521661937686,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "731dfa3562b0c18bf3226494cf4be662ad15473817a0e941271260b608e787ec",
+      "model": "ModernTCN",
+      "mse": 0.27029218704284863,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.3166108416844481,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "a827d906b9a07596ab25dddc3c3737e7ce6dd354dd45d4602073b2bbb18b110a",
+      "model": "ModernTCN",
+      "mse": 0.4617398193146025,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.24764514372998386,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "42436564e8ddeb48186116c8c2ead072a5801cabeb29b6059e9cfb35e561d22b",
+      "model": "ModernTCN",
+      "mse": 0.5020557670815269,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.4450602747882689,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-ModernTCN/ModernTCN-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "f5c903e9e69dd598a4d06c1d3411affedf60276c71e4c69363c05e78d3cb797f",
+      "model": "ModernTCN",
+      "mse": 0.47346043893351886,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.4111016565449879,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-UrbanEV-F4-u96-oc01-v3-f6-h3-s2024/result.json",
+      "metrics_sha": "8e1359b65203d5259211929059981c3f259ffea3f00abd4eeaec974c9b476a4f",
+      "model": "TimeXer",
+      "mse": 0.4052824566361527,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.49744044798955594,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-UrbanEV-F4-u96-oc01-v3-f6-h6-s2024/result.json",
+      "metrics_sha": "4bb6a8b28614e13489322e05d53a46ad208c238453f9700ec13bb14037afdc86",
+      "model": "TimeXer",
+      "mse": 0.5629805139632578,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5644262676550162,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-UrbanEV-F4-u96-oc01-v3-f6-h9-s2024/result.json",
+      "metrics_sha": "4b3be7c9752c985c168f1455b4a32b504db09e3bc23dc5cd568f9683fc469cd2",
+      "model": "TimeXer",
+      "mse": 0.6697663143529737,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.5272851721534453,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-UrbanEV-F4-u96-oc01-v3-f6-h12-s2024/result.json",
+      "metrics_sha": "e254a65ab224671cbdd3761b025d27724b11415356c667670d647b1499a49d3d",
+      "model": "TimeXer",
+      "mse": 0.5863535079577877,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.3239896409135957,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-PJM-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "fc7463b9e60ee0cb9320f4bde88136425f36a6fec3d684549ac55950098b4720",
+      "model": "TimeXer",
+      "mse": 0.21926832707156105,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.399574745001509,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-NP-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "24fb53116dfd1d7b715aa2670cab9560434a9c0ec4a68f30b7297cd788338fbf",
+      "model": "TimeXer",
+      "mse": 0.4329768220348034,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.4773398124713785,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-BE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "0d8cd31e21e906e68a1cdabaf39986d6adfadf17187a55130fb2e2b8d46e5699",
+      "model": "TimeXer",
+      "mse": 0.7077758495590535,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.42222404603317826,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-FR-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "99ce2d2d0e1d82006c99b80fd40447d5984118cce1e19c548bdb80bb8de9e744",
+      "model": "TimeXer",
+      "mse": 0.6599391586518423,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.5463345471442557,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/baseline-unified96-onecycle001-v3/MS/formal-TimeXer/TimeXer-DE-MS-u96-oc01-v3-f1-h24-s2024/result.json",
+      "metrics_sha": "b3884b6092851c0000bd0bd47ab7aef9c123eb9ebc0906c66c4ba73b7b7f3c1b",
+      "model": "TimeXer",
+      "mse": 0.6825155619264947,
+      "producer_commit": "df6a16403e10d51097db8c88829909c533d15652"
+    },
+    {
+      "H": 24,
+      "dataset": "BE",
+      "fold": 1,
+      "mae": 0.308939846169516,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/BE-MS-f1-h24-UV-d2ce4ca0d7a1/metrics.json",
+      "metrics_sha": "72d3105edf499b7be4972eaaf39dfe4f72f4f99809db2123b59e4a00baaf899e",
+      "model": "UV",
+      "mse": 0.4580311763590681,
+      "producer_commit": "ef38340a6fbe7a98cdc73270e4da121cf17ee70f"
+    },
+    {
+      "H": 24,
+      "dataset": "DE",
+      "fold": 1,
+      "mae": 0.43852696865579366,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/DE-MS-f1-h24-UV-4cc41a2043c8/metrics.json",
+      "metrics_sha": "26b8a347ebf019ca1841a8b5dd20ed62d42cd494bbacc5f224a9befd55b083fb",
+      "model": "UV",
+      "mse": 0.45971095557584785,
+      "producer_commit": "ef38340a6fbe7a98cdc73270e4da121cf17ee70f"
+    },
+    {
+      "H": 24,
+      "dataset": "FR",
+      "fold": 1,
+      "mae": 0.2468761491752695,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/FR-MS-f1-h24-UV-be05393fe977/metrics.json",
+      "metrics_sha": "682adbe3130fac37c50ba840da4c565647d24fd2a3e60c7ba38b5f3b10320597",
+      "model": "UV",
+      "mse": 0.5217669194878662,
+      "producer_commit": "ef38340a6fbe7a98cdc73270e4da121cf17ee70f"
+    },
+    {
+      "H": 24,
+      "dataset": "NP",
+      "fold": 1,
+      "mae": 0.2933803950496397,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/NP-MS-f1-h24-UV-bad8a4707e7d/metrics.json",
+      "metrics_sha": "85bbe3b7bb876589a3aa5ae5739b27fdec9819565c19ee314aaa9c1d8ce3f0d2",
+      "model": "UV",
+      "mse": 0.2623656241180711,
+      "producer_commit": "ef38340a6fbe7a98cdc73270e4da121cf17ee70f"
+    },
+    {
+      "H": 24,
+      "dataset": "PJM",
+      "fold": 1,
+      "mae": 0.21568820965388352,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/PJM-MS-f1-h24-UV-29076d812761/metrics.json",
+      "metrics_sha": "990f5d99ab8ce824a71bcc5b1daadd42684195afa7388f6713d8dea24a6e7b70",
+      "model": "UV",
+      "mse": 0.11252878027928348,
+      "producer_commit": "ef38340a6fbe7a98cdc73270e4da121cf17ee70f"
+    },
+    {
+      "H": 12,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.4903818885499216,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v9-development-runs/urbanev-f6-epf-u-uv-v9-first-batch-v1/urbanev-f6-epf-moderntcn-uv-v9-first-r1/runs/UrbanEV-F4-f6-h12-UV-044f8136f2c0/metrics.json",
+      "metrics_sha": "4081b799028aeede7c5e0bfe27631446856901f7effb16c20f9191939688a6ba",
+      "model": "UV",
+      "mse": 0.4981877490704893,
+      "producer_commit": "385f53b458f1140c143c2c1edc558b2ceb9e24b7"
+    },
+    {
+      "H": 3,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.34472108088010917,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v9-development-runs/urbanev-f6-epf-u-uv-v9-first-batch-v1/urbanev-f6-epf-moderntcn-uv-v9-first-r1/runs/UrbanEV-F4-f6-h3-UV-b16234f7ec61/metrics.json",
+      "metrics_sha": "0dde27b5e960f1668077585cd81d43a825c585431473b22ddf5980236109c5bd",
+      "model": "UV",
+      "mse": 0.29569483797890705,
+      "producer_commit": "385f53b458f1140c143c2c1edc558b2ceb9e24b7"
+    },
+    {
+      "H": 6,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.44514314096050944,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v9-development-runs/urbanev-f6-epf-u-uv-v9-first-batch-v1/urbanev-f6-epf-moderntcn-uv-v9-first-r1/runs/UrbanEV-F4-f6-h6-UV-2df2ae840d65/metrics.json",
+      "metrics_sha": "5854aaae4ac2c3757b81ee59747fa78f79741ebaa8c8ef37aecabf9f93e10da0",
+      "model": "UV",
+      "mse": 0.4325378232258998,
+      "producer_commit": "385f53b458f1140c143c2c1edc558b2ceb9e24b7"
+    },
+    {
+      "H": 9,
+      "dataset": "UrbanEV",
+      "fold": 6,
+      "mae": 0.486556047229031,
+      "metrics_path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v9-development-runs/urbanev-f6-epf-u-uv-v9-first-batch-v1/urbanev-f6-epf-moderntcn-uv-v9-first-r1/runs/UrbanEV-F4-f6-h9-UV-c5eff016173b/metrics.json",
+      "metrics_sha": "5a987f20524ec60571001439f94b4dc16a50aa17ddb5d9977cf63fdb2ca0f4fb",
+      "model": "UV",
+      "mse": 0.49241466381208115,
+      "producer_commit": "385f53b458f1140c143c2c1edc558b2ceb9e24b7"
+    }
+  ],
+  "numeric_policy": {
+    "fp32_atol": 2e-06,
+    "fp32_rtol": 2e-05,
+    "identity": "exact"
+  },
+  "original_wave_indices": [
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41
+  ],
+  "phase_concurrency": {
+    "C": 1,
+    "E": 1,
+    "O": 1,
+    "P": 1,
+    "S": 4
+  },
+  "preparation_head": "ba9dbf8507cd3296b03637abadaae6f0dcf88f22",
+  "q_max": 4,
+  "result_root": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs",
+  "schema": "m6-ch3-supplement-config-v1",
+  "scope": "m6_ch3_supplement_v10_v1",
+  "sensitivity_centers": {
+    "PJM": {
+      "best_epoch": 6,
+      "epochs": 11,
+      "history_ref": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/PJM-MS-f1-h24-UV-29076d812761/history.jsonl",
+        "sha256": "1921168ddd698c29db33005f6ed7570e30dfd2e3c74669805f7177a22438763d"
+      },
+      "producer_manifest": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-development-runs/epf-u-uv-v10-first-batch-v1/epf-moderntcn-uv-v10-first-r1/runs/PJM-MS-f1-h24-UV-29076d812761/manifest.json",
+        "sha256": "a3ea1c79933871f9efacddea665fd831f046948e6b0137172be3fa2214a1eefc"
+      },
+      "updates": 3135,
+      "validation": {
+        "channels": [
+          {
+            "index": 0,
+            "mae": 0.18899328478454297,
+            "mse": 0.08753434861489412
+          }
+        ],
+        "elements": 125256,
+        "mae": 0.18899328478454297,
+        "mse": 0.08753434861489412,
+        "sae": 23672.542878972716,
+        "sse": 10964.202370107178
+      }
+    },
+    "UrbanEV": {
+      "best_epoch": 7,
+      "epochs": 12,
+      "history_ref": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v9-development-runs/urbanev-f6-epf-u-uv-v9-first-batch-v1/urbanev-f6-epf-moderntcn-uv-v9-first-r1/runs/UrbanEV-F4-f6-h6-UV-2df2ae840d65/history.jsonl",
+        "sha256": "2d69ec411b28139b7eaa7d1becec3d0f20ec461f5b43f9c7a171625ca60dba3c"
+      },
+      "producer_manifest": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v9-development-runs/urbanev-f6-epf-u-uv-v9-first-batch-v1/urbanev-f6-epf-moderntcn-uv-v9-first-r1/runs/UrbanEV-F4-f6-h6-UV-2df2ae840d65/manifest.json",
+        "sha256": "8133739eaa789a25de7f985eb351be155c54c7f25c635b719eab09d2b28bbcf4"
+      },
+      "updates": 89148,
+      "validation": {
+        "channels": [
+          {
+            "index": 0,
+            "mae": 0.42085194243460283,
+            "mse": 0.3866564357589071
+          }
+        ],
+        "elements": 114675,
+        "mae": 0.42085194243460283,
+        "mse": 0.3866564357589071,
+        "sae": 48261.19649868808,
+        "sse": 44339.826770652675
+      }
+    }
+  },
+  "sensitivity_prototypes": {
+    "PJM": {
+      "arithmetic": {
+        "eval_batches": {
+          "test": 82,
+          "validation": 41
+        },
+        "max_epochs": 20,
+        "max_optimizer_steps": 5700,
+        "train_batches": 285,
+        "windows": {
+          "test": 10460,
+          "train": 36572,
+          "validation": 5219
+        }
+      },
+      "arm": "UV",
+      "baseline_cell_id": "MS|ModernTCN|PJM|1|24|2024",
+      "baseline_pair_cell_id": "MS|ModernTCN|PJM|1|24|2024",
+      "baseline_prefix_metadata": {},
+      "baseline_profile_sha": "43d4c7daf6d1a7957b7c0127fa3071d847941c7142383b38b1f4cf27b56fea25",
+      "baseline_record_prefix": {
+        "fingerprint_semantics": "UTF-8 normalized CSV records; not full-file SHA",
+        "parsed_records": 41933,
+        "record_prefix_sha256": "3365014bd3229b23e35094498a178f4fa0f9173ce91014cfd5a0e1495f253795"
+      },
+      "baseline_source": {
+        "path": "/public/home/yueweiting/大论文/AMD-m-baselines-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+        "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+      },
+      "baseline_training": {
+        "accumulation": 1,
+        "batch": 128,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 20,
+        "eps": 1e-08,
+        "eval_batch": 128,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.01,
+        "optimizer": "Adam",
+        "patience": 5,
+        "scheduler": {
+          "anneal_strategy": "cos",
+          "base_momentum": 0.85,
+          "cycle_momentum": true,
+          "div_factor": 25.0,
+          "epochs": 20,
+          "final_div_factor": 10000.0,
+          "last_epoch": -1,
+          "max_lr": 0.01,
+          "max_momentum": 0.95,
+          "name": "OneCycleLR",
+          "pct_start": 0.2,
+          "steps_per_epoch": 285,
+          "three_phase": false,
+          "total_steps": null,
+          "verbose": false
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      },
+      "candidate_id": "moderntcn-uv-dev-v10",
+      "data_config": {
+        "datasets": {
+          "PJM": {
+            "T": 96,
+            "amd_patch": 24,
+            "declared_rows": 52416,
+            "endpoints": [
+              36691,
+              41933,
+              52416
+            ],
+            "features": [
+              " System load forecast",
+              " Zonal COMED load foecast",
+              "OT"
+            ],
+            "horizons": [
+              24
+            ],
+            "mandatory_blockers": [],
+            "path": "/public/home/yueweiting/大论文/TimeXer/dataset/EPF/PJM.csv",
+            "policy": "single fit; train=floor(.7n), test=floor(.2n), val=n-train-test",
+            "source_admission": {
+              "accepted_scope": "user confirmed M5 section 16; train-standardized target evaluation; fixed historical input only",
+              "endpoint_status": "verified record count with registered project split",
+              "evidence": {
+                "comparison-results.json": {
+                  "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f/comparison-results.json",
+                  "sha256": "bfcfc2adb157750bbbab434b4f8cba7f65b0fcb48ed14d2fa9a2f8bf57ab8ae1"
+                },
+                "independent-cmp.json": {
+                  "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f/independent-cmp.json",
+                  "sha256": "4c1f01ff4ce871f973ccabcac62fd021547af714a0af0ca5a6de117c34dfa88d"
+                },
+                "published-object-manifest.json": {
+                  "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m5/m5-source-version-_rkt_o7f/published-object-manifest.json",
+                  "sha256": "ea9fa63671080ae1dc4d45defb57ba8106495bd6f548852819468a99f021fdbc"
+                }
+              },
+              "field_order_status": "verified against the bound author object",
+              "local_sha256_inherited": "58cc0ad32e22e61d9e183b0dc8201747f8c2ef822e469832c5beea8d88251cc0",
+              "local_state": {
+                "ctime_ns": 1787314620000000000,
+                "device": 41,
+                "inode": 1616382219,
+                "mtime_ns": 1787314620000000000,
+                "size": 1960359
+              },
+              "source_availability": "documented source assumption: original EPF section 4.1 day-d forecasts available d-1; not record-level vintage audit",
+              "unverified_explanation": [
+                "record-level forecast vintage audit Not evaluated",
+                "TimeXer-to-original-EPF full value conversion not reconstructed",
+                "two forecast physical units not independently verified"
+              ],
+              "version_status": "author object raw byte equality"
+            },
+            "target": "OT",
+            "training": {
+              "batch": 128,
+              "epochs": 20,
+              "eval_batch": 128,
+              "lr": 5e-05,
+              "patience": 5
+            }
+          }
+        }
+      },
+      "data_stat": {
+        "/public/home/yueweiting/大论文/TimeXer/dataset/EPF/PJM.csv": {
+          "st_dev": 41,
+          "st_ino": 1616382219,
+          "st_mtime_ns": 1787314620000000000,
+          "st_size": 1960359
+        }
+      },
+      "dataset": "PJM",
+      "derivation_changed_fields": [],
+      "fold": 1,
+      "goal": 2,
+      "h": 24,
+      "id": "moderntcn-uv-dev-v10|v10|PJM|MS|f1|h24|UV|s2024",
+      "input_variant": "MS",
+      "model": "moderntcn-uv-dev-v10",
+      "profile_sha": "43d4c7daf6d1a7957b7c0127fa3071d847941c7142383b38b1f4cf27b56fea25",
+      "seed": 2024,
+      "structural_revision": {
+        "fusion": "native_v3_block_then_interpolated_mean_spline_target_head_before_denorm_v10",
+        "u": "horizon_coupled_native_linear_preserving_cubic_spline_readout_v10",
+        "v": "target_state_conditioned_low_rank_temporal_filter_post_ffn1_v3"
+      },
+      "structural_source_profile": {
+        "C": 3,
+        "H": 24,
+        "T": 96,
+        "aux_idx": [
+          0,
+          1
+        ],
+        "contract": "ch3-target-ms-formal-v2",
+        "dataset": "PJM",
+        "features": [
+          " System load forecast",
+          " Zonal COMED load foecast",
+          "OT"
+        ],
+        "input_variant": "MS",
+        "model": "ModernTCN",
+        "pred_len": 24,
+        "structure": {
+          "activation": "gelu",
+          "affine": 0,
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "decomposition": 0,
+          "dims": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "downsample_ratio": 2,
+          "dropout": 0.3,
+          "dw_dims": [
+            256,
+            256,
+            256,
+            256
+          ],
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "fc_dropout": 0.05,
+          "ffn_ratio": 1,
+          "freq": "h",
+          "head_dropout": 0,
+          "individual": 0,
+          "kernel_size": 25,
+          "large_size": [
+            51
+          ],
+          "moving_avg": 25,
+          "n_heads": 8,
+          "num_blocks": [
+            1
+          ],
+          "padding_patch": "end",
+          "patch_len": 16,
+          "patch_size": 8,
+          "patch_stride": 4,
+          "revin": 1,
+          "small_kernel_merged": false,
+          "small_size": [
+            5
+          ],
+          "stem_ratio": 6,
+          "stride": 8,
+          "subtract_last": 0,
+          "use_multi_scale": false
+        },
+        "target_idx": 2,
+        "training": {
+          "accumulation": 1,
+          "batch": 128,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "dtype": "float32",
+          "epochs": 20,
+          "eps": 1e-08,
+          "eval_batch": 128,
+          "eval_drop_last": false,
+          "from_scratch": true,
+          "lr": 0.01,
+          "optimizer": "Adam",
+          "patience": 5,
+          "scheduler": {
+            "anneal_strategy": "cos",
+            "base_momentum": 0.85,
+            "cycle_momentum": true,
+            "div_factor": 25.0,
+            "epochs": 20,
+            "final_div_factor": 10000.0,
+            "last_epoch": -1,
+            "max_lr": 0.01,
+            "max_momentum": 0.95,
+            "name": "OneCycleLR",
+            "pct_start": 0.2,
+            "steps_per_epoch": 285,
+            "three_phase": false,
+            "total_steps": null,
+            "verbose": false
+          },
+          "search": 0,
+          "seed": 2024,
+          "threads": 4,
+          "train_drop_last": true,
+          "train_shuffle": true,
+          "weight_decay": 1e-07,
+          "workers": 0
+        }
+      },
+      "task": "MS",
+      "use_u": true,
+      "use_v": true
+    },
+    "UrbanEV": {
+      "arithmetic": {
+        "eval_batches": {
+          "test": 899,
+          "validation": 896
+        },
+        "max_epochs": 20,
+        "max_optimizer_steps": 148580,
+        "train_batches": 7429,
+        "windows": {
+          "test": 114950,
+          "train": 950950,
+          "validation": 114675
+        }
+      },
+      "arm": "UV",
+      "baseline_cell_id": "MS|ModernTCN|UrbanEV|6|6|2024",
+      "baseline_pair_cell_id": "MS|ModernTCN|UrbanEV|6|6|2024",
+      "baseline_prefix_metadata": {
+        "e_price.csv": {
+          "fingerprint_semantics": "UTF-8 normalized CSV records; not full-file SHA",
+          "parsed_records": 3909,
+          "record_prefix_sha256": "f5fc0ba5ebd9f2d029372375cf3d685445966f9a66c72281f33ec97493b78e0f",
+          "test_observations_accessed": false
+        },
+        "s_price.csv": {
+          "fingerprint_semantics": "UTF-8 normalized CSV records; not full-file SHA",
+          "parsed_records": 3909,
+          "record_prefix_sha256": "a16125c50fc1603ff8768ed823e0a9e75a7c82469be9a8d43c781cbefd370c19",
+          "test_observations_accessed": false
+        },
+        "volume.csv": {
+          "fingerprint_semantics": "UTF-8 normalized CSV records; not full-file SHA",
+          "parsed_records": 3909,
+          "record_prefix_sha256": "9215cb6d90a9f57beecd29430227c4b11fa6728acef71d0779871ad0f6925efc",
+          "test_observations_accessed": false
+        },
+        "weather_central.csv": {
+          "fingerprint_semantics": "UTF-8 normalized CSV records; not full-file SHA",
+          "parsed_records": 3909,
+          "record_prefix_sha256": "b39a83b4040fdd6e5d241b28e5d256a3f76bb7f95c67e80d8b8ab5a8f71b35b1",
+          "test_observations_accessed": false
+        }
+      },
+      "baseline_profile_sha": "6bdfe08722d1eca0f8717d4d367217818bf911b8dbabf5411fe2620b781f5050",
+      "baseline_record_prefix": {},
+      "baseline_source": {
+        "path": "/public/home/yueweiting/大论文/AMD-m-baselines-v1/configs/ch3_baseline_ms_u96_oc01_v3.json",
+        "sha256": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09"
+      },
+      "baseline_training": {
+        "accumulation": 1,
+        "batch": 128,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "dtype": "float32",
+        "epochs": 20,
+        "eps": 1e-08,
+        "eval_batch": 128,
+        "eval_drop_last": false,
+        "from_scratch": true,
+        "lr": 0.01,
+        "optimizer": "Adam",
+        "patience": 5,
+        "scheduler": {
+          "anneal_strategy": "cos",
+          "base_momentum": 0.85,
+          "cycle_momentum": true,
+          "div_factor": 25.0,
+          "epochs": 20,
+          "final_div_factor": 10000.0,
+          "last_epoch": -1,
+          "max_lr": 0.01,
+          "max_momentum": 0.95,
+          "name": "OneCycleLR",
+          "pct_start": 0.2,
+          "steps_per_epoch": 7429,
+          "three_phase": false,
+          "total_steps": null,
+          "verbose": false
+        },
+        "search": 0,
+        "seed": 2024,
+        "threads": 4,
+        "train_drop_last": true,
+        "train_shuffle": true,
+        "weight_decay": 1e-07,
+        "workers": 0
+      },
+      "candidate_id": "moderntcn-uv-dev-v9",
+      "data_config": {
+        "datasets": {
+          "UrbanEV": {
+            "T": 12,
+            "amd_patch": 12,
+            "declared_rows": 4344,
+            "endpoints": null,
+            "features": [
+              "volume",
+              "e_price",
+              "s_price",
+              "Ta",
+              "P",
+              "h",
+              "hour_sin",
+              "hour_cos",
+              "weekday_sin",
+              "weekday_cos",
+              "is_weekend"
+            ],
+            "horizons": [
+              3,
+              6,
+              9,
+              12
+            ],
+            "mandatory_blockers": [],
+            "path": "/public/home/yueweiting/大论文/AMD/data/UrbanEV/data",
+            "policy": "registered fixed endpoints",
+            "target": "volume",
+            "training": {
+              "batch": 128,
+              "epochs": 10,
+              "eval_batch": 128,
+              "lr": 3e-05,
+              "patience": null
+            }
+          }
+        },
+        "urban_folds": [
+          [
+            576,
+            648,
+            720
+          ],
+          [
+            1171,
+            1317,
+            1464
+          ],
+          [
+            1747,
+            1965,
+            2184
+          ],
+          [
+            2342,
+            2634,
+            2928
+          ],
+          [
+            2937,
+            3304,
+            3672
+          ],
+          [
+            3475,
+            3909,
+            4344
+          ]
+        ]
+      },
+      "data_stat": {
+        "/public/home/yueweiting/大论文/AMD/data/UrbanEV/data/e_price.csv": {
+          "st_dev": 41,
+          "st_ino": 1575102477,
+          "st_mtime_ns": 1787134628000000000,
+          "st_size": 12046239
+        },
+        "/public/home/yueweiting/大论文/AMD/data/UrbanEV/data/s_price.csv": {
+          "st_dev": 41,
+          "st_ino": 1612917515,
+          "st_mtime_ns": 1787134630000000000,
+          "st_size": 14966150
+        },
+        "/public/home/yueweiting/大论文/AMD/data/UrbanEV/data/volume.csv": {
+          "st_dev": 41,
+          "st_ino": 1612917771,
+          "st_mtime_ns": 1787134631000000000,
+          "st_size": 16503910
+        },
+        "/public/home/yueweiting/大论文/AMD/data/UrbanEV/data/weather_central.csv": {
+          "st_dev": 41,
+          "st_ino": 1612918027,
+          "st_mtime_ns": 1787134631000000000,
+          "st_size": 181328
+        }
+      },
+      "dataset": "UrbanEV",
+      "derivation_changed_fields": [],
+      "fold": 6,
+      "goal": 1,
+      "h": 6,
+      "id": "moderntcn-uv-dev-v9|v9|UrbanEV|F4|f6|h6|UV|s2024",
+      "input_variant": "F4",
+      "model": "moderntcn-uv-dev-v9",
+      "profile_sha": "6bdfe08722d1eca0f8717d4d367217818bf911b8dbabf5411fe2620b781f5050",
+      "seed": 2024,
+      "structural_revision": {
+        "fusion": "native_v3_block_then_mean_spline_target_head_before_denorm_v9",
+        "u": "native_linear_preserving_bounded_cubic_spline_target_readout_v9",
+        "v": "target_state_conditioned_low_rank_temporal_filter_post_ffn1_v3"
+      },
+      "structural_source_profile": {
+        "C": 11,
+        "H": 6,
+        "T": 12,
+        "aux_idx": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "contract": "ch3-target-ms-formal-v2",
+        "dataset": "UrbanEV",
+        "features": [
+          "volume",
+          "e_price",
+          "s_price",
+          "Ta",
+          "P",
+          "h",
+          "hour_sin",
+          "hour_cos",
+          "weekday_sin",
+          "weekday_cos",
+          "is_weekend"
+        ],
+        "input_variant": "F4",
+        "model": "ModernTCN",
+        "pred_len": 1,
+        "structure": {
+          "activation": "gelu",
+          "affine": 0,
+          "d_ff": 2048,
+          "d_layers": 1,
+          "d_model": 512,
+          "decomposition": 0,
+          "dims": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "downsample_ratio": 2,
+          "dropout": 0.1,
+          "dw_dims": [
+            256,
+            256,
+            256,
+            256
+          ],
+          "e_layers": 2,
+          "embed": "timeF",
+          "factor": 1,
+          "fc_dropout": 0.05,
+          "ffn_ratio": 1,
+          "freq": "h",
+          "head_dropout": 0,
+          "individual": 0,
+          "kernel_size": 25,
+          "large_size": [
+            7
+          ],
+          "moving_avg": 25,
+          "n_heads": 8,
+          "num_blocks": [
+            1
+          ],
+          "padding_patch": "end",
+          "patch_len": 16,
+          "patch_size": 1,
+          "patch_stride": 1,
+          "revin": 1,
+          "small_kernel_merged": false,
+          "small_size": [
+            3
+          ],
+          "stem_ratio": 6,
+          "stride": 8,
+          "subtract_last": 0,
+          "use_multi_scale": false
+        },
+        "target_idx": 0,
+        "training": {
+          "accumulation": 1,
+          "batch": 128,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "dtype": "float32",
+          "epochs": 20,
+          "eps": 1e-08,
+          "eval_batch": 128,
+          "eval_drop_last": false,
+          "from_scratch": true,
+          "lr": 0.01,
+          "optimizer": "Adam",
+          "patience": 5,
+          "scheduler": {
+            "anneal_strategy": "cos",
+            "base_momentum": 0.85,
+            "cycle_momentum": true,
+            "div_factor": 25.0,
+            "epochs": 20,
+            "final_div_factor": 10000.0,
+            "last_epoch": -1,
+            "max_lr": 0.01,
+            "max_momentum": 0.95,
+            "name": "OneCycleLR",
+            "pct_start": 0.2,
+            "steps_per_epoch": 7429,
+            "three_phase": false,
+            "total_steps": null,
+            "verbose": false
+          },
+          "search": 0,
+          "seed": 2024,
+          "threads": 4,
+          "train_drop_last": true,
+          "train_shuffle": true,
+          "weight_decay": 1e-07,
+          "workers": 0
+        }
+      },
+      "task": "MS",
+      "use_u": true,
+      "use_v": true
+    }
+  },
+  "source_binding": {
+    "ch3_runner.py": "0c8b234da2c951482072eb552c7fd7d1e159d169c75d918c53e41cee638509b2",
+    "m6_baseline_unified_entry.py": "61655f33343966a09957a3fead26df17faa8f93e828376b65cb8e6e479f580ef",
+    "m6_ch3_supplement_v10/__init__.py": "da92bb4aceb79a1163debe1769ea24c1535bc1ab89c283c2a5e384c95f5ca0d2",
+    "m6_ch3_supplement_v10/benchmark.py": "6526845d4ac55f87e3e77f9af675f9615ad66a4122cba0b44aace970bc87af76",
+    "m6_ch3_supplement_v10/continuation.py": "7536379505d2a5242bd29c0acdd7bb021b008c77fe345611d449b5f56073d63a",
+    "m6_ch3_supplement_v10/contract.py": "bd412c4b943d5ad1d50e4bc966d4726708d70a1a227fb8b955c4e8242b3ee8a9",
+    "m6_ch3_supplement_v10/entry.py": "b91c3d56e7fc3d050a2ce9e29cff4cc3a2be518474ea4cfbeb599f58931f7f92",
+    "m6_ch3_supplement_v10/environment.py": "3d4688e59c2fb18953b4bc3a6868997bfe2b8694c080cc14316aa83126222e1b",
+    "m6_ch3_supplement_v10/gpu_identity.py": "f3e6242e089f015ed3ddee8702be8175ce211dfa2133967ddd73e858b403603c",
+    "m6_ch3_supplement_v10/model.py": "c14cc024ad400433ca83692d76f78cd1032cc02fcedd39300ce4de8458ddb175",
+    "m6_ch3_supplement_v10/observations.py": "74697d11fd54f920783477e09fcdb92e629fdde6b6389b5e47886055ceb396ae",
+    "m6_ch3_supplement_v10/plots.py": "505f9ea5d25fff001586b22e0bac5a62af224449b484eff374e7fe7e12d1402a",
+    "m6_ch3_supplement_v10/queue.py": "5d7298409cf56778f7698735e2b10022407db2026cc17fcb21fa58f10146162b",
+    "m6_ch3_supplement_v10/readonly.py": "fef69ec8f00c2f8adcc73442babd45562783d2cb2fb0b1f9d6fced5b1f0a87cf",
+    "m6_ch3_supplement_v10/sensitivity.py": "c6c847650e5ad85caa1356708dd77514ccf035ae7369b18df281c82a448a39d8",
+    "m6_extension_entry.py": "4e302cfdbe30436fd4ae060e6db297f00f1335e83c924e86ba9a902d60cfaa9b",
+    "m6_m_entry.py": "273eda75767b3a7c026200f1cd3eb50b01cab82dfd5ae451ba82903b1027f8cb",
+    "m6_m_handoff_entry.py": "7894e469630677000429bbcfe200ca23ce3a843af0886d711d134c476c82c3ff",
+    "m6_native_chain_entry.py": "00389681c2c3bb2d355859b0d84775824d910fb9eb860f94b6a11b0f4c849307",
+    "m6_native_recovery_entry.py": "9dd575eccf02707044a287b10cf2c1f6c9167f7353fcabf9311aef84e059210c",
+    "m6_probe_entry.py": "2908fedb93a0961afefd4a5885a8fafb8fbce4700e15c286d8e683c76a5a034a",
+    "m6_remaining_entry.py": "6c0d80a20cd7e21623d1dbd326f8803021221c2b74760a1e429539c27f143a65",
+    "m6_revision_entry.py": "e210eff146994d4672f3cc36c4cd0fc96f178a6bc3da566915846734e6c22046",
+    "m6_revision_probe_entry.py": "902bc94fcf8d772eda58645b0f5e2d1443350bc35a27e15369466dd7397498e9",
+    "m6_urban_confirmation_entry.py": "fa7f58bd4a8cb1143228604479acc36ac0c24774e9f6e4dcb25d5480d936d3b0",
+    "m6_urban_diagnostic_entry.py": "557283bee9ae8d1d79ce95d8116d3d451ead3c858ec025c6ee6eaf04aedf8388",
+    "models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "models/ch3_adapter.py": "ac998751b1c1265ea27073292749148db7ef79b6ddc4708deac3be7a5a50a0bf",
+    "models/common.py": "795e4deec05ce6a141f74d21af1f712bbc5ef927d43ec36966b87c795e0eda54",
+    "models/modules/__init__.py": "717d3cd5147b4b55a1118ebb9e7bb9a1bb64d81cdaa093ea80be8bfc0152c6fc",
+    "models/modules/cross_correlation_embedding.py": "c1afa4766046238be45bf7dc85eeff9e076197818f52fadac799910d2c5164ed",
+    "models/modules/global_mediated_patch_target_exogenous_bridge.py": "6a6a6d1ab6f8b4b7d8f79c188049e8b89baafcfbb45ccb1b89195af4bac5e32d",
+    "models/modules/local_change_gated_pmcr.py": "6b5da26f6656dba822803fac17fe3b57d0041a427e2a761d6a185a187c9f978b",
+    "models/modules/modern_conv_refinement.py": "4f0507d3512df22152826e55a6113bb06ed2b5e9d39e6fe0a417a528c23ecd56",
+    "models/modules/patch_conditioned_target_exogenous_bridge.py": "5bba40e01f52aca2c8b558463c9ac32102c12d22884021d6300b420b96dd8f69",
+    "models/modules/selective_patch_target_exogenous_bridge.py": "e018a99ec34e6fc6881c22eab03fa5ecec774b58ad7120bcb3378fa0293a5e3f",
+    "models/modules/sonnet_mvca_target_residual.py": "8aaec30a724d806ce1caf92ab9732989fe936f6bc6d88bfeac0921cec6251ad5",
+    "models/modules/sonnet_thls_contract.py": "4ee30da49f6fc1ebf46afb86860f51a197575aaf514212d9c6147b62f34db512",
+    "models/modules/target_exogenous_bridge.py": "c389157fd20ed66911163b6db0df3e7cd96f66b6f0bb112c432b77cf37588b2e",
+    "models/modules/target_history_local_shape_residual.py": "1e5089e77fdc553ac3965a61a7cc4778000229719b376d1a80dc5bbc410e7757",
+    "models/tsAMD.py": "fa72cdbe34348364344c0d9c0755668a82d22f6a37ee061c7ece93ecfaf90ba1",
+    "models/tsAMD_enhanced.py": "521945fc796d1c25feb66648a29b3b7d2704526ba34a4b161fa8216a85331b3f",
+    "models/tsmoe.py": "d6c7888410dc64c3514c76cf4f2720b99c11773b0011780afaac76ca98aee0f1",
+    "moderntcn_dev_v1/SOURCE-LICENSES.txt": "c9dab6ea77d21a728f76d727f916a1679285efb5a8a8bf8e4958c1c48f2d5b7d",
+    "moderntcn_dev_v1/__init__.py": "7b8a880075f41da82287c63048fd9a9ed28515f5e793827f9cff2ed99d50cabd",
+    "moderntcn_dev_v1/model.py": "ec15347c9327482be1a3c9658e1d21033e7b2baad3eb63c6e8d03c6fc80e371c",
+    "moderntcn_dev_v1/modules.py": "353328fca220f2c2c5ec9b23303abc1c2e3b82e158d6c2bde7545406c16c1020",
+    "moderntcn_dev_v1/source.py": "671cb7bbc5092727c8b44e29d1d3af62b658453958cff707df2bfc4ccad30d66",
+    "moderntcn_dev_v1/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "moderntcn_dev_v10/SOURCE-LICENSES.txt": "d21c12b18214ccb4a6853ea2f2597274cb9402b11b55d4f9c1144267cfb0c7ab",
+    "moderntcn_dev_v10/__init__.py": "fdf5a10102915ca414af70f84efd65075a8d4dfc6a5f6c90334bde19511f375e",
+    "moderntcn_dev_v10/adapter.py": "5cb9c25537aa76f932761c72d237f2218704e47ae8d4bed2cbb27d86e076b5e1",
+    "moderntcn_dev_v10/artifacts.py": "31b26ff65138e3bb160a90f679879d00fb85fe9b945f1041bbe7a65f21e2129d",
+    "moderntcn_dev_v10/gate_policy.py": "d2d7a3377ab6b88d08419b9d23834e1b3e6f033d51cbd0507e66fb7a731e9b3d",
+    "moderntcn_dev_v10/guards.py": "484be5c19d2f23b63f7151f22a5af8a94d2d6d4104e4ef87843a2a6f399f45b7",
+    "moderntcn_dev_v10/launcher.py": "8e04523dec313b8e0fbe677ef13cfede51720f4b7cad258bc1c1d1a3e62c78f0",
+    "moderntcn_dev_v10/model.py": "93e3375c1426246a829174857c67641049d758e6a7f19e3a85eac1bdd60831e6",
+    "moderntcn_dev_v10/modules.py": "8f2e77fbc8cb5e259f8bcee6c425f87ae03acc34f160a6e50b25800ce06cff49",
+    "moderntcn_dev_v10/scope.py": "86b19b7c8f921991a6ee2d93e4d6594fcaa151953ed9182570e6e4a67660213f",
+    "moderntcn_dev_v10/scope_reference.json": "b63c3a7d013d1b65e00d42cb189cd584e6d87c472d4c05e4e40b5bd9535be0af",
+    "moderntcn_dev_v10/source.py": "1fe9e647aea2f738e1322ec91b4fef5ca5fca104fcc09253efd149faea9d1964",
+    "moderntcn_dev_v10/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "moderntcn_dev_v10/spec.py": "d0416e73faf096d1e9bde62d813a4fcd01bcae79ba2e000a346034aafe0d81c0",
+    "moderntcn_dev_v10/summary.py": "b5f57567c9606e59dabe1567132277336c0f82b33080e21e39004ae268f9c90f",
+    "moderntcn_dev_v10/training_config.py": "60b90f5c428790d417e754382dc9303459a931c639f91657ba8328b02b37a536",
+    "moderntcn_dev_v10/training_state.py": "54311ca0607596923764b60c66e9ae137404c840baa9be5af670c21ffac4c75f",
+    "moderntcn_dev_v10/worker.py": "07b9470b99439b6e3284282a03d48661c2f39f1c24a36cd5ffdfd1011902b5d1",
+    "moderntcn_dev_v3/__init__.py": "a4e4f6076165d8a0cef94df631d457b1faa0c1622599047ef7f37fd0883d9fa1",
+    "moderntcn_dev_v3/modules.py": "7aa63a364376d263917a568220e6a8a55c6192a9d1e6d28f97957859271dbcee",
+    "moderntcn_dev_v9/SOURCE-LICENSES.txt": "d21c12b18214ccb4a6853ea2f2597274cb9402b11b55d4f9c1144267cfb0c7ab",
+    "moderntcn_dev_v9/__init__.py": "a3fbbe0c8270e8771ddee63f08b37cd2e98761dcc75341bce49787c060189a7e",
+    "moderntcn_dev_v9/model.py": "adbef58e5a66fd7f7e0c064c44460d70121d82315cba89d911bc125b1ee02ed9",
+    "moderntcn_dev_v9/modules.py": "6642879d7466520d5f9d910847bf8c7930328dfcbf1085c687f70a94c69ab02a",
+    "moderntcn_dev_v9/source.py": "cb06fda2cd8b911ba4384a4cd511077cbc0aae283987ac78fb794473b7db79bb",
+    "moderntcn_dev_v9/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "moderntcn_input_ablation_v10/__init__.py": "7c0967a65f5d7e15b63aa56e97b9da7b171093203908d91e8b9ff0eea63381ca",
+    "moderntcn_input_ablation_v10/artifacts.py": "db98fbe3422131fb19e00fa741b3b4e10f0504f186c42179ccb895c9b21e6d2c",
+    "moderntcn_input_ablation_v10/gate_policy.py": "46941010314f61d2b9d0cdbbc7e8fc13ebb1b035cd3c87e69d82345095150cc9",
+    "moderntcn_input_ablation_v10/launcher.py": "962cc1092de42416c742115c1945374549ad0da87416d705e75bd582c352de78",
+    "moderntcn_input_ablation_v10/scope.py": "c00dbf21e5fe9f008f11c7e44752d45466eaad8d7f7e1caeba56a792cd4ae6b8",
+    "moderntcn_input_ablation_v10/scope_reference.json": "18116e926996b6f27272d9e162bb654b612cab4991146a48cfe0e455b00e99fc",
+    "moderntcn_input_ablation_v10/source.py": "2d6da716541a44f9544ded0fc587695d4f1ee01cb2e62ef3192cefcb36a697fc",
+    "moderntcn_input_ablation_v10/spec.py": "bc63f1b6af76b1548ab9ebaaa6416ea1c3c8cc4f0a5db62ef7e2d6a5102726b4",
+    "moderntcn_input_ablation_v10/summary.py": "f9ef1c7141bf0e9589f95ce1aa244a1ebcd678cea5e55e1a6d57d3b0fcfd5ff8",
+    "moderntcn_input_ablation_v10/training_config.py": "aaddf4335800ab87ab0dd907dce3675bb632a465eab8f065e0168fe485c66a4f",
+    "moderntcn_input_ablation_v10/training_state.py": "b39770c072576c54dd56b2ea4bef539381583f9f5977f2b2d4d5bfede94811fb",
+    "moderntcn_input_ablation_v10/worker.py": "7f2ed4edf51000a99b1d4e5eee7ef19d0a86eafe9a6546d95a4ed93d7b1739a0",
+    "moderntcn_input_ablation_v10_entry.py": "55146a5dbad9c158e6dea970310b41c520ea57265fb67507915880223b6f3791",
+    "moderntcn_train_v10_entry.py": "657e13b58adce3ac245fd7df2b407ded304ef907555b83354af6c2be743a4c03",
+    "scripts/ch3/start_m6_ch3_supplement_v10.sh": "5841a51e81e66c6fc642b03a5d11c5a1da4643f687cb6c35fb910bf08d2926fa",
+    "scripts/ch3/start_moderntcn_input_ablation_v10.sh": "a98d5c62a9e302f464d5eb3b202e849bf4dbe44dbe1a182d0944bcfe836626c8",
+    "scripts/ch3/start_moderntcn_uv_v10.sh": "1a07d4b37d877f52fa1ff425c031b4009b85a1984aae2a68c5120bc2550aadb9",
+    "tests/test_m6_ch3_environment_continuation.py": "5202ffacb03d070c33d815fcdbae58c3ffea03e61b5aca2ba6deb4939cc7454f",
+    "tests/test_m6_ch3_gpu_pid_repair.py": "69b985beabd6219f29ecf23b7826d0c18a13d718fe6436c849431552500196ac",
+    "timemixer_dev/__init__.py": "406ff7c3b3f1fb318a349ef07fe1f206ffeb8ff1cb8e40ee2a2771873d579157",
+    "timemixer_dev/training_state.py": "91445253fae7d93a2bfe7366e8f16741b66357a59d3a5d53852b7d676494595b",
+    "utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "utils/ch3_admission_merge.py": "0b45f7107ad1bec47b0087aa435c5cf6e32a8ca3a2dea72ed9aef50acc967c3e",
+    "utils/ch3_baseline_unified_chain.py": "8c51659ca3a302188da2ac7424eb552b2c7b15dacda315375cb8904536dc6ebe",
+    "utils/ch3_baseline_unified_execution.py": "35b16644b5b865f1ba86f3e10f1d632a0c437eec82f2f1ee4eba5e823ccbab77",
+    "utils/ch3_baseline_unified_tasks.py": "52e8b7ee7dad239036b696bda25d95c758b17c2a17990f61884f9d83bd7ecb32",
+    "utils/ch3_contract.py": "df4e6c591c9cd6ac6ddd5c8df1410bcde950bf88b7f282fef924ed5aee3e4e0a",
+    "utils/ch3_data.py": "b15989be3fb043b92018d8728613c0fed9c2579e07e38afcd672be908bb45f4e",
+    "utils/ch3_extension.py": "f8241bebcfefe6125fa8589224b9969594ad5f3fc1908fe79abec9bf1c0748d8",
+    "utils/ch3_extension_probe.py": "1d4fb708a6558e0773cd13a2afffb2a30f77017bc3ea17bf8fcfb27361371eaa",
+    "utils/ch3_m6.py": "088d27cb9dd7d1a533917e31aa685ebfffb1814706746de4133f8444fd7d637c",
+    "utils/ch3_m_auto.py": "15555158da8435fccb3b6adde901d56dc1ee24cfaa6e68823123e64dd34e3d4d",
+    "utils/ch3_m_execution.py": "a12356f98a7742b7835eee060867fb18812b1a3c6d1c658955a125212b9ce261",
+    "utils/ch3_m_handoff.py": "0661fb6e7dd2c40d1bb6ba27f25317ad378be319889d832742a496dfdf893271",
+    "utils/ch3_m_launch.py": "5d6072177a13d0498e1237a11d0fdf1ed4ad51c4673ceab17d87108a559426da",
+    "utils/ch3_m_summary.py": "c8803c0ed2298e1baab2dbcb303329a3530612c3130819287dcbe3a5e9f2083c",
+    "utils/ch3_m_tasks.py": "24407b8dbb81272755cfcb63185ede2b7ef35b2f663d9e03f952f487f745faaa",
+    "utils/ch3_ms_retirement.py": "b4ac009f220fed8294a044462a622ec437a85037619d21240a02555c3d461627",
+    "utils/ch3_native_chain.py": "772706d5c2cfb9b66dc25bf8e71bd7c134148530e875749d26f1534388df9bff",
+    "utils/ch3_native_execution.py": "1310703cd98003f5f191f2fc9407808233e1a88ab123c1728a5409e91108282e",
+    "utils/ch3_native_recovery.py": "a5c2921a8ec10166451434b14732a9c31e25dce87be0a12bbd914f744050713e",
+    "utils/ch3_native_recovery_execution.py": "c317353fbea523e0c6036901efabc549a863e3b4cb179f91649656f934c1986e",
+    "utils/ch3_native_recovery_records.py": "412d22316a0f110785af15f0f10a344fa72043380548cd75ba7bf37c9f750f9d",
+    "utils/ch3_native_tasks.py": "70970ace751df5feb651cd89284591b33e5406724abd9e885d69cfc1944ce950",
+    "utils/ch3_onecycle.py": "4ef29940086df62be523640031a906366419c947896dd46cec48a7d71da40de0",
+    "utils/ch3_remaining.py": "42dbbbcdafabfaf806a6049e6906bacba15ec384366233775d2862bd4b73d10e",
+    "utils/ch3_result_index.py": "951e5d9a3e260bb07d454da182d253c30d9a1f9ffa1bf6c4ebd98152b6e64e84",
+    "utils/ch3_revision.py": "e1165dd30b002a0d5479702de8c0cf3e4a51fb89036edd840d9eec879161fedd",
+    "utils/ch3_revision_probe.py": "5b08e528b2f40d01a9674a4b553e38ae2fa435ee764c5c3fe1b0c2726b393ca6",
+    "utils/ch3_time_marks.py": "d949c9985538ac8108608fde3a90e330a4d05f325b64fbf4a8583299d675f76b",
+    "utils/ch3_urban_capture.py": "412092201046c84f524d9a3bf3b8fbb1a02e139050ea79907e14322fca63f268",
+    "utils/ch3_urban_confirmation.py": "a8c43bbeee86da540fd1ffa36fb59f289435839b3557c3f0a627c07e24efb940",
+    "utils/ch3_urban_diagnostic.py": "64e5f478ef3b38c2c222e0e339df8275244a06da9f7c142008ccf1de543e83cb",
+    "utils/dataloader_urbanev.py": "a725a1da5ff1adf2e3f4a6d593a6291c2a8344bac83f8ed7490f742ccd5b1059",
+    "utils/feature_schema.py": "1db7c6bd5d9d47fdeb8ff9df74812cd665b78733704d31abb5de94efcced64ae"
+  },
+  "source_compatibility_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1/source/current-execution-compatibility.json",
+    "sha256": "6036e06fdde31f277ddfea1a980ef78fe6f8f914639fe24edb427c09eeb78d3f"
+  },
+  "technical_continuation": {
+    "case_selection_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1/case-selection.json",
+      "sha256": "57219203ae9a6e00e348e2c2af5eee38796f4969e1c19e8374d1b7afabe10164"
+    },
+    "failed_children_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1/children-wave-13.json",
+      "sha256": "77512060856ad7224f867770b3072b9698590ccc418f2a3cfe119d5fc444d74e"
+    },
+    "previous_auth_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-retry1-launch-authorization-r1/AUTH.json",
+      "sha256": "4f62fa4cabad06007fd442d4e41eac7b62b9dc51d3dbd6d08f4c91d067bdb493"
+    },
+    "previous_config_ref": {
+      "path": "/public/home/yueweiting/大论文/ModernTCN-U+V/configs/m6_ch3_supplement_v10_retry1.json",
+      "sha256": "10c2f749813f93fd458f73bb589ceb5a94497661ddb6e73bb105e416e4dba312"
+    },
+    "previous_failure_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1/failure.json",
+      "sha256": "0905f1e7633b4b745c1c0b8830bad86d9378d5ba0f9fc275812beae2393eff33"
+    },
+    "previous_owner_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1/owner.json",
+      "sha256": "cf90ea1d4c9eabb192fb9411cffbbbcbbcc1128b0cf872a97ac6ca05a4e4a88a"
+    },
+    "previous_runtime_ref": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1/runtime.json",
+      "sha256": "341ac4a8ff3cea4413f021a6ffaba515a68d527fc3724ee23020f135f39d35c5"
+    },
+    "schema": "m6-ch3-environment-partial-retry2-v1"
+  },
+  "waves": [
+    [
+      "E-UrbanEV-UV-b1"
+    ],
+    [
+      "E-UrbanEV-UV-b16"
+    ],
+    [
+      "E-UrbanEV-AMD-b1"
+    ],
+    [
+      "E-UrbanEV-AMD-b16"
+    ],
+    [
+      "E-UrbanEV-DLinear-b1"
+    ],
+    [
+      "E-UrbanEV-DLinear-b16"
+    ],
+    [
+      "E-UrbanEV-ModernTCN-b1"
+    ],
+    [
+      "E-UrbanEV-ModernTCN-b16"
+    ],
+    [
+      "E-UrbanEV-PatchTST-b1"
+    ],
+    [
+      "E-UrbanEV-PatchTST-b16"
+    ],
+    [
+      "E-UrbanEV-TimeMixer-b1"
+    ],
+    [
+      "E-UrbanEV-TimeMixer-b16"
+    ],
+    [
+      "E-UrbanEV-TimeXer-b1"
+    ],
+    [
+      "E-UrbanEV-TimeXer-b16"
+    ],
+    [
+      "E-UrbanEV-iTransformer-b1"
+    ],
+    [
+      "E-UrbanEV-iTransformer-b16"
+    ],
+    [
+      "E-PJM-UV-b1"
+    ],
+    [
+      "E-PJM-UV-b16"
+    ],
+    [
+      "E-PJM-AMD-b1"
+    ],
+    [
+      "E-PJM-AMD-b16"
+    ],
+    [
+      "E-PJM-DLinear-b1"
+    ],
+    [
+      "E-PJM-DLinear-b16"
+    ],
+    [
+      "E-PJM-ModernTCN-b1"
+    ],
+    [
+      "E-PJM-ModernTCN-b16"
+    ],
+    [
+      "E-PJM-PatchTST-b1"
+    ],
+    [
+      "E-PJM-PatchTST-b16"
+    ],
+    [
+      "E-PJM-TimeMixer-b1"
+    ],
+    [
+      "E-PJM-TimeMixer-b16"
+    ],
+    [
+      "E-PJM-TimeXer-b1"
+    ],
+    [
+      "E-PJM-TimeXer-b16"
+    ],
+    [
+      "E-PJM-iTransformer-b1"
+    ],
+    [
+      "E-PJM-iTransformer-b16"
+    ],
+    [
+      "C-ModernTCN"
+    ],
+    [
+      "C-TimeMixer"
+    ],
+    [
+      "C-UV"
+    ],
+    [
+      "P-ModernTCN"
+    ],
+    [
+      "P-TimeMixer"
+    ],
+    [
+      "P-UV"
+    ],
+    [
+      "S-UrbanEV-G3-R4",
+      "S-UrbanEV-G7-R4",
+      "S-UrbanEV-G5-R2",
+      "S-UrbanEV-G5-R6"
+    ],
+    [
+      "S-PJM-G3-R4",
+      "S-PJM-G7-R4",
+      "S-PJM-G5-R2",
+      "S-PJM-G5-R6"
+    ],
+    [
+      "O"
+    ]
+  ]
+}
