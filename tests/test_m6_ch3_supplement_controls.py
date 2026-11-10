@@ -30,24 +30,28 @@ class Controls(unittest.TestCase):
             validate_result(config, dict(phase='S', dataset='UrbanEV'), dict(result, test_calls=1))
 
     def test_measurement_process_boundary(self):
-        import os
         import subprocess
+        import tempfile
         from unittest.mock import patch
-        from m6_ch3_supplement_v10.readonly import exclusive_measurement_gpu
-        with patch('subprocess.check_output', return_value=f'{os.getpid()}, GPU-fixture\n') as call:
-            self.assertEqual(exclusive_measurement_gpu('GPU-fixture'), [os.getpid()])
-            self.assertEqual(call.call_args.kwargs['timeout'], 60)
-        with patch('subprocess.check_output', return_value='999999, GPU-fixture\n'):
-            with self.assertRaises(RuntimeError):
-                exclusive_measurement_gpu('GPU-fixture')
-        with patch('subprocess.check_output', side_effect=subprocess.TimeoutExpired('fixture', 60)) as call:
-            with self.assertRaises(subprocess.TimeoutExpired):
-                exclusive_measurement_gpu('GPU-fixture')
-            self.assertEqual(call.call_count, 3)
-        with patch('subprocess.check_output', side_effect=subprocess.CalledProcessError(1, 'fixture')) as call:
-            with self.assertRaises(subprocess.CalledProcessError):
-                exclusive_measurement_gpu('GPU-fixture')
-            self.assertEqual(call.call_count, 1)
+        from m6_ch3_supplement_v10.gpu_identity import capture_self, parse_identity, check_gpu_identity
+        raw = {}
+        capture_self(raw)
+        driver = parse_identity(raw)['driver_pid']
+        with tempfile.TemporaryDirectory() as folder:
+            with patch('subprocess.run', return_value=subprocess.CompletedProcess('fixture', 0, f'{driver}, GPU-fixture\n', '')) as call:
+                self.assertEqual(check_gpu_identity('GPU-fixture', folder, 'self', True)['target_pids'], [driver])
+                self.assertEqual(call.call_args.kwargs['timeout'], 60)
+            with patch('subprocess.run', return_value=subprocess.CompletedProcess('fixture', 0, '999999, GPU-fixture\n', '')):
+                with self.assertRaises(RuntimeError):
+                    check_gpu_identity('GPU-fixture', folder, 'foreign', True)
+            with patch('subprocess.run', side_effect=subprocess.TimeoutExpired('fixture', 60)) as call:
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    check_gpu_identity('GPU-fixture', folder, 'timeout', True)
+                self.assertEqual(call.call_count, 3)
+            with patch('subprocess.run', return_value=subprocess.CompletedProcess('fixture', 1, '', 'error')) as call:
+                with self.assertRaises(RuntimeError):
+                    check_gpu_identity('GPU-fixture', folder, 'nonzero', True)
+                self.assertEqual(call.call_count, 1)
 
     def test_owned_stop(self):
         import os

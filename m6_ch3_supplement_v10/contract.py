@@ -61,7 +61,43 @@ def validate(config):
         raise ValueError('fixed queue/budget required')
     if config['execution_authorized'] is not False:
         raise ValueError('source config remains non-authorizing')
+    if config.get('technical_continuation'):
+        validate_continuation(config)
     return config
+
+
+def validate_continuation(config):
+    """Only the first technical retry of the sealed, zero-success attempt."""
+    chain = config['technical_continuation']
+    if chain.get('schema') != 'm6-ch3-gpu-pid-repair-retry1' or config['attempt'] != 'ch3-supplement-v10-retry1':
+        raise ValueError('exact technical retry identity required')
+    original = load_ref(chain['previous_config_ref'])
+    if original['attempt'] != 'ch3-supplement-v10-first-r1':
+        raise ValueError('unexpected previous attempt')
+    allowed = {'source_binding', 'attempt', 'technical_continuation'}
+    if {k: v for k, v in config.items() if k not in allowed} != {k: v for k, v in original.items() if k not in allowed}:
+        raise ValueError('technical retry changed scientific/config fields')
+    runtime = load_ref(chain['previous_runtime_ref'])
+    auth = load_ref(chain['previous_auth_ref'])
+    failure = load_ref(chain['previous_failure_ref'])
+    if runtime['config_ref']['sha256'] != chain['previous_config_ref']['sha256'] or runtime['auth_ref'] != chain['previous_auth_ref']:
+        raise ValueError('previous runtime/config/AUTH chain mismatch')
+    if auth['config_sha256'] != chain['previous_config_ref']['sha256'] or not failure.get('traceback'):
+        raise ValueError('missing bound prior technical failure')
+    old_folder = Path(chain['previous_runtime_ref']['path']).parent
+    if Path(chain['previous_failure_ref']['path']).parent != old_folder or Path(chain['case_selection_ref']['path']).parent != old_folder:
+        raise ValueError('previous artifacts do not belong to one attempt')
+    if list((old_folder/'receipts').glob('*.json')) or list(old_folder.glob('wave-*-complete.json')) or (old_folder/'complete.json').exists():
+        raise ValueError('retry1 only applies to the zero-success failed batch')
+    selection = load_ref(chain['case_selection_ref'])
+    if selection['nodes'] != ['105', '408'] or selection['indices'] != [2, 54] or selection['H'] != 6 or selection['target_times'][0] != '2023-01-30 00:00:00' or selection['target_times'][-1] != '2023-02-05 23:00:00':
+        raise ValueError('fixed original case selection required')
+
+
+def verify_case_selection(config, selection):
+    chain = config.get('technical_continuation')
+    if chain and selection != load_ref(chain['case_selection_ref']):
+        raise ValueError('case selection changed from the sealed original')
 
 
 def validate_permission(config_path, auth):

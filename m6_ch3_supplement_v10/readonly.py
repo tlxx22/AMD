@@ -6,28 +6,8 @@ import torch
 from .contract import read, load_ref, sha, write_new
 from .observations import select_nodes, case_times, PositionErrors
 from .benchmark import measure
+from .gpu_identity import check_gpu_identity, measure_with_identity
 from utils.ch3_time_marks import batch_parts
-
-
-def exclusive_measurement_gpu(uuid):
-    """Boundary check outside timed calls; never stops another process."""
-    import os
-    import subprocess
-    for retry in range(3):
-        try:
-            lines = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid,gpu_uuid', '--format=csv,noheader'], text=True, timeout=60).splitlines()
-            break
-        except subprocess.TimeoutExpired:
-            if retry == 2:
-                raise
-    observed = []
-    for line in lines:
-        pid, gpu = [s.strip() for s in line.split(',')]
-        if gpu == uuid:
-            observed.append(int(pid))
-    if set(observed) - {os.getpid()}:
-        raise RuntimeError('unrelated measurement GPU load; no process was stopped')
-    return observed
 
 
 def source(config, job):
@@ -78,7 +58,12 @@ def prepare_case(config, folder):
     selection['dataset_indices'] = [lookup[t]*validation.nodes+n for n in selection['indices'] for t in selection['target_times']]
     selection['scaler'] = meta['scaler']
     selection['source_manifest'] = row['manifest_ref']
+    from .contract import verify_case_selection
+    verify_case_selection(config, selection)
     write_new(Path(folder)/'case-selection.json', selection)
+    if config.get('technical_continuation'):
+        if sha(Path(folder)/'case-selection.json') != config['technical_continuation']['case_selection_ref']['sha256']:
+            raise ValueError('rebuilt case selection bytes differ from sealed failed attempt')
     return selection
 
 
@@ -122,6 +107,11 @@ def restore(row, device):
 
 
 def run(config, job, folder, stop):
+    out = Path(folder)/job['id']
+    out.mkdir(exist_ok=False)
+    evidence_dir = out/'gpu-identity'
+    if job['phase'] == 'E':
+        check_gpu_identity(config['gpu_uuid'], evidence_dir, 'before-model-load', False)
     row = source(config, job)
     sets, meta = datasets(row)
     p = row['profile']
@@ -131,11 +121,8 @@ def run(config, job, folder, stop):
     rng = torch.get_rng_state().clone()
     cuda_rng = torch.cuda.get_rng_state().clone()
     from torch.utils.data import DataLoader, Subset
-    out = Path(folder)/job['id']
-    out.mkdir(exist_ok=False)
     with torch.inference_mode():
         if job['phase'] == 'E':
-            before_processes = exclusive_measurement_gpu(config['gpu_uuid'])
             batch = next(iter(DataLoader(sets['validation'], batch_size=job['batch'], shuffle=False, generator=torch.Generator().manual_seed(2024))))
             x, _, marks = batch_parts(batch)
             x = x.cuda()
@@ -147,8 +134,10 @@ def run(config, job, folder, stop):
             def memory():
                 return dict(allocated=torch.cuda.memory_allocated(), reserved=torch.cuda.memory_reserved(),
                             max_allocated=torch.cuda.max_memory_allocated(), max_reserved=torch.cuda.max_memory_reserved())
-            result = measure(forward, torch.cuda.synchronize, torch.cuda.reset_peak_memory_stats, memory, job['batch'], checkpoint=stop)
-            result['gpu_process_boundary'] = dict(before=before_processes, after=exclusive_measurement_gpu(config['gpu_uuid']), telemetry='boundary only; shared mutex held throughout')
+            result = measure_with_identity(
+                lambda: measure(forward, torch.cuda.synchronize, torch.cuda.reset_peak_memory_stats,
+                                memory, job['batch'], checkpoint=stop),
+                config['gpu_uuid'], evidence_dir)
             if not torch.equal(x.cpu(), input_copy) or (marks is not None and not torch.equal(marks.cpu(), mark_copy)):
                 raise ValueError('measurement forward changed its fixed input/marks')
             result.update(parameters=sum(v.numel() for v in model.parameters()), cpu_threads=torch.get_num_threads(),

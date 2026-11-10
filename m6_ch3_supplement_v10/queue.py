@@ -9,6 +9,7 @@ import time
 import traceback
 import math
 from .contract import ROOT, SCOPE, read, sha, load_ref, write_new, validate_permission
+from .gpu_identity import check_gpu_identity
 from moderntcn_input_ablation_v10.launcher import proc_start, gpu_startup
 
 
@@ -115,18 +116,13 @@ def supervise(config_path, auth_path):
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if os.environ.get('CUDA_VISIBLE_DEVICES') != '0':
             raise PermissionError('explicit GPU 0 required')
-        gpu = gpu_startup(auth)
-        # Do not stop unrelated jobs. Refuse polluted measurements.
-        for retry in range(3):
-            try:
-                active = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid,gpu_uuid', '--format=csv,noheader'], text=True, timeout=60)
-                break
-            except subprocess.TimeoutExpired:
-                if retry == 2:
-                    raise
-        if any(auth['gpu_uuid'] in line for line in active.splitlines()):
-            raise RuntimeError('unrelated GPU compute load; no process was stopped')
         folder.mkdir(parents=True, exist_ok=False)
+        try:
+            check_gpu_identity(auth['gpu_uuid'], folder/'gpu-identity', 'supervisor-before-cuda', False)
+            gpu = gpu_startup(auth)  # Original UUID/free-memory management query retained.
+        except BaseException:
+            write_new(folder/'failure.json', dict(stage='startup-before-runtime', traceback=traceback.format_exc()))
+            raise
         (folder/'logs').mkdir()
         (folder/'receipts').mkdir()
         runtime_path = folder/'runtime.json'
