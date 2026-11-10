@@ -1,0 +1,87 @@
+"""Exact finite analysis scope and file bindings, independent of production AUTH."""
+import hashlib
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SCOPE = 'm6_ch3_supplement_v10_v1'
+PAIRS = ((3, 4), (7, 4), (5, 2), (5, 6))
+MODELS = ('UV', 'AMD', 'DLinear', 'ModernTCN', 'PatchTST', 'TimeMixer', 'TimeXer', 'iTransformer')
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda: stream.read(1024*1024), b''):
+            h.update(block)
+    return h.hexdigest()
+
+
+def read(path):
+    return json.loads(Path(path).read_text())
+
+
+def write_new(path, value):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('x') as stream:
+        json.dump(value, stream, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
+        stream.write('\n')
+
+
+def load_ref(ref):
+    if sha(ref['path']) != ref['sha256']:
+        raise ValueError('bound file changed: ' + ref['path'])
+    return read(ref['path'])
+
+
+def jobs():
+    out = []
+    for dataset in ('UrbanEV', 'PJM'):
+        for model in MODELS:
+            for batch in (1, 16):
+                out.append(dict(id=f'E-{dataset}-{model}-b{batch}', phase='E', dataset=dataset, model=model, batch=batch))
+    for phase, dataset in [('C', 'UrbanEV'), ('P', 'PJM')]:
+        for model in ('ModernTCN', 'TimeMixer', 'UV'):
+            out.append(dict(id=f'{phase}-{model}', phase=phase, dataset=dataset, model=model))
+    for dataset in ('UrbanEV', 'PJM'):
+        for G, R in PAIRS:
+            out.append(dict(id=f'S-{dataset}-G{G}-R{R}', phase='S', dataset=dataset, model='UV', G=G, R=R))
+    out.append(dict(id='O', phase='O'))
+    return out
+
+
+def validate(config):
+    if config.get('scope') != SCOPE or config.get('jobs') != jobs():
+        raise ValueError('exact analysis scope required')
+    expected = [[j['id']] for j in jobs() if j['phase'] in ('E', 'C', 'P')]
+    expected += [[j['id'] for j in jobs() if j['phase'] == 'S' and j['dataset'] == d] for d in ('UrbanEV', 'PJM')]
+    expected += [['O']]
+    if config['waves'] != expected or config['budget'] != dict(sensitivity_tasks=8, max_epochs=160, max_updates=617120, test=0, performance_conditions=32, performance_calls=17600, case_presentations=1008, pjm_full_validation_passes=3):
+        raise ValueError('fixed queue/budget required')
+    if config['execution_authorized'] is not False:
+        raise ValueError('source config remains non-authorizing')
+    return config
+
+
+def validate_permission(config_path, auth):
+    # Fail before any network, GPU, model or runtime creation.
+    if auth.get('schema') != 'm6-ch3-supplement-launch-v1' or auth.get('scope') != SCOPE or auth.get('review_approved') is not True or not auth.get('commit'):
+        raise PermissionError('reviewed supplement authorization required')
+    config = validate(read(config_path))
+    if auth['config_sha256'] != sha(config_path) or auth['jobs'] != jobs() or auth['budget'] != config['budget']:
+        raise PermissionError('authorization scope/config/budget mismatch')
+    if auth.get('resume_review_approved') or auth.get('resume_task_ids') or auth.get('previous_runtime_ref'):
+        raise PermissionError('fresh batch only; resume needs a separate reviewed continuation')
+    if auth['source_binding'] != config['source_binding']:
+        raise PermissionError('source binding mismatch')
+    if auth.get('gpu_uuid') != config['gpu_uuid'] or auth.get('global_lock') != config['global_lock']:
+        raise PermissionError('GPU UUID/shared lock binding mismatch')
+    resources = auth.get('resource_plan', {})
+    if resources.get('waves') != config['waves'] or resources.get('q_max') != 4 or resources.get('mandatory_probe') is not False:
+        raise PermissionError('exact queue/resource acceptance required')
+    for p, h in config['source_binding'].items():
+        if sha(ROOT/p) != h:
+            raise PermissionError('source changed: ' + p)
+    load_ref(config['ledger_ref'])
+    return config

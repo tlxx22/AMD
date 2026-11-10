@@ -1,5 +1,23 @@
 # M6：第三章正式实验与定稿
 
+**本轮审核裁决与资料入口。** 用户确认ChatGPT已通过服务器直读审核：输入消融保存结果review Passed，16格覆盖完整但Goal3严格链Not met；补充实验包工程review Passed，限当前固定合同、实现、来源桥接、限定CPU验收与控制逻辑。12独立用例最终通过，19执行17成功2失败；原E报告/Pending历史及失败字节不改。旧baseline真实权重恢复、正式GPU执行、性能数字及敏感性效果尚未实测，不预称Passed。q4基于既有证据复用与差异评估接受，本轮未重新实测。
+
+新增[第三章实验说明与数据索引](../CH3_Experiments_and_Data_Index.md)，包含已完成实验的方法口径、数据/产物/图表地址及未执行补充实验的独立规划；这是派生资料指南，不替代canonical权威合同或唯一M6。未修改模型/config，不重复模型验收。
+
+## v10输入消融保存审计与第三章补充实验包（2026-11-10，统一待审）
+
+输入消融实际12fresh/3波及4F4引用完成，保存自检通过：331原attempt文件/276 payload、24份best/last各CPU读取一次，身份、checksum、journal、strict-best/patience、Adam/OneCycle/RNG/BN/finite、test-once及原进程退出证据核验。实际154轮/1143574 updates/12原test，F4引用新增0。无模型恢复/真实前向或CUDA重演；未保存的逐波PID时间线不补造。Goal3完整16格但Not met：F4双指标四H均值最佳，F2/F3均值均未胜F1。MSE：F1 .43288138365171924、F2 .439043663848661、F3 .4387262288932062、F4 .42970876852184436；MAE：F1 .44228630852287454、F2 .4452082782931685、F3 .4455918944178569、F4 .44170053940489284。既有v10 Goal1/2已审结果不变，输入结果本轮ChatGPT review待审。
+
+新增窄职责`m6_ch3_supplement_v10`，冻结原主模型与旧源码。S为UrbanEV H6/PJM两任务×四个G/R点：G3/R4、G7/R4、G5/R2、G5/R6，8fresh、两波4/4、160轮/617120更新，validation-only不读test、不建test claim。G改变三次样条G+3基，R同步V的W2/A/T/route轴；R6而非R8保持Urban Kv7行正交语义。默认G5/R4直接原v10，非零train/eval/state/grad/BN/RNG及两步Adam/OneCycle exact通过，中心引用原MSE-best和同轮MAE；非默认有独立analysis_variant_id，不冒充同一冻结revision。原B先完整初始化、独立子流、原head/V位置/tanh/1I/P24K6及P1不插值保持。
+
+E固定完整UV＋七基线、两任务、batch1/16共32条件，50预热＋5组100计时，串行q1、GPU预载、同步wall计时、全部组/allocated/reserved及resident/增量分列；不测backward/训练step。C先按训练均值/IQR及CV分位选两不同节点、固定共同validation首个完整周，3×336=1008呈现，H6 rolling P1不称168步单次预测，dataset scaler与RevIN逆变换分清。P只对PJM三模型各一次完整validation流式24位置误差并缓存。E→C/P→S Urban四项→S PJM四项→O自动衔接，技术失败保全并停后续，owned STOP不宽泛kill。准备只做CPU/control与bash语法核验，正式负载全部未执行，无正式AUTH/runtime/attempt。
+
+来源从最新统一round2入口实际筛63格MS，另27模块格保留V3/v9/v10真实producer及权重checksum。63个baseline profile与原配置逐项一致；15项历史公共源码差异有独立diff和当前桥接说明，选定marks均K4、29份作者源SHA核验；不绕过主表入口、不套M PatchTST enc2、不混C.1/第三轮。已有72行主表（含9UV）、36行B/U/V/UV表、16行输入表及等权均值、相对变化、四H曲线和保存收敛图已输出CSV/Markdown/SVG/PNG，新的S/E/C/P结果未生成。所有新评估与原成绩分列，不回填主表；TimeXer训练batch差异保留。
+
+12独立CPU合成/控制用例最终通过，共19执行=17成功＋2失败保留。调度器绑定方法比较改为原Schedule规范状态；保存worker漏execution_device修复后定向短链通过；无模型公式/容差改变、无skip。另保留matplotlib缺失后的Pillow/SVG导出修复与元数据工具KeyError。合成实际20完整模型构造、30前向/60呈现、21 backward、13 Adam、8局部basis、4合成state写/1读；另审计24真实状态读取。真实模型负载/训练/新test/GPU为0。G7基从8到10、R6滤波基从4到6，计入激活/反向/参数/Adam/workspace；q4“基于既有证据复用与差异评估接受；本轮未重新实测”，不加probe或机械降q1。新包首次工程审核待ChatGPT，未宣称峰值/速度/恢复实测；单seed和开发test限制不变。
+
+本轮HEAD/tracking `ba9dbf8507cd3296b03637abadaae6f0dcf88f22`本地0/0，网络ls-remote超时，不声称远端一致。外置`M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1`保存完整审计、来源台账、失败/计数、资源、队列及false/null模板、完整/增量patch和逐文件SHA。当前只新增补充代码/配置/测试并增量修改两文档，全部unstaged/index空，无commit/push。统一送审后下一任务才closure→实际commit→正式AUTH/轻量preflight→用户一次启动；本轮不第三章定稿、不进入M7。
+
 ## v10结果与输入消融scope：review Passed，精确closure及正式启动交接
 
 用户确认ChatGPT已通过Desktop Commander服务器直读审核：v10已完成结果review Passed，同模型输入scope工程review Passed。原10fresh/130轮/37050 updates/10原test核账通过，17引用不计新增成本；20份CPU状态是Codex执行、ChatGPT审核证据，不是ChatGPT重跑/CUDA恢复。Goal1 Met（Urban通过、EPF仅NP）；Goal2 Met 7/10（MSE NP/BE/DE；MAE NP/BE/FR/DE），PJM双指标和FR MSE未胜B、单seed/开发test限制保留。输入scope 8组通过；计数钩子漏记与模板路径修正历史保留，30次前向/60次呈现补账获接受，不重跑验收。
