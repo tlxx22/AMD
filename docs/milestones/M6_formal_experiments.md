@@ -1,5 +1,25 @@
 # M6：第三章正式实验与定稿
 
+## 冻结test报告scope工程审核通过：精确closure与用户启动交接
+
+用户确认ChatGPT已实际直读本轮新scope，工程review Passed，范围限实现、来源、权限、9独立CPU用例/11执行及控制逻辑；工具错误、定向补强、原送审Pending与全部失败证据保留。旧47逻辑任务仅完成文本/非checkpoint payload/权重metadata核账，S8为117轮/369113 updates、原test0，未补做完整保存state/Adam/RNG/CUDA审计。本次批准20新test评估＋2中心旧结果引用、21串行波/q1，共600820呈现/4704 batch/3728360元素，无训练/backward/optimizer。137候选、固定随机10节点及共同test周不改；十节点完整表保留，按已审规则选后恰4张典型/优势展示图，不称总体随机代表。敏感性test不重选G/R/seed/checkpoint或替换主表，Goal1/2 Met及Goal3 Not met保持。
+
+资源按既有证据及差异评估接受，本轮未重新实测GPU/速度/新test一致性，不重复验收或补探针。10个新增实现/config/test/script保持审核字节，仅三文档追加本裁决；配置false/preparation_head不变。closure回执位于`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-review-closure-r1`，成功后正式许可入口为同m6下`M6-ModernTCN-UV-v10-test-reporting-launch-authorization-r1/AUTH.json`，由外置回执绑定实际commit和SHA，不递归回填本文。当前工程已审、待用户启动；新test结果未产生，运行结果仍需完成后审计，不能将技术complete等同全部科学结论通过。不进入M7。
+
+## v10补充包完成核账与新增冻结test报告（统一待审，未执行新负载）
+
+实际`ch3-supplement-v10-retry2/complete.json`确认47逻辑job、12继承＋35当前receipt、41逻辑波/29当前波；E32/C3/P3/S8/O1。原owner/children身份已退出，无新failure/STOP；本轮核对封存文本、非checkpoint payload、S8 strict-best/history/updates及来源，S8成本117 epochs/369113 updates、旧test_calls=0。权重仅stat与已有checksum定位，没有重新加载，未补做optimizer/RNG状态级审计，也不将metadata核账当CUDA恢复或新的ChatGPT结果review。原两次失败、原12继承producer和旧validation图表均保留；下文旧未启动描述为历史时点。
+
+用户明确另授权20项冻结test评估：UrbanEV H6/PJM各四个已训练非默认G/R共S8首次test；NP/BE/DE各B_cfg/TimeMixer/UV共P9完整test逐位置；UrbanEV同三模型共C3固定十区域test周。两个默认中心沿原主表test引用，本轮前向0。固定队列S8→P9→C3→离线O，21串行波，零训练/反向/优化器；共4704 batch、600820呈现、3728360元素，C3为5040呈现。全部采用原validation MSE-best，同轮MAE，不重新选点、换来源或更新原主表；新增20次任务级test访问独立claim/ledger，旧test=0事实不改写。
+
+真实eligible为137，纠正口头142。旧train统计与node_order下PCG64(2024)抽取10个，显示序208/330/333/570/969/1083/1113/1120/1162/1173；preselection已绑定新配置。共同test周按首个完整周一或最早168连续小时，正式任何预测前保存精确键。十区域全部比较，按四项严格胜数→有效相对改善均值→同单位MSE/MAE绝对差额→node_order取4图；分母0为NA，混合/不占优案例照实展示，不重抽。最终四图是随机十节点中的选后优势/典型展示，非全275节点随机代表。
+
+独立`m6_ch3_test_reporting_v10`已接通新权限、来源、strict-best恢复、旧loader capability桥接、逐batch读取/前向日志、缓存、receipt及owned STOP。旧validation-only代码/断言、全部原模型/guard/配置未改；新scope错误split/来源/旧AUTH拒绝，原数据物理读取范围（UrbanEV四表到test_end、全节点）明确登记，但案例只推理10×168个窗口。正常同序状态/BN/RNG exact，P9对原保存test使用既定atol2e-6/rtol2e-5，超界保留缓存并停止，不改旧成绩。缓存汇总保留全部点/位置/十区域并出恰4图，重绘无新前向。
+
+9独立CPU用例、11次执行通过；控制边界增强后仅复验受影响项。合成1模型/3前向/5呈现，1合成checkpoint写读，2合成CSV loader读取；backward/Adam及真实checkpoint/test/模型/GPU均0。外置有完整日志/fixture与静态工具异常；无skip或放宽容差。q1沿同模型/同batch正式证据作资源差异评估，不新增性能/OOM/恢复probe。工程自检与ChatGPT审核分开；本轮新字节仍待审，配置false、模板commit=null/review_approved=false，未执行真实preflight/start，未创建正式AUTH/runtime/attempt，无stage/commit/push。
+
+证据入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-preparation-r1`。规划结果为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-test-reporting-runs/test-reporting-v10-first-r1`，尚不存在。审核通过后再同轮closure→实际commit→正式AUTH/preflight→用户启动。本轮不进入M7；Goal1/2 Met、Goal3 Not met、单seed与开发test限制不变。
+
 ## GPU可见性身份绑定修正：窄范围验收通过，新字节统一待审
 
 旧AUTH-r1正式preflight退出1并已保全，retry2未创建。ChatGPT已只读确认隐藏GPU与启动器`CUDA_VISIBLE_DEVICES=0`导致torch_build仅多四行；本轮按启动器环境采集新证据，未修改environment.py或启动器。10行旧文本SHA为`b384ae4b0a6c7e141a83e78638b2d557a7f3b843b4d63a9104672e65ee239205`，14行新文本SHA为`8c454fd3f128eca1154bd540123adafcf6b7111ea3a165b5ec433d4baf937a93`；精确增加CUDA Runtime 11.8、完整NVCC架构flags、CuDNN 8.7、Magma 2.6.1，去除四行后旧文本逐字节相同。同一torch._C SHA为`1277e4be87e0b15987f796117a7422c7a445b4df9213ecf2ddc3de718b0d66fc`；其他身份字段、测量设置与原证据相同，CUDA未初始化。新target SHA为`b29414000d07ee0fdc570fe3b513b0ebcaf3805473dfc3b642602998ae4ec41d`，位于外置`M6-ModernTCN-UV-v10-ch3-supplement-cuda-visibility-binding-r1/environment/target-visible-gpu0.json`。

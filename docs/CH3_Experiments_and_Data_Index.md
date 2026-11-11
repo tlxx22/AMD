@@ -1,5 +1,23 @@
 # 第三章实验说明与数据索引
 
+## 冻结test报告执行材料入口：工程已审、待用户启动
+
+用户确认ChatGPT已实际直读审核新scope，工程review Passed（限实现/来源/权限/CPU验收/控制），9独立用例/11执行及工具错误、定向补强记录保留。旧47任务核账只覆盖文本/非checkpoint payload/权重metadata；S8实际117轮/369113 updates、原test0，未补完整state/Adam/RNG/CUDA审计。新20项test评估＋2中心旧结果引用按21波q1执行，600820呈现/4704 batch/3728360元素；零训练/backward/optimizer。137候选固定随机10、十区域全表及选后4图规则不变，四图为典型/优势展示子集，不称全部UrbanEV随机代表；敏感性test不用于重新选G/R/seed/checkpoint或替换主表，Goal1/2 Met、Goal3 Not met保持。资源基于既有证据及差异评估接受，本轮未重新实测；尚无新test结果，不能宣称本包GPU恢复或数值一致性已实测通过。
+
+本次closure材料：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-review-closure-r1`。closure成功后正式授权及preflight材料入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-launch-authorization-r1`，其中`AUTH.json`由本轮已审false/null模板绑定实际新commit后派生，不能使用模板启动。配置为`/public/home/yueweiting/大论文/ModernTCN-U+V/configs/m6_ch3_test_reporting_v10.json`，启动入口为同W下`scripts/ch3/start_m6_ch3_test_reporting_v10.sh`（配置、正式AUTH两个参数）。规划结果目录`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-test-reporting-runs/test-reporting-v10-first-r1`当前尚不存在，待用户启动；原E报告/patch/Pending和旧validation/test0产物不改写。正式运行期间不修改Git绑定工作区，完成后再审计结果与更新本指南，不另建索引。
+
+## 当前增量：旧validation补充包已完成，新test报告只完成实现准备
+
+原补充数据现已存在于`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry2`：`complete.json`及`plots/source-ledger.json`保留47逻辑job的12继承＋35新执行来源。E32性能、原105/408区域validation案例、PJM validation逐位置及S8 validation结果均保留，不改标test。S8实际117轮/369113 updates，原批次test_calls=0。此次完成核账不包含checkpoint反序列化或完整状态级审计；旧未启动段落继续作为历史记录，不代表当前未完成。
+
+新证据目录`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-preparation-r1`的`audit/completion.json`、`source/sources.json`、`source/preselection.json`及`non-execution-preparation/arithmetic.json`分别导航至旧完成成本、20评估＋2中心引用真实producer/权重封存位置、实际137→随机10名单、逐job样本/元素/batch。权重仅定位，不复制或加载。新代码`m6_ch3_test_reporting_v10/`及`configs/m6_ch3_test_reporting_v10.json`是独立test scope，旧许可保持validation-only；本轮9独立CPU用例/11执行通过，新字节待ChatGPT审核。
+
+用户本轮新增test授权为S8首次test、NP/BE/DE各B_cfg/TimeMixer/UV共9次完整test、UrbanEV同三模型共3次固定test周案例；总20模型评估＋离线汇总，零训练。两个默认中心只引用既有正式test；全部strict validation MSE-best，同checkpoint双指标，不改变主表或选新G/R。预计4704 batch/600820呈现/3728360元素；案例3×10×168＝5040呈现。真实test/GPU/权重恢复尚未执行，尚无新增test结果；CPU fixture图稿明确标合成，不是科学结果。
+
+资格集合实为137而非142，来自旧train统计中等需求范围。PCG64(2024)随机无放回十节点，显示序208、330、333、570、969、1083、1113、1120、1162、1173。十区域全表必须保留；共同test周、H6滚动P1，再按四项胜数/有效相对改善/同单位绝对差额/node_order选4展示，0分母NA且不重抽。最终4图须标“所抽10区域中的典型/优势展示案例”，不称总体随机代表，不删不利行。选周仅时间metadata，正式预测前固定精确样本键；所有模型同周同节点。
+
+规划（尚不存在）新结果：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-test-reporting-runs/test-reporting-v10-first-r1`。将生成各job的`access.jsonl`/`predictions.npz`/`result.json`和独立claim/receipt，`plots/`内敏感性validation/test分列、三市场24位置、十区域全表和四案例SVG/PNG及source-ledger。只能缓存重绘，不反复前向；原数据路径沿source ledger和原protocol定位，不能把旧validation缓存当test。当前仅false/null模板与操作草案，无正式AUTH或启动。Goal1/2 Met、Goal3严格链Not met和单seed/test开发反馈限制不变；本指南仍为派生资料入口，不替代canonical/唯一M6，也不开始论文正文。
+
 **GPU可见性绑定修正，准备材料待审。** 旧正式preflight因原身份生成时隐藏GPU、启动时`CUDA_VISIBLE_DEVICES=0`而拒绝；同一torch_build由10行变14行，精确新增CUDA Runtime 11.8、完整NVCC架构flags、CuDNN 8.7、Magma 2.6.1。旧/新文本SHA分别为`b384ae4b0a6c7e141a83e78638b2d557a7f3b843b4d63a9104672e65ee239205`、`8c454fd3f128eca1154bd540123adafcf6b7111ea3a165b5ec433d4baf937a93`；同一torch._C SHA为`1277e4be87e0b15987f796117a7422c7a445b4df9213ecf2ddc3de718b0d66fc`，CUDA未初始化。新证据入口为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-cuda-visibility-binding-r1/environment/target-visible-gpu0.json`，SHA `b29414000d07ee0fdc570fe3b513b0ebcaf3805473dfc3b642602998ae4ec41d`；仅retry2配置environment_ref改指此处，仍严格比较全部身份，不改变启动器GPU可见性或任何模型/科学参数。该目录REPORT、environment与checks提供四行比对、8项窄范围断言和不可执行模板；原target和AUTH-r1/preflight失败材料保留，旧AUTH不能用于新配置。本轮不运行正式preflight，不创建AUTH-r2或真实attempt，未执行新模型/test/GPU负载。旧retry1的12项成功仍为原生产数据，剩余35项/29波和S8尚未执行，retry2目录仍为规划。Goal1/2 Met、Goal3 Not met及单seed/历史test限制不变；本指南原数据与未来结果入口沿下文保留，不能将此次身份准备当作新增实验完成。新字节尚待ChatGPT审核。
 
 **2026-11-11审核裁决与数据位置。** ChatGPT已实际直读环境修复包声明字节，环境接线/12项继承工程review Passed。原12项E测量正式保留在`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry1`，真实producer/runtime/venv及SHA不改写。剩余35项/29波计划目录为同一result_root下`ch3-supplement-v10-retry2`，当前准备交接、未启动；未来完整数据通过受限来源索引合并，不能把35项写成47项新执行。复用依据为数值库路径/所查字节、UUID/flags/计时协议及差异评估，不是跨环境逐位或GPU恢复实测证明；TimeXer真实恢复、剩余性能、案例/PJM和S8仍未完成。旧两次失败/成本、Goal1/2 Met、Goal3 Not met及单seed/开发test限制保持。本指南仍为唯一资料入口，旧Pending历史不倒改，新增closure/AUTH字节不预称已被ChatGPT读取。

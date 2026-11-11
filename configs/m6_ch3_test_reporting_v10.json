@@ -1,0 +1,622 @@
+{
+  "attempt": "test-reporting-v10-first-r1",
+  "base_candidate_id": "moderntcn-uv-dev-v10",
+  "budget": {
+    "backward": 0,
+    "case_presentations": 5040,
+    "center_references": 2,
+    "model_jobs": 20,
+    "offline_jobs": 1,
+    "optimizer": 0,
+    "repeated_posthoc_test": 12,
+    "sensitivity_first_test": 8,
+    "training": 0
+  },
+  "compatibility_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1/source/current-execution-compatibility.json",
+    "sha256": "6036e06fdde31f277ddfea1a980ef78fe6f8f914639fe24edb427c09eeb78d3f"
+  },
+  "cpu_threads": 4,
+  "environment_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-cuda-visibility-binding-r1/environment/target-visible-gpu0.json",
+    "sha256": "b29414000d07ee0fdc570fe3b513b0ebcaf3805473dfc3b642602998ae4ec41d"
+  },
+  "execution_authorized": false,
+  "global_lock": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/m6-formal-launch-dhozikhu/project-gpu0.lock",
+  "gpu_uuid": "GPU-3d365efd-300b-f527-e8fe-703fb0cfb738",
+  "jobs": [
+    {
+      "G": 3,
+      "R": 4,
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 899,
+        "elements": 114950,
+        "eval_batch": 128,
+        "samples": 114950
+      },
+      "id": "ST-UrbanEV-G3-R4",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-UrbanEV-G3-R4",
+      "split": "test"
+    },
+    {
+      "G": 7,
+      "R": 4,
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 899,
+        "elements": 114950,
+        "eval_batch": 128,
+        "samples": 114950
+      },
+      "id": "ST-UrbanEV-G7-R4",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-UrbanEV-G7-R4",
+      "split": "test"
+    },
+    {
+      "G": 5,
+      "R": 2,
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 899,
+        "elements": 114950,
+        "eval_batch": 128,
+        "samples": 114950
+      },
+      "id": "ST-UrbanEV-G5-R2",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-UrbanEV-G5-R2",
+      "split": "test"
+    },
+    {
+      "G": 5,
+      "R": 6,
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 899,
+        "elements": 114950,
+        "eval_batch": 128,
+        "samples": 114950
+      },
+      "id": "ST-UrbanEV-G5-R6",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-UrbanEV-G5-R6",
+      "split": "test"
+    },
+    {
+      "G": 3,
+      "R": 4,
+      "dataset": "PJM",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "ST-PJM-G3-R4",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-PJM-G3-R4",
+      "split": "test"
+    },
+    {
+      "G": 7,
+      "R": 4,
+      "dataset": "PJM",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "ST-PJM-G7-R4",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-PJM-G7-R4",
+      "split": "test"
+    },
+    {
+      "G": 5,
+      "R": 2,
+      "dataset": "PJM",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "ST-PJM-G5-R2",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-PJM-G5-R2",
+      "split": "test"
+    },
+    {
+      "G": 5,
+      "R": 6,
+      "dataset": "PJM",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "ST-PJM-G5-R6",
+      "model": "UV",
+      "phase": "S",
+      "purpose": "first_test_of_validation_only_sensitivity",
+      "sample_scope": "full_test",
+      "source_key": "ST-PJM-G5-R6",
+      "split": "test"
+    },
+    {
+      "dataset": "NP",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-NP-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-NP-ModernTCN",
+      "split": "test"
+    },
+    {
+      "dataset": "NP",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-NP-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-NP-TimeMixer",
+      "split": "test"
+    },
+    {
+      "dataset": "NP",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-NP-UV",
+      "model": "UV",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-NP-UV",
+      "split": "test"
+    },
+    {
+      "dataset": "BE",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-BE-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-BE-ModernTCN",
+      "split": "test"
+    },
+    {
+      "dataset": "BE",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-BE-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-BE-TimeMixer",
+      "split": "test"
+    },
+    {
+      "dataset": "BE",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-BE-UV",
+      "model": "UV",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-BE-UV",
+      "split": "test"
+    },
+    {
+      "dataset": "DE",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-DE-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-DE-ModernTCN",
+      "split": "test"
+    },
+    {
+      "dataset": "DE",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-DE-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-DE-TimeMixer",
+      "split": "test"
+    },
+    {
+      "dataset": "DE",
+      "expected": {
+        "batches": 82,
+        "elements": 251040,
+        "eval_batch": 128,
+        "samples": 10460
+      },
+      "id": "PT-DE-UV",
+      "model": "UV",
+      "phase": "P",
+      "purpose": "posthoc_output_position_reporting",
+      "sample_scope": "full_test",
+      "source_key": "PT-DE-UV",
+      "split": "test"
+    },
+    {
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 14,
+        "elements": 1680,
+        "eval_batch": 128,
+        "samples": 1680
+      },
+      "id": "CT-UrbanEV-ModernTCN",
+      "model": "ModernTCN",
+      "phase": "C",
+      "purpose": "posthoc_ten_node_case_reporting",
+      "sample_scope": "ten_nodes_fixed_test_week",
+      "source_key": "CT-UrbanEV-ModernTCN",
+      "split": "test"
+    },
+    {
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 14,
+        "elements": 1680,
+        "eval_batch": 128,
+        "samples": 1680
+      },
+      "id": "CT-UrbanEV-TimeMixer",
+      "model": "TimeMixer",
+      "phase": "C",
+      "purpose": "posthoc_ten_node_case_reporting",
+      "sample_scope": "ten_nodes_fixed_test_week",
+      "source_key": "CT-UrbanEV-TimeMixer",
+      "split": "test"
+    },
+    {
+      "dataset": "UrbanEV",
+      "expected": {
+        "batches": 14,
+        "elements": 1680,
+        "eval_batch": 128,
+        "samples": 1680
+      },
+      "id": "CT-UrbanEV-UV",
+      "model": "UV",
+      "phase": "C",
+      "purpose": "posthoc_ten_node_case_reporting",
+      "sample_scope": "ten_nodes_fixed_test_week",
+      "source_key": "CT-UrbanEV-UV",
+      "split": "test"
+    }
+  ],
+  "ledger_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1/source/source-ledger.final.json",
+    "sha256": "c6246b10403ddfb869a915101858f195fdba3aedfb95d24e4949b77d22b0be2d"
+  },
+  "numeric_policy": {
+    "atol": 2e-06,
+    "identity": "exact",
+    "rtol": 2e-05
+  },
+  "old_completion_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-supplement-runs/ch3-supplement-v10-retry2/complete.json",
+    "sha256": "6dc159fa5721a2547a99d3b9500c313a68b703f277e394eaefbc4938889e7da3"
+  },
+  "preparation_head": "2347d06e103d5e16843fe51f68fb8facc1a47c18",
+  "preselection_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-preparation-r1/source/preselection.json",
+    "sha256": "3de4d57c948e1b258a95224b1412077a7ef24d50f2c573372c960224d73798b0"
+  },
+  "purpose": "posthoc_frozen_test_reporting",
+  "q_max": 1,
+  "resource_plan": {
+    "evidence_refs": [
+      {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-cuda-visibility-binding-r1/environment/target-visible-gpu0.json",
+        "sha256": "b29414000d07ee0fdc570fe3b513b0ebcaf3805473dfc3b642602998ae4ec41d"
+      },
+      {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1/source/current-execution-compatibility.json",
+        "sha256": "6036e06fdde31f277ddfea1a980ef78fe6f8f914639fe24edb427c09eeb78d3f"
+      },
+      {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-supplement-preparation-r1/resource-review.json",
+        "sha256": "97b04890a7290637ab95514925cbbe2f8ce6b1de8ff0c9f972ba8c447a8a50a1"
+      }
+    ],
+    "mandatory_probe": false,
+    "phase_concurrency": {
+      "C": 1,
+      "O": 1,
+      "P": 1,
+      "S": 1
+    },
+    "q_max": 1
+  },
+  "result_root": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-test-reporting-runs",
+  "schema": "m6-ch3-test-reporting-config-v1",
+  "scope": "m6_ch3_test_reporting_v10_v1",
+  "source_binding": {
+    "ch3_runner.py": "0c8b234da2c951482072eb552c7fd7d1e159d169c75d918c53e41cee638509b2",
+    "m6_baseline_unified_entry.py": "61655f33343966a09957a3fead26df17faa8f93e828376b65cb8e6e479f580ef",
+    "m6_ch3_supplement_v10/__init__.py": "da92bb4aceb79a1163debe1769ea24c1535bc1ab89c283c2a5e384c95f5ca0d2",
+    "m6_ch3_supplement_v10/benchmark.py": "6526845d4ac55f87e3e77f9af675f9615ad66a4122cba0b44aace970bc87af76",
+    "m6_ch3_supplement_v10/continuation.py": "7536379505d2a5242bd29c0acdd7bb021b008c77fe345611d449b5f56073d63a",
+    "m6_ch3_supplement_v10/contract.py": "bd412c4b943d5ad1d50e4bc966d4726708d70a1a227fb8b955c4e8242b3ee8a9",
+    "m6_ch3_supplement_v10/entry.py": "b91c3d56e7fc3d050a2ce9e29cff4cc3a2be518474ea4cfbeb599f58931f7f92",
+    "m6_ch3_supplement_v10/environment.py": "3d4688e59c2fb18953b4bc3a6868997bfe2b8694c080cc14316aa83126222e1b",
+    "m6_ch3_supplement_v10/gpu_identity.py": "f3e6242e089f015ed3ddee8702be8175ce211dfa2133967ddd73e858b403603c",
+    "m6_ch3_supplement_v10/model.py": "c14cc024ad400433ca83692d76f78cd1032cc02fcedd39300ce4de8458ddb175",
+    "m6_ch3_supplement_v10/observations.py": "74697d11fd54f920783477e09fcdb92e629fdde6b6389b5e47886055ceb396ae",
+    "m6_ch3_supplement_v10/plots.py": "505f9ea5d25fff001586b22e0bac5a62af224449b484eff374e7fe7e12d1402a",
+    "m6_ch3_supplement_v10/queue.py": "5d7298409cf56778f7698735e2b10022407db2026cc17fcb21fa58f10146162b",
+    "m6_ch3_supplement_v10/readonly.py": "fef69ec8f00c2f8adcc73442babd45562783d2cb2fb0b1f9d6fced5b1f0a87cf",
+    "m6_ch3_supplement_v10/sensitivity.py": "c6c847650e5ad85caa1356708dd77514ccf035ae7369b18df281c82a448a39d8",
+    "m6_ch3_test_reporting_v10/__init__.py": "4c89c8961329dfecf6909454b61af5c25bb029770c573ed46cd34d6c3118e1a2",
+    "m6_ch3_test_reporting_v10/analysis.py": "cf46817e4ba066bd1e4bd1c0c33999705336b23152f8c8fa2d921f5176fe073c",
+    "m6_ch3_test_reporting_v10/contract.py": "dd2e026b80508185985256d572c69a0261e7df113a5df63f59bd4924f04eca3a",
+    "m6_ch3_test_reporting_v10/entry.py": "a419a37f4dd85f77b1bba3aeac5c6a23eb981bf1aab3cf0e8074a98cff06fdc7",
+    "m6_ch3_test_reporting_v10/evaluate.py": "ba97156923c07bdac1d5ab65b5fee114156dbbe68cf06c754e0a388b626c7c50",
+    "m6_ch3_test_reporting_v10/plots.py": "b5a3253fde1e224638e25003ea6cd2f74d423cf1ec33ccd4c8c9e3a07649971c",
+    "m6_ch3_test_reporting_v10/queue.py": "1febc161b9f96ec24cd35ba1af5133e21ac80956669f87897d293f8ab272dcae",
+    "m6_extension_entry.py": "4e302cfdbe30436fd4ae060e6db297f00f1335e83c924e86ba9a902d60cfaa9b",
+    "m6_m_entry.py": "273eda75767b3a7c026200f1cd3eb50b01cab82dfd5ae451ba82903b1027f8cb",
+    "m6_m_handoff_entry.py": "7894e469630677000429bbcfe200ca23ce3a843af0886d711d134c476c82c3ff",
+    "m6_native_chain_entry.py": "00389681c2c3bb2d355859b0d84775824d910fb9eb860f94b6a11b0f4c849307",
+    "m6_native_recovery_entry.py": "9dd575eccf02707044a287b10cf2c1f6c9167f7353fcabf9311aef84e059210c",
+    "m6_probe_entry.py": "2908fedb93a0961afefd4a5885a8fafb8fbce4700e15c286d8e683c76a5a034a",
+    "m6_remaining_entry.py": "6c0d80a20cd7e21623d1dbd326f8803021221c2b74760a1e429539c27f143a65",
+    "m6_revision_entry.py": "e210eff146994d4672f3cc36c4cd0fc96f178a6bc3da566915846734e6c22046",
+    "m6_revision_probe_entry.py": "902bc94fcf8d772eda58645b0f5e2d1443350bc35a27e15369466dd7397498e9",
+    "m6_urban_confirmation_entry.py": "fa7f58bd4a8cb1143228604479acc36ac0c24774e9f6e4dcb25d5480d936d3b0",
+    "m6_urban_diagnostic_entry.py": "557283bee9ae8d1d79ce95d8116d3d451ead3c858ec025c6ee6eaf04aedf8388",
+    "models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "models/ch3_adapter.py": "ac998751b1c1265ea27073292749148db7ef79b6ddc4708deac3be7a5a50a0bf",
+    "models/common.py": "795e4deec05ce6a141f74d21af1f712bbc5ef927d43ec36966b87c795e0eda54",
+    "models/modules/__init__.py": "717d3cd5147b4b55a1118ebb9e7bb9a1bb64d81cdaa093ea80be8bfc0152c6fc",
+    "models/modules/cross_correlation_embedding.py": "c1afa4766046238be45bf7dc85eeff9e076197818f52fadac799910d2c5164ed",
+    "models/modules/global_mediated_patch_target_exogenous_bridge.py": "6a6a6d1ab6f8b4b7d8f79c188049e8b89baafcfbb45ccb1b89195af4bac5e32d",
+    "models/modules/local_change_gated_pmcr.py": "6b5da26f6656dba822803fac17fe3b57d0041a427e2a761d6a185a187c9f978b",
+    "models/modules/modern_conv_refinement.py": "4f0507d3512df22152826e55a6113bb06ed2b5e9d39e6fe0a417a528c23ecd56",
+    "models/modules/patch_conditioned_target_exogenous_bridge.py": "5bba40e01f52aca2c8b558463c9ac32102c12d22884021d6300b420b96dd8f69",
+    "models/modules/selective_patch_target_exogenous_bridge.py": "e018a99ec34e6fc6881c22eab03fa5ecec774b58ad7120bcb3378fa0293a5e3f",
+    "models/modules/sonnet_mvca_target_residual.py": "8aaec30a724d806ce1caf92ab9732989fe936f6bc6d88bfeac0921cec6251ad5",
+    "models/modules/sonnet_thls_contract.py": "4ee30da49f6fc1ebf46afb86860f51a197575aaf514212d9c6147b62f34db512",
+    "models/modules/target_exogenous_bridge.py": "c389157fd20ed66911163b6db0df3e7cd96f66b6f0bb112c432b77cf37588b2e",
+    "models/modules/target_history_local_shape_residual.py": "1e5089e77fdc553ac3965a61a7cc4778000229719b376d1a80dc5bbc410e7757",
+    "models/tsAMD.py": "fa72cdbe34348364344c0d9c0755668a82d22f6a37ee061c7ece93ecfaf90ba1",
+    "models/tsAMD_enhanced.py": "521945fc796d1c25feb66648a29b3b7d2704526ba34a4b161fa8216a85331b3f",
+    "models/tsmoe.py": "d6c7888410dc64c3514c76cf4f2720b99c11773b0011780afaac76ca98aee0f1",
+    "moderntcn_dev_v1/SOURCE-LICENSES.txt": "c9dab6ea77d21a728f76d727f916a1679285efb5a8a8bf8e4958c1c48f2d5b7d",
+    "moderntcn_dev_v1/__init__.py": "7b8a880075f41da82287c63048fd9a9ed28515f5e793827f9cff2ed99d50cabd",
+    "moderntcn_dev_v1/model.py": "ec15347c9327482be1a3c9658e1d21033e7b2baad3eb63c6e8d03c6fc80e371c",
+    "moderntcn_dev_v1/modules.py": "353328fca220f2c2c5ec9b23303abc1c2e3b82e158d6c2bde7545406c16c1020",
+    "moderntcn_dev_v1/source.py": "671cb7bbc5092727c8b44e29d1d3af62b658453958cff707df2bfc4ccad30d66",
+    "moderntcn_dev_v1/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "moderntcn_dev_v10/SOURCE-LICENSES.txt": "d21c12b18214ccb4a6853ea2f2597274cb9402b11b55d4f9c1144267cfb0c7ab",
+    "moderntcn_dev_v10/__init__.py": "fdf5a10102915ca414af70f84efd65075a8d4dfc6a5f6c90334bde19511f375e",
+    "moderntcn_dev_v10/adapter.py": "5cb9c25537aa76f932761c72d237f2218704e47ae8d4bed2cbb27d86e076b5e1",
+    "moderntcn_dev_v10/artifacts.py": "31b26ff65138e3bb160a90f679879d00fb85fe9b945f1041bbe7a65f21e2129d",
+    "moderntcn_dev_v10/gate_policy.py": "d2d7a3377ab6b88d08419b9d23834e1b3e6f033d51cbd0507e66fb7a731e9b3d",
+    "moderntcn_dev_v10/guards.py": "484be5c19d2f23b63f7151f22a5af8a94d2d6d4104e4ef87843a2a6f399f45b7",
+    "moderntcn_dev_v10/launcher.py": "8e04523dec313b8e0fbe677ef13cfede51720f4b7cad258bc1c1d1a3e62c78f0",
+    "moderntcn_dev_v10/model.py": "93e3375c1426246a829174857c67641049d758e6a7f19e3a85eac1bdd60831e6",
+    "moderntcn_dev_v10/modules.py": "8f2e77fbc8cb5e259f8bcee6c425f87ae03acc34f160a6e50b25800ce06cff49",
+    "moderntcn_dev_v10/scope.py": "86b19b7c8f921991a6ee2d93e4d6594fcaa151953ed9182570e6e4a67660213f",
+    "moderntcn_dev_v10/scope_reference.json": "b63c3a7d013d1b65e00d42cb189cd584e6d87c472d4c05e4e40b5bd9535be0af",
+    "moderntcn_dev_v10/source.py": "1fe9e647aea2f738e1322ec91b4fef5ca5fca104fcc09253efd149faea9d1964",
+    "moderntcn_dev_v10/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "moderntcn_dev_v10/spec.py": "d0416e73faf096d1e9bde62d813a4fcd01bcae79ba2e000a346034aafe0d81c0",
+    "moderntcn_dev_v10/summary.py": "b5f57567c9606e59dabe1567132277336c0f82b33080e21e39004ae268f9c90f",
+    "moderntcn_dev_v10/training_config.py": "60b90f5c428790d417e754382dc9303459a931c639f91657ba8328b02b37a536",
+    "moderntcn_dev_v10/training_state.py": "54311ca0607596923764b60c66e9ae137404c840baa9be5af670c21ffac4c75f",
+    "moderntcn_dev_v10/worker.py": "07b9470b99439b6e3284282a03d48661c2f39f1c24a36cd5ffdfd1011902b5d1",
+    "moderntcn_dev_v3/__init__.py": "a4e4f6076165d8a0cef94df631d457b1faa0c1622599047ef7f37fd0883d9fa1",
+    "moderntcn_dev_v3/modules.py": "7aa63a364376d263917a568220e6a8a55c6192a9d1e6d28f97957859271dbcee",
+    "moderntcn_dev_v9/SOURCE-LICENSES.txt": "d21c12b18214ccb4a6853ea2f2597274cb9402b11b55d4f9c1144267cfb0c7ab",
+    "moderntcn_dev_v9/__init__.py": "a3fbbe0c8270e8771ddee63f08b37cd2e98761dcc75341bce49787c060189a7e",
+    "moderntcn_dev_v9/model.py": "adbef58e5a66fd7f7e0c064c44460d70121d82315cba89d911bc125b1ee02ed9",
+    "moderntcn_dev_v9/modules.py": "6642879d7466520d5f9d910847bf8c7930328dfcbf1085c687f70a94c69ab02a",
+    "moderntcn_dev_v9/source.py": "cb06fda2cd8b911ba4384a4cd511077cbc0aae283987ac78fb794473b7db79bb",
+    "moderntcn_dev_v9/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "moderntcn_input_ablation_v10/__init__.py": "7c0967a65f5d7e15b63aa56e97b9da7b171093203908d91e8b9ff0eea63381ca",
+    "moderntcn_input_ablation_v10/artifacts.py": "db98fbe3422131fb19e00fa741b3b4e10f0504f186c42179ccb895c9b21e6d2c",
+    "moderntcn_input_ablation_v10/gate_policy.py": "46941010314f61d2b9d0cdbbc7e8fc13ebb1b035cd3c87e69d82345095150cc9",
+    "moderntcn_input_ablation_v10/launcher.py": "962cc1092de42416c742115c1945374549ad0da87416d705e75bd582c352de78",
+    "moderntcn_input_ablation_v10/scope.py": "c00dbf21e5fe9f008f11c7e44752d45466eaad8d7f7e1caeba56a792cd4ae6b8",
+    "moderntcn_input_ablation_v10/scope_reference.json": "18116e926996b6f27272d9e162bb654b612cab4991146a48cfe0e455b00e99fc",
+    "moderntcn_input_ablation_v10/source.py": "2d6da716541a44f9544ded0fc587695d4f1ee01cb2e62ef3192cefcb36a697fc",
+    "moderntcn_input_ablation_v10/spec.py": "bc63f1b6af76b1548ab9ebaaa6416ea1c3c8cc4f0a5db62ef7e2d6a5102726b4",
+    "moderntcn_input_ablation_v10/summary.py": "f9ef1c7141bf0e9589f95ce1aa244a1ebcd678cea5e55e1a6d57d3b0fcfd5ff8",
+    "moderntcn_input_ablation_v10/training_config.py": "aaddf4335800ab87ab0dd907dce3675bb632a465eab8f065e0168fe485c66a4f",
+    "moderntcn_input_ablation_v10/training_state.py": "b39770c072576c54dd56b2ea4bef539381583f9f5977f2b2d4d5bfede94811fb",
+    "moderntcn_input_ablation_v10/worker.py": "7f2ed4edf51000a99b1d4e5eee7ef19d0a86eafe9a6546d95a4ed93d7b1739a0",
+    "moderntcn_input_ablation_v10_entry.py": "55146a5dbad9c158e6dea970310b41c520ea57265fb67507915880223b6f3791",
+    "moderntcn_train_v10_entry.py": "657e13b58adce3ac245fd7df2b407ded304ef907555b83354af6c2be743a4c03",
+    "scripts/ch3/start_m6_ch3_supplement_v10.sh": "5841a51e81e66c6fc642b03a5d11c5a1da4643f687cb6c35fb910bf08d2926fa",
+    "scripts/ch3/start_m6_ch3_test_reporting_v10.sh": "3de6a06da300a4a29c090b6dd5c89fff9f2acf75d3342f2a648447e377437b5b",
+    "scripts/ch3/start_moderntcn_input_ablation_v10.sh": "a98d5c62a9e302f464d5eb3b202e849bf4dbe44dbe1a182d0944bcfe836626c8",
+    "scripts/ch3/start_moderntcn_uv_v10.sh": "1a07d4b37d877f52fa1ff425c031b4009b85a1984aae2a68c5120bc2550aadb9",
+    "tests/test_m6_ch3_environment_continuation.py": "5202ffacb03d070c33d815fcdbae58c3ffea03e61b5aca2ba6deb4939cc7454f",
+    "tests/test_m6_ch3_gpu_pid_repair.py": "69b985beabd6219f29ecf23b7826d0c18a13d718fe6436c849431552500196ac",
+    "tests/test_m6_ch3_test_reporting_v10.py": "267cc060bca423087992d5cdaa141fff5e23e9f4f26912e10f93a89663d8f922",
+    "timemixer_dev/__init__.py": "406ff7c3b3f1fb318a349ef07fe1f206ffeb8ff1cb8e40ee2a2771873d579157",
+    "timemixer_dev/training_state.py": "91445253fae7d93a2bfe7366e8f16741b66357a59d3a5d53852b7d676494595b",
+    "utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "utils/ch3_admission_merge.py": "0b45f7107ad1bec47b0087aa435c5cf6e32a8ca3a2dea72ed9aef50acc967c3e",
+    "utils/ch3_baseline_unified_chain.py": "8c51659ca3a302188da2ac7424eb552b2c7b15dacda315375cb8904536dc6ebe",
+    "utils/ch3_baseline_unified_execution.py": "35b16644b5b865f1ba86f3e10f1d632a0c437eec82f2f1ee4eba5e823ccbab77",
+    "utils/ch3_baseline_unified_tasks.py": "52e8b7ee7dad239036b696bda25d95c758b17c2a17990f61884f9d83bd7ecb32",
+    "utils/ch3_contract.py": "df4e6c591c9cd6ac6ddd5c8df1410bcde950bf88b7f282fef924ed5aee3e4e0a",
+    "utils/ch3_data.py": "b15989be3fb043b92018d8728613c0fed9c2579e07e38afcd672be908bb45f4e",
+    "utils/ch3_extension.py": "f8241bebcfefe6125fa8589224b9969594ad5f3fc1908fe79abec9bf1c0748d8",
+    "utils/ch3_extension_probe.py": "1d4fb708a6558e0773cd13a2afffb2a30f77017bc3ea17bf8fcfb27361371eaa",
+    "utils/ch3_m6.py": "088d27cb9dd7d1a533917e31aa685ebfffb1814706746de4133f8444fd7d637c",
+    "utils/ch3_m_auto.py": "15555158da8435fccb3b6adde901d56dc1ee24cfaa6e68823123e64dd34e3d4d",
+    "utils/ch3_m_execution.py": "a12356f98a7742b7835eee060867fb18812b1a3c6d1c658955a125212b9ce261",
+    "utils/ch3_m_handoff.py": "0661fb6e7dd2c40d1bb6ba27f25317ad378be319889d832742a496dfdf893271",
+    "utils/ch3_m_launch.py": "5d6072177a13d0498e1237a11d0fdf1ed4ad51c4673ceab17d87108a559426da",
+    "utils/ch3_m_summary.py": "c8803c0ed2298e1baab2dbcb303329a3530612c3130819287dcbe3a5e9f2083c",
+    "utils/ch3_m_tasks.py": "24407b8dbb81272755cfcb63185ede2b7ef35b2f663d9e03f952f487f745faaa",
+    "utils/ch3_ms_retirement.py": "b4ac009f220fed8294a044462a622ec437a85037619d21240a02555c3d461627",
+    "utils/ch3_native_chain.py": "772706d5c2cfb9b66dc25bf8e71bd7c134148530e875749d26f1534388df9bff",
+    "utils/ch3_native_execution.py": "1310703cd98003f5f191f2fc9407808233e1a88ab123c1728a5409e91108282e",
+    "utils/ch3_native_recovery.py": "a5c2921a8ec10166451434b14732a9c31e25dce87be0a12bbd914f744050713e",
+    "utils/ch3_native_recovery_execution.py": "c317353fbea523e0c6036901efabc549a863e3b4cb179f91649656f934c1986e",
+    "utils/ch3_native_recovery_records.py": "412d22316a0f110785af15f0f10a344fa72043380548cd75ba7bf37c9f750f9d",
+    "utils/ch3_native_tasks.py": "70970ace751df5feb651cd89284591b33e5406724abd9e885d69cfc1944ce950",
+    "utils/ch3_onecycle.py": "4ef29940086df62be523640031a906366419c947896dd46cec48a7d71da40de0",
+    "utils/ch3_remaining.py": "42dbbbcdafabfaf806a6049e6906bacba15ec384366233775d2862bd4b73d10e",
+    "utils/ch3_result_index.py": "951e5d9a3e260bb07d454da182d253c30d9a1f9ffa1bf6c4ebd98152b6e64e84",
+    "utils/ch3_revision.py": "e1165dd30b002a0d5479702de8c0cf3e4a51fb89036edd840d9eec879161fedd",
+    "utils/ch3_revision_probe.py": "5b08e528b2f40d01a9674a4b553e38ae2fa435ee764c5c3fe1b0c2726b393ca6",
+    "utils/ch3_time_marks.py": "d949c9985538ac8108608fde3a90e330a4d05f325b64fbf4a8583299d675f76b",
+    "utils/ch3_urban_capture.py": "412092201046c84f524d9a3bf3b8fbb1a02e139050ea79907e14322fca63f268",
+    "utils/ch3_urban_confirmation.py": "a8c43bbeee86da540fd1ffa36fb59f289435839b3557c3f0a627c07e24efb940",
+    "utils/ch3_urban_diagnostic.py": "64e5f478ef3b38c2c222e0e339df8275244a06da9f7c142008ccf1de543e83cb",
+    "utils/dataloader_urbanev.py": "a725a1da5ff1adf2e3f4a6d593a6291c2a8344bac83f8ed7490f742ccd5b1059",
+    "utils/feature_schema.py": "1db7c6bd5d9d47fdeb8ff9df74812cd665b78733704d31abb5de94efcced64ae"
+  },
+  "sources_ref": {
+    "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-preparation-r1/source/sources.json",
+    "sha256": "da1c9c0edaeff2f3a08d5d0672b1faa1c1d6ff2780dcfe2ff1520366fb70f057"
+  },
+  "waves": [
+    [
+      "ST-UrbanEV-G3-R4"
+    ],
+    [
+      "ST-UrbanEV-G7-R4"
+    ],
+    [
+      "ST-UrbanEV-G5-R2"
+    ],
+    [
+      "ST-UrbanEV-G5-R6"
+    ],
+    [
+      "ST-PJM-G3-R4"
+    ],
+    [
+      "ST-PJM-G7-R4"
+    ],
+    [
+      "ST-PJM-G5-R2"
+    ],
+    [
+      "ST-PJM-G5-R6"
+    ],
+    [
+      "PT-NP-ModernTCN"
+    ],
+    [
+      "PT-NP-TimeMixer"
+    ],
+    [
+      "PT-NP-UV"
+    ],
+    [
+      "PT-BE-ModernTCN"
+    ],
+    [
+      "PT-BE-TimeMixer"
+    ],
+    [
+      "PT-BE-UV"
+    ],
+    [
+      "PT-DE-ModernTCN"
+    ],
+    [
+      "PT-DE-TimeMixer"
+    ],
+    [
+      "PT-DE-UV"
+    ],
+    [
+      "CT-UrbanEV-ModernTCN"
+    ],
+    [
+      "CT-UrbanEV-TimeMixer"
+    ],
+    [
+      "CT-UrbanEV-UV"
+    ],
+    [
+      "O"
+    ]
+  ]
+}
