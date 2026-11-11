@@ -47,7 +47,7 @@ def evaluation_key(config, job):
 def validate(config):
     if config.get('scope') != SCOPE or config.get('purpose') != PURPOSE or config.get('execution_authorized') is not False:
         raise PermissionError('explicit non-authorizing test reporting config required')
-    if config.get('base_candidate_id') != 'moderntcn-uv-dev-v10' or config.get('attempt') != 'test-reporting-v10-first-r1':
+    if config.get('base_candidate_id') != 'moderntcn-uv-dev-v10' or config.get('attempt') not in ('test-reporting-v10-first-r1','test-reporting-v10-import-retry1'):
         raise ValueError('fixed candidate/attempt')
     expected = skeleton()
     if len(config['jobs']) != 20 or len({j['id'] for j in config['jobs']}) != 20:
@@ -91,6 +91,8 @@ def validate(config):
         raise ValueError('fixed train-only random preselection')
     if any(Path(r['weights_ref']['path']).name!='best.pt' for r in ledger['rows'].values()):
         raise ValueError('only original validation-best allowed')
+    from .continuation import validate as validate_continuation
+    validate_continuation(config)
     return config
 
 
@@ -102,6 +104,9 @@ def permission(config_path, auth):
         raise PermissionError('config binding; no checkpoint resume')
     for k in ('jobs','waves','budget','environment_ref','sources_ref','preselection_ref','source_binding','gpu_uuid','global_lock','resource_plan'):
         if auth.get(k)!=c[k]:raise PermissionError('authorization differs: '+k)
+    from .continuation import FIELDS
+    for k in FIELDS:
+        if auth.get(k)!=c.get(k):raise PermissionError('continuation authorization differs: '+k)
     for name,s in c['source_binding'].items():
         if sha(ROOT/name)!=s:raise PermissionError('source bytes changed: '+name)
     for k in ('environment_ref','sources_ref','preselection_ref','compatibility_ref','old_completion_ref'):
@@ -110,6 +115,8 @@ def permission(config_path, auth):
 
 
 def require_evaluation(config, job, capability):
+    from .continuation import execution_jobs
+    if job not in execution_jobs(config):raise PermissionError('inherited successful evaluations must not rerun')
     if capability != dict(scope=SCOPE, purpose=PURPOSE, job=job['id'], evaluation_key=evaluation_key(config,job), mode='authorized_frozen_test'):
         raise PermissionError('test observations require new runtime job capability')
     return selected(config,job)

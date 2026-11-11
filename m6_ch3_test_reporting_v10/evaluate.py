@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import numpy as np
 import torch
+from utils.ch3_time_marks import batch_parts
 from .contract import read, sha, load_ref, write_new, require_evaluation
 from .analysis import PositionErrors, sample_keys, physical, compare
 
@@ -81,7 +82,6 @@ def restore(row, device):
 
 def infer(model, predict, loader, P, device, stop, on_batch):
     """Shared CPU-fixture/GPU inference loop, no optimizer or training methods."""
-    from utils.ch3_time_marks import batch_parts
     if model.training or any(p.requires_grad for p in model.parameters()):raise ValueError('frozen eval model required')
     persistent={k:v.detach().cpu().clone() for k,v in model.state_dict().items()}
     rng=torch.get_rng_state().clone();cuda_rng=torch.cuda.get_rng_state().clone() if str(device).startswith('cuda') else None

@@ -11,7 +11,7 @@ def main():
     from . import queue
     if a.action=='preflight':
         c=queue.preflight(a.config,a.auth)
-        print(json.dumps(dict(training_started=False,test_observations_accessed=False,GPU_query=False,model_jobs=len(c['jobs']),offline_jobs=1)))
+        print(json.dumps(dict(training_started=False,test_observations_accessed=False,GPU_query=False,model_jobs=len(c['jobs']),execution_model_jobs=len(queue.execution_jobs(c)),inherited_model_jobs=len(c['jobs'])-len(queue.execution_jobs(c)),execution_waves=len(queue.execution_waves(c)),offline_jobs=1)))
     elif a.action=='supervise':queue.supervise(a.config,a.auth)
     elif a.action=='worker':queue.worker(a.config,a.runtime,a.job)
     elif a.action=='stop':queue.owned_stop(a.folder)

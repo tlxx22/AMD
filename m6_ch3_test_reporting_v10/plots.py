@@ -5,23 +5,25 @@ import numpy as np
 from .contract import load_ref, read, write_new, sha
 from .analysis import PositionErrors, rank_cases
 from m6_ch3_supplement_v10.plots import table, figure
+from .continuation import location
 
 
 def completed(config, folder):
     folder=Path(folder);out=folder/'plots';out.mkdir(exist_ok=False)
     ledger=load_ref(config['sources_ref']);results={};lineage={}
     for job in config['jobs']:
-        receipt=read(folder/'receipts'/(job['id']+'.json'))
-        if receipt['job']!=job or receipt['runtime_sha256']!=sha(folder/'runtime.json'):raise ValueError('cache receipt identity')
+        origin,runtime_path,inherited=location(config,folder,job)
+        runtime=read(runtime_path);receipt=read(origin/'receipts'/(job['id']+'.json'))
+        if receipt['job']!=job or receipt['runtime_sha256']!=sha(runtime_path):raise ValueError('cache receipt identity')
         for name,s in receipt['files'].items():
-            p=(folder/name).resolve()
-            if not p.is_relative_to((folder/job['id']).resolve()) or sha(p)!=s:raise ValueError('cache changed')
-        r=read(folder/job['id']/'result.json');results[job['id']]=r
+            p=(origin/name).resolve()
+            if not p.is_relative_to((origin/job['id']).resolve()) or sha(p)!=s:raise ValueError('cache changed')
+        r=read(origin/job['id']/'result.json');results[job['id']]=r
         if r!=receipt['result']:raise ValueError('cache result/receipt mismatch')
         lineage[job['id']]=dict(producer_commit=r['producer_commit'],weights_ref=r['weights_ref'],best_epoch=r['best_epoch'],
-            original_source=ledger['rows'][job['source_key']],evaluation_runtime_ref=dict(path=str(folder/'runtime.json'),sha256=sha(folder/'runtime.json')),
-            evaluation_receipt_ref=dict(path=str(folder/'receipts'/(job['id']+'.json')),sha256=sha(folder/'receipts'/(job['id']+'.json'))),
-            result_ref=dict(path=str(folder/job['id']/'result.json'),sha256=sha(folder/job['id']/'result.json')),split='test',new_test_access=True)
+            original_source=ledger['rows'][job['source_key']],evaluation_runtime_ref=dict(path=str(runtime_path),sha256=sha(runtime_path)),evaluation_attempt=origin.name,evaluation_commit=runtime.get('commit'),evaluation_environment_ref=runtime.get('environment_ref'),inherited_in_this_attempt=inherited,
+            evaluation_receipt_ref=dict(path=str(origin/'receipts'/(job['id']+'.json')),sha256=sha(origin/'receipts'/(job['id']+'.json'))),
+            result_ref=dict(path=str(origin/job['id']/'result.json'),sha256=sha(origin/job['id']/'result.json')),split='test',new_test_access_in_original_evaluation=True,new_test_access_in_this_attempt=not inherited)
     write_new(out/'source-ledger.json',lineage)
     sensitivity=[]
     for dataset in ('UrbanEV','PJM'):
@@ -34,7 +36,7 @@ def completed(config, folder):
             else:
                 key=f'ST-{dataset}-G{G}-R{R}';source=ledger['rows'][key];val=load_ref(source['metrics_ref'])['validation'];r=results[key]
                 test_metrics=dict(mse=r['metrics']['overall_mse'],mae=r['metrics']['overall_mae'],sse=sum(r['metrics']['sse']),sae=sum(r['metrics']['sae']),elements=r['elements'])
-                provenance='first test of frozen validation-best sensitivity';ref=lineage[key]['result_ref']
+                provenance='first test of frozen validation-best sensitivity'+('; inherited original result, new forward 0' if lineage[key]['inherited_in_this_attempt'] else '');ref=lineage[key]['result_ref']
             sensitivity.append(dict(dataset=dataset,G=G,R=R,best_epoch=source['best_epoch'],validation_mse=val['mse'],validation_mae=val['mae'],test_mse=test_metrics['mse'],test_mae=test_metrics['mae'],test_sse=test_metrics['sse'],test_sae=test_metrics['sae'],test_elements=test_metrics['elements'],provenance=provenance,source=json.dumps(source,ensure_ascii=False),test_result_ref=json.dumps(ref,ensure_ascii=False)))
         for axis,values in [('G',[3,5,7]),('R',[2,4,6])]:
             selected=[next(r for r in sensitivity if r['dataset']==dataset and r[axis]==v and r['R' if axis=='G' else 'G']==(4 if axis=='G' else 5)) for v in values]
@@ -74,4 +76,5 @@ def completed(config, folder):
         series.update({m:c['physical_prediction'][sl,0,0].tolist() for m,c in caches.items()})
         figure(out/f'case-{row["node"]}-test',plan['target_times'],series,'test target time; rolling H6/P1',f'UrbanEV node {row["node"]}; selected from random10; wins {row["strict_wins"]}/4; original volume')
     write_new(out/'display-selection.json',dict(rule=pre['ranking_rule'],selected_nodes=[r['node'] for r in ranked[:4]],description='Typical/advantage display subset of the ten sampled middle-demand nodes; not a random representative sample of all UrbanEV',new_forward=0))
-    return dict(model_evaluations=20,center_references=2,sensitivity_points=10,position_markets=3,case_nodes=10,case_plots=4,new_test_accesses=20,new_training=0,cache_only_plotting=True)
+    inherited=sum(x['inherited_in_this_attempt'] for x in lineage.values())
+    return dict(model_evaluations=20,inherited_model_evaluations=inherited,center_references=2,sensitivity_points=10,position_markets=3,case_nodes=10,case_plots=4,new_test_accesses=20-inherited,new_training=0,cache_only_plotting=True)

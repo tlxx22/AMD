@@ -1,4 +1,4 @@
-"""One serial frozen-test queue; no automatic resume or inherited test claims."""
+"""Serial frozen-test queue with one explicitly authorized eight-result continuation."""
 import os
 import sys
 import time
@@ -8,6 +8,7 @@ import traceback
 from pathlib import Path
 from .contract import ROOT, SCOPE, PURPOSE, permission, read, sha, load_ref, write_new, selected, evaluation_key
 from moderntcn_input_ablation_v10.launcher import proc_start, gpu_startup
+from .continuation import execution_jobs, execution_waves, receipt as logical_receipt
 
 
 def git(*args):return subprocess.check_output(['git','-C',str(ROOT),*args],text=True,timeout=30).strip()
@@ -47,6 +48,7 @@ def context(config_path,runtime_path):
 
 
 def claim(folder,config,job,runtime_path):
+    if job not in execution_jobs(config):raise PermissionError('cannot claim inherited completed test')
     key=evaluation_key(config,job)
     cap=dict(scope=SCOPE,purpose=PURPOSE,job=job['id'],evaluation_key=key,mode='authorized_frozen_test')
     write_new(Path(folder)/'claims'/(key+'.json'),dict(capability=cap,job=job,runtime_sha256=sha(runtime_path),new_test_access=True))
@@ -77,10 +79,10 @@ def worker(config_path,runtime_path,job_id):
     def stop():
         if (folder/'STOP').exists():raise InterruptedError('owned STOP')
     stop()
-    job=next((j for j in c['jobs'] if j['id']==job_id),None)
+    job=next((j for j in execution_jobs(c) if j['id']==job_id),None)
     if job_id=='O':
         job=dict(id='O',phase='O')
-        for j in c['jobs']:checked_receipt(folder,j,runtime_path)
+        for j in c['jobs']:logical_receipt(c,folder,j)
         from .plots import completed
         result=completed(c,folder);prefix=folder/'plots'
     else:
@@ -109,7 +111,7 @@ def supervise(config_path,auth_path):
             check_gpu_identity(c['gpu_uuid'],folder/'gpu-identity','supervisor-before-cuda',False)
             gpu=gpu_startup(auth)
             runtime_path=folder/'runtime.json'
-            write_new(runtime_path,dict(scope=SCOPE,purpose=PURPOSE,commit=auth['commit'],config_ref=dict(path=str(config_path),sha256=sha(config_path)),auth_ref=dict(path=str(auth_path),sha256=sha(auth_path)),environment_ref=c['environment_ref'],gpu=gpu,waves=c['waves']))
+            write_new(runtime_path,dict(scope=SCOPE,purpose=PURPOSE,commit=auth['commit'],config_ref=dict(path=str(config_path),sha256=sha(config_path)),auth_ref=dict(path=str(auth_path),sha256=sha(auth_path)),environment_ref=c['environment_ref'],gpu=gpu,waves=execution_waves(c),logical_waves=c['waves'],original_wave_indices=c.get('original_wave_indices',list(range(1,22))),technical_continuation=c.get('technical_continuation')))
             write_new(folder/'owner.json',dict(pid=os.getpid(),start=proc_start(os.getpid()),runtime_sha256=sha(runtime_path)))
             for name in ('logs','receipts','claims'):(folder/name).mkdir()
             # Metadata only: commit exact shared test week before ANY prediction.
@@ -118,8 +120,10 @@ def supervise(config_path,auth_path):
             if preselect(load_ref(pre['source_ref']),pre['node_order'])!=pre['draw_indices']:raise ValueError('preselection not reproducible')
             plans=[case_plan(ledger['rows']['CT-UrbanEV-'+m],pre) for m in ('ModernTCN','TimeMixer','UV')]
             if plans[1:]!=[plans[0],plans[0]]:raise ValueError('common case week/sample identity')
+            if c.get('technical_continuation') and plans[0]!=load_ref(c['technical_continuation']['case_plan_ref']):raise ValueError('original case plan must remain exact')
             write_new(folder/'case-plan.json',plans[0])
-            for i,wave in enumerate(c['waves'],1):
+            if c.get('technical_continuation') and sha(folder/'case-plan.json')!=c['technical_continuation']['case_plan_ref']['sha256']:raise ValueError('case plan serialized identity')
+            for i,wave in enumerate(execution_waves(c),1):
                 if (folder/'STOP').exists():raise InterruptedError('STOP')
                 j=wave[0]
                 with (folder/'logs'/(j+'.log')).open('x') as log:
@@ -129,12 +133,14 @@ def supervise(config_path,auth_path):
                 if child.returncode:raise RuntimeError('technical failure; no later dispatch')
                 job=dict(id='O',phase='O') if j=='O' else next(x for x in c['jobs'] if x['id']==j)
                 checked_receipt(folder,job,runtime_path)
-                write_new(folder/f'wave-{i}-complete.json',dict(jobs=wave))
+                write_new(folder/f'wave-{i}-complete.json',dict(jobs=wave,original_wave_index=c['original_wave_indices'][i-1]) if c.get('technical_continuation') else dict(jobs=wave))
             if (folder/'STOP').exists():raise InterruptedError('STOP before completion')
-            expected={j['id'] for j in c['jobs']}|{'O'}
-            if {p.stem for p in (folder/'receipts').glob('*.json')}!=expected or {p.stem for p in (folder/'claims').glob('*.json')}!={evaluation_key(c,j) for j in c['jobs']}:raise ValueError('complete coverage/claims')
-            for j in c['jobs']+[dict(id='O',phase='O')]:checked_receipt(folder,j,runtime_path)
-            write_new(folder/'complete.json',dict(technical_complete=True,model_evaluations=20,offline_jobs=1,waves=21,first_sensitivity_test=8,posthoc_repeated_test=12,center_references=2,case_presentations=5040,training=0,scientific_review='Pending; no main table replacement'))
+            expected={j['id'] for j in execution_jobs(c)}|{'O'}
+            if {p.stem for p in (folder/'receipts').glob('*.json')}!=expected or {p.stem for p in (folder/'claims').glob('*.json')}!={evaluation_key(c,j) for j in execution_jobs(c)}:raise ValueError('complete coverage/claims')
+            if {p.name for p in folder.glob('wave-*-complete.json')}!={f'wave-{i}-complete.json' for i in range(1,len(execution_waves(c))+1)}:raise ValueError('completed wave coverage')
+            for j in c['jobs']+[dict(id='O',phase='O')]:logical_receipt(c,folder,j)
+            inherited=len(c['jobs'])-len(execution_jobs(c))
+            write_new(folder/'complete.json',dict(technical_complete=True,model_evaluations=20,executed_model_evaluations=len(execution_jobs(c)),inherited_model_evaluations=inherited,inherited_ref=c.get('technical_continuation',{}).get('inherited_ref'),offline_jobs=1,waves=len(execution_waves(c)),logical_waves=21,new_test_claims=len(execution_jobs(c)),first_sensitivity_test=8,first_sensitivity_test_inherited=inherited,posthoc_repeated_test=12,center_references=2,case_presentations=5040,training=0,scientific_review='Pending; no main table replacement'))
         except BaseException:
             if child is not None and child.poll() is None:
                 if not (folder/'STOP').exists():write_new(folder/'STOP',dict(reason='supervisor failed'))
@@ -150,4 +156,9 @@ def status(folder):
             try:
                 if proc_start(r['pid'])==r['start']:active.append(r)
             except (FileNotFoundError,ProcessLookupError):pass
-    return dict(completed={phase:sum(r['job']['phase']==phase for r in rs) for phase in ('S','P','C','O')},new_test_receipts=sum(r['job']['phase']!='O' for r in rs),center_references=2,waves_completed=len(list(folder.glob('wave-*-complete.json'))),active_owned_children=active,complete=(folder/'complete.json').exists(),failure=(folder/'failure.json').exists(),STOP=(folder/'STOP').exists())
+    runtime=read(folder/'runtime.json') if (folder/'runtime.json').exists() else {}
+    inherited=8 if runtime.get('technical_continuation') else 0
+    completed={phase:sum(r['job']['phase']==phase for r in rs) for phase in ('S','P','C','O')}
+    logical=dict(completed);logical['S']+=inherited
+    new=sum(r['job']['phase']!='O' for r in rs)
+    return dict(completed=logical,executed_completed=completed,inherited_model_evaluations=inherited,new_test_receipts=new,logical_model_evaluations=inherited+new,center_references=2,waves_completed=len(list(folder.glob('wave-*-complete.json'))),execution_waves_expected=len(runtime.get('waves',[])),logical_waves_expected=21,active_owned_children=active,complete=(folder/'complete.json').exists(),failure=(folder/'failure.json').exists(),STOP=(folder/'STOP').exists())
