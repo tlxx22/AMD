@@ -1,5 +1,25 @@
 # 第三章实验说明与数据索引
 
+## 四H/NP与五模型扩展：工程已审，正式执行材料定版、待用户启动
+
+ChatGPT已实际直读审核本scope，工程review Passed限实现、来源绑定、有限CPU与控制逻辑。152依赖、14路径、323成员/324校验；12独立用例最终通过，13执行12成功1历史fixture失败，来源检查失败及typed/篡改拒绝记录保持。UrbanEV四H等权＋NP完整25格采用原H6四点与五中心引用，PJM敏感性保留历史；五模型逐位置与十区域/锁定四图规则不变。q4训练/q1评估按既有证据和差异评估接受，本轮未重新实测。历史内嵌指针差异仅作已核实执行链范围内限定接受，不改旧protocol，完整协议/active data_ref/profile/stat继续严格绑定。Goal1/2 Met、Goal3 Not met不变；新训练/test/GPU恢复及科学效果尚未执行，不把规划输出标为已完成。
+
+closure回执入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-urbanev4h-np-baseline-extension-review-closure-r1`。closure成功后正式启动材料入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-ch3-amendment-launch-authorization-r1`；正式AUTH绑定实际新commit，原false配置和模板不改。规划结果仍为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-amendment-runs/urbanev4h-np-amd-timexer-first-r1`，尚未创建或启动。实际三文档SHA/commit及记录层限定在外置回执保存，本文不递归回填；运行中不修改绑定工作区，完成后审计并更新同一指南。
+
+## 当前采用口径增量：四H/NP敏感性与五模型对照（实现待审，正式负载未执行）
+
+最新用户决定将主敏感性改为UrbanEV H3/6/9/12四H等权与NP；旧H6单任务/PJM仍有真实结果，保留为历史补充，不能将其最优点写成UrbanEV总体或NP结论。完整覆盖为25格：16新非默认训练＋9引用；训练上限320轮/1804640更新，原strict validation MSE-best及同checkpoint双指标不变，新训练封存后16独立首次test，不用test选配置/seed/epoch或替换主模型。
+
+新逐位置对照为NP/BE/DE×ModernTCN B_cfg/TimeMixer/TimeXer/AMD/完整UV，共15格；旧9结果复用，只新增6次test。区域仍UrbanEV H6，原十节点208/330/333/570/969/1083/1113/1120/1162/1173、2023-02-13至02-19测试周；复用旧三模型缓存，只新增AMD/TimeXer各一次。四图节点固定1162/1083/1120/969，不按新增baseline重排，图中真实值＋五模型，十区域全表不能删除不利行。四图是原两baseline比较后选出的展示子集，不是预先随机四区域或全275区域代表。新24 test＝16首次＋8后评估，17218 batches/1480760呈现/3886560元素；41 jobs/29波，评估q1、训练四波q4。
+
+现有真实结果入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-test-reporting-runs/test-reporting-v10-import-retry1/complete.json`，其`plots/sensitivity-all-points.json`、`case-plan.json`、`plots/display-selection.json`和原source-ledger保留。旧S8、9逐位置和3案例的真实producer/receipt/预测缓存不能改名为本批前向；旧失败test/权重读取成本和旧validation图不抹除。本轮仅封存文本、权重stat和必要已存缓存核对，没有新原始test或权重加载，也未补状态级/CUDA恢复审计。
+
+新资料入口（均服务器端实际已生成）：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-urbanev4h-np-baseline-extension-preparation-r1`。`source/sources.json`导航真实metrics/spec/profile/config/data/weights-checksum；`source/sensitivity-25-cells.json`列每个H/G/R的引用或计划生产者；`source/main-index-eight-bindings.json`核对当前统一MS主表八baseline单元；`audit/reuse.json`记录旧引用与缓存核验；`non-execution-preparation/jobs-waves-budget.json`及`OPERATIONS.md`为41任务/29波及不可执行命令草案。历史protocol内嵌时间标记SHA差异见`audit/historical-inner-reference-difference.json`，原文件未改，当前执行data_ref/profile/stat及完整protocol身份另核对。新配置`configs/m6_ch3_scope_amendment_v10.json`、独立入口`m6_ch3_scope_amendment_v10.entry`复用原模型，source实际152项。
+
+规划输出（当前尚不存在）：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-amendment-runs/urbanev4h-np-amd-timexer-first-r1`。未来`plots/sensitivity-25-cells.csv`与`sensitivity-means.csv`保存逐H及四H等权/NP指标，`five-model-position-all.csv`覆盖全部24位置，`ten-region-five-model.csv`保存十区域完整对照；SVG/PNG与同源JSON/CSV一起生成，`plots/source-ledger.json`链接每项真实producer/receipt/result/cache。这些新科学图稿当前未生成，CPU合成图稿只用于模板验收，不是结果。
+
+新实现12独立CPU用例最终通过，13执行12成功1保留fixture失败；另保留来源检查失败及定向校验。合成4构造/6前向/10呈现、1合成state写读，backward/Adam0；真实模型/权重/raw test/训练/GPU0。仅false/null模板、无正式AUTH/attempt/preflight/启动，无commit/push；全部新字节待ChatGPT统一审核。资源按既有证据和差异评估接受，本轮未重新实测；Goal1/2 Met、Goal3 Not met、单seed与开发test限制不变。下文旧未启动表述保留历史时点，本指南不替代canonical/唯一M6。
+
 **冻结test报告技术续办已实现；用户明确授权验收后由Codex启动。** 用户本轮答复“完成续办接线、验收并启动”，范围保持原20模型评估＋O，不新增科学任务。此前导入时序修复的3个CPU场景复用；本轮6独立控制/缓存用例最终通过，7次用例执行为6成功＋1测试异常类型写错，另一次定向调用在测试导入前因缩进错误失败，全部日志保留，未放宽保护。已接通原8份S-test真实receipt引用、剩余12模型评估/13波及两来源O汇总；旧99文件/失败/test访问成本保留，新attempt不伪造旧receipt，第一项固定PT-NP-ModernTCN。新配置为`configs/m6_ch3_test_reporting_v10_import_retry1.json`，规划attempt为`test-reporting-v10-import-retry1`；剩余780 batch/99180呈现/2264400元素，零训练/backward/optimizer。新控制验收只用CPU空回调和已存合成缓存，真实权重/模型计算/test/GPU均0；启动后真实评估消费另记。代码依赖142项，原模型/guard/数值政策、固定十节点/测试周/选后四图、Goal1/2 Met和Goal3 Not met不变。续办证据入口`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-import-continuation-r1`；新正式许可入口`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-import-retry1-launch-authorization-r1`，须绑定本次实际提交并通过preflight后启动。此段是提交前时点，实际启动/receipt在外置证据登记；不声称ChatGPT已读本次新实现字节，不在运行中改Git绑定文档。下文局部修复未接通/旧待启动文字保留各自历史时点。
 
 **冻结test报告导入时序局部修复（尚未续跑）。** 首批S-test8已生成有效receipt，3924前向batch/501640呈现/1463960元素；原99个attempt文件核对保持。第9项PT-NP-ModernTCN已读取test10460窗口、恢复权重并加载CUDA，在首次前向前因作者baseline切换utils搜索路径后才导入项目batch_parts而失败，不能记为零test/GPU消费。本轮仅将evaluate.py的batch_parts导入提前至模块级，模型/数学/guard/旧配置及产物不改。独立CPU子进程3场景最终通过：旧序复现拒绝，ModernTCN与TimeMixer的有/无marks路径在utils切换前后输出/状态/BN/RNG exact；新合成模型3构造、12前向/20呈现，真实checkpoint/test/GPU及backward/Adam均0。首轮测试工具取错source.root的3次失败发生于模型构造前，修正为原protocol.sources路径并保留日志，未放宽断言。本轮修复证据位于`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-test-reporting-import-order-repair-r1`。现scope明确拒绝既有attempt且汇总只认同目录20份结果，安全续跑还需8项原结果引用＋剩余12评估/13波及两来源汇总接线，当前未实现或启动；旧AUTH不能消费修后源码。原Goal1/2 Met、Goal3 Not met不变，不自动重测8成功项、不覆盖原失败，不预称新修复字节已获ChatGPT审核。
