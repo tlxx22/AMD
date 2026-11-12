@@ -12,7 +12,13 @@ def ref(p):return dict(path=str(p),sha256=sha(p))
 def resolve_inputs(c,folder):
     from .queue import checked
     s=load_ref(c['sources_ref']);verify_sources(s);inputs={}
-    for cell,x in s['inherited'].items():inputs[cell]=[dict(inherited=True,new_forward=0,**x)]
+    for cell,x in s['inherited'].items():
+        # Flags in the sealed source describe its upstream attempt, not this
+        # consumer. Preserve them explicitly while marking this use as a reuse.
+        entry=dict(x)
+        entry['upstream_reference_flags']={k:x[k] for k in ('inherited','new_forward') if k in x}
+        entry.update(inherited=True,new_forward=0)
+        inputs[cell]=[entry]
     for j in c['jobs'][:-1]:
         r=checked(c,folder,j);out=Path(folder)/j['id'];source=read(out/'source.json')
         inputs.setdefault(j['cell'],[]).append(dict(inherited=False,source=source,job=j,receipt_ref=ref(Path(folder)/'receipts'/(j['id']+'.json')),runtime_ref=ref(Path(folder)/'runtime.json'),result_ref=ref(out/'result.json'),prediction_ref=ref(out/'predictions.npz')))
@@ -32,8 +38,8 @@ def cache_metrics(a,bs):
     return meter.result()
 
 
-def completed(c,folder):
-    folder=Path(folder);out=folder/'data';out.mkdir(exist_ok=False);(out/'merged').mkdir();s=load_ref(c['sources_ref']);inputs=resolve_inputs(c,folder);lineage={};positions=[];regional=[];wide=[]
+def completed(c,folder,*,source_folder=None):
+    folder=Path(folder);out=folder/'data';out.mkdir(exist_ok=False);(out/'merged').mkdir();s=load_ref(c['sources_ref']);inputs=resolve_inputs(c,folder if source_folder is None else source_folder);lineage={};positions=[];regional=[];wide=[]
     for d in MARKETS:
         common=None;market={}
         for model in MODELS:

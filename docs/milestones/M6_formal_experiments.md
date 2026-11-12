@@ -1,5 +1,27 @@
 # M6：第三章正式实验与定稿
 
+## 七类当前采用结果归集review Passed，M6暂告段落（Git收口进行中）
+
+唯一物理汇总目录`/public/home/yueweiting/大论文/amd-execution-evidence/m6/CH3_Results_Consolidated_v10_r1`已生成，入口为`README.md`/`adopted-results.json`，逐文件SHA与类型见`manifest.json`/`checksums.sha256`。沿用[现有实验资料索引](../CH3_Experiments_and_Data_Index.md)唯一`CURRENT_ADOPTED_RESULTS`区块，不创建第二milestone或状态摘要。七类覆盖为主对比72行、模块36行、输入16格＋4均值、敏感性25格＋10均值、效率32条件、区域6600长行/1100宽行及EPF720位置行。实际复制452文件477932029字节，含24区域＋30EPF预测缓存331014432字节，源/目标SHA一致；原54来源大ledger只收一份，七类逐逻辑来源保留producer与consumer、整组/部分合并及split/unit，不把归集计为新训练/test。
+
+旧四H/NP批次41receipt/29波/24claim、198轮/1163164更新及24test成本保持；原日志/缓存/指标与权重metadata核账范围不升级为32完整state/Adam/RNG审计、CUDA恢复或训练重演。UrbanEV四H默认五点内MSE/MAE最低，NP默认MSE最低但G3/R4 MAE略低，不据此换默认配置或宣称跨seed稳定。旧39真实模型评估＋独立O补做及两类原来源保持；前会话已审离线修复三个代码/测试文件字节未改，旧失败、AUTH/runtime/结果和历史图均原地保留。
+
+本轮归集的已有只读复制/逻辑键/覆盖/等权算术/哈希证据已获ChatGPT实际直读review Passed，限数据归集、完整性与采用口径：C/manifest 474成员、475条checksum，452副本逐一SHA一致且无硬链接；归集证据28成员/29checksum。原final_test读取位置工具失败及修复记录保留，原结果不改。该审核不升级为完整state/Adam/RNG或CUDA恢复审计；包内Pending/旧handoff保持历史字节。当前新治理文档字节待统一审核；全部unstaged/index空、无commit/push，原已审离线修复/归集与本次五文档在下一轮合并精确closure。
+
+M6暂停新增实验、暂告段落，不机械标正式Closed或全部效果Passed。Goal1/2 Met、Goal3 Not met与单seed/开发test边界不变。最终区域名单/八案例、十幅EPF精简曲线与论文叙事后置；内部全量表保留但不要求正文/附录展示，不自动排名、名次配额或删除不利模型。
+
+[唯一M7：第四章开发与实验](M7_ch4_development_and_experiments.md)保持Planning，统一承担研究选型、获批baseline比较、候选迭代/消融/诊断及以后批准的补充实验。第四章具体路线、模型、接口、数据矩阵和协议全部待新会话研究与用户决定；第三章资产不等于第四章采用授权。上一版承接语句包含未经授权的技术假设，本轮纠正，不是用户更换已批准路线。C内第四章规划/旧交接的组织与技术内容均是过时快照，原字节保留。
+
+本轮只改文档，M6不变成M7实验日志。原归集/repair review保持，新纠偏字节待审，无stage/commit/push；未重跑offline_completion run/verify，不reset迎合旧基点。
+
+## 全覆盖P15/C24已完成，O离线技术补做已完成
+
+原`all275-4h-epf5-sixmodels-first-r1`实际完成39模型评估/39波/39 claim，273 payload SHA匹配；10973 batch/1257300呈现/4866000元素，训练/backward/optimizer0。O读取继承记录时`dict(inherited=True,new_forward=0,**x)`重复关键字失败，所有owner/children原身份已退出，原failure、39成功及474个原文件保持。旧合成O验收mock了来源解析函数，未覆盖真实旧记录已含inherited/new_forward的组合，此验收遗漏不隐瞒。用户本轮直接授权修复并完成流程；3定向CPU用例通过，覆盖真实resolver标记冲突/上游标记保全、缺失/reused/live PID、payload/不可覆盖保护，无模型构造或前向。
+
+新`m6_ch3_fullcoverage_v10.offline_completion`只允许此固定39来源的CPU缓存O补做，单独绑定原runtime/failure、原commit存档源码与未提交修复SHA；不篡改原AUTH/config、不把旧GPU许可当作修后授权。当前消费标为继承，旧inherited/new_forward原值另存upstream_reference_flags；新汇总写独立`all275-4h-epf5-sixmodels-offline-merge-r1`。原39回执仅引用，新目录只产生1个O receipt/1个离线wave及跨来源complete；原failed状态不清除。已完成54来源、6600区域/1100宽表/720位置行，所有P缓存同原批次统计exact、共同truth/完整样本集合和H6合并通过，无自动选区/排名/删模型。
+
+本轮新增原始test/权重内容读取/模型计算/训练/optimizer/GPU0，全部工作仅读已有59份逻辑缓存部分（20旧引用＋39本批评估），指标与物理单位按既有定义，不更改原科学成绩。完整修复/失败/保护/消费材料在`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-fullcoverage-offline-merge-repair-r1`。数据完成、技术核验与后续ChatGPT结果review分别登记；本轮新修复未预称ChatGPT Passed，Goal1/2 Met、Goal3 Not met不变。无commit/push，正式GPU队列未再启动；后续选区和曲线名单仍由用户与ChatGPT决定，不进入M7。
+
 ## 全覆盖采集包审核裁决与closure交接
 
 ChatGPT经Desktop Commander实际直读本轮新字节，工程review Passed：13项目路径、161依赖、206外置成员/207校验；8独立CPU用例/8执行通过，合成1构造/3前向/5呈现，无真实负载。旧四H/NP已完成41receipt/29波/24claim、198轮/1163164更新的核账限封存文本、相关预测缓存及权重metadata，不外推完整state/Adam/RNG或CUDA恢复。固定P15→C24→O、40串行波、39冻结test评估，54逻辑单元/6600区域指标；15整组及5部分组引用保留原producer，新旧均是test，不混validation。q1资源“基于既有证据复用与差异评估接受；本轮未重新实测”，不补探针、不预称新速度/峰值/真实恢复/科学效果已通过。

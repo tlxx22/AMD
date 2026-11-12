@@ -1,5 +1,48 @@
 # 第三章实验说明与数据索引
 
+<!-- CURRENT_ADOPTED_RESULTS:BEGIN -->
+## 当前采用入口：第三章七类实验汇总
+
+当前主模型为ModernTCN-U+V v10默认G5/R4，B采用cfg_adapted_v1；主表保持最新统一第二轮MS来源，不采用C.1。M6暂告段落、暂停新增实验，七类当前采用数据已经完成；这不等于所有效果门槛通过、论文定稿或M6正式Closed。Goal1/2 Met、Goal3严格链Not met，单seed2024、test曾用于开发、原validation MSE-best及真实producer/等价引用边界保持。
+
+唯一集中目录：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/CH3_Results_Consolidated_v10_r1`。从[README](/public/home/yueweiting/大论文/amd-execution-evidence/m6/CH3_Results_Consolidated_v10_r1/README.md)进入；机器入口为同目录`adopted-results.json`，完整文件核验为`manifest.json`与`checksums.sha256`，逐结果来源为`source-ledger.json`。本轮已实际复制452文件、477932029字节，其中54份预测缓存331014432字节；源/目标SHA一致，完整54缓存可在本目录读取，原数据、checkpoint、环境及海量逐步日志不复制、不加载。
+
+下表路径相对于该集中目录；每类`provenance/index.json`均将逻辑单元连接到真实producer、原路径/SHA及本地副本。原90单元主来源和54单元全覆盖大ledger在`00_shared/provenance/`各保留一份，不修改原绝对路径或上游标记。
+
+| 实验ID | 当前范围与计数 | 直接数据入口 | 源ledger | 主要复用关系 | 数据review范围 | 展示状态 |
+|---|---|---|---|---|---|---|
+| 01_main_comparison | 9任务×七baseline＋UV，72行 | `01_main_comparison/data/main-results.csv` | `01_main_comparison/provenance/index.json` | 原63 baseline及9 UV；原正式主表值不被后评估微差替换 | 采用既有正式结果和来源审核 | 四H曲线等已有draft，最终排版未定 |
+| 02_module_ablation | B/U/V/UV×9任务，36行 | `02_module_ablation/data/module-ablation.csv` | `02_module_ablation/provenance/index.json` | 27增强臂，保留v10/P1 v9→v10/V3及B引用 | 既有模块结果review；非36项fresh | 已有draft；EPF Goal1仅NP，Goal2对B_cfg为7/10 |
+| 03_input_ablation | F1–F4×四H，16格＋4均值 | `03_input_ablation/data/input-ablation.csv` | `03_input_ablation/provenance/index.json` | 12fresh原生产＋4F4引用；F3=F1＋天气 | 既有输入保存结果review | Goal3 Not met；负向结果保留，draft |
+| 04_sensitivity | UrbanEV四H×五点＋NP五点，25格/10均值 | `04_sensitivity/data/sensitivity-25-cells.csv`、`sensitivity-means.csv` | `04_sensitivity/provenance/index.json` | 16fresh原生产＋H6四点/五中心共9引用 | 封存、日志/缓存指标及metadata范围；非完整state/Adam/RNG或CUDA恢复 | 四H未舍入等权；test主图、validation分列；旧H6/PJM仅历史 |
+| 05_inference_efficiency | UrbanEV H6/PJM、8模型×batch1/16，32条件 | `05_inference_efficiency/data/efficiency.csv` | `05_inference_efficiency/provenance/index.json` | retry1生产12＋retry2生产20；原环境及五计时组保留 | 原真实测量和环境差异评估范围，不称跨环境逐位一致 | 延迟/吞吐/参数/显存draft；不是epoch训练时间 |
+| 06_regional_cases | 全275区域×四H×六模型，24缓存/6600长行/1100宽行 | `06_regional_cases/data/region-metrics-6600.csv`、`region-wide-1100.csv`、`predictions/` | `06_regional_cases/provenance/index.json` | H6五模型旧十区域8400呈现部分合并，原字节/来源保留 | 已审封存及预测缓存/指标；本次只复制和索引核验 | 数据完成；最终区域/八案例/曲线未定，不选区、不排名、不冻结名次配额 |
+| 07_epf_position_errors | 五市场×六模型×固定P24，30缓存/720行 | `07_epf_position_errors/data/EPF-position-all.csv`、`EPF-市场-six-model-data.json`、`predictions/` | `07_epf_position_errors/provenance/index.json` | NP/BE/DE旧五模型15整组＋15新生产；均为test | 已审缓存/来源/指标；旧PJM validation不混入 | 十图数据齐；最终3/4条有序模型名单以后显式指定 |
+
+阅读规则：先看本区块，不按时间戳、最后一轮目录或单次优胜值选择科学结果；以下历史“待启动/未完成”文字是原时点记录，不覆盖当前采用入口。全区域表是内部实验数据，不要求论文正文或附录列全表。每H两例/总八图仅为后续呈现意向；拟truth＋UV＋ModernTCN＋TimeXer，其余模型/区域由用户与ChatGPT后续明确；本轮不选最终名单，不以缺名单判定数据未完成。原四图及选择记录只作历史，原七类数值不因归集改变。
+
+审核与Git分列：ChatGPT已实际直读并批准集中包的数据归集/完整性/采用口径review，限474成员/475checksum、452副本SHA/无硬链接、54缓存及七类覆盖/真实复用来源等既定检查；不升级为完整state/Adam/RNG或CUDA恢复。原离线修复已审字节保持。包内Pending保留原送审时点，不回写C或重封包。当前治理文档新字节统一待审，仍全部unstaged/index空、无commit/push；下轮将原修复、已审归集文档与本次修订一次精确closure，不为回填自身SHA循环提交。未来展示只在明确presentation子包追加并维护本唯一入口。
+
+第四章现行入口：[大论文 07｜M7 第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)。M7统一承担研究选型、获批baseline比较、候选迭代与消融/诊断及以后批准的补充实验；先研究讨论、确认本批比较协议与范围，再完成获批比较并迭代选定backbone。baseline名单、技术路线、模块及其数量、信息交互、是否使用第三章资产或图/状态接口、数据/训练/评价与资源均未定。旧M7–M11→新M7，旧M12→新M8写作，旧M13→新M9终稿。
+
+封存包README和`00_shared/handoff-readonly.md`中的第四章规划/旧交接在组织与技术路线两方面均已过时，不对当前M7选型形成约束；C原字节/SHA和第三章235条逻辑来源含义保持。上一包静态检查Passed不是科学选型授权，本次纠正其未经授权的假设，不改原报告或第三章审核结论。七类数据、单位、来源、展示待定状态和本区块表格保持。
+
+本轮新文档待统一审核，原修复及归集保持；未stage/commit/push、未实施正式负载。旧offline_completion工具不重跑run/verify、不reset迎合旧基点。Project injection与聊天交接由ChatGPT重新交付、用户替换，本工具未修改Project设置。
+
+<!-- CURRENT_ADOPTED_RESULTS:END -->
+
+## 以下为历史增量与原始来源导航
+
+## 全覆盖实验数据现已生成：原39评估＋独立离线O补做
+
+原模型评估目录`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-fullcoverage-reporting-runs/all275-4h-epf5-sixmodels-first-r1`保存39份真实P15/C24回执、39 test claim、273 payload及全部预测cache，实际10973 batch/1257300呈现/4866000元素。O曾因继承字典重复`inherited`关键字失败，原failure和所有原文件不改；该目录没有被伪写成无失败complete。缺失PID的完成检查也已在新工具中按正常退出处理，原授权目录中旧检查脚本作为历史材料封存。
+
+用户授权的纯离线技术补做已成功，实际数据入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-fullcoverage-reporting-runs/all275-4h-epf5-sixmodels-offline-merge-r1`（已存在、已完成，非规划）。`complete.json`声明39原成功引用＋1新O的逻辑40项闭环；`inherited-receipts.json`逐项指回真实原回执，`offline-execution.json`记录原commit/修复源码SHA及零新增模型/test，不伪造39新receipt。
+
+该目录`data/source-ledger.json`导航54来源和各cache/receipt/runtime/weights/profile/scaler身份；`data/region-metrics-6600.csv/.json`为全部275节点×四H×六模型区域指标，`region-wide-1100.csv`为同数据宽表；`EPF-position-all.csv/.json`包含五市场×六模型×24位置共720行；`EPF-PJM-six-model-data.json`及NP/BE/FR/DE对应文件包含两指标全六模型曲线数据。`data/merged/`仅含H6五个部分缓存无交无漏合并，其余原预测按真实路径引用。上游inherited/new_forward原值独立保留，不混作本次新增前向。
+
+全部真实数据只从原缓存汇总，P统计按原FP32相减→FP64分批累计exact、模型间truth/窗口及物理单位核验；没有新增原始test或模型/GPU负载。3定向CPU用例通过，新代码/完成材料尚待ChatGPT复核，未commit/push。修复包：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-fullcoverage-offline-merge-repair-r1`。当前只读完成检查从W使用固定venv运行`-B -m m6_ch3_fullcoverage_v10.offline_completion verify`（绑定此次基点和修复SHA），不要再使用旧要求原目录无failure的检查脚本。原四图保留，不自动出新八图、选区或最终精简曲线；完整数据供用户与ChatGPT后续选择展示。Goal1/2 Met、Goal3 Not met及单seed/开发test限制不变。
+
 ## 全覆盖数据采集：工程已审，进入closure与正式启动材料交接
 
 用户确认ChatGPT已通过Desktop Commander实际直读本轮13项目路径、161依赖、206外置成员/207校验，工程review Passed；8独立CPU用例/8执行通过，合成1构造/3前向/5呈现，真实负载尚未启动。旧四H/NP的41receipt/29波/24claim、198轮/1163164更新核账仍限封存、相关缓存及权重metadata，不升级完整state/Adam/RNG审计或CUDA恢复。新39冻结test评估＋O按40串行波/q1覆盖54单元、6600区域指标；15整组与5部分组保留真实producer/test来源，不混validation。资源“基于既有证据复用与差异评估接受；本轮未重新实测”，不宣称新GPU峰值/速度/真实恢复或科学效果Passed。

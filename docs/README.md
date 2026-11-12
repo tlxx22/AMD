@@ -1,35 +1,36 @@
 # 文档索引
 
-## 唯一权威方案
+## 当前权威入口
 
-[docs/AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md](AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md)
+- [canonical：时间增强与时空预测研究实施方案](AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md)：当前科学/阶段合同与历史边界；文件名不变，文档标题不是已定论文题目。
+- [M6：第三章正式实验与定稿](milestones/M6_formal_experiments.md)：七类数据完成、暂停新增实验，归集review Passed，Git收口进行中；图稿/写作后置，非正式Closed。
+- [第三章实验说明与数据索引](CH3_Experiments_and_Data_Index.md)：唯一CURRENT_ADOPTED_RESULTS区块和七类集中包入口；不按历史段落时间戳挑结果。
+- [大论文 07｜M7 第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)：Planning，统一研究选型、获批baseline比较、候选开发/迭代、消融、诊断及以后获批补充实验；具体技术路线、名单、接口和矩阵均未定，本轮未实施负载。
 
-## 当前阶段
+本页仅导航，不复制七实验指标或维护第二份细粒度进度账。旧“G0收尾已完成；M1尚未开始”是过时导航，已撤下；各阶段历史Closed/commit/产物由原milestone记录，不在这里猜填。
 
-G0 收尾已完成；M1 尚未开始。
+## 阶段编号与历史记录
 
-## 阶段状态
+| 阶段 | 唯一记录/职责 |
+|---|---|
+| M0 | [基准冻结与等价](milestones/M0_baseline_freeze_and_equivalence.md) |
+| M1 | [UrbanEV数据管线](milestones/M1_urbanev_dataloader.md) |
+| M2 | [PMCR](milestones/M2_pmcr.md) |
+| M3 | [TEB](milestones/M3_teb.md) |
+| M4 | [时间模块诊断](milestones/M4_temporal_diagnostics.md) |
+| M5 | [模型筛选与结构冻结](milestones/M5_model_selection_and_freeze.md) |
+| M6 | [第三章实验](milestones/M6_formal_experiments.md)，历史名称/编号保持 |
+| 新M7 | [第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)，合并旧M7–M11 |
+| 新M8 | 大论文 08｜M8 论文正文、图表与结果分析，承接旧M12；本轮不创建其milestone |
+| 新M9 | 大论文 09｜M9 终稿审校、复现材料与答辩，承接旧M13；本轮不创建其milestone |
 
-| 阶段 | 状态 | 报告 | Commit |
-|---|---|---|---|
-| M0 | Closed | [milestones/M0_baseline_freeze_and_equivalence.md](milestones/M0_baseline_freeze_and_equivalence.md) | `2ca729f7454ec4634c2e4d7c90a4a3eb08984128` |
-| M1 | Not started | — | — |
-| M2 | Not started | — | — |
-| M3 | Not started | — | — |
-| M4 | Not started | — | — |
-| M5 | Not started | — | — |
-| M6 | Not started | — | — |
-| M7 | Not started | — | — |
-| M8 | Not started | — | — |
-| M9 | Not started | — | — |
-| M10 | Not started | — | — |
+旧M7–M11仅为历史编号，不能与新M8写作、新M9终稿混称；历史技术规划不形成现行候选资格。M7内各轮共用一份记录，不建M7-A/B或逐模块milestone。先研究和讨论，再确认本批比较范围；baseline-first不表示名单或训练已获批准。第三章资产的存在不等于第四章采用授权。
 
 ## 文档规则
 
-- Plan：未来准备怎么做；
-- Milestone：某一阶段实际做了什么；
-- Evidence：机器生成的 patch、清单和原始证据；
-- Archive：已经失效、不能继续指导开发的旧方案；
-- 每个 M 阶段只有一份 `milestones/Mx_*.md`；
-- 阶段完成后冻结，不在后续阶段继续追加；
-- 原始训练日志、checkpoint、metrics、manifest 放在 artifacts，不复制进 docs。
+- canonical规定当前合同；milestone记录阶段事实；实验索引导航采用数据；本页只负责入口。
+- 每阶段只有一份milestone；历史Closed记录不追加，不以旧Pending覆盖现行审核裁决。
+- evidence保存实际SHA/diff/检查/失败；archive及封存包README/旧handoff是历史；其第四章组织与技术路线均已过时，不约束当前M7选型。
+- 原始数据、权重、日志、metrics/manifest保留原产物位置；汇总目录是已存在结果副本，不是新实验producer。
+- 当前文档改动待统一审核，无stage/commit/push；审核后将原已审修复＋本次实质修订一次closure，以实际commit再决定M7 worktree，不预填未来版本或许可。
+- Project injection由用户按ChatGPT新版整体替换；本工具未修改Project设置。
