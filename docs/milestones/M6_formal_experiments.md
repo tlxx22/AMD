@@ -1,18 +1,20 @@
 # M6：第三章正式实验与定稿
 
-## 七类当前采用结果归集review Passed，M6暂告段落（Git收口进行中）
+## 七类当前采用结果归集review Passed，原Git收口已完成（本轮承接文档修订待审）
 
 唯一物理汇总目录`/public/home/yueweiting/大论文/amd-execution-evidence/m6/CH3_Results_Consolidated_v10_r1`已生成，入口为`README.md`/`adopted-results.json`，逐文件SHA与类型见`manifest.json`/`checksums.sha256`。沿用[现有实验资料索引](../CH3_Experiments_and_Data_Index.md)唯一`CURRENT_ADOPTED_RESULTS`区块，不创建第二milestone或状态摘要。七类覆盖为主对比72行、模块36行、输入16格＋4均值、敏感性25格＋10均值、效率32条件、区域6600长行/1100宽行及EPF720位置行。实际复制452文件477932029字节，含24区域＋30EPF预测缓存331014432字节，源/目标SHA一致；原54来源大ledger只收一份，七类逐逻辑来源保留producer与consumer、整组/部分合并及split/unit，不把归集计为新训练/test。
 
 旧四H/NP批次41receipt/29波/24claim、198轮/1163164更新及24test成本保持；原日志/缓存/指标与权重metadata核账范围不升级为32完整state/Adam/RNG审计、CUDA恢复或训练重演。UrbanEV四H默认五点内MSE/MAE最低，NP默认MSE最低但G3/R4 MAE略低，不据此换默认配置或宣称跨seed稳定。旧39真实模型评估＋独立O补做及两类原来源保持；前会话已审离线修复三个代码/测试文件字节未改，旧失败、AUTH/runtime/结果和历史图均原地保留。
 
-本轮归集的已有只读复制/逻辑键/覆盖/等权算术/哈希证据已获ChatGPT实际直读review Passed，限数据归集、完整性与采用口径：C/manifest 474成员、475条checksum，452副本逐一SHA一致且无硬链接；归集证据28成员/29checksum。原final_test读取位置工具失败及修复记录保留，原结果不改。该审核不升级为完整state/Adam/RNG或CUDA恢复审计；包内Pending/旧handoff保持历史字节。当前新治理文档字节待统一审核；全部unstaged/index空、无commit/push，原已审离线修复/归集与本次五文档在下一轮合并精确closure。
+本轮归集的已有只读复制/逻辑键/覆盖/等权算术/哈希证据已获ChatGPT实际直读review Passed，限数据归集、完整性与采用口径：C/manifest 474成员、475条checksum，452副本逐一SHA一致且无硬链接；归集证据28成员/29checksum。原final_test读取位置工具失败及修复记录保留，原结果不改。该审核不升级为完整state/Adam/RNG或CUDA恢复审计；包内Pending/旧handoff保持历史字节。原8路径已在24c45c9cb907148ac78cd438b4c953e6b244f0ac完成提交/推送与clean核验；本轮在该实际提交上只修订五文档，新字节待审、unstaged/index空，不stage/commit/push，不重做原closure。
 
 M6暂停新增实验、暂告段落，不机械标正式Closed或全部效果Passed。Goal1/2 Met、Goal3 Not met与单seed/开发test边界不变。最终区域名单/八案例、十幅EPF精简曲线与论文叙事后置；内部全量表保留但不要求正文/附录展示，不自动排名、名次配额或删除不利模型。
 
-[唯一M7：第四章开发与实验](M7_ch4_development_and_experiments.md)保持Planning，统一承担研究选型、获批baseline比较、候选迭代/消融/诊断及以后批准的补充实验。第四章具体路线、模型、接口、数据矩阵和协议全部待新会话研究与用户决定；第三章资产不等于第四章采用授权。上一版承接语句包含未经授权的技术假设，本轮纠正，不是用户更换已批准路线。C内第四章规划/旧交接的组织与技术内容均是过时快照，原字节保留。
+[唯一M7：第四章开发与实验](M7_ch4_development_and_experiments.md)保持Planning。第四章以完整ModernTCN-U+V v10及其U、V成果为时间建模基础，研究空间信息扩展；新增空间／时空方案、模块、信息交互、具体权重/接口/训练方式与实验合同待定。承接模型不表示所有原权重、数据、超参数或任务都自动适用；也不能未经批准退回裸模型、删U/V或换时间骨干。
 
-本轮只改文档，M6不变成M7实验日志。原归集/repair review保持，新纠偏字节待审，无stage/commit/push；未重跑offline_completion run/verify，不reset迎合旧基点。
+本次恢复既有跨章立意，纠正ChatGPT把时间基础也写成未定的错误，不登记为用户更换时间模型路线。原三repair及归集review/产物保持；C内旧handoff不作为现行空间方案指令，不否定已定v10基础。新会话当前仅背景阅读与只读承接，研究及执行任务由用户随后明确下发。
+
+本轮只改文档，M6非正式Closed，不变成M7详细执行日志；未重跑offline_completion run/verify，未实施负载。原closure已完成，本轮五文档新字节待审，无stage/commit/push。
 
 ## 全覆盖P15/C24已完成，O离线技术补做已完成
 

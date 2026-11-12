@@ -21,13 +21,13 @@
 
 阅读规则：先看本区块，不按时间戳、最后一轮目录或单次优胜值选择科学结果；以下历史“待启动/未完成”文字是原时点记录，不覆盖当前采用入口。全区域表是内部实验数据，不要求论文正文或附录列全表。每H两例/总八图仅为后续呈现意向；拟truth＋UV＋ModernTCN＋TimeXer，其余模型/区域由用户与ChatGPT后续明确；本轮不选最终名单，不以缺名单判定数据未完成。原四图及选择记录只作历史，原七类数值不因归集改变。
 
-审核与Git分列：ChatGPT已实际直读并批准集中包的数据归集/完整性/采用口径review，限474成员/475checksum、452副本SHA/无硬链接、54缓存及七类覆盖/真实复用来源等既定检查；不升级为完整state/Adam/RNG或CUDA恢复。原离线修复已审字节保持。包内Pending保留原送审时点，不回写C或重封包。当前治理文档新字节统一待审，仍全部unstaged/index空、无commit/push；下轮将原修复、已审归集文档与本次修订一次精确closure，不为回填自身SHA循环提交。未来展示只在明确presentation子包追加并维护本唯一入口。
+审核与Git分列：ChatGPT已实际直读并批准集中包的数据归集/完整性/采用口径review，限474成员/475checksum、452副本SHA/无硬链接、54缓存及七类覆盖/真实复用来源等既定检查；不升级为完整state/Adam/RNG或CUDA恢复。原离线修复已审字节保持。包内Pending保留原送审时点，不回写C或重封包。原8路径已在24c45c9cb907148ac78cd438b4c953e6b244f0ac完成closure，起点三端0/0/clean；本轮另有五文档承接修订待审，unstaged/index空、无commit/push，不重做原closure或沿用原许可提交新字节。未来展示只在明确presentation子包追加并维护本唯一入口。
 
-第四章现行入口：[大论文 07｜M7 第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)。M7统一承担研究选型、获批baseline比较、候选迭代与消融/诊断及以后批准的补充实验；先研究讨论、确认本批比较协议与范围，再完成获批比较并迭代选定backbone。baseline名单、技术路线、模块及其数量、信息交互、是否使用第三章资产或图/状态接口、数据/训练/评价与资源均未定。旧M7–M11→新M7，旧M12→新M8写作，旧M13→新M9终稿。
+第四章现行入口：[大论文 07｜M7 第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)。第四章以完整ModernTCN-U+V v10及其U、V成果为时间建模基础，继续研究空间信息扩展；这项承接已经确定，不重新列为候选。新增空间／时空backbone、模块、信息交互、具体checkpoint/表示/输出/接口与训练方式、baseline和实验矩阵/资源尚未定。比较baseline的原生时间组件不改变我们模型的基础关系。M7统一后续获批开发实验；M8写作、M9终稿。当前新会话先背景阅读与只读承接，研究及执行任务由用户随后明确下发。
 
-封存包README和`00_shared/handoff-readonly.md`中的第四章规划/旧交接在组织与技术路线两方面均已过时，不对当前M7选型形成约束；C原字节/SHA和第三章235条逻辑来源含义保持。上一包静态检查Passed不是科学选型授权，本次纠正其未经授权的假设，不改原报告或第三章审核结论。七类数据、单位、来源、展示待定状态和本区块表格保持。
+封存包README和`00_shared/handoff-readonly.md`不作为现行空间方案指令，也不反向否定已明确的v10基础；C原字节/SHA、235条逻辑来源、七类数据/单位/路径/引用关系与展示待定信息保持。本次纠正ChatGPT扩大“未定”范围造成的承接错误，不记录为用户更换时间模型路线，不恢复已排除空间候选。
 
-本轮新文档待统一审核，原修复及归集保持；未stage/commit/push、未实施正式负载。旧offline_completion工具不重跑run/verify、不reset迎合旧基点。Project injection与聊天交接由ChatGPT重新交付、用户替换，本工具未修改Project设置。
+本轮仅五文档新字节待审，不记作新实验、不重复制54缓存；原repair、归集和已完成closure保持。未stage/commit/push或实施负载，旧offline_completion run/verify未重跑。Project injection保持项目级规则，不复制到服务器，不修改Project设置或用户会话首条消息。
 
 <!-- CURRENT_ADOPTED_RESULTS:END -->
 
