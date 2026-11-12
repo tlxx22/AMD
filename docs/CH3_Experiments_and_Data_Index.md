@@ -1,5 +1,29 @@
 # 第三章实验说明与数据索引
 
+## 全覆盖数据采集：工程已审，进入closure与正式启动材料交接
+
+用户确认ChatGPT已通过Desktop Commander实际直读本轮13项目路径、161依赖、206外置成员/207校验，工程review Passed；8独立CPU用例/8执行通过，合成1构造/3前向/5呈现，真实负载尚未启动。旧四H/NP的41receipt/29波/24claim、198轮/1163164更新核账仍限封存、相关缓存及权重metadata，不升级完整state/Adam/RNG审计或CUDA恢复。新39冻结test评估＋O按40串行波/q1覆盖54单元、6600区域指标；15整组与5部分组保留真实producer/test来源，不混validation。资源“基于既有证据复用与差异评估接受；本轮未重新实测”，不宣称新GPU峰值/速度/真实恢复或科学效果Passed。
+
+原准备包`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-full-region-five-market-preparation-r1`及其Pending历史字节保持。此次closure入口为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-fullcoverage-review-closure-r1`；条件成功后正式许可入口为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-fullcoverage-launch-authorization-r1/AUTH.json`，须绑定实际新commit并通过轻量preflight，是否已生成以外置回执为准。配置仍`configs/m6_ch3_fullcoverage_v10.json`，两个参数启动脚本`scripts/ch3/start_m6_ch3_fullcoverage_v10.sh`。规划结果`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-fullcoverage-reporting-runs/all275-4h-epf5-sixmodels-first-r1`执行前尚不存在，不能写为完成；正式负载由用户最后启动，执行期间不改Git绑定工作区。
+
+只采集全量数据，不选区域或按指标增删曲线。逐位置组合由用户预先规划与可读性决定，具体名单未传入不表示结果驱动选择，也不阻塞数据覆盖。区域全表仅内部产物，不要求正文/附录展示；最终名单、曲线与论文叙事后置，不固定“八次优”配额。原四图/旧结果保留；Goal1/2 Met、Goal3 Not met、单seed与开发test边界不变，新结果review在执行完成后进行。本指南继续单份维护，不替代canonical/唯一M6，不新增平行索引。
+
+## 最新资料：旧四H/NP批次已完成；六模型全覆盖数据采集实现待审、未执行
+
+本指南仍为派生材料导航，不替代canonical与唯一M6。以下旧“未启动/规划”段落保留历史时点；现已完成来源为`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-ch3-amendment-runs/urbanev4h-np-amd-timexer-first-r1`。其`complete.json`、`runtime.json`、41 receipt/29波/24 claim、`plots/sensitivity-means.json`、`plots/five-model-position-summary.json`、`plots/source-ledger.json`及原四区域图均保留。训练198轮/1163164更新，test17218 batch/1480760呈现/3886560元素；本轮核账为文本、343非checkpoint payload、32权重metadata与20个所需旧缓存，不是完整state/Adam/RNG/CUDA恢复。先转FP64相减的历史异序差异与按生产顺序24项exact的ChatGPT复核声明并列保存。
+
+已完成敏感性主口径为UrbanEV四H等权＋NP：默认G5/R4在UrbanEV五点内test MSE/MAE最低（0.42970876852184436/0.4417005394048928）；NP默认MSE最低0.2623656241180711，G3/R4 MAE 0.29216226998993505略低于默认0.2933803950496397。只描述固定点集、单seed及已有test开发反馈，不据test换主模型、不称全局最优。Goal1/2 Met、Goal3 Not met及PJM历史补充保持。
+
+新已生成准备入口：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/M6-ModernTCN-UV-v10-full-region-five-market-preparation-r1`。`source/sources.json`逐54逻辑单元绑定原数据/protocol/profile/scaler/metrics/spec/strict-best/checksum与真实producer，`source/main-45-bindings.json`对应当前统一第二轮MS主表45baseline单元（PatchTST UrbanEV2层、EPF3层），UV九源沿批准v9→v10 P1链/原v10。`audit/reuse.json`导航NP/BE/DE15整组与H6五部分组的原receipt/runtime/cache，不能假定全部产于同一目录；`plan/urban-H3-all275.json`等四H文件及`urban-H6-remaining265.json`给出原metadata推导的样本键与SHA。原数据路径在每行`data_ref`、`data_protocol`及`test_arithmetic`，本轮不读取新原始test。
+
+新范围：ModernTCN B_cfg、TimeMixer、TimeXer、AMD、PatchTST、默认完整UV六模型；UrbanEV全部275节点×四H×共同2023-02-13至02-19目标周，以及五EPF完整test/P24。39项新增冻结test评估＋O、40串行波，10973 batch/1257300呈现/4866000元素；15整组及5部分组引用不计新增前向，无训练。H6原十区域每模型1680条缓存保留，只补265区域；H3/H9/H12分别推导各自origin/index，不能复用H6预测。全部54单元保留标准化/物理单位、时间/node/H、真实生产者与缓存血缘。
+
+规划输出（当前尚不存在）：`/public/home/yueweiting/大论文/amd-execution-evidence/m6/moderntcn-uv-v10-fullcoverage-reporting-runs/all275-4h-epf5-sixmodels-first-r1`。各job的`predictions.npz`、`source.json`、`result.json`、`access.jsonl`及claim/receipt供追溯；`data/source-ledger.json`连接新39评估和旧20引用，`data/merged/`仅保存H6五组无交无漏的合并缓存；`data/region-metrics-6600.csv/.json`、`region-wide-1100.csv`、`EPF-position-all.csv/.json`与五份`EPF-市场-six-model-data.json`为全量机器可读实验数据，不要求论文展示全区域表。每市场数据含MSE/MAE两套24位置序列，位置不是不同horizon训练。
+
+本轮不选区域、排名/阈值或最终3/4曲线名单。每H两例/八图只是后续意向；原四展示图与选择事实保留，不能冒称新最终方案或总体随机代表。数据完成后用`m6_ch3_fullcoverage_v10.entry plot-region`显式给H/node_ids/模型列表，或`plot-epf`显式给市场/模型列表，仅读缓存生成SVG/PNG，不再次推理。最终区域主图意向truth＋UV＋ModernTCN＋TimeXer，可选PatchTST/AMD以后决定；五市场最终曲线名单尚未指定。数据采集照样保留全部六模型，不按成绩增删、截不利尾部或凑八次优，不写论文正文。
+
+新代码8独立CPU用例/8执行通过，合成1构造/3前向/5呈现，旧缓存离线读20份单列；真实权重反序列化/原始test/模型负载/GPU查询0。合成全54单元汇总及3份SVG/PNG仅验收，不是科学图稿。161依赖、资源按既有证据与差异评估接受，本轮未重新实测。`REPORT.md`、`file-manifest.json`、`manifest.json`、`non-execution-preparation/OPERATIONS.md`和false/null模板统一待ChatGPT审核；未commit/push、未正式preflight/AUTH/attempt，真实负载由用户后续启动。执行中不改绑定Git工作区，完成审计后继续维护本指南，不另建状态索引。
+
 ## 四H/NP与五模型扩展：工程已审，正式执行材料定版、待用户启动
 
 ChatGPT已实际直读审核本scope，工程review Passed限实现、来源绑定、有限CPU与控制逻辑。152依赖、14路径、323成员/324校验；12独立用例最终通过，13执行12成功1历史fixture失败，来源检查失败及typed/篡改拒绝记录保持。UrbanEV四H等权＋NP完整25格采用原H6四点与五中心引用，PJM敏感性保留历史；五模型逐位置与十区域/锁定四图规则不变。q4训练/q1评估按既有证据和差异评估接受，本轮未重新实测。历史内嵌指针差异仅作已核实执行链范围内限定接受，不改旧protocol，完整协议/active data_ref/profile/stat继续严格绑定。Goal1/2 Met、Goal3 Not met不变；新训练/test/GPU恢复及科学效果尚未执行，不把规划输出标为已完成。
