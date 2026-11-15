@@ -5,7 +5,7 @@
 - [canonical：时间增强与时空预测研究实施方案](AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md)：当前科学/阶段合同与历史边界；文件名不变，文档标题不是已定论文题目。
 - [M6：第三章正式实验与定稿](milestones/M6_formal_experiments.md)：七类数据完成、暂停新增实验，归集review Passed、原Git收口已完成；本轮仅承接文档修订待审，图稿/写作后置，非正式Closed。
 - [第三章实验说明与数据索引](CH3_Experiments_and_Data_Index.md)：唯一CURRENT_ADOPTED_RESULTS区块和七类集中包入口；不按历史段落时间戳挑结果。
-- [大论文 07｜M7 第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)：Planning，以完整ModernTCN-U+V v10为时间基础，新增空间／时空方案及具体权重/接口/训练方式、实验矩阵待定；当前仅背景阅读与只读承接，研究执行任务由用户随后下发。
+- [大论文 07｜M7 第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)：完整v10＋PDFormer关系/HimNet条件低秩改造；18模型×12任务的统一比较准备正在落实，工程/资源审核及正式训练未完成。最新patience为UrbanEV/CHARGED20、PEMS40；精确合同见canonical，执行与缺口见唯一M7。
 
 本页仅导航，不复制七实验指标或维护第二份细粒度进度账。旧“G0收尾已完成；M1尚未开始”是过时导航，已撤下；各阶段历史Closed/commit/产物由原milestone记录，不在这里猜填。
 

@@ -1,0 +1,128 @@
+{
+  "UrbanEV": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-UrbanEV-r1/identity.json",
+      "sha256": "f528f8fa2fb33586b2766195afdfc29853d4bbd8d8b4a108ed45f2f1ba4085ff"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-native-cache-launch-r1/patterns/UrbanEV-r1/pattern-identity.json",
+      "sha256": "c9b8c62fae79f0fbfb2031bc5673adff3c6ed908208ed3bb1390365278fefdbb"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/UrbanEV.json",
+      "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
+    }
+  },
+  "AMS": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-AMS-r1/identity.json",
+      "sha256": "b79f3431a0f984a5e00b78f64be5f82281595e9ff1a3ae9d24c130b155fe803b"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-native-cache-launch-r1/patterns/AMS-r1/pattern-identity.json",
+      "sha256": "bc2d1940e382b9a09c9fd3bd9b599fb42ab25f7573ae416985287725c3b644a7"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/AMS.json",
+      "sha256": "c94ee96fb7f5b04b2058b1331a44baa69997b203406a3c5c1c19c827f67363fc"
+    }
+  },
+  "JHB": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-JHB-r1/identity.json",
+      "sha256": "e1b97cd90db982891096661f9a46f1bc059ecae96dd65f45951f5442368d1daa"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-native-cache-launch-r1/patterns/JHB-r1/pattern-identity.json",
+      "sha256": "3af2016a3314d2fc76b76ab2f8a3823409ddfa2195ab7874ad6345ebd6cf7ee7"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/JHB.json",
+      "sha256": "5d656de9972a6bf2250652ad880c18f7752ee87226b98c43963d01d02016398a"
+    }
+  },
+  "LOA": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-LOA-r1/identity.json",
+      "sha256": "98a6b1c5aa7879dbb74eb951d8b313819151754429921d897bc7a8458389a740"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-native-cache-launch-r1/patterns/LOA-r1/pattern-identity.json",
+      "sha256": "0c6d3a916d0dcf462d48737ddd43ab744c7faf0d71d7f48df5c5e2b5cc9206c1"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/LOA.json",
+      "sha256": "ee67a8a43016751f64e578da13ff00a462bc090a3dfd23e1d49bdc38dd04494a"
+    }
+  },
+  "MEL": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-MEL-r1/identity.json",
+      "sha256": "f35fcfec20a6bbf11926431abbc56f50356d0f5220d2dc9b56b5878dd82a9c43"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-five-domain-cache-launch-r1/patterns/MEL-r1/pattern-identity.json",
+      "sha256": "5766a5b3d7645f8ad3cdf886ddad4c325de86712581d817f66d057a5f4693664"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/MEL.json",
+      "sha256": "acf9850f77f53f838aaf6ef65d3e95e9e8b61495816ee56e7cb6d11e7e1bdbc5"
+    }
+  },
+  "SPO": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-SPO-r1/identity.json",
+      "sha256": "b71d1a38ecb6cc643cec03ab58272101f47b219b3cf44f367eeb26417353910c"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-five-domain-cache-launch-r1/patterns/SPO-r1/pattern-identity.json",
+      "sha256": "ee0c740a3e3946ef2aa378e5f4624649824a8c959974e9863d0d0e2a8a6bc76f"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/SPO.json",
+      "sha256": "d46af4197bd80e84317aba23e6cb85a50455a8af4f24d14d14407aebafd4d67b"
+    }
+  },
+  "SZH": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-SZH-r1/identity.json",
+      "sha256": "831bcebe2abac92715edddf562e4a10470d34cbe3671611434201fbeedb69a34"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-five-domain-cache-launch-r1/patterns/SZH-r1/pattern-identity.json",
+      "sha256": "7bd911795b93884a9b7d294be399098c80db25412a12e1d0174154815b2ffada"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/SZH.json",
+      "sha256": "656e70dd88aa7615444b4e6bc2daf2997cde3bee31aa64b0f24efb28fcbc5649"
+    }
+  },
+  "PEMS04": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-PEMS04-r1/identity.json",
+      "sha256": "4dbd5bb08e590776f3c8d0983804d772a6e634684e529a9dbae4559fa3fc08b4"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-five-domain-cache-launch-r1/patterns/PEMS04-r1/pattern-identity.json",
+      "sha256": "8a35b830099585d66cb223976f15c967779355ea8cfbe2db13fdc85eb1d35fda"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/PEMS04.json",
+      "sha256": "63916cb8138be6541ab7d5752f764b5d1f73b68be40e504aeac998a7cdb392d8"
+    }
+  },
+  "PEMS08": {
+    "fixed_graph_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-PEMS08-r1/identity.json",
+      "sha256": "201d87bbf9ccf8d6da958e5d39f38d036f5db2eb79cb3db6e9d809ae42675a81"
+    },
+    "pattern_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-five-domain-cache-launch-r1/patterns/PEMS08-r1/pattern-identity.json",
+      "sha256": "fd22bfbc866562fb5d1e1933a51745be11bcff3788f89d57abed8bf889642c8a"
+    },
+    "candidate_identity": {
+      "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-train-coverage-adaptation-r1/candidates/PEMS08.json",
+      "sha256": "05d1b3a2ff3668d2f86af659744a15e39deb937b1e29ab6d6135c4bf5aca2bd7"
+    }
+  }
+}

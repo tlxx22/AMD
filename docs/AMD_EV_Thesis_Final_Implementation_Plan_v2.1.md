@@ -2,25 +2,25 @@
 title: "时间增强与时空预测研究实施方案（执行合同，非已定论文题目）"
 author: "面向服务器 Codex 开发的唯一权威实施文档"
 date: "2026-08-15"
-version: "v2.1-R4（v10时间基础已定；第四章空间方案与具体接线待定）"
+version: "v2.1-R10（PDFormer更新后空簇回滚与提前终止适配）"
 ---
 
 # 0. 文档定位
 
 <a id="current-research-contract"></a>
-## 当前研究合同：第四章以完整v10为时间基础，空间方案待定
+## 当前研究合同：完整v10空间扩展与216项统一比较（2026-11-14更新）
 
-第四章以第三章已经完成的ModernTCN-U+V v10为时间建模基础，继续研究引入空间信息的模型扩展。这一跨章承接关系已确定，不重新列为候选。完整U、V成果及第三章默认G5/R4基础身份保持，不能未经批准退回裸ModernTCN、删除U/V或更换时间骨干，也不能把v10仅降格为可有可无的对比baseline。此前把“是否采用第三章模型”写成待定，是ChatGPT扩大未定范围的错误；本次恢复既有立意，不登记为用户更换时间模型路线。
+研究对象以城市电动汽车充电需求预测为核心。第三章研究时间建模，第四章在完整ModernTCN-U+V v10基础上研究空间信息扩展；CHARGED六城是六个独立EV数据域，PEMS04/08为交通流跨域比较。论文正式名称和效果结论不由工程身份代替。
 
-新增空间／时空骨干、增强模块、信息交互、具体接口，以及权重初始化、冻结/微调/联合训练方式和第四章实验协议尚待研究与用户决定。以v10为基础不等于预设空间残差、独立预测旁路或某个固定图接口，也不授权修改第三章已冻结实现及产物。第四章比较baseline可有各自原生时间组件，不改变我们改进模型以v10为基础的关系。
+用户已批准：完整v10 U/V、G5/R4；改造PDFormer地理/语义关系和HimNet接收端条件低秩响应；空间交互在最终H之后、原head与U之前。两论文模型均fresh联合训练，不加载第三章真实权重。完整公式、任务、统一训练及test合同见§10–16；当前不重新选时间基础，也不恢复已排除路线。
 
-第三章七类数据集中于`/public/home/yueweiting/大论文/amd-execution-evidence/m6/CH3_Results_Consolidated_v10_r1`，B=cfg_adapted_v1、真实v9/P1及V3等价引用链保持。既有数据归集/完整性/采用口径review Passed，不升级为完整state/Adam/RNG或CUDA恢复审计。[第三章实验说明与数据索引](CH3_Experiments_and_Data_Index.md)唯一CURRENT_ADOPTED_RESULTS继续导航。M6七实验数据完成、暂停新增实验、非正式Closed；Goal1/2 Met、Goal3 Not met、单seed2024及test开发反馈限制保持，最终区域/曲线尚未全部定稿。承接时间模型不自动继承第三章所有权重、数据、seed、超参数或test政策。
+独立工作区`/public/home/yueweiting/大论文/CH4-v10-spatial`、分支`M7-v10-spatial-v1`，真实parent/当前HEAD为`ee8ea3f32e87ed48608d21991a4fc60d06891c23`；新分支无upstream，存在未提交实现，不能称clean或三端一致。第三章工作区、冻结源码、正式配置和产物保持。仅本工作区canonical及[唯一M7](milestones/M7_ch4_development_and_experiments.md)管理本轮执行。
 
-第四章全部开发与实验统一在[唯一M7](milestones/M7_ch4_development_and_experiments.md)。后续工作方式是确认适用比较协议与范围，完成获批baseline比较，再在既定v10时间基础和选定空间方案上迭代改进、消融与诊断。新增模块身份/数量/来源/公式和首批矩阵尚未确定，已排除的空间路线不恢复候选资格。该工作方式不是本轮开工授权：ChatGPT第四章会话与Codex第四章会话当前都先完成背景阅读、只读承接核验和理解回执，具体研究及执行任务由用户随后明确下发。
+最新审批取代首版19模型/228项、模型专属训练配方及固定N分段batch/并发规则：PatchSTG退出，18模型×12任务×seed2024=216项。最大16200 run-epochs；UrbanEV/CHARGED cap50、patience20，PEMS cap200、patience40。全部Adam、OneCycle、标准化MSE预测主损失；正式指标仅标准化MSE/MAE，同一strict validation MSE-best。真实零有效，方法固有辅助约束单列。资源容量/并发仍须有限探针和审核后冻结，当前没有GPU负载或正式训练/test启动许可。
 
-旧M7–M11职责合并到新M7；旧M12→新M8论文正文/图表/结果分析，旧M13→新M9终稿/复现材料/答辩，M0–M6历史编号不变。封存包README/handoff的旧第四章规划不作为现行指令，不反向否定本条已确定的v10基础；封存字节不改。
+第三章七类采用数据、CURRENT_ADOPTED_RESULTS、真实producer及v9/P1/V3引用链不变；M6暂停新增实验但非正式Closed，Goal1/2 Met、Goal3 Not met、单seed及test参与开发的历史保持。M8负责正文/图表/分析，M9负责终稿/复现/答辩。本轮仅工程落实和准备，结果采用与科学结论不预写。
 
-此前8路径已在实际提交`24c45c9cb907148ac78cd438b4c953e6b244f0ac`收口，父提交为`16e45afe658bc5fdf0ec1ab2801fc893b7ed3866`。本轮从该提交的clean工作区开始，仅五文档修订待审；不重做原closure、不沿用原8路径许可提交新字节，不stage/commit/push。未研究选型或实现模型/图/接口，未生成AUTH/队列/worktree，未训练/推理/读原始test或checkpoint/查询GPU。Project injection保持项目级规则，本工具不复制、不修改Project设置或用户会话首条消息。
+此前五文档closure及旧8路径closure保留为历史证据；本轮新增实现不能沿用旧提交许可。当前实现尚待ChatGPT审核，不stage/commit/push，不生成正式AUTH，不启动正式训练、test或GPU探针。来源、数据前缀及有限CPU验收证据位于`amd-execution-evidence/m7/M7-v10-spatial-implementation-r1`。
 
 ## 0.H 已完成第三章轮次与旧规划的历史增量（不作为新M7任务许可）
 
@@ -426,7 +426,7 @@ M4 外生模块状态：TimeXer-inspired TEB 与 CrossLinear-inspired CCE 均已
 
 | 新会话标题/阶段 | 当前职责 | 历史映射 |
 |---|---|---|
-| 大论文 07｜M7 第四章开发与实验 | 以完整v10为时间基础，新增空间方案待定；后续获批比较、开发/迭代、消融与补充实验统一记录 | 旧M7–M11合并 |
+| 大论文 07｜M7 第四章开发与实验 | 以完整v10为时间基础，落实获批空间扩展与216项比较准备；迭代与新增实验另行批准 | 旧M7–M11合并 |
 | 大论文 08｜M8 论文正文、图表与结果分析 | 跨章节正文、图表与论文结果叙事 | 旧M12职责归新M8 |
 | 大论文 09｜M9 终稿审校、复现材料与答辩 | 全文审校、复现交付、答辩 | 旧M13职责归新M9 |
 
@@ -1368,27 +1368,15 @@ UrbanEV 的 `train_validation_only` 必须在数据构造层隔离：不创建 t
 
 上述全部结构、source paper/repo/commit/PDF/core SHA、license-text-missing、retained/deleted components、raw/latent order、d/K/alpha/epsilon/dropout/gamma、FFT/denominator/scale/softmax/var_attn/reconstruction/readout/init policy、task/schema/order、evaluation policy 与 module-init-seed policy必须进入 resolved config、scientific/comparison hash、checkpoint、manifest、resume preflight 和 summarizer。resume 只允许同一 Sonnet variant/ablation/task/schema/order/T/d/K/alpha/policy/evaluation/scientific config 的 `strict=True` restore；跨 TimeXer/CrossLinear/XLinear、control/candidate、target/parallel、schema/order或结构不匹配、partial `sonnet_mvca.*`、key/shape/dtype 不匹配均须在写参前原子拒绝。
 
-## 1.2 第四章：v10时间基础已定，空间方案与具体协议待定（现行）
+## 1.2 第四章：完整v10上的获批空间扩展（现行）
 
-第四章在完整ModernTCN-U+V v10及其U、V成果上继续开发空间信息扩展，第三章默认G5/R4是已确认基础身份。它不是重新提请选择的时间候选，也不是仅用于可选对比。未经批准不得退回裸ModernTCN、删U/V或换时间骨干；未来确需接线调整，须给出方案和改动范围，保留第三章原实现/产物，本轮不授权调整。
+时间基础固定为完整ModernTCN-U+V v10及默认G5/R4。新增关系机制源于PDFormer、接收端条件参数思想源于HimNet，按§11公式改造；没有装入两个完整来源模型。最终H的target切片进行空间交互，原head与原U共同读取H*，U仍修正输出而不写回H。fresh联合训练，无独立空间预测head或额外时间旁路。
 
-| 内容 | 当前状态 |
-|---|---|
-| 跨章承接与时间基础 | 已定：第四章以完整ModernTCN-U+V v10为时间建模基础，研究空间信息扩展 |
-| 新增空间／时空backbone或框架 | 待选；指新增建模部分及其与v10的组织，不重新选择第三章时间基础 |
-| 新增模块 | 身份、数量、来源、插入/替换方式和公式未定 |
-| 信息交互 | 在何处、如何交互；残差/串联/并联/分层融合/联合建模均未定，不预设预测相加或旁路 |
-| 具体权重、表示与训练方式 | 是否加载某个checkpoint、冻结/微调/联合训练、表示暴露、原head保留/适配及数据域适配未定；不等于是否采用v10未定 |
-| 图与接口 | 是否需要图、邻接、Graph Mode、StateAdapter及维度等未定，不预先实现 |
-| 实验与资源合同 | baseline名单、首批数据/任务/输入输出/划分、seed/超参数/损失/指标/best选择/test边界、复现需要、预算、定量标准及额外实验未定 |
-
-M7统一承担第四章全过程，不逐模块拆milestone。后续确认适用比较协议与范围，完成获批baseline比较，再在既定时间基础和获批空间方案上迭代、消融、诊断。对比baseline可使用各自原生时间组件，不据此替换我们改进模型的v10基础。当前收到交接仅作背景阅读、只读核验和理解回执；研究、选型和执行任务由用户随后明确下发，不因Planning或baseline-first自动开工。
-
-已排除旧空间骨干/模块不恢复候选资格，也不通过来源名称变相恢复。第三章原权重/数据/参数/seed和test经历不自动变成第四章实验协议；这项限制不撤销完整v10作为时间基础的决定。公平性、无泄漏、真实来源/成本原则保持，不借原则固定空间架构或接口。旧规划与纠正前文本可从既有证据、Git和本轮before/diff追溯。
+具体实现及216项比较准备已获批准；工程审核、资源探针、closure和正式启动是不同状态。M7统一开发实验，后续消融、额外seed/HPO/效果门槛仍需新授权。第三章源码、结果和历史访问保持不变；比较baseline保留各自原生时间/空间机制。
 
 # 2. 第三章来源与未采用历史规划的边界
 
-第三章当前采用来源从[七实验索引](CH3_Experiments_and_Data_Index.md)及其封存ledger查询，真实producer/引用链不改。完整v10已确定为第四章时间基础；其具体权重、表示和接线使用仍待方案明确。§23的旧空间文献仅供历史追溯，不代表新增空间候选池、指定baseline、必须复现或当前贡献表述。
+第三章当前采用来源从[七实验索引](CH3_Experiments_and_Data_Index.md)及其封存ledger查询，真实producer/引用链不改。完整v10已确定为第四章时间基础；本轮具体初始化、表示和接线按§10–16执行。§23的旧空间文献仅供历史追溯，不代表新增空间候选池、指定baseline、必须复现或当前贡献表述。
 
 原来源角色表及未来贡献示例已从现行设计撤下；原文可查本轮证据`before/AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md`对应§2，以及上一包before/patch和Git历史。不得按旧文献表恢复已排除的路线，第四章选型遵循§1.2。
 
@@ -1558,19 +1546,19 @@ resume 时必须核对 variant、dataset、task_mode、target、horizon、fold�
 
 UrbanEV `target_exogenous` 正式 runner 必须直接消费 M1 的共享数据对象：`UrbanEVRawData.load(data_root) -> UrbanEVFoldPreprocessor.fit_transform(fold,preset) -> one shared UrbanEVFoldBundle -> TemporalRegionDataset(train/validation/test)`。不得另建 scaler、split 或窗口逻辑。固定 `seq_len=history_len=12`、`label_horizon in {3,6,9,12}`、`model_pred_len=1`、`fold in {1,...,6}`；artifact 的 `horizon_<h>` 使用 `label_horizon`，而非 `model_pred_len`。
 
-## 4.2 第四章：既定时间基础与待定信息交互/接口
+## 4.2 第四章获批接口
 
-完整ModernTCN-U+V v10作为时间基础已定。新增空间／时空部分怎样与其交互、在什么层交互，以及权重加载、表示/预测使用、原head保留或适配、冻结/微调/联合训练方式，均待研究与用户决定。是否需要图、邻接、Graph Mode、状态提取或StateAdapter及接口维度也未定。
+`X[B,12,N,C] → x[BN,12,C] → 单次原RevIN norm → stem/patch与包含V3的全部时间block → H[BN,C,64,12]`。target恢复为`Ht[B,12,N,64]`，执行§11空间计算后仅替换target切片；其它C切片不变。原head和原U共同读取H*，U输出只加回target预测，使用同次norm统计denorm一次，恢复`[B,P,N]`。
 
-当前没有已批准的固定wrapper、node-wise展开/restore、图窗口或传播需求，不预设独立预测旁路或预测相加终式。模型承接与具体接口选择分开；未确定接口不等于可以重新选择时间模型。
+只在M7 wrapper组织冻结模块前后两段，不修改v10/v9/v3、原head/U、models/tsAMD.py，不全局monkey patch，不先完整forward再重复读出。N是区域/站点数，K=12是patch数，两者不混同。
 
-## 4.3 后续验证的适用边界
+## 4.3 定向验收边界
 
-未来接线调整应明确方案、范围和验证对象，并保留第三章原实现/产物；按批准语义做必要身份、数据完整性、公平性、无泄漏和数值检查。本轮不预设关闭分支行为、等价对象或执行动态测试。第三章已审exact/数值政策保持其原适用范围。§8.0的代码事实用于以后论证如何在v10基础上接线，不表示未来state API已经实现，也不代替其具体方案批准。
+检查冻结SHA/import绑定；独立检查spatial_disabled分段路径及实际执行空间但ΔH=0路径与完整v10等价；P1/P12/P24、一次head/U/norm/denorm、target索引及非target不变；稀疏对dense、偏移与缺失/self、节点置换、两条读出梯度；baseline字段/输出/缺失及日历；统一协议、strict-best、OneCycle/optimizer/RNG恢复与一次test状态机。既有exact断言保持，普通浮点按适用政策，不用skip或放宽容差凑通过。有限CPU检查不等于GPU容量/训练/效果复现。
 
 # 5. 第三章任务模式、输入变量与目标输出合同
 
-以下为第三章已执行协议及其历史调整，原数据、结果和访问边界不变。继承完整v10基础不使其中全部参数、目标、训练选点与test政策自动成为第四章协议；已定基础与待定细节见§1.2。
+以下为第三章已执行协议及其历史调整，原数据、结果和访问边界不变。继承完整v10基础不使其中全部参数、目标、训练选点与test政策自动成为第四章协议；本轮已批准细节见§1.2及§10–16。
 
 ## 5.1 第三章统一 MS 精确合同与历史兼容边界（User confirmed）
 
@@ -2790,7 +2778,7 @@ Early 与 Late CCE 的工程实现、永久测试和 development artifact 作为
 <a id="v10-time-interface-current"></a>
 ## 8.0 第三章v10代码事实（普通时间batch语义）
 
-本轮仅静态读取已绑定源码，未导入或执行模型：`moderntcn_dev_v10/model.py`继承v9的forward/_block执行，按pred_len选择v9的P1样条或v10多步horizon-coupled U；v10/v9的modules均引用v3的ConditionalTemporalFilter。第四章以完整v10为基础已定，以下事实用于后续接口论证，不预先决定是否提取某个表示或实现未来state API。
+以下为第三章冻结源码事实（原交接时仅静态读取）：`moderntcn_dev_v10/model.py`继承v9的forward/_block执行，按pred_len选择v9的P1样条或v10多步horizon-coupled U；v10/v9的modules均引用v3的ConditionalTemporalFilter。第四章分段wrapper在独立ch4包落实§4.2，不改变以下原实现。
 
 ```text
 x[B_time,T,C] → 单次RevIN norm → native stem/patch → H0
@@ -2800,9 +2788,9 @@ H[:,target_idx,:,:] → flatten → U → delta[B_time,P]
 y0 target + delta → 原RevIN denorm → y 或 (y, diagnostics)
 ```
 
-B_time表示普通时间模型batch，不预设为图节点展开。target latent为`[B_time,D,N_patch]`，N_patch是patch数。U在head端修正target输出而不写回H，当前forward不提供AMD式三元state_source，也没有公开返回H的wrapper。其它通道输出不是新增监督标签。
+B_time表示普通时间模型batch，不预设为图节点展开。target latent为`[B_time,D,N_patch]`，N_patch是patch数。U在head端修正target输出而不写回H，第三章原forward不提供AMD式三元state_source或公开返回H的wrapper；M7另设分段执行。其它通道输出不是新增监督标签。
 
-D64、N_patch=L//patch_stride、原UrbanEV L12/P1与EPF L96/P24等是第三章既有spec/任务事实，不能据此自动指定第四章全部任务参数。完整v10默认G5/R4是既定时间基础身份；加载哪个checkpoint、怎样暴露/使用表示与输出、是否保留原head及训练策略仍待方案明确。此处不定义未来图路径、状态投影、空间传播或关闭分支要求，也不授权更改第三章冻结实现。
+D64、N_patch=L//patch_stride、原UrbanEV L12/P1与EPF L96/P24等是第三章既有spec/任务事实，不能据此自动指定第四章全部任务参数。完整v10默认G5/R4是既定时间基础身份；第四章已批准的fresh初始化、H接口、原head/U和联合训练按§4.2及§10–16。此处不授权更改第三章冻结实现。
 
 §8.1–8.3是历史M3/CCE接口与当时审核记录，不指导第四章选型，也不恢复旧接口资格。原第三章代码、状态与审核不改。
 
@@ -3079,7 +3067,7 @@ formal seed=[2024]、std=N/A、随机初始化稳定性Not evaluated保持；fol
 
 ### 9.6.2 第四章预算：未确定
 
-M7组织及完整v10时间基础已定；新增空间方案、数据任务、baseline、训练评价协议、复现需要与额度尚未定。承接模型不使第三章fold/seed/形状及所有训练超参数自动成为第四章默认协议。待具体方案获批后核算成本，本轮不生成AUTH/队列或推测耗时。
+M7现行方案、216项任务及统一训练预算见§10–16。承接模型不自动继承第三章训练配方；本轮不生成正式AUTH或启动。窗口/update预算由实际数据前缀和候选batch计算，GPU小时与并发须后续资源证据。
 
 以下仅保留旧情景与第三章历史成本记录；其矩阵、参数和“路线不变”等语句均无当前M7效力，不是新候选池或执行要求。
 
@@ -3185,41 +3173,115 @@ MPS 仅列可选项，须核验权限、对共享 GPU 的影响及恢复策略�
 
 未来长时任务仍须完成获准实现、review/closure 和独立训练前准备；守护方式实测后按 tmux > systemd-run --user > nohup+setsid 选择，提供完整启动、日志、进程/状态、完成判断和安全停止命令，默认由用户启动。失败/中断先审计 resume，不删除证据、不自动重跑。本节规划不等于执行上述流程的授权。
 
-# 10. 第四章当前接收：背景阅读与只读承接核验
+# 10. M7当前授权与来源
 
-ChatGPT第四章会话及Codex第四章会话当前均先阅读背景、只读核对实际Git/文档和理解回执。收到交接消息不自动授权研究、选型或执行；具体任务由用户随后明确下发。本次只由文档治理Codex完成五文档修订，不是开发会话开工指令。
+本轮实现模型、18模型比较接入、数据/训练协议、有限CPU验收和总启动器，统一送ChatGPT工程审核。随后才在明确范围内执行资源探针；正式负载须closure、实际commit/SHA与AUTH绑定、轻量准入及用户最后启动。无正式AUTH模板冒充许可。来源固定完整commit、核心文件/config SHA；源码可读不等于论文复现。
 
-后续工作方式仍是确认适用比较协议和范围、完成获批baseline比较，然后在既定v10时间基础及选定空间方案上迭代改进与消融。baseline名单、数据任务、是否原论文复现及预算未定，本轮不开展这些研究或比较。
+主机制来源：PDFormer `f8c8f6ad007a04fad3baee958b89504711852ce9`；HimNet `2a9aa44d1864f6fb60bdf9d14bafd6c1681e81a5`。其它外部来源详见M7来源注册；原已排除HSTGCN/core、ASTGRN/SADR、G-STAN/SC-SimGCA不恢复。PatchSTG按最新决定全局退出本轮集合，已下载来源和历史证据保留，不补入替代模型。
 
-# 11. 既定时间基础与待选新增空间／时空backbone
+# 11. 主模型与空间公式（已批准）
 
-完整ModernTCN-U+V v10及U、V成果是既定时间建模基础。待选backbone指第四章新增空间／时空建模部分的骨干或框架，以及其与v10的组织方式；不表示重选时间骨干，也不能把v10降格为可有可无的baseline。比较baseline可以保持各自原生时间组件。
+工程身份`ch4_v10_pdformer_him_v1`不是最终论文命名。时间部分与完整v10参照同为U/V开启、G5/R4、D64、单block、ffn_ratio1、patch_size/stride1、L12/K12、large7/small3、dropout0.1、head_dropout0、RevIN affine0、不融合大小核。Urban继承cfg_adapted_v1；CHARGED/PEMS仅迁移C/P，不采用EPF patch8。P1使用原v9 U类，P12使用v10已有多步U；均从头初始化、全参数联合训练。
 
-新增部分是否使用图、邻接或其它机制，具体信息交互、接口和训练方式尚未定。没有指定空间候选、公式或图路径；已排除的旧路线不因恢复v10承接而恢复资格。
+对最终target状态Ht[B,K,N,64]，z=Ht Wp；s为RevIN前目标历史mean与log1p总体方差。数据层已标准化时s在该标准化坐标系，不称原始物理量。geo/sem独立Q/K输入[z;s]66维、V输入z64维，各4头×16维。geo偏移{0,1}，sem{0}；score=q·key/sqrt(16)+偏移bias+mask，只有geo δ1每头可学习bias、初值0，δ0固定0，无距离bias。softmax沿合法节点×偏移联合归一化，支持/偏移越界/数据可用性共同约束；有效query保留self，全不可用输出零增量并记有效性，不做全-inf softmax。稀疏邻居gather与dense数学参考一致，偏移只解释为隐藏表征对齐。
 
-# 12. 新增模块：未确定
+各头拼接m64，无额外输出投影。接收端gamma=tanh(g([z;e;s]))，e16，g为82→32 GELU→8；T=mW0+((mL)⊙gamma)R，W0 64×64、L64×8、R8×64，geo/sem全部独立。ΔHt=concat(Tgeo,Tsem)Wo，Wo128×64；Ht*=Ht+ΔHt。除MLP保留bias外投影均无bias；不增LN/FFN/门控/辅助loss，不生成U/V参数或逐边64²矩阵。Wo零，W0可训练单位阵，其余线性及L/R Xavier uniform，MLP bias0，node embedding Normal(0,.02)，L/R不同时置零。先原路径初始化v10，空间初始化用局部RNG，保证主模型与v10参照时间初值相同。
 
-模块身份、数量、来源、插入/替换方式和公式均未确定，不保留已排除旧模块作为候选或优先项。先有研究依据与用户决定，再实施获批候选，不为满足数量预设拼装机制。
+# 12. 空间关系与baseline结构
 
-# 13. 信息交互：未确定
+主模型geo：UrbanEV官方275区域distance.csv；CHARGED各城官方WGS84椭球距离；PEMS采用发布distance.csv的距离权重（单位及是否道路物理长度未核实），派生无向图、平行边取最小合法权重、最短路不可达∞。各节点取至多8个非self有限近邻，并列按固定node order，双向并集+self，不用∞补满，不静默修改原adj。对称支持不要求对称attention。
 
-是否区分时间/空间分支，以及串联、并联、残差、早期/中间/输出融合或端到端联合建模均未决定。是否需要状态提取、适配器及其维度和训练方式也未决定；没有当前接口伪代码或必经实现链。
+主模型sem：仅当前train目标，24小时日内均值剖面；PEMS仅构图时按小时先聚合。去均值L2归一化，严格正cosine至多8个非self，保持有向row-top-k+self。norm(centered)<=1e-12 max(1,norm(profile))为常量，仅self且不作为别人候选；真实零参与、缺失独立mask，缺训练小时不得借validation/test补齐。缓存绑定数据版本、split/node order、来源及代码SHA、方法参数。
 
-# 14. 预测与监督：未确定
+16个外部baseline为AMD、DLinear、ModernTCN、PatchTST、TimeMixer、TimeXer、iTransformer、PDFormer、HimNet、TESTAM、D2STGNN、MegaCRN、STDN、STAEformer、Graph WaveNet、AGCRN；另列完整v10及新模型，共18。保持原生机制和全部批准历史字段输入，时间模型按BN计算、无显式跨节点传播。结构与训练配置分区保存。七时间baseline跨全部第四章数据域继续使用第三章当前采用的最新统一第二轮UrbanEV MS结构，只适配N/C/L/P、target、输入及日历；不恢复历史M、C.1或弃用版本，PatchTST按实际MS的e_layers=2，ModernTCN保持B_cfg。只有九个新增空间/时空baseline适用对应数据集作者结构→作者推荐完整默认/默认入口→构造器明确默认的回退，缺必需值则报告，不任选相近数据集。完整v10和新模型结构不重新开放。三类来源均不能携带旧训练参数覆盖§14统一协议。
 
-完整v10是第四章时间基础；具体预测组织、输出/head适配、监督、损失、权重初始化及训练/冻结/联合策略、best选择或test访问政策尚未确定。不据基础关系固定S0实验身份、独立预测旁路、预测相加终式或关闭分支行为。第三章模型和结果仍按原合同保留。
+Graph WaveNet固定gcn_bool/addaptadj/randomadj=True、aptonly=False、adjtype=doubletransition，随机初始化仅指自适应参数，不随机化固定图。MegaCRN用model/traintest_MegaCRN.py默认结构；STDN PEMS08用作者默认入口conf/PEMSD4_1dim_12.conf结构，训练字段全部覆盖。PDFormer原生baseline保留train-only DTW/模式构造，主模型cosine是改造，不能互相冒名。
 
-# 15. 数据与任务：未确定
+**固定地理图迁移（用户批准的现行定义）。** CHARGED逐城以官方距离D按目标node_order显式对齐行列ID，核对有限、非负、对称、对角零。sigma=std(vec(D),ddof=0)包含完整矩阵全部元素及对角零；W=exp(-(D/sigma)^2)，严格小于0.1置零、等于0.1保留，得到基础加权A，Aii自然为1。float64计算、阈值后float32缓存；非self零距离有效，不减距离均值、不加2/epsilon、不跨城估sigma。缺失/负值/错位/sigma<=0阻断该城图准备。这是DCRNN来源高斯核向CHARGED的明确迁移，不称官方邻接或已验证最优关系，不搜索阈值。
 
-数据集、城市、任务、L/H/P、输入、目标、划分/fold、seed、指标和超参数均未确定。第三章UrbanEV/EPF及其它历史数据域记录是已完成资产或旧规划，不自动构成第四章矩阵、默认值或批准范围。
+令R(A)=diag(A1)^(-1)A，零度行输出零。Graph WaveNet消费[R(A),R(A.T)]；D2STGNN消费[R(A).T,R(A.T).T]，分别保存gwn_supports与d2_supports，不混用未注明方向的supports。即使对称A导致两槽重复仍保留两槽；D2后续动态关系、归一化及mask+1e-7按来源保留，固定先验阈值不意味着动态图外严格零。
 
-# 16. 获批比较与后续迭代（统一M7）
+PDFormer的CHARGED输入A已经是权重，不再高斯化；hop由A>0求有向跳数，对角0、不可达/截断511。若后续绑定结构实际使用dist，必须保留原始距离为代价，不能把相似度当距离；当前登记profile为hop。STDN非PEMS消费B=1[i!=j且Aij>0]再走原cal_lape维度32。不得因孤立点/维度不足缩编码、删节点或补边。UrbanEV基础拓扑保持原adj.csv和节点顺序，不全局对称化/改成高斯；模型派生自环/二值化另记。PEMS预制连接来自发布有向边的0/1邻接，cost单列为距离权重；PDFormer来源PEMS bidir=True仅作用于其连接副本，主模型无向距离近邻规则不变。原生模型若实际需距离转权重，须记录来源流程，不能将更大cost作为更强连接。
 
-后续在用户明确下发任务并确认本批baseline协议与范围后，先完成获批比较并封存真实参照，再在既定v10时间基础和选定空间方案上开展有依据、获批的改进与匹配消融。候选开发、诊断及以后批准的补充实验都在同一M7，不逐模块换阶段；本轮接收仅限背景阅读与只读核验。
+HimNet/MegaCRN/AGCRN/TESTAM保持内部学习关系，STAEformer不增加固定图mask或图位置编码，七时间baseline及完整v10不注入空间图，新模型仍用自己的geo/sem。逐域保存距离/原邻接SHA、node_order SHA、sigma/阈值/dtype、自环政策、基础及模型派生SHA；排除自环后报告边数、密度、度分布、无外邻居、孤立点及强/弱连通分量。图密/孤立本身不授权改图；仅真实接口/数值不可执行阻断受影响项。地理构图不读取需求validation/test或据其调阈值。
 
-定量优胜/停止/采用标准、原论文复现、算力预算及比较/消融以外的实验未定。未定标准不能看结果后伪称预登记，不因baseline-first推断已有名单或训练授权。
+TESTAM保留原生12输出槽，Urban四H独立训练选索引2/5/8/11，CHARGED选0，PEMS用全部12。主损失、全部专家误差、路由伪标签及mask同时选对应位置，无额外未来监督、不新增可学习P1头。历史TOD加L后选择H，小时周期24、五分钟周期288；不得改成加H后再选H。未监督槽不称已训练12步成果。
 
-旧§10–16未来规划的角色表、图/状态/终式、数据矩阵和对照清单已撤离现行设计。完整原文在本轮before/canonical及上一包before/patch可追溯；它们是未采用历史规划，不是当前候选或要求。已执行第三章事实/失败/指标和Closed记录不因此重写。
+# 13. 数据和任务（12个独立任务）
+
+UrbanEV 275区域fold6端点3475/3909/4344、L12、H3/6/9/12各P1；原train-only scaler及split-local窗口不重写。F4顺序volume,e_price,s_price,Ta,P,h,hour_sin,hour_cos,weekday_sin,weekday_cos,is_weekend，target0。只预测t+H，未来calendar对应t+H，不用案例测试周替代主比较完整test。
+
+CHARGED v3 Hourly DOI10.5281/zenodo.15814263，2023-04-01至09-30共4392小时，端点3513/3952/4392，六城独立train/graph/eval、无参数共享。AMS2449/JHB47/LOA229/MEL63/SPO47/SZH1445完整站点，按volume列顺序核对距离/站点ID，不按全期总量排序、不top300、不remove_zero。C4=[volume,temp,humidity,pressure]，volume为kWh，城市天气复制到节点；L12→下一小时P1。每城正式主表各保留MSE/MAE，不用汇总均值代替；额外六城等权相对改善只可描述，不是效果门槛。
+
+PEMS来源为原始基准发布者wanhuaiyu/ASTGCN，固定commit `86efe627f8d7a1d461be9446a3c9d0960c301d0b`；data/PEMS04/pems04.npz、data/PEMS08/pems08.npz及各distance.csv。README明确flow,occupy,speed，分别[16992,307,3]和[17856,170,3]；时间轴2018-01-01起/2016-07-01起5分钟，L12→P12只监督flow。60/20/20端点10195/13593/16992及10713/14284/17856；整数边索引对应数组节点轴，不能推造GPS/传感器ID或距离单位。
+
+新数据先切时间轴，标签完全在本split，历史可来自之前时点；每连续变量在train有效值跨时空拟合均值/总体std，城市天气按唯一时间统计，零方差scale1。缺失输入只因果ffill、无此前值用train均值；缺失目标不填监督，真实0有效。全部模型同节点/时间原点/标签/输入/scaler/mask；未来仅时间戳日历，不供实测未来天气/价格/需求。CHARGED发布端已有IQR/零序列插值等处理，PEMS为作者加工基准；train-only拟合不能写成整个数据生产链严格无未来信息。
+
+# 14. 同数据域统一训练、评价与早停（最新patience）
+
+| 数据域 | 初始候选同步全图batch | max_epochs | patience | weight_decay |
+|---|---:|---:|---:|---:|
+| UrbanEV四H | 32 | 50 | 20 | 1e-5 |
+| AMS | 4 | 50 | 20 | 1e-5 |
+| SZH | 8 | 50 | 20 | 1e-5 |
+| JHB/LOA/MEL/SPO各城 | 各32 | 50 | 20 | 1e-5 |
+| PEMS04/PEMS08各域 | 各16 | 200 | 40 | 1e-4 |
+
+同一数据域全部18模型完全共用本表，batch是B个同步原点×全部N，时间模型flatten BN，不切节点microbatch；train/eval同B，accumulation1，drop_last=False，train独立固定数据RNG shuffle，val/test不shuffle。
+
+Adam constructor lr=.001、betas=(.9,.999)、eps1e-8，全可训练参数同衰减，无专属参数组；clip global norm5，FP32、AMP关闭、seed2024。TF32 matmul/cudnn关闭，cudnn benchmark=False、deterministic=True；线程/环境绑定实际资源。模型固有dropout保持来源结构。第一轮就监督完整批准P，关闭horizon curriculum与未来真值回灌/teacher forcing/scheduled sampling，保留自回归解码自己的预测。
+
+OneCycleLR每成功optimizer.step后一次：max_lr=.001、pct_start=.10、cos、div_factor25、final_div_factor10000、three_phase=False、cycle_momentum=True、base_momentum.85/max_momentum.95、beta2=.999。初始lr4e-5、计划末端4e-9；beta1随OneCycle变化，不称始终.9。total_steps=max_epochs×真实steps_per_epoch，早停不重算、不补周期、不根据best重缩放。
+
+每完整epoch一次完整validation，以训练集标准化MSE严格“<”更新同一best，并列保留早best；只有严格改善清零stale，连续达到20/40轮未改善停止。无课程模型特殊延后。所有预测误差统一标准化MSE，AMD selector、TESTAM全专家/路由、MegaCRN记忆辅助项按固定来源分别记账，不用辅助loss选择best，不称总损失完全相同。正式指标仅标准化MSE/MAE；原物理单位MSE/MAE另标辅助。按有效元素SSE/SAE/count汇总，不平均batch均值，不计算RMSE。
+
+全部216项训练技术完成后冻结所有配置和best清单，再各一次正式test，固定顺序自动接续；不逐epoch test，不据validation删模型，不用test择参。test执行身份不明则停止该项自动恢复，不重复后择优。Urban四H另作等权，PEMS整体及12位置来自同次预测，六城独立列示，不混不同物理单位作总平均。第三章Urban test曾参与开发的历史保留。
+
+# 15. 预算、有限资源探针与恢复
+
+216项fresh：Urban72×50=3600、CHARGED108×50=5400、PEMS36×200=7200，共16200最大run-epochs。逐项update上限=cap×ceil(真实合法train原点数/B)；B须正式训练前冻结。无HPO/额外seed/消融/效率或备选模型额度；技术失败成本另记，不因效果差重跑，不清零续训计数。
+
+接口/CPU检查先送审，再准备明确范围的有限GPU容量与吞吐探针：候选每配置5准备更新+20计时完整更新，必要不稳定计时最多重复一次，总预算不超过4 GPU小时。首轮不执行。优先大attention/动态图、AMS/SZH及大BN时间路径；相近有效证据可复用。独占OOM按该域预登记batch逐次减半至1，整域模型共同调整；B1仍失败则阻断该域。不删节点、缩模型、改AMP。仅并发OOM先减并发，不改已定科学batch。正式运行后独占OOM停止该域重新核定，保留成本，禁止混不同batch成绩。
+
+并发仅依据实际GPU显存占用、安全余量、OOM风险、单步及端到端吞吐、GPU实际忙碌情况和资源争用确定。从1比较2/4，有足够资源余量且总吞吐持续改善才测8，不机械追求最高q，不将历史q4外推大图，也不固定N>500独占。CPU总线程受实际分配约束；确定后冻结实际batch、并发、设备、线程及任务顺序。设备复用合法分配的A80080GB证据；不得只按参数量估算，需激活/反向/optimizer/attention/N²等差异。第三轮371项/5083epoch/13234060updates/worker elapsed440.38h/波次109.11h/墙钟121.24h仅历史成本；2–4周是低置信度排期，探针后按实际每任务批数×完整step、validation、保存开销及并发干扰重估，不承诺线性加速。
+
+**第四章并发数值验收修订（用户2026-11-14批准，现行规则）。** 并发选择前后均不要求或运行串行与并发的专门数值等价检查：不比较模型参数、梯度、Adam状态、逐步loss或预测张量，不设exact、allclose、逐位一致或最大误差门槛；不为取得数值等价证明增加训练计算。不得将已取消的等价探针改名为smoke、暖机或稳定性检查继续执行。上述5次准备更新只为资源计时准备，不承担数值等价验收。
+
+资源准入与正式训练不默认生成numeric-full-step-*.bin、完整逐步参数/梯度/优化器状态转储或等价的持久化数值轨迹。正常best/last checkpoint与已批准epoch指标记录继续保留，不把恢复所需状态保存取消。正常finite检查、OOM处理、进程归属、checkpoint/resume身份、数据一致性、test访问边界和产物完整性校验均有效；已有模型接口、空间零增量、稀疏/dense等正确性断言也不因本并发政策而删除或放宽。
+
+资源证据记录实际显存、安全余量、耗时、吞吐、GPU忙碌/资源争用、设备/线程和适用范围。并发数值等价统一登记为“本轮按用户批准不执行；基于任务独立执行机制、既有证据及差异风险评估接受”，不得记为新版数值等价实测Passed。通用/历史probe浮点容差条款不再构成第四章串并行比较门禁，第三章历史探针记录及证据保持原样。仅并发资源OOM优先减并发、保留科学batch；独占OOM仍按同域batch规则。本次仅落实政策，不授权GPU资源测量、正式训练或test；18模型/216项/16200 run-epochs及§14协议不变。
+
+恢复须保留model/optimizer/scheduler、全部RNG、best/patience、已完成epoch/update。技术失败留现场和失败成本，最小修复与审核后续办；不自动无限resume或额外延长上限。
+
+# 16. 启动、产物和职责
+
+用户转交ChatGPT服务器只读最终裁决：M7整包工程审核（Whole-package Engineering Review）Passed，包含主模型、18模型适配、数据与训练执行链、九域缓存、343源码绑定（181 Python/43运行资产/169来源快照）、E1失败计账、C1字节保护、C2精确排除及Supervisor/test-once/seal。精确79路径Git closure进入下一执行步骤，先完成最终closure字节复核；本轮仅同步审核状态，不执行stage/commit/push。GPU资源探针、batch/concurrency冻结、正式AUTH、正式训练和真实test仍未获准。18模型/12任务/216项、16200 run-epochs、50/20和200/40及既定训练协议均不变；B1仍仅有helper与worker接口恢复证据，不宣称生产队列续跑已验收。
+
+实际依赖绑定须覆盖主模型、全部baseline、数据准备/读取、worker/supervisor和封存的执行链，包含包初始化、函数内导入及实际读取的配置。M7的proc_start/JSON小工具独立隔离，不再为该工具导入旧launcher。静态保守依赖闭包、实际import审计、运行时读取/验证的资产与作者来源快照分列；历史参考不是执行入口。任何漏绑/篡改负例仅使用临时合成副本，不修改第三章文件。
+
+最终封存严格按“写完关闭产物→任务/收据/claim/best/指标/集合核对→Python全部身份验证→系统sha256sum -c→原子发布complete.json”。manifest覆盖全部payload（含新汇总），排除manifest/checksums/complete控制文件；checksums覆盖payload+manifest，排除自身及complete；complete绑定manifest与checksums SHA，不做循环自哈希。失败保留现场且无成功标记。正式worker由supervisor记录每次启动/退出的UTC及Unix时间、monotonic墙钟、PID/proc_start、日志路径与SHA、config/runtime身份及真实退出码；墙钟截至supervisor观察到退出，包含轮询延迟，不称GPU小时。失败独立写入不可覆盖的failures/<task>-<phase>.json，不混入成功receipt集合；缺失/损坏成功receipt也拒绝技术成功。completed_updates只计启动偏移之后完整有效的optimizer_completed事件，事件在optimizer和scheduler均完成后、无关汇总前立即写入并flush；累计update最大值另记。completed_epochs及last_completed_epoch只取新增完整history，history位于完整训练、validation和best/last保存之后，不读取checkpoint推测恢复点。截断、损坏、范围不明的日志保留可确认计数并置accounting_complete=false及明确错误。异常类型采用结构化worker记录或明确的监督验证异常，信号退出保留负returncode，不据traceback猜根因。supervisor等待全部已启动子进程退出并生成失败回执后，才写含自身起止/墙钟、异常及失败回执SHA引用的failure.json；首失败停止后续机制不变。SIGKILL/掉电/监督器被强制终止不保证最后回执落盘；事件未持久化不冒称已确认进度，不扩建自动恢复系统。生产216覆盖断言不因少量CPU夹具被放宽；集成测试须真实覆盖监督调度与seal，而非仅单worker。
+
+PDFormer固定图、候选选取、初始化与模式拟合通过分别绑定的identity引用，不能按默认目录/文件存在判断就绪。现行候选合同为用户选择的方案B：“PDFormer来源预处理的时间覆盖适配”，不称原论文未经修改的原生配置。用全部合法训练窗口的起点计数L_legal，固定K=min(cand_key_days×steps_per_day,L_legal)；K>1时i_k=floor(k×(L_legal−1)/(K−1))，k=0,…,K−1，以整数除法实现；K=1取0，无合法窗口则拒绝。PEMS08保留21×288个候选起点预算，PEMS04保留14×288，其余域14×24；这些天数现在只定义数量，不再限定训练期开头连续天数。KShape仍为16簇、max_iter5、random_state2024、模式长度3；原中心更新公式、SBD及空簇检测不变，仅按下述新策略处理更新后空簇。确定性显式中心规则保持；不搜索seed、初始化次数、簇数或窗口，不引入额外归一化。
+
+确定性初始化版本为`native-sbd-farthest-first-v1`（ch4/pattern_initialization.py），九域同一规则。原候选先按tslearn实际输入转换为float64，不逐序列去均值/缩放。固定数值判定阈值tau=1e-12，只用于退化/距离并列，不搜索。初始中心候选须满足范数平方≥1e-9（对应原生相关分母的退化分支），且去均值后的范数>tau×max(1,原范数)；此处去均值仅作退化检测，传给距离和KShape的值不改变。零范数、常量及近常量不得作为中心，但全部原候选仍进入fit，不删零需求或站点。
+
+第一个中心取原展平顺序最早的合格候选；之后每次计算各合格候选到已选中心的最小原生形状距离，取该最小距离最大的候选。距离使用1−max(全线性滞后的归一化互相关)，不另做去均值；保持tslearn 0.6.3的FFT、滞后和范数乘积<1e-9时分母为∞约定。与最大距离相差≤tau视为并列，取原展平索引最小者；最大最小距离≤tau或不足16个合格候选即明确失败，不加噪声、不生成中心或换规则。数值不同但正比例/平移等价的候选不能仅凭索引不同重复选入。选定16个中心后，用实际KShape._cross_dists/_assign在这些池内样本上验证self距离接近0、每个样本对自身中心的严格归属余量>tau、16簇各有一个见证样本；失败则阻断，不能只检查中心数值互异。
+
+选点以向量化单中心FFT实现，时间O(16×M×ell log ell)、内存O(M×ell)，本任务ell=3、FFT长度8；不建立M×M距离矩阵。选定中心原值经原生init=array接口传入；n_init=1、tol=1e-6等既有默认不变。不修改第三方库、原生中心提取与更新公式。初始化身份绑定规则/源码、库源码、方案B候选身份、展平索引、中心文件与数组SHA、原生16点归属见证；最终模式另绑定实际fit成功/参数及pattern keys。初始化通过只保证首次归属非空；原生更新后仍可能中心趋同或空簇，失败时不自行另选中心。
+
+用户已批准统一`post-update-empty-rollback-stop-v1`，由M7局部`ch4/kshape_rollback.py`适配tslearn 0.6.3，校验原库源码SHA。每次更新前复制上一合法中心、中心范数、标签、inertia及_iter/n_iter_存在性与值；继承原生更新和归属，仅捕获此次更新后_assign抛出的EmptyClusterError。恢复完整前态并重新验证16簇非空、中心/范数/inertia有限；已有至少一次完整合法更新时提前结束，失败更新不计入合法次数。首次更新即空簇仍失败，不把初始分配冒充fit成功。初始化归属失败、更新函数异常、非finite、其他异常、来源不符均不转换为回滚成功；原生正常收敛与inertia比较/回滚路径保持。没有新中心搜索、重置、空簇重分配、候选过滤或容差放宽。未被本策略接受的EmptyClusterError仍遵循原生内部失败处理，不修改其既有尝试上限。
+
+新模式身份必须同时绑定方案B、确定性初始化、回滚策略及源码、kshape-policy.json和实际fit结果。记录触发迭代/空簇编号、更新前/失败后/恢复后状态摘要、尝试更新数、完整合法更新数、最终保留更新数、最终16簇占用/inertia/中心shape与finite、是否提前终止及原因。原生inertia回滚可能丢弃最后一次合法更新，完成次数与最终保留次数分列，原生n_iter语义不改；新空簇提前终止的n_iter只计已完成合法更新。不得将空簇回滚提前终止记为原生正常收敛；完整成功门禁与最终输出SHA仍必须通过。
+
+合法窗口要求完整L12历史及批准目标均在train：L_legal=train_end−L−H−P+2。UrbanEV四H采用交集H12/P1，因此共同L_legal=3452；CHARGED各城H1/P1为3501；PEMS04/08 H1/P12分别10172/10690，保留5分钟轴。每个选定起点仍按来源取历史最前3点，按起点→固定node order→历史位置组织，保留所有节点和真实零。候选索引唯一递增并覆盖合法起点首尾（不是将最后一段不满足完整窗口的train行补入）；全部合法历史和标签边界检查只用train时间轴。候选identity绑定索引及SHA、规则/代码、数据版本、split/scaler元数据、节点顺序、频率与时间范围；模式identity必须绑定该候选，拒绝旧前缀候选缓存作为方案B结果。
+
+新模式尝试使用新目录。已有DTW仅在输入、节点/时间、radius6、生产源码快照和文件SHA核对后引用，不随候选、初始化或空簇策略变化而重算。旧UrbanEV成功、旧AMS失败和r2首失败停止等历史事实/成本保持。随后native-cache-launch-r1已完成UrbanEV、AMS、JHB、LOA四域，MEL失败后SPO、SZH、PEMS04、PEMS08未执行；四域按原pattern-identity完整SHA识别为未使用新回滚策略的历史生产，不补写身份、不重拟合、不自动采用。MEL失败、单次观测及DTW/中心/日志全部保留。本轮仅新回滚实现和合成CPU验收，不运行真实fit或九域初始化。方案B源码、九域候选身份与数量不变。审核通过后才为MEL及后续四域建立新attempt/队列、复用MEL DTW、刷新当前代码绑定并交用户最后启动，首技术失败停止；不执行旧CPU命令或重启旧r2目录。完成后须技术审计再显式采用。CPU线程/身份/墙钟/CPU消耗单独计账，守护不依赖持续SSH/代理；无GPU、正式训练/test、closure或正式AUTH授权。
+
+一个总启动器：全部train/validation→完整best冻结→统一一次test→校验/汇总/封存。预定顺序不按成绩调整；技术失败停止后续调度、保留日志/staging/访问记录。复用owner PID/start、锁、STOP、receipt机制；后台不依赖持续SSH/代理，不反复联网Git。绑定代码/config/data/AUTH之后不在线修改。
+
+每任务保留resolved结构和训练配置、源码/环境/数据/split/scaler/图身份、epoch/update/LR/beta1、best/last、strict-best证据、访问账、MSE/MAE两尺度、预测/真值/mask/时间/node ID及manifest/checksum/receipt/状态。汇总包含全部18模型×12任务和失败项，不只导出赢家，不自动选择论文案例、裁曲线或宣布效果成立。
+
+本轮仅工程准备，正式AUTH须未来实际closure commit绑定后生成；不预填未来commit。本工作区canonical维护合同，唯一M7维护执行审核，docs/README导航；不创建平行milestone/current_status。M6及第三章采用索引/产物保持原字节。
 
 # 17. 数据完整性、公平性、无泄漏与真实成本
 
@@ -3263,22 +3325,20 @@ normalization
 
 </details>
 
-# 18. M7开发与验证：待具体方案批准
+# 18. M7开发与验证：实现获批，工程与资源审核未完成
 
-当前M7已确定完整v10时间基础与统一组织方式，但没有新增空间模型、图构造、数据处理、状态wrapper或训练接线的实施授权。未来确需调整时间实现时，应给出明确方案和改动范围并保留第三章原实现/产物，再按批准内容做必要接线与有限验收；本轮不授权任何代码调整。
-
-本轮不新增实现、模型测试或负载。旧目录/伪代码/验收清单可从本轮before/canonical与旧patch追溯，不继续作为M7必做步骤。
+实施范围为独立ch4 wrapper、18模型适配、数据前缀、配置/队列与有限CPU验收。第三章冻结实现不修改。当前真实进度、未闭合问题、来源与失败见唯一M7和外置报告；代码存在、CPU检查通过、GPU容量通过、工程review、Git closure、训练完成、结果采用与阶段Closed分别记账，不互相替代。
 
 # 19. 现行组织与旧编号映射
 
 | 阶段/会话标题 | 当前职责 |
 |---|---|
 | M0–M6 | 历史编号/名称与产物保持；M6七类数据完成、暂停新增实验，非正式Closed |
-| 大论文 07｜M7 第四章开发与实验 | Planning：完整v10时间基础已定，新增空间方案待定；统一后续获批开发实验；当前先只读承接 |
+| 大论文 07｜M7 第四章开发与实验 | Implementing / review Pending：完整v10空间扩展及216项统一比较准备；正式训练未启动 |
 | 大论文 08｜M8 论文正文、图表与结果分析 | 正文、图表、结果叙事；原旧M12职责 |
 | 大论文 09｜M9 终稿审校、复现材料与答辩 | 终稿、复现材料、答辩；原旧M13职责 |
 
-旧M7–M11合并到新M7，旧M12→新M8，旧M13→新M9；旧编号不是现行逐模块顺序。唯一记录是[M7第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)，不建第二份milestone。原8路径已在24c45c9cb907148ac78cd438b4c953e6b244f0ac收口。本轮仅五文档新修订待审，不重做原closure或创建worktree，不预填未来commit/AUTH；新会话先只读承接，具体研究执行任务另由用户下发。
+旧M7–M11合并到新M7，旧M12→新M8，旧M13→新M9；旧编号不是现行逐模块顺序。唯一记录是[M7第四章开发与实验](milestones/M7_ch4_development_and_experiments.md)，不建第二份milestone。原8路径已在24c45c9cb907148ac78cd438b4c953e6b244f0ac收口。该历史closure不作为本轮许可；本轮M7已建立独立工作区，落实§10–16，不预填未来commit/AUTH。
 
 # 20. 当前结果采用与后续展示组织
 
@@ -3316,13 +3376,13 @@ Model | ETTh1 | Weather | ECL | Exchange | Avg Rank
 
 </details>
 
-## 20.2 第四章结果与展示组织：待后续决定
+## 20.2 第四章结果与展示组织
 
-当前没有第四章结果或已批准执行矩阵；既定v10时间基础不代表这些实验已获执行许可。后续比较与消融沿M7组织流程推进，定量标准、采用规则、额外实验、图表形式和展示范围由用户随后明确的任务与方案决定。不从旧图表清单倒推空间架构或训练任务，不预写结论。
+216项矩阵已批准准备，但当前没有正式结果。全18模型和12任务保留，六城逐城MSE/MAE、Urban四H/等权、PEMS整体/12位置按§14。定量优胜门槛、案例/曲线选择及后续消融未批准，不预写结论。
 
 # 21. 研究迭代与技术失败
 
-后续获批空间候选在既定v10时间基础上按真实结果和必要诊断讨论下一方案；新增科学范围须用户决定，不盲试、不保证必胜、不无限追加或择优重跑。技术问题保全证据和消费，不能以排障名义替换时间基础或改变合同。新增模块数量、来源与方案仍未定，本轮不开展候选研究。
+先落实本轮固定主模型及比较合同。后续科学变更须用户决定，技术故障保全证据、必要修复/复验后送审；不以效果差重跑、不替换时间基础、不借失败扩大训练上限。已排除空间路线保持排除。
 
 ### 21.H 历史时间候选与旧双模块失败替换策略
 
@@ -3364,7 +3424,7 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 
 # 23. 既有参考文献历史记录（不构成第四章候选资格）
 
-原文献记录保留，不表示当前采用、须复现或被列入候选池；第四章研究选型尚未开展。
+原文献记录保留，不表示当前采用、须复现或被列入候选池；其中历史选型不覆盖§10–16已经批准的当前方案。
 
 [T0] Hu, Y., Liu, P., Zhu, P., Cheng, D., and Dai, T. Adaptive Multi-Scale Decomposition Framework for Time Series Forecasting. AAAI, 2025.
 
@@ -3386,9 +3446,7 @@ CHARGED：https://github.com/IntelligentSystemsLab/CHARGED
 
 # 24. 当前跨章基础与历史路线边界
 
-第四章以第三章完整ModernTCN-U+V v10为时间建模基础，继续研究引入空间信息的扩展；不是另起与第三章无关的主模型。新增空间／时空骨干、模块、交互与具体接口、权重使用和训练策略、实验矩阵与效果标准尚未定，不恢复旧空间路线。M7统一后续获批开发实验，新M8负责正文/图表/结果分析，新M9负责终稿/复现材料/答辩。
-
-当前新会话只做背景阅读、只读核验与理解回执，具体研究和执行任务由用户随后下发；本轮只修文档。第三章基础身份与既有七类结果保持，不自动把全部原权重、数据、seed或test经历变为第四章协议。
+第四章承接完整ModernTCN-U+V v10，执行§10–16的PDFormer关系/HimNet条件低秩改造及216项统一比较；不修改第三章冻结实现或采用结果，不恢复已排除路线。M7统一工程实验，M8正文/图表/分析，M9终稿/复现/答辩。当前实现准备待审核，资源探针与正式训练未启动；旧只读交接停止点已由具体开发授权取代，历史证据保留。
 
 ## 24.H 旧M4/M5时间路线与旧双模块总路线（原时点历史）
 
