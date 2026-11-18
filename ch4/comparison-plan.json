@@ -136655,7 +136655,7 @@
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/graphs.py": "c2ab27efad55f4b4efb3879586bdeffe11d18091a20641647f66450d8324dc36",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/imports.py": "d31d4cb646d0a7d025110f234aafe3e21342250e4837c2252fb360bd8bcba425",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/kshape_rollback.py": "4fdc99d30a2b15c7b4fc5d757310b15c7f1b695a4b1e88be84c618ac912a89ef",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py": "2e219601c83c6b307f1cfabc97563a1177a6fd89a3e31b4aaa979214d84dda03",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py": "6b7197849b6d3622df9636434995f2f8e3246d33f4c9a3f4374b9a39007fb41d",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/model.py": "f290f47a9a54f74ccb02325a6a6060d55dbe81efc8d1086ea99c2121e9f007d2",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/native_graphs.py": "5bacf50ca68b4e88435cb7fb6dcdecfe167811a333c62345619ee872f2a15f58",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/optimization.py": "44bb54a5e25914da82a3b25da751c35cd3a112c325f763b0fba96f48da3c5569",
@@ -136668,9 +136668,9 @@
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py": "e37dfb68854d261211f9990f3de293002ea1dead510e137be8ac81889dc91191",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py": "81b70ca096acaa7c9da6f71d6a80a567e5484f74ee148fa9e5f5248f026424d0",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py": "89230637df26f9114d0a2e9087dfee1af811e68b6aee5c32abb82def38b41925",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "82385a50e2ee1e3c53e7abce7a3a351865c1de756098f2c0e313b3670a7b0368",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "9f04179aa3f9d0ae1c9e47821fbb3bc7302f1ce244af8af2465e1b4ea95718a9",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py": "01ff534127262d3aca00567d2882f575181e61ecf74f4192b667ce6501698aa1",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": "9c58a4d784af6b615c46840a3bfd58b98cc3e4f690cf9b50400e3e2c196dbde2",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": "36043c47da76a7a6c89310093d5b11af4f44b629b8eff3cde7413493b2c3dffe",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/spatial.py": "fca67ac7527996179f66f6ab6be7437624f02cdce47d734839441765913bd83e",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/state.py": "b1be979e8eaf6a28c5305dd20e12812b11596ea4638a0cba0220c6e6efb48bfc",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/vendor/D2STGNN/models/__init__.py": "f72e73ea72d4a3f5e7fc457d244f4d09dce0df970904cd28118426fd04fad0be",
@@ -137002,7 +137002,7 @@
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/graphs.py": "c2ab27efad55f4b4efb3879586bdeffe11d18091a20641647f66450d8324dc36",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/imports.py": "d31d4cb646d0a7d025110f234aafe3e21342250e4837c2252fb360bd8bcba425",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/kshape_rollback.py": "4fdc99d30a2b15c7b4fc5d757310b15c7f1b695a4b1e88be84c618ac912a89ef",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py": "2e219601c83c6b307f1cfabc97563a1177a6fd89a3e31b4aaa979214d84dda03",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py": "6b7197849b6d3622df9636434995f2f8e3246d33f4c9a3f4374b9a39007fb41d",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/model.py": "f290f47a9a54f74ccb02325a6a6060d55dbe81efc8d1086ea99c2121e9f007d2",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/native_graphs.py": "5bacf50ca68b4e88435cb7fb6dcdecfe167811a333c62345619ee872f2a15f58",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/optimization.py": "44bb54a5e25914da82a3b25da751c35cd3a112c325f763b0fba96f48da3c5569",
@@ -137015,9 +137015,9 @@
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py": "e37dfb68854d261211f9990f3de293002ea1dead510e137be8ac81889dc91191",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py": "81b70ca096acaa7c9da6f71d6a80a567e5484f74ee148fa9e5f5248f026424d0",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py": "89230637df26f9114d0a2e9087dfee1af811e68b6aee5c32abb82def38b41925",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "82385a50e2ee1e3c53e7abce7a3a351865c1de756098f2c0e313b3670a7b0368",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "9f04179aa3f9d0ae1c9e47821fbb3bc7302f1ce244af8af2465e1b4ea95718a9",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py": "01ff534127262d3aca00567d2882f575181e61ecf74f4192b667ce6501698aa1",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": "9c58a4d784af6b615c46840a3bfd58b98cc3e4f690cf9b50400e3e2c196dbde2",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": "36043c47da76a7a6c89310093d5b11af4f44b629b8eff3cde7413493b2c3dffe",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/spatial.py": "fca67ac7527996179f66f6ab6be7437624f02cdce47d734839441765913bd83e",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/state.py": "b1be979e8eaf6a28c5305dd20e12812b11596ea4638a0cba0220c6e6efb48bfc",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/vendor/D2STGNN/models/__init__.py": "f72e73ea72d4a3f5e7fc457d244f4d09dce0df970904cd28118426fd04fad0be",
@@ -137269,7 +137269,7 @@
           "/public/home/yueweiting/大论文/CH4-v10-spatial/utils/ch3_urban_diagnostic.py:72"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/__init__.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:17",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:18",
           "explicit execution entry",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/baselines.py",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/data.py",
@@ -137309,7 +137309,7 @@
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/dependencies.py": [
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py:12",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:14",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:15",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/graphs.py": [
@@ -137320,7 +137320,7 @@
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/baselines.py:8",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/dependencies.py:5",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/kshape_rollback.py:11",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py:6",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py:7",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/native_graphs.py:12",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/pattern_batch.py:12",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/pattern_candidates.py:6",
@@ -137330,7 +137330,7 @@
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py:10",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py:13",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py:10",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:12",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:13",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py:7",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/worker.py:14",
           "explicit execution entry"
@@ -137344,7 +137344,7 @@
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:17",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:18",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/model.py": [
@@ -137384,7 +137384,7 @@
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_data.py": [
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py:13",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py:12",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:94",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:95",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py": [
@@ -137402,7 +137402,7 @@
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/optimization.py:4",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py:12",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py:11",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:13",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:14",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py:9",
           "explicit execution entry"
         ],
@@ -137411,17 +137411,17 @@
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:183",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:201",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py:7",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/lifecycle.py:8",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/native_graphs.py:13",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/pattern_batch.py:11",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/pattern_identity.py:6",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py:15",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:15",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:16",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:17",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py:8",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/worker.py:15",
           "explicit execution entry"
@@ -137556,7 +137556,7 @@
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/worker.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:132",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:135",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/m6_extension_entry.py": [
@@ -139272,7 +139272,8 @@
   "preparation_blockers": [
     "GPU capacity/throughput and final batch/concurrency not yet reviewed",
     "finite resource probe/review",
-    "Git closure and actual AUTH"
+    "Git closure and actual AUTH",
+    "lifecycle/test accounting repair engineering review and exact Git closure pending"
   ],
   "retired": [
     "PatchSTG"

@@ -1,12 +1,12 @@
 # 大论文 07｜M7 第四章开发与实验
 
-状态：**M7 Whole-package Engineering Review Passed；E1/C1/C2均Passed；精确79路径Git closure待执行**。用户转交ChatGPT服务器只读最终审核，完整范围及审核字节见§5.M后续最终裁决。九域缓存、18模型及216项执行链审核通过；历史四域与新五域来源、MEL空簇回滚事实不变。GPU资源审核、batch/concurrency冻结及正式AUTH仍Pending，resource_frozen=false、execution_authorized=false。B1仍仅helper与worker接口恢复证据，不宣称生产队列续跑已验收。216项训练合同及50/20、200/40不变；本轮仅状态同步，不运行测试、模型或负载，不stage/commit/push，停在最终closure字节复核前。
+状态：**此前整包工程审核及79路径Git closure已完成；本轮进程生命周期/test计账修复待ChatGPT工程审核**。实际基点`75158a60956fadea9ad6d1c08caf8dbd4e3a284c`，历史Passed范围不倒改。资源探针24项历史测量经本轮离线核验形成采用回执，最后一项PEMS04新模型q4尚未执行；资源采用、batch/concurrency冻结及正式AUTH仍Pending，resource_frozen=false、execution_authorized=false。本轮只修复执行系统、CPU验收和续接草案，不启动GPU或模型，不stage/commit/push。B1仍仅helper与worker接口恢复证据，不宣称生产队列续跑已验收。216项训练合同及50/20、200/40不变，具体见§5.N。
 
 ## 1. 权威分工、现场与保护
 
 [canonical](../AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md)§0/§1.2/§4.2/§10–16规定研究合同；本文件是唯一M7执行/审核账；docs/README只导航，第三章实验索引CURRENT_ADOPTED_RESULTS保持原结果入口。本轮不会创建第二milestone或平行current_status。论文围绕城市EV充电需求，第三章时间建模→第四章空间扩展；六城CHARGED独立域和PEMS跨域比较不改变主研究对象。M8正文/图表/分析，M9终稿/复现/答辩。
 
-hostname=b82673a648b4。工作区`/public/home/yueweiting/大论文/CH4-v10-spatial`，branch=`M7-v10-spatial-v1`，parent=HEAD=`ee8ea3f32e87ed48608d21991a4fc60d06891c23`，无upstream，当前有未提交修改/未跟踪实现，非clean closure。创建前第三章工作区HEAD/tracking/实际远端同为该commit且0/0/clean；该事实不等于新分支已有tracking。`amd_reproduced_baseline_v1`仍指向`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
+hostname=b82673a648b4。工作区`/public/home/yueweiting/大论文/CH4-v10-spatial`，branch=`M7-v10-spatial-v1`，初始parent=`ee8ea3f32e87ed48608d21991a4fc60d06891c23`。79路径closure后的HEAD/tracking/本轮准入实际origin均为`75158a60956fadea9ad6d1c08caf8dbd4e3a284c`、0/0，upstream为origin/M7-v10-spatial-v1；准入clean，本轮修复后存在未提交修改/index空。原创建前M6基点及无upstream状态仅为历史。`amd_reproduced_baseline_v1`保持`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
 
 第三章工作区、v1/v3/v9/v10冻结实现、正式配置、models/tsAMD.py、M6和采用产物不修改。前后SHA/import绑定核验见外置初始身份和最终检查。集中包原producer、v9/P1/V3复用链、54缓存/235逻辑来源、Goal1/2 Met与Goal3 Not met以及test开发反馈限制保持，不因新会话失效。
 
@@ -230,6 +230,20 @@ C2：再次核对全部worktree后，仅当前M7存在两份退出PatchSTG文件
 本轮只将canonical §16和本文件当前状态同步为整包Passed，从comparison-plan全局preparation_blockers仅移除engineering review。其余三项阻塞（GPU capacity/throughput and final batch/concurrency not yet reviewed、finite resource probe/review、Git closure and actual AUTH）及两个false标志保持；216任务、训练字段、343绑定和科学输入完全不变。刷新原79路径allowlist的实际SHA，集合与当前Git status逐路径相等，不纳入info/exclude或PatchSTG历史文件。外置同步证据：amd-execution-evidence/m7/M7-whole-package-review-passed-sync-r1。
 
 下一步是精确Git closure，仍待最终字节复核及实际执行；GPU资源审核/冻结、正式AUTH、训练/test未获准。本轮不运行测试或模型，不stage/commit/push，不创建AUTH。B1恢复证据边界及§15资源/失败成本合同均不变。
+
+## 5.N 进程生命周期完整修复与最后配置准备（本轮待审）
+
+本轮新增外置scope：`amd-execution-evidence/m7/M7-resource-probe-preparation-r4`，旧r1/r2/r3原字节保护，不补写旧complete、不修改失败收据。r2五项历史采用、r3十八项原completed，以及UrbanEV-AMD-q4原wave failed但四worker完整5+20更新、退出0、GO归属/资源及产物通过离线核验，形成独立history-adoption.json；合计24项引用，producer仍是旧commit。唯一未执行是`PEMS04-ch4_v10_pdformer_him_v1-q4`。原失败仍为failed，不将引用计为r4新测量。
+
+r3旧错误将“PID/start变化或进程退出”合为同一文案，异常后即时poll=None即拒绝。已观察到四份完整结果、真实退出0和归属样本；源码确定缺少有界退出过渡。旧日志不足以证明具体内核分支为Z状态或PID替换，不为微时序重跑模型。占卡成本绑定原attempt收据：r1=6.6386255687102675秒，r2=101.2724538249895秒，r3 elapsed=289.0257544461638秒；沿用r3较保守的cumulative=396.9368384378031秒，原字段因不同monotonic采样与elapsed求和略有差异，cost-ledger.json分列。4小时剩余14003.063161562197秒，保留60秒收尾后有效deadline额度13943.063161562197秒；不再加wave/worker时间，不将整个r3记为无效失败成本。
+
+外置probe拆分identity_conflict、exit_hint、identity_unavailable，保存实际/预期PID/start、state、读取阶段和异常、单调时间、前后poll。已登记Popen的明确退出迹象进入2秒固定窗口，受原wave/全局deadline限制；PID/start/namespace/boot矛盾不等待。逐slot推进，q4其余存活slot仍受实时核验；退出0验产物，非零拒绝，旧GPU PID刷新消失限2秒，未知/残留到限拒绝，GO仍要求全部q存活并匹配。正式队列只使用所属进程身份和独立session/group，不复制NVML监测器。
+
+正式queue/lifecycle/runtime_io：异常、STOP、可处理SIGTERM/SIGINT统一合作停止10秒→TERM5秒→KILL5秒，各slot共同推进；身份不符拒绝发信号。未确认退出写明null退出码、有限日志快照及不完整计账，不能成功或继续调度。原始异常与清理/计账异常分列，SIGKILL/掉电/不可中断内核状态不能保证回收或落盘。test按独立日志/offset计before b与after b+1完整对，分列已开始/已完成/未确认batch及同步origin样本数，成功receipt总数须一致；claim及访问保留，不重测。worker.py计算及日志原定义未改。
+
+CPU定向证据：cpu-probe-r2.log中14项Passed（含5项有效旧fixture复用，并补清理单slot身份错误不阻塞其它slot）；cpu-formal-r4.log中11项Passed（7项新增边界、4项受影响旧验收）。早期cpu-formal-r1.log保留旧STOP断言不适用的失败，r3日志保留两项测试类名拼写导致的加载错误；均不伪装Passed。没有真实GPU/模型/test。正式历史模型、初始化和数值一致性测试未重跑。全部证据及新增绑定、计算路径不变证明、精确closure候选见本scope REPORT和清单。
+
+comparison-plan只刷新三份执行源码的SHA、相应依赖原因行号，并增加本次修复待审阻塞；216项完整任务对象及其余科学字段保持。343绑定路径集合不扩大，181 Python/43资产/169来源快照边界保持。外置续接草案commit=null，启动校验明确拒绝；须ChatGPT审核、一次精确closure后绑定实际commit和SHA，再交用户完整启动/日志/完成/停止命令。历史producer不改写，24+1覆盖和原计时重复政策不变，不自动进入正式训练。
 
 ## 5.P 上轮五文档基础合同的历史收口
 

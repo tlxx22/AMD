@@ -110,7 +110,8 @@ class Supervisor(unittest.TestCase):
                                          ('missing_receipt','missing_success_receipt',0,True),('signal','signal_exit',-15,True)]:
             with self.subTest(mode=mode),self.temporary() as tmp:
                 base=Path(tmp);config,auth=self.fixture(base);config['tasks'][0]['failure_mode']=mode
-                with self.assertRaisesRegex(RuntimeError,'technical failure'):self.execute(base,config,auth)
+                expected=InterruptedError if mode=='stop' else RuntimeError
+                with self.assertRaisesRegex(expected,'STOP' if mode=='stop' else 'technical failure'):self.execute(base,config,auth)
                 folder=base/'attempt';record=self.check_failure(folder,'fixture-H3',reason,complete,code)
                 self.assertEqual((folder/'fixture-events.jsonl').read_text().splitlines(),['train fixture-H3'])
                 if mode=='stop':self.assertEqual(record['stop_record']['record']['reason'],'synthetic user STOP')

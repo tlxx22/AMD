@@ -4,6 +4,7 @@ import importlib.metadata
 import fcntl
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
@@ -13,7 +14,7 @@ from .imports import sha
 from .protocol import MODELS,validate_plan
 from .dependencies import verify_closure,execution_seeds,execution_assets
 from .runtime_io import read,write_new
-from .runtime_io import proc_start
+from .runtime_io import proc_start,bounded_shutdown,PROCESS_POLL_SECONDS
 from . import lifecycle
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -111,7 +112,9 @@ def prepare_final_domain(task,folder):
 def worker(folder,name,phase):
     try:return _worker(folder,name,phase)
     except BaseException as error:
-        lifecycle.record_exception(folder,name,phase,error)
+        try:lifecycle.record_exception(folder,name,phase,error)
+        except BaseException as accounting_error:
+            print('worker exception recording failed: '+repr(accounting_error),file=sys.stderr,flush=True)
         raise
 
 
@@ -145,53 +148,86 @@ def supervise(config,auth,folder):
                    auth_path=str(Path(auth).resolve()),auth_sha256=sha(auth),session=os.environ.get('TMUX'),environment=c['environment']))
         write_new(folder/'owner.json',dict(pid=os.getpid(),start=proc_start(os.getpid()),runtime_sha256=sha(folder/'runtime.json')))
         for name in ('logs','claims','receipts'):(folder/name).mkdir()
-        children=[];launched=[];failure_receipts=[]
+        children=[];launched=[];failure_receipts=[];finalization_errors=[];signals=[]
         supervisor_started_at=lifecycle.stamp();supervisor_start=time.monotonic()
+        previous_handlers={}
+        def on_signal(number,frame):signals.append(dict(signal=number,monotonic=time.monotonic()))
+        for number in (signal.SIGTERM,signal.SIGINT):
+            previous_handlers[number]=signal.signal(number,on_signal)
+        def check_stop():
+            if signals:raise InterruptedError('supervisor termination signal '+str(signals[-1]['signal']))
+            if (folder/'STOP').exists():raise InterruptedError('user/worker STOP')
         def finalize(entry):
             if entry.get('finalized'):return
             child=entry['child']
             if child.poll() is None:return
-            reference=lifecycle.finish(folder,entry['record'],child.returncode)
-            entry['finalized']=True;entry['failure_receipt']=reference
+            entry['finalized']=True
+            try:reference=lifecycle.finish(folder,entry['record'],child.returncode)
+            except BaseException as error:
+                finalization_errors.append(dict(task=entry['record']['task_id'],phase=entry['record']['phase'],error_type=type(error).__name__,error=str(error)))
+                raise
+            entry['failure_receipt']=reference
             if reference:failure_receipts.append(reference)
         try:
             for phase,waves in [('train',a['resource_plan']['waves']),('test',[[t['id']] for t in c['tasks']])]:
                 if phase=='test':freeze_best(c,folder)
                 for wave_no,wave in enumerate(waves):
-                    if (folder/'STOP').exists():raise InterruptedError('STOP before wave')
+                    check_stop()
                     children=[]
                     wave_entries=[]
                     for name in wave:
+                        check_stop()
                         log=(folder/'logs'/(name+'-'+phase+'.log')).open('x')
                         record=lifecycle.begin(folder,name,phase)
-                        try:child=subprocess.Popen([sys.executable,'-B','-m','ch4.queue','worker','--folder',str(folder),'--task',name,'--phase',phase],cwd=ROOT,stdout=log,stderr=subprocess.STDOUT)
+                        try:child=subprocess.Popen([sys.executable,'-B','-m','ch4.queue','worker','--folder',str(folder),'--task',name,'--phase',phase],cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
                         finally:log.close()
                         children.append(child);entry=dict(child=child,record=record);launched.append(entry);wave_entries.append(entry)
                         lifecycle.attach(folder,record,child)
                     write_new(folder/f'{phase}-wave-{wave_no}-children.json',[dict(task=e['record']['task_id'],pid=e['child'].pid,start=e['record']['proc_start']) for e in wave_entries])
                     while True:
+                        check_stop()
                         for entry in wave_entries:finalize(entry)
                         if any(e.get('failure_receipt') for e in wave_entries):
-                            if not (folder/'STOP').exists():write_new(folder/'STOP',dict(reason='technical failure'))
+                            check_stop()
+                            raise RuntimeError('technical failure; later scheduling stopped')
+                        check_stop()
                         if all(e.get('finalized') for e in wave_entries):break
-                        time.sleep(.5)
+                        time.sleep(PROCESS_POLL_SECONDS)
                     if any(e.get('failure_receipt') for e in wave_entries):raise RuntimeError('technical failure; later scheduling stopped')
                     for name in wave:
                         receipt=read(folder/'receipts'/(name+'-'+phase+'.json'))
                         verify_files({str(folder/p):h for p,h in receipt['files'].items()})
                     write_new(folder/f'{phase}-wave-{wave_no}-complete.json',dict(tasks=wave))
             from .reporting import seal
+            check_stop()
             seal(c,folder)
         except BaseException as error:
             failure_traceback=traceback.format_exc()
-            if not (folder/'STOP').exists():write_new(folder/'STOP',dict(reason='supervisor failure'))
+            cleanup_errors=[];cleanup=None
+            try:
+                if not (folder/'STOP').exists():write_new(folder/'STOP',dict(reason='supervisor failure',error_type=type(error).__name__,message=str(error),signals=signals))
+            except BaseException as stop_error:cleanup_errors.append(dict(stage='STOP',error=repr(stop_error)))
+            try:cleanup=bounded_shutdown(launched)
+            except BaseException as cleanup_error:cleanup_errors.append(dict(stage='bounded_shutdown',error=repr(cleanup_error)))
             for entry in launched:
-                if entry['child'].poll() is None:entry['child'].wait()
-                finalize(entry)
-            write_new(folder/'failure.json',dict(supervisor_started_at=supervisor_started_at,
+                try:
+                    if entry['child'].poll() is None:
+                        reference=lifecycle.finish(folder,entry['record'],None)
+                        entry['finalized']=True
+                        if reference:failure_receipts.append(reference)
+                    else:finalize(entry)
+                except BaseException as accounting_error:cleanup_errors.append(dict(stage='finalize',task=entry['record']['task_id'],error=repr(accounting_error)))
+            failure_record=dict(supervisor_started_at=supervisor_started_at,
                       supervisor_ended_at=lifecycle.stamp(),supervisor_elapsed_seconds=time.monotonic()-supervisor_start,
                       failure_type=type(error).__module__+'.'+type(error).__qualname__,failure_message=str(error),
-                      traceback=failure_traceback,failure_receipts=failure_receipts));raise
+                      traceback=failure_traceback,failure_receipts=failure_receipts,signals=signals,
+                      cleanup=cleanup,cleanup_errors=cleanup_errors,finalization_errors=finalization_errors,
+                      all_workers_exit_confirmed=all(e['child'].poll() is not None for e in launched))
+            try:write_new(folder/'failure.json',failure_record)
+            except BaseException as accounting_error:print('supervisor failure recording failed: '+repr(accounting_error),file=sys.stderr,flush=True)
+            raise
+        finally:
+            for number,handler in previous_handlers.items():signal.signal(number,handler)
 
 
 def owned_stop(folder):
