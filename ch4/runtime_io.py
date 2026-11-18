@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import tempfile
 import time
 
 # Exception/STOP cleanup only; no normal run/epoch timeout.
@@ -64,9 +65,25 @@ def read(path):
 
 def write_new(path,value):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
-    with path.open('x') as stream:
-        json.dump(value,stream,ensure_ascii=False,sort_keys=True,indent=2,allow_nan=False)
-        stream.write('\n')
+    descriptor,name=tempfile.mkstemp(prefix='.'+path.name+'.',suffix='.tmp',dir=path.parent)
+    temporary=Path(name);identity=os.fstat(descriptor)
+    try:
+        with os.fdopen(descriptor,'w') as stream:
+            json.dump(value,stream,ensure_ascii=False,sort_keys=True,indent=2,allow_nan=False)
+            stream.write('\n');stream.flush();os.fsync(stream.fileno())
+        # Same filesystem, atomic visibility, and no replacement of existing identity.
+        os.link(temporary,path)
+        directory=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY)
+        try:os.fsync(directory)
+        finally:os.close(directory)
+    finally:
+        try:current=temporary.lstat()
+        except FileNotFoundError:current=None
+        if current is not None and (current.st_dev,current.st_ino)==(identity.st_dev,identity.st_ino):
+            temporary.unlink()
+            directory=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY)
+            try:os.fsync(directory)
+            finally:os.close(directory)
 
 
 def publish_complete(path,value):
