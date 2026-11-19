@@ -13,8 +13,8 @@ def resource_admission_policy():
         selection_metrics=['gpu_memory','safety_headroom','oom_risk','step_time',
                            'end_to_end_throughput','gpu_busy','resource_contention'],
         warmup_updates=5,measured_updates=20,max_unstable_timing_repeats=1,
-        gpu_hours_cap=4,concurrency_sequence=[1,2,4],
-        q8_requires='measured headroom and continuing total throughput benefit',
+        resource_selection='user_approved_q1_T2_after_completed_thread24_probe',
+        additional_probes=False,formal_wall_clock_cap=None,
         concurrency_numerical_equivalence=dict(
             status='not_executed_by_user_policy',
             statement='本轮按用户批准不执行；基于任务独立执行机制、既有证据及差异风险评估接受'),
@@ -24,8 +24,7 @@ def resource_admission_policy():
         retained_protections=['finite','oom','process_ownership','checkpoint_resume_identity',
                               'data_identity','test_access_boundary','artifact_integrity'],
         freeze=['batch','concurrency','device','threads','task_order'],
-        concurrency_only_oom='reduce_concurrency_first_keep_scientific_batch',
-        singleton_oom='approved_domain_wide_batch_halving')
+        formal_oom='stop_all_preserve_evidence_diagnose_review_no_automatic_batch_or_q_change')
 
 
 def validate_resource_admission(plan):
@@ -35,6 +34,8 @@ def validate_resource_admission(plan):
     if plan.get('resource_frozen'):
         resource=plan.get('resource_plan')
         if not isinstance(resource,dict):raise ValueError('frozen resource plan missing')
+        from .resources import validate_resources
+        validate_resources(plan)
         for key in ('selection_basis','concurrency_numerical_equivalence','persistent_step_state_dumps'):
             if resource.get(key)!=policy[key]:raise ValueError('resource admission policy mismatch: '+key)
 
@@ -56,7 +57,7 @@ def dataset_protocol(domain):
                 eval_shuffle=False,validation_frequency='each_completed_epoch',
                 horizon_curriculum=False,future_target_feedback=False,workers=0,
                 tf32_matmul=False,tf32_cudnn=False,cudnn_benchmark=False,cudnn_deterministic=True,
-                deterministic_algorithms=False,threads=1)
+                deterministic_algorithms=False,threads=2)
 
 
 def resolved_optimization(name,domain):
@@ -80,7 +81,7 @@ def validate_plan(plan):
         if actual['batch'] not in expected_cfg['batch_candidates'] or actual['eval_batch']!=actual['batch']:raise ValueError('approved domain batch sequence')
         if domain in domain_batches and domain_batches[domain]!=actual['batch']:raise ValueError('different batches inside one domain')
         domain_batches[domain]=actual['batch']
-        expected_cfg.update(batch=actual['batch'],eval_batch=actual['batch'],threads=actual['threads'])
+        expected_cfg.update(batch=actual['batch'],eval_batch=actual['batch'])
         if not isinstance(actual['threads'],int) or actual['threads']<1 or actual!=expected_cfg:raise ValueError('uniform approved training protocol')
         windows=task['endpoints'][0]-12-task['H']-task['P']+2
         steps=math.ceil(windows/actual['batch'])

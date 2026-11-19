@@ -16,6 +16,7 @@ from .dependencies import verify_closure,execution_seeds,execution_assets
 from .runtime_io import read,write_new
 from .runtime_io import proc_start,bounded_shutdown,PROCESS_POLL_SECONDS
 from . import lifecycle
+from .resources import (AUTH_BOUND_BLOCKERS,worker_environment,configure_threads,verify_gpu_allocation)
 
 ROOT=Path(__file__).resolve().parents[1]
 SCOPE='m7-v10-spatial-216-v1'
@@ -43,7 +44,9 @@ def verify_environment(reference):
 def admission(config,auth_path,online=True):
     c=read(config);a=read(auth_path)
     if a.get('scope')!=SCOPE or a.get('review_approved') is not True or not a.get('commit'):raise PermissionError('post-review actual AUTH required')
-    if c['preparation_blockers'] or not c.get('resource_frozen'):raise PermissionError('unclosed engineering/resource admission')
+    if set(c['preparation_blockers'])-set(AUTH_BOUND_BLOCKERS) or not c.get('resource_frozen'):raise PermissionError('unclosed engineering/resource admission')
+    # The exact post-review AUTH and clean actual commit below discharge these
+    # governance blockers without editing committed config to refill a commit.
     if len(c['tasks'])!=216 or {t['model'] for t in c['tasks']}!=set(MODELS):raise ValueError('exact scope')
     validate_plan(c)
     for task in c['tasks']:
@@ -67,6 +70,7 @@ def admission(config,auth_path,online=True):
     if os.environ.get('CUDA_VISIBLE_DEVICES')!=a['resource_plan']['visible_devices']:raise PermissionError('legal GPU binding')
     ordered=[i for wave in a['resource_plan']['waves'] for i in wave]
     if ordered!=a['task_ids']:raise PermissionError('predeclared order/coverage')
+    a=dict(a);a['_device_admission']=verify_gpu_allocation(c['resource_plan'])
     return c,a
 
 
@@ -127,11 +131,14 @@ def _worker(folder,name,phase):
     def stop():
         if (folder/'STOP').exists():raise InterruptedError('owned STOP')
     stop()
+    if phase not in ('train','test'):raise ValueError('unknown worker phase')
+    thread_identity=configure_threads(task,c['resource_plan'])
     if phase=='train':
         out.mkdir(exist_ok=False);binding=dict(task_id=name,config_sha256=sha(folder/'config.json'),commit=runtime['commit'])
         final=None
     else:
         binding=claim_test(folder,name);final=prepare_final_domain(task,folder)
+    write_new(out/(phase+'-thread-identity.json'),dict(task_id=name,phase=phase,**thread_identity))
     from .worker import run
     result=run(task,out,phase,stop,binding,test_folder=final)
     write_new(folder/'receipts'/(name+'-'+phase+'.json'),dict(phase=phase,task_id=name,result=result,
@@ -145,7 +152,7 @@ def supervise(config,auth,folder):
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         folder.mkdir(parents=True,exist_ok=False);write_new(folder/'config.json',c)
         write_new(folder/'runtime.json',dict(scope=SCOPE,commit=a['commit'],config_sha256=sha(folder/'config.json'),
-                   auth_path=str(Path(auth).resolve()),auth_sha256=sha(auth),session=os.environ.get('TMUX'),environment=c['environment']))
+                   auth_path=str(Path(auth).resolve()),auth_sha256=sha(auth),session=os.environ.get('TMUX'),environment=c['environment'],device_admission=a.get('_device_admission')))
         write_new(folder/'owner.json',dict(pid=os.getpid(),start=proc_start(os.getpid()),runtime_sha256=sha(folder/'runtime.json')))
         for name in ('logs','claims','receipts'):(folder/name).mkdir()
         children=[];launched=[];failure_receipts=[];finalization_errors=[];signals=[]
@@ -179,7 +186,7 @@ def supervise(config,auth,folder):
                         check_stop()
                         log=(folder/'logs'/(name+'-'+phase+'.log')).open('x')
                         record=lifecycle.begin(folder,name,phase)
-                        try:child=subprocess.Popen([sys.executable,'-B','-m','ch4.queue','worker','--folder',str(folder),'--task',name,'--phase',phase],cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+                        try:child=subprocess.Popen([sys.executable,'-B','-m','ch4.queue','worker','--folder',str(folder),'--task',name,'--phase',phase],cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env=worker_environment(os.environ))
                         finally:log.close()
                         children.append(child);entry=dict(child=child,record=record);launched.append(entry);wave_entries.append(entry)
                         lifecycle.attach(folder,record,child)

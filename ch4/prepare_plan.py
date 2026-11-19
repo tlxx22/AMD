@@ -117,7 +117,7 @@ def prepare(destination):
         test_windows=end-val-(12+h+p-2 if domain=='UrbanEV' else p-1)
         for model in MODELS:
             cfg=resolved_optimization(model,domain);steps=math.ceil(train_windows/cfg['batch'])
-            blockers=['GPU capacity/throughput and final batch/concurrency not yet reviewed']
+            blockers=[]  # q1/T2 resource choice adopted; missing artifacts still block below
             artifacts={}
             native_refs=native_registry[domain]
             required={'PDFormer':['adj_mx','sh_mx','laplacian8'],
@@ -189,6 +189,8 @@ def prepare(destination):
                preparation_blockers=sorted(set(b for t in tasks for b in t['readiness_blockers']))+['engineering review','finite resource probe/review','Git closure and actual AUTH'],
                retired=['PatchSTG'],budget_note='candidate batches; freeze after capacity admission; no extra training scope')
     if (len(tasks),value['max_run_epochs'])!=(216,16200):raise AssertionError('scope arithmetic')
+    from .resources import apply_resource_selection
+    apply_resource_selection(value,ROOT/'ch4/formal_resources.json')
     validate_plan(value)
     destination=Path(destination);destination.parent.mkdir(parents=True,exist_ok=True)
     with destination.open('x') as f:json.dump(value,f,ensure_ascii=False,indent=2);f.write('\n')

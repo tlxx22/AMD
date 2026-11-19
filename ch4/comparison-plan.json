@@ -394,7 +394,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -449,9 +449,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-DLinear-s2024",
@@ -826,7 +824,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -851,9 +849,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-ModernTCN-s2024",
@@ -1228,7 +1224,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -1301,9 +1297,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-PatchTST-s2024",
@@ -1678,7 +1672,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -1723,9 +1717,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-TimeMixer-s2024",
@@ -2100,7 +2092,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -2142,9 +2134,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-TimeXer-s2024",
@@ -2519,7 +2509,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -2561,9 +2551,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-iTransformer-s2024",
@@ -2938,7 +2926,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -2975,9 +2963,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-PDFormer-s2024",
@@ -3352,7 +3338,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -3434,9 +3420,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-HimNet-s2024",
@@ -3811,7 +3795,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -3842,9 +3826,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-TESTAM-s2024",
@@ -4219,7 +4201,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -4256,9 +4238,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-D2STGNN-s2024",
@@ -4633,7 +4613,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -4684,9 +4664,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-MegaCRN-s2024",
@@ -5061,7 +5039,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -5090,9 +5068,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-STDN-s2024",
@@ -5467,7 +5443,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -5513,9 +5489,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-STAEformer-s2024",
@@ -5890,7 +5864,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -5922,9 +5896,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-GraphWaveNet-s2024",
@@ -6299,7 +6271,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -6351,9 +6323,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-AGCRN-s2024",
@@ -6728,7 +6698,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -6752,9 +6722,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-ModernTCN-UV-v10-s2024",
@@ -7129,7 +7097,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -7161,9 +7129,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H3-ch4_v10_pdformer_him_v1-s2024",
@@ -7538,7 +7504,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -7604,9 +7570,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-AMD-s2024",
@@ -7981,7 +7945,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -8036,9 +8000,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-DLinear-s2024",
@@ -8413,7 +8375,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -8438,9 +8400,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-ModernTCN-s2024",
@@ -8815,7 +8775,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -8888,9 +8848,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-PatchTST-s2024",
@@ -9265,7 +9223,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -9310,9 +9268,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-TimeMixer-s2024",
@@ -9687,7 +9643,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -9729,9 +9685,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-TimeXer-s2024",
@@ -10106,7 +10060,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -10148,9 +10102,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-iTransformer-s2024",
@@ -10525,7 +10477,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -10562,9 +10514,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-PDFormer-s2024",
@@ -10939,7 +10889,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -11021,9 +10971,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-HimNet-s2024",
@@ -11398,7 +11346,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -11429,9 +11377,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-TESTAM-s2024",
@@ -11806,7 +11752,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -11843,9 +11789,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-D2STGNN-s2024",
@@ -12220,7 +12164,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -12271,9 +12215,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-MegaCRN-s2024",
@@ -12648,7 +12590,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -12677,9 +12619,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-STDN-s2024",
@@ -13054,7 +12994,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -13100,9 +13040,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-STAEformer-s2024",
@@ -13477,7 +13415,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -13509,9 +13447,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-GraphWaveNet-s2024",
@@ -13886,7 +13822,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -13938,9 +13874,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-AGCRN-s2024",
@@ -14315,7 +14249,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -14339,9 +14273,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-ModernTCN-UV-v10-s2024",
@@ -14716,7 +14648,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -14748,9 +14680,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H6-ch4_v10_pdformer_him_v1-s2024",
@@ -15125,7 +15055,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -15191,9 +15121,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-AMD-s2024",
@@ -15568,7 +15496,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -15623,9 +15551,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-DLinear-s2024",
@@ -16000,7 +15926,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -16025,9 +15951,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-ModernTCN-s2024",
@@ -16402,7 +16326,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -16475,9 +16399,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-PatchTST-s2024",
@@ -16852,7 +16774,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -16897,9 +16819,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-TimeMixer-s2024",
@@ -17274,7 +17194,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -17316,9 +17236,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-TimeXer-s2024",
@@ -17693,7 +17611,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -17735,9 +17653,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-iTransformer-s2024",
@@ -18112,7 +18028,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -18149,9 +18065,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-PDFormer-s2024",
@@ -18526,7 +18440,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -18608,9 +18522,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-HimNet-s2024",
@@ -18985,7 +18897,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -19016,9 +18928,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-TESTAM-s2024",
@@ -19393,7 +19303,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -19430,9 +19340,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-D2STGNN-s2024",
@@ -19807,7 +19715,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -19858,9 +19766,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-MegaCRN-s2024",
@@ -20235,7 +20141,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -20264,9 +20170,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-STDN-s2024",
@@ -20641,7 +20545,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -20687,9 +20591,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-STAEformer-s2024",
@@ -21064,7 +20966,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -21096,9 +20998,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-GraphWaveNet-s2024",
@@ -21473,7 +21373,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -21525,9 +21425,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-AGCRN-s2024",
@@ -21902,7 +21800,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -21926,9 +21824,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-ModernTCN-UV-v10-s2024",
@@ -22303,7 +22199,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -22335,9 +22231,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H9-ch4_v10_pdformer_him_v1-s2024",
@@ -22712,7 +22606,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -22778,9 +22672,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-AMD-s2024",
@@ -23155,7 +23047,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -23210,9 +23102,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-DLinear-s2024",
@@ -23587,7 +23477,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -23612,9 +23502,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-ModernTCN-s2024",
@@ -23989,7 +23877,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -24062,9 +23950,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-PatchTST-s2024",
@@ -24439,7 +24325,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -24484,9 +24370,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-TimeMixer-s2024",
@@ -24861,7 +24745,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -24903,9 +24787,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-TimeXer-s2024",
@@ -25280,7 +25162,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -25322,9 +25204,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-iTransformer-s2024",
@@ -25699,7 +25579,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -25736,9 +25616,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-PDFormer-s2024",
@@ -26113,7 +25991,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -26195,9 +26073,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-HimNet-s2024",
@@ -26572,7 +26448,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -26603,9 +26479,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-TESTAM-s2024",
@@ -26980,7 +26854,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -27017,9 +26891,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-D2STGNN-s2024",
@@ -27394,7 +27266,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -27445,9 +27317,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-MegaCRN-s2024",
@@ -27822,7 +27692,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -27851,9 +27721,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-STDN-s2024",
@@ -28228,7 +28096,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -28274,9 +28142,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-STAEformer-s2024",
@@ -28651,7 +28517,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -28683,9 +28549,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-GraphWaveNet-s2024",
@@ -29060,7 +28924,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -29112,9 +28976,7 @@
           "sha256": "c943a1c460ef35076b6a287b5a9b2feb9eb0a11130c991c98e3d6d87c63d5ca3"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-AGCRN-s2024",
@@ -29489,7 +29351,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -29513,9 +29375,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-ModernTCN-UV-v10-s2024",
@@ -29890,7 +29750,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -29922,9 +29782,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "UrbanEV-H12-ch4_v10_pdformer_him_v1-s2024",
@@ -30299,7 +30157,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -30365,9 +30223,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-AMD-s2024",
@@ -32906,7 +32762,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -32961,9 +32817,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-DLinear-s2024",
@@ -35502,7 +35356,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -35527,9 +35381,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-ModernTCN-s2024",
@@ -38068,7 +37920,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -38141,9 +37993,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-PatchTST-s2024",
@@ -40682,7 +40532,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -40727,9 +40577,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-TimeMixer-s2024",
@@ -43268,7 +43116,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -43310,9 +43158,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-TimeXer-s2024",
@@ -45851,7 +45697,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -45893,9 +45739,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-iTransformer-s2024",
@@ -48434,7 +48278,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -48471,9 +48315,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-PDFormer-s2024",
@@ -51012,7 +50854,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -51094,9 +50936,7 @@
           "sha256": "c94ee96fb7f5b04b2058b1331a44baa69997b203406a3c5c1c19c827f67363fc"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-HimNet-s2024",
@@ -53635,7 +53475,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -53666,9 +53506,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-TESTAM-s2024",
@@ -56207,7 +56045,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -56244,9 +56082,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-D2STGNN-s2024",
@@ -58785,7 +58621,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -58836,9 +58672,7 @@
           "sha256": "c94ee96fb7f5b04b2058b1331a44baa69997b203406a3c5c1c19c827f67363fc"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-MegaCRN-s2024",
@@ -61377,7 +61211,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -61406,9 +61240,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-STDN-s2024",
@@ -63947,7 +63779,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -63993,9 +63825,7 @@
           "sha256": "c94ee96fb7f5b04b2058b1331a44baa69997b203406a3c5c1c19c827f67363fc"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-STAEformer-s2024",
@@ -66534,7 +66364,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -66566,9 +66396,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-GraphWaveNet-s2024",
@@ -69107,7 +68935,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -69159,9 +68987,7 @@
           "sha256": "c94ee96fb7f5b04b2058b1331a44baa69997b203406a3c5c1c19c827f67363fc"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-AGCRN-s2024",
@@ -71700,7 +71526,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -71724,9 +71550,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-ModernTCN-UV-v10-s2024",
@@ -74265,7 +74089,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -74297,9 +74121,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "AMS-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -76838,7 +76660,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -76904,9 +76726,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-AMD-s2024",
@@ -77046,7 +76866,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -77101,9 +76921,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-DLinear-s2024",
@@ -77243,7 +77061,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -77268,9 +77086,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-ModernTCN-s2024",
@@ -77410,7 +77226,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -77483,9 +77299,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-PatchTST-s2024",
@@ -77625,7 +77439,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -77670,9 +77484,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-TimeMixer-s2024",
@@ -77812,7 +77624,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -77854,9 +77666,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-TimeXer-s2024",
@@ -77996,7 +77806,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -78038,9 +77848,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-iTransformer-s2024",
@@ -78180,7 +77988,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -78217,9 +78025,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-PDFormer-s2024",
@@ -78359,7 +78165,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -78441,9 +78247,7 @@
           "sha256": "5d656de9972a6bf2250652ad880c18f7752ee87226b98c43963d01d02016398a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-HimNet-s2024",
@@ -78583,7 +78387,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -78614,9 +78418,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-TESTAM-s2024",
@@ -78756,7 +78558,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -78793,9 +78595,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-D2STGNN-s2024",
@@ -78935,7 +78735,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -78986,9 +78786,7 @@
           "sha256": "5d656de9972a6bf2250652ad880c18f7752ee87226b98c43963d01d02016398a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-MegaCRN-s2024",
@@ -79128,7 +78926,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -79157,9 +78955,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-STDN-s2024",
@@ -79299,7 +79095,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -79345,9 +79141,7 @@
           "sha256": "5d656de9972a6bf2250652ad880c18f7752ee87226b98c43963d01d02016398a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-STAEformer-s2024",
@@ -79487,7 +79281,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -79519,9 +79313,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-GraphWaveNet-s2024",
@@ -79661,7 +79453,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -79713,9 +79505,7 @@
           "sha256": "5d656de9972a6bf2250652ad880c18f7752ee87226b98c43963d01d02016398a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-AGCRN-s2024",
@@ -79855,7 +79645,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -79879,9 +79669,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-ModernTCN-UV-v10-s2024",
@@ -80021,7 +79809,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -80053,9 +79841,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "JHB-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -80195,7 +79981,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -80261,9 +80047,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-AMD-s2024",
@@ -80585,7 +80369,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -80640,9 +80424,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-DLinear-s2024",
@@ -80964,7 +80746,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -80989,9 +80771,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-ModernTCN-s2024",
@@ -81313,7 +81093,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -81386,9 +81166,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-PatchTST-s2024",
@@ -81710,7 +81488,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -81755,9 +81533,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-TimeMixer-s2024",
@@ -82079,7 +81855,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -82121,9 +81897,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-TimeXer-s2024",
@@ -82445,7 +82219,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -82487,9 +82261,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-iTransformer-s2024",
@@ -82811,7 +82583,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -82848,9 +82620,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-PDFormer-s2024",
@@ -83172,7 +82942,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -83254,9 +83024,7 @@
           "sha256": "ee67a8a43016751f64e578da13ff00a462bc090a3dfd23e1d49bdc38dd04494a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-HimNet-s2024",
@@ -83578,7 +83346,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -83609,9 +83377,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-TESTAM-s2024",
@@ -83933,7 +83699,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -83970,9 +83736,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-D2STGNN-s2024",
@@ -84294,7 +84058,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -84345,9 +84109,7 @@
           "sha256": "ee67a8a43016751f64e578da13ff00a462bc090a3dfd23e1d49bdc38dd04494a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-MegaCRN-s2024",
@@ -84669,7 +84431,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -84698,9 +84460,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-STDN-s2024",
@@ -85022,7 +84782,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -85068,9 +84828,7 @@
           "sha256": "ee67a8a43016751f64e578da13ff00a462bc090a3dfd23e1d49bdc38dd04494a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-STAEformer-s2024",
@@ -85392,7 +85150,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -85424,9 +85182,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-GraphWaveNet-s2024",
@@ -85748,7 +85504,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -85800,9 +85556,7 @@
           "sha256": "ee67a8a43016751f64e578da13ff00a462bc090a3dfd23e1d49bdc38dd04494a"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-AGCRN-s2024",
@@ -86124,7 +85878,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -86148,9 +85902,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-ModernTCN-UV-v10-s2024",
@@ -86472,7 +86224,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -86504,9 +86256,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "LOA-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -86828,7 +86578,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -86894,9 +86644,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-AMD-s2024",
@@ -87052,7 +86800,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -87107,9 +86855,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-DLinear-s2024",
@@ -87265,7 +87011,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -87290,9 +87036,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-ModernTCN-s2024",
@@ -87448,7 +87192,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -87521,9 +87265,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-PatchTST-s2024",
@@ -87679,7 +87421,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -87724,9 +87466,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-TimeMixer-s2024",
@@ -87882,7 +87622,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -87924,9 +87664,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-TimeXer-s2024",
@@ -88082,7 +87820,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -88124,9 +87862,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-iTransformer-s2024",
@@ -88282,7 +88018,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -88319,9 +88055,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-PDFormer-s2024",
@@ -88477,7 +88211,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -88559,9 +88293,7 @@
           "sha256": "acf9850f77f53f838aaf6ef65d3e95e9e8b61495816ee56e7cb6d11e7e1bdbc5"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-HimNet-s2024",
@@ -88717,7 +88449,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -88748,9 +88480,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-TESTAM-s2024",
@@ -88906,7 +88636,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -88943,9 +88673,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-D2STGNN-s2024",
@@ -89101,7 +88829,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -89152,9 +88880,7 @@
           "sha256": "acf9850f77f53f838aaf6ef65d3e95e9e8b61495816ee56e7cb6d11e7e1bdbc5"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-MegaCRN-s2024",
@@ -89310,7 +89036,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -89339,9 +89065,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-STDN-s2024",
@@ -89497,7 +89221,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -89543,9 +89267,7 @@
           "sha256": "acf9850f77f53f838aaf6ef65d3e95e9e8b61495816ee56e7cb6d11e7e1bdbc5"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-STAEformer-s2024",
@@ -89701,7 +89423,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -89733,9 +89455,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-GraphWaveNet-s2024",
@@ -89891,7 +89611,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -89943,9 +89663,7 @@
           "sha256": "acf9850f77f53f838aaf6ef65d3e95e9e8b61495816ee56e7cb6d11e7e1bdbc5"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-AGCRN-s2024",
@@ -90101,7 +89819,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -90125,9 +89843,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-ModernTCN-UV-v10-s2024",
@@ -90283,7 +89999,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -90315,9 +90031,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "MEL-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -90473,7 +90187,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -90539,9 +90253,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-AMD-s2024",
@@ -90681,7 +90393,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -90736,9 +90448,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-DLinear-s2024",
@@ -90878,7 +90588,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -90903,9 +90613,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-ModernTCN-s2024",
@@ -91045,7 +90753,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -91118,9 +90826,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-PatchTST-s2024",
@@ -91260,7 +90966,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -91305,9 +91011,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-TimeMixer-s2024",
@@ -91447,7 +91151,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -91489,9 +91193,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-TimeXer-s2024",
@@ -91631,7 +91333,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -91673,9 +91375,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-iTransformer-s2024",
@@ -91815,7 +91515,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -91852,9 +91552,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-PDFormer-s2024",
@@ -91994,7 +91692,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -92076,9 +91774,7 @@
           "sha256": "d46af4197bd80e84317aba23e6cb85a50455a8af4f24d14d14407aebafd4d67b"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-HimNet-s2024",
@@ -92218,7 +91914,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -92249,9 +91945,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-TESTAM-s2024",
@@ -92391,7 +92085,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -92428,9 +92122,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-D2STGNN-s2024",
@@ -92570,7 +92262,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -92621,9 +92313,7 @@
           "sha256": "d46af4197bd80e84317aba23e6cb85a50455a8af4f24d14d14407aebafd4d67b"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-MegaCRN-s2024",
@@ -92763,7 +92453,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -92792,9 +92482,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-STDN-s2024",
@@ -92934,7 +92622,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -92980,9 +92668,7 @@
           "sha256": "d46af4197bd80e84317aba23e6cb85a50455a8af4f24d14d14407aebafd4d67b"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-STAEformer-s2024",
@@ -93122,7 +92808,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -93154,9 +92840,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-GraphWaveNet-s2024",
@@ -93296,7 +92980,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -93348,9 +93032,7 @@
           "sha256": "d46af4197bd80e84317aba23e6cb85a50455a8af4f24d14d14407aebafd4d67b"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-AGCRN-s2024",
@@ -93490,7 +93172,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -93514,9 +93196,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-ModernTCN-UV-v10-s2024",
@@ -93656,7 +93336,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -93688,9 +93368,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SPO-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -93830,7 +93508,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -93896,9 +93574,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-AMD-s2024",
@@ -95434,7 +95110,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "native_moe": 1.0
@@ -95489,9 +95165,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-DLinear-s2024",
@@ -97027,7 +96701,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -97052,9 +96726,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-ModernTCN-s2024",
@@ -98590,7 +98262,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -98663,9 +98335,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-PatchTST-s2024",
@@ -100201,7 +99871,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -100246,9 +99916,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-TimeMixer-s2024",
@@ -101784,7 +101452,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -101826,9 +101494,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-TimeXer-s2024",
@@ -103364,7 +103030,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -103406,9 +103072,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-iTransformer-s2024",
@@ -104944,7 +104608,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -104981,9 +104645,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-PDFormer-s2024",
@@ -106519,7 +106181,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -106601,9 +106263,7 @@
           "sha256": "656e70dd88aa7615444b4e6bc2daf2997cde3bee31aa64b0f24efb28fcbc5649"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-HimNet-s2024",
@@ -108139,7 +107799,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -108170,9 +107830,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-TESTAM-s2024",
@@ -109708,7 +109366,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -109745,9 +109403,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-D2STGNN-s2024",
@@ -111283,7 +110939,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -111334,9 +110990,7 @@
           "sha256": "656e70dd88aa7615444b4e6bc2daf2997cde3bee31aa64b0f24efb28fcbc5649"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-MegaCRN-s2024",
@@ -112872,7 +112526,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -112901,9 +112555,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-STDN-s2024",
@@ -114439,7 +114091,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -114485,9 +114137,7 @@
           "sha256": "656e70dd88aa7615444b4e6bc2daf2997cde3bee31aa64b0f24efb28fcbc5649"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-STAEformer-s2024",
@@ -116023,7 +115673,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -116055,9 +115705,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-GraphWaveNet-s2024",
@@ -117593,7 +117241,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -117645,9 +117293,7 @@
           "sha256": "656e70dd88aa7615444b4e6bc2daf2997cde3bee31aa64b0f24efb28fcbc5649"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-AGCRN-s2024",
@@ -119183,7 +118829,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -119207,9 +118853,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-ModernTCN-UV-v10-s2024",
@@ -120745,7 +120389,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -120777,9 +120421,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "SZH-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -122315,7 +121957,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 50,
         "auxiliary": {}
       },
@@ -122381,9 +122023,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-AMD-s2024",
@@ -122781,7 +122421,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {
           "native_moe": 1.0
@@ -122836,9 +122476,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-DLinear-s2024",
@@ -123236,7 +122874,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -123261,9 +122899,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-ModernTCN-s2024",
@@ -123661,7 +123297,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -123734,9 +123370,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-PatchTST-s2024",
@@ -124134,7 +123768,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -124179,9 +123813,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-TimeMixer-s2024",
@@ -124579,7 +124211,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -124621,9 +124253,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-TimeXer-s2024",
@@ -125021,7 +124651,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -125063,9 +124693,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-iTransformer-s2024",
@@ -125463,7 +125091,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -125500,9 +125128,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-PDFormer-s2024",
@@ -125900,7 +125526,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -125986,9 +125612,7 @@
           "sha256": "63916cb8138be6541ab7d5752f764b5d1f73b68be40e504aeac998a7cdb392d8"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-HimNet-s2024",
@@ -126386,7 +126010,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -126417,9 +126041,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-TESTAM-s2024",
@@ -126817,7 +126439,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -126865,9 +126487,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-D2STGNN-s2024",
@@ -127265,7 +126885,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -127316,9 +126936,7 @@
           "sha256": "63916cb8138be6541ab7d5752f764b5d1f73b68be40e504aeac998a7cdb392d8"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-MegaCRN-s2024",
@@ -127716,7 +127334,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -127745,9 +127363,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-STDN-s2024",
@@ -128145,7 +127761,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -128191,9 +127807,7 @@
           "sha256": "63916cb8138be6541ab7d5752f764b5d1f73b68be40e504aeac998a7cdb392d8"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-STAEformer-s2024",
@@ -128591,7 +128205,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -128623,9 +128237,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-GraphWaveNet-s2024",
@@ -129023,7 +128635,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -129075,9 +128687,7 @@
           "sha256": "63916cb8138be6541ab7d5752f764b5d1f73b68be40e504aeac998a7cdb392d8"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-AGCRN-s2024",
@@ -129475,7 +129085,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -129499,9 +129109,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-ModernTCN-UV-v10-s2024",
@@ -129899,7 +129507,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -129931,9 +129539,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS04-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -130331,7 +129937,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -130397,9 +130003,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-AMD-s2024",
@@ -130660,7 +130264,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {
           "native_moe": 1.0
@@ -130715,9 +130319,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-DLinear-s2024",
@@ -130978,7 +130580,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -131003,9 +130605,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-ModernTCN-s2024",
@@ -131266,7 +130866,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -131339,9 +130939,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-PatchTST-s2024",
@@ -131602,7 +131200,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -131647,9 +131245,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-TimeMixer-s2024",
@@ -131910,7 +131506,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -131952,9 +131548,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-TimeXer-s2024",
@@ -132215,7 +131809,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -132257,9 +131851,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-iTransformer-s2024",
@@ -132520,7 +132112,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -132557,9 +132149,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-PDFormer-s2024",
@@ -132820,7 +132410,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -132906,9 +132496,7 @@
           "sha256": "05d1b3a2ff3668d2f86af659744a15e39deb937b1e29ab6d6135c4bf5aca2bd7"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-HimNet-s2024",
@@ -133169,7 +132757,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -133200,9 +132788,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-TESTAM-s2024",
@@ -133463,7 +133049,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {
           "worst_avoidance": 0.5,
@@ -133511,9 +133097,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-D2STGNN-s2024",
@@ -133774,7 +133358,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -133825,9 +133409,7 @@
           "sha256": "05d1b3a2ff3668d2f86af659744a15e39deb937b1e29ab6d6135c4bf5aca2bd7"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-MegaCRN-s2024",
@@ -134088,7 +133670,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {
           "memory_triplet": 0.01,
@@ -134117,9 +133699,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-STDN-s2024",
@@ -134380,7 +133960,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -134426,9 +134006,7 @@
           "sha256": "05d1b3a2ff3668d2f86af659744a15e39deb937b1e29ab6d6135c4bf5aca2bd7"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-STAEformer-s2024",
@@ -134689,7 +134267,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -134721,9 +134299,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-GraphWaveNet-s2024",
@@ -134984,7 +134560,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -135036,9 +134612,7 @@
           "sha256": "05d1b3a2ff3668d2f86af659744a15e39deb937b1e29ab6d6135c4bf5aca2bd7"
         }
       },
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-AGCRN-s2024",
@@ -135299,7 +134873,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -135323,9 +134897,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-ModernTCN-UV-v10-s2024",
@@ -135586,7 +135158,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -135618,9 +135190,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     },
     {
       "id": "PEMS08-H1-ch4_v10_pdformer_him_v1-s2024",
@@ -135881,7 +135451,7 @@
         "cudnn_benchmark": false,
         "cudnn_deterministic": true,
         "deterministic_algorithms": false,
-        "threads": 1,
+        "threads": 2,
         "cap": 200,
         "auxiliary": {}
       },
@@ -135947,9 +135517,7 @@
       },
       "native_artifacts": {},
       "native_identities": {},
-      "readiness_blockers": [
-        "GPU capacity/throughput and final batch/concurrency not yet reviewed"
-      ]
+      "readiness_blockers": []
     }
   ],
   "sources": {
@@ -136651,7 +136219,7 @@
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/__init__.py": "72fec2e5f36291b73f46113c6d850d86c2451be73e3438f657cc0925b6fe378a",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/baselines.py": "90df0c33f6f6df7b3fe95ab7fe97a0a9c88329c00b63f899f67c35471cd809f0",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/data.py": "3f1c9e71e2bfddf7225dbef4b650138a4e12d78d6e7bf1fdac0ae7e76259f52a",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/dependencies.py": "76faf50e6e675d5d1b8504aac8d3a4c9e708df4acc520f6300f463563934267f",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/dependencies.py": "8c266914f5aad2f8de8007efcf52bc8a30a140607a5af8800e64a900204dea49",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/graphs.py": "c2ab27efad55f4b4efb3879586bdeffe11d18091a20641647f66450d8324dc36",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/imports.py": "d31d4cb646d0a7d025110f234aafe3e21342250e4837c2252fb360bd8bcba425",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/kshape_rollback.py": "4fdc99d30a2b15c7b4fc5d757310b15c7f1b695a4b1e88be84c618ac912a89ef",
@@ -136666,10 +136234,11 @@
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_data.py": "d45da3d4b0383404453c2016ba3b29d615c8af587ff97757d7a23e8402b451a4",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py": "7fccaa34ceb8746bdb15372bca15a09a3eba61fbca5fa7b0c8715d3dad17b049",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py": "e37dfb68854d261211f9990f3de293002ea1dead510e137be8ac81889dc91191",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py": "81b70ca096acaa7c9da6f71d6a80a567e5484f74ee148fa9e5f5248f026424d0",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py": "89230637df26f9114d0a2e9087dfee1af811e68b6aee5c32abb82def38b41925",
-    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "9f04179aa3f9d0ae1c9e47821fbb3bc7302f1ce244af8af2465e1b4ea95718a9",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py": "29ef0ed077b7e86c0b478f609263d839ffd3fc59e9f244d678ca474cf321227d",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py": "231388a3c3becf5aa2cc4b01cb15c24ba979848438ce44330559038623da99fb",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "2da4b24c924a953efde49993eb5538db4e892fa742cf08e36c5a702c0df7efcf",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py": "01ff534127262d3aca00567d2882f575181e61ecf74f4192b667ce6501698aa1",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py": "b0d066ffbfe6b1bc12381cb28bb17084cd9cd432f6d70ad75b66d4b86840afea",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": "cfba6c4b47a5df835be172bd69cd176afe7a7ef4ffcfcbec1fee650cda769a39",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/spatial.py": "fca67ac7527996179f66f6ab6be7437624f02cdce47d734839441765913bd83e",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/state.py": "b1be979e8eaf6a28c5305dd20e12812b11596ea4638a0cba0220c6e6efb48bfc",
@@ -136832,6 +136401,7 @@
     "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/pattern_registry.json": "7e032bf6a94cce5a947a1cc0a6e1d07ded56d627d6390ea781b4d0526f812ac9",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/configs/ch3_baseline_ms_u96_oc01_v3.json": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09",
     "/public/home/yueweiting/大论文/CH4-v10-spatial/moderntcn_dev_v1/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+    "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/formal_resources.json": "00482bc7ba8c074df27c0dfc96e5bfe6bcec6b7f7691f30d2310d1ed95f458b2",
     "/public/home/yueweiting/大论文/ModernTCN/LICENSE": "62c172f180a9c70514e597a2e3bd22f12d3eb6eb2af1cbd79c83d4292a749115",
     "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/sources/HimNet/model/HimNet.yaml": "8b2ebddc2ef7191bff8d6bb464566cb2fd57e2554f7c30e10d994226b2465d1f",
     "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/sources/STAEformer/model/STAEformer.yaml": "a08e1a7c09683cbcc25a96efc02486ac0211ba79312b88de3479f497199a9cd3",
@@ -136989,7 +136559,11 @@
     "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-PDFormer-five-domain-cache-launch-r1/patterns/PEMS08-r1/pattern_keys.npy": "ded8ba29251d984c71a52f2856a1f382461afa2e4226cf4076b88078897084d0",
     "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-PEMS08-r1/d2_supports.npy": "f30b7f2ade9bc2bf7c213f9666b75c834ade61fc8b4887b6daca216afcbc96a3",
     "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-PEMS08-r1/laplacian32.npy": "bead800cf5d45d4e450a1e8d4f8d5c2b5df50d5ee5d846eae563407c525a8661",
-    "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-PEMS08-r1/gwn_supports.npy": "ffd434fb7c0f0e75c3fb744ef273c981c8c4bdf67b07381c7c5baa15e174bc1b"
+    "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-v10-spatial-implementation-r1/data/native-PEMS08-r1/gwn_supports.npy": "ffd434fb7c0f0e75c3fb744ef273c981c8c4bdf67b07381c7c5baa15e174bc1b",
+    "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r2/resource-plan.json": "dd4adb2b99b865c700276f3eeb773723b8756fd728e9dd1318262dfdcc605b23",
+    "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r2/run-r2/group-results.json": "afa59ea9a7b8f342cdfc5ba1e9437ce4334f174f8c905732adc2de29b1e8b5ef",
+    "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r2/run-r2/complete.json": "310b37128ed71066b0c14b02af900d8dbff7cb21d6ec590ecd16c4874bd4ceb3",
+    "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-q1-t2-resource-adoption-and-formal-preparation-r1/resource-adoption.json": "b64106cd98bc4ab8dda47ee2c9eccbe09c60974909bc7e7968cc428bb99d6677"
   },
   "dependency_identity": {
     "runtime_python": {
@@ -136998,7 +136572,7 @@
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/__init__.py": "72fec2e5f36291b73f46113c6d850d86c2451be73e3438f657cc0925b6fe378a",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/baselines.py": "90df0c33f6f6df7b3fe95ab7fe97a0a9c88329c00b63f899f67c35471cd809f0",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/data.py": "3f1c9e71e2bfddf7225dbef4b650138a4e12d78d6e7bf1fdac0ae7e76259f52a",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/dependencies.py": "76faf50e6e675d5d1b8504aac8d3a4c9e708df4acc520f6300f463563934267f",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/dependencies.py": "8c266914f5aad2f8de8007efcf52bc8a30a140607a5af8800e64a900204dea49",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/graphs.py": "c2ab27efad55f4b4efb3879586bdeffe11d18091a20641647f66450d8324dc36",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/imports.py": "d31d4cb646d0a7d025110f234aafe3e21342250e4837c2252fb360bd8bcba425",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/kshape_rollback.py": "4fdc99d30a2b15c7b4fc5d757310b15c7f1b695a4b1e88be84c618ac912a89ef",
@@ -137013,10 +136587,11 @@
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_data.py": "d45da3d4b0383404453c2016ba3b29d615c8af587ff97757d7a23e8402b451a4",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py": "7fccaa34ceb8746bdb15372bca15a09a3eba61fbca5fa7b0c8715d3dad17b049",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py": "e37dfb68854d261211f9990f3de293002ea1dead510e137be8ac81889dc91191",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py": "81b70ca096acaa7c9da6f71d6a80a567e5484f74ee148fa9e5f5248f026424d0",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py": "89230637df26f9114d0a2e9087dfee1af811e68b6aee5c32abb82def38b41925",
-        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "9f04179aa3f9d0ae1c9e47821fbb3bc7302f1ce244af8af2465e1b4ea95718a9",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py": "29ef0ed077b7e86c0b478f609263d839ffd3fc59e9f244d678ca474cf321227d",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py": "231388a3c3becf5aa2cc4b01cb15c24ba979848438ce44330559038623da99fb",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py": "2da4b24c924a953efde49993eb5538db4e892fa742cf08e36c5a702c0df7efcf",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py": "01ff534127262d3aca00567d2882f575181e61ecf74f4192b667ce6501698aa1",
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py": "b0d066ffbfe6b1bc12381cb28bb17084cd9cd432f6d70ad75b66d4b86840afea",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": "cfba6c4b47a5df835be172bd69cd176afe7a7ef4ffcfcbec1fee650cda769a39",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/spatial.py": "fca67ac7527996179f66f6ab6be7437624f02cdce47d734839441765913bd83e",
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/state.py": "b1be979e8eaf6a28c5305dd20e12812b11596ea4638a0cba0220c6e6efb48bfc",
@@ -137292,6 +136867,7 @@
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py",
+          "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/spatial.py",
           "package initializer for /public/home/yueweiting/大论文/CH4-v10-spatial/ch4/state.py",
@@ -137332,6 +136908,7 @@
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py:10",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:13",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py:7",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py:7",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/worker.py:14",
           "explicit execution entry"
         ],
@@ -137384,7 +136961,7 @@
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_data.py": [
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py:13",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_patterns.py:12",
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:95",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:99",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_native_graphs.py": [
@@ -137411,7 +136988,13 @@
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:201",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:208",
+          "explicit execution entry"
+        ],
+        "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py": [
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/prepare_plan.py:192",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/protocol.py:37",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:19",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/runtime_io.py": [
@@ -137423,6 +137006,7 @@
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:16",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:17",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py:8",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py:6",
           "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/worker.py:15",
           "explicit execution entry"
         ],
@@ -137556,7 +137140,7 @@
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/worker.py": [
-          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:135",
+          "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/queue.py:142",
           "explicit execution entry"
         ],
         "/public/home/yueweiting/大论文/CH4-v10-spatial/m6_extension_entry.py": [
@@ -138825,6 +138409,7 @@
       "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/pattern_registry.json": "7e032bf6a94cce5a947a1cc0a6e1d07ded56d627d6390ea781b4d0526f812ac9",
       "/public/home/yueweiting/大论文/CH4-v10-spatial/configs/ch3_baseline_ms_u96_oc01_v3.json": "6bdfc55357f8fad0d102efec83d453ef77418cc567de40158ff3ed974124aa09",
       "/public/home/yueweiting/大论文/CH4-v10-spatial/moderntcn_dev_v1/source_binding.json": "4a85aadac43a0973d655c51395df020e1cd2a44220ca14d5f37dc21c1497a494",
+      "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/formal_resources.json": "00482bc7ba8c074df27c0dfc96e5bfe6bcec6b7f7691f30d2310d1ed95f458b2",
       "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/layers/RevIN.py": "1e08d0b3679f4ef79ac7f98a7f719f8d7f8a04595022ed34f702c7d70c0c4d90",
       "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN.py": "daf74722e40d928e5ed6bc871b528a5d5d2c9090f30cafb89110cc88dc60fa30",
       "/public/home/yueweiting/大论文/ModernTCN/ModernTCN-Long-term-forecasting/models/ModernTCN_Layer.py": "b2291534c6a11ebd80882bed89f7cf8c76c721b8e0495294659f2c5b0fe88cea",
@@ -138952,6 +138537,10 @@
       },
       {
         "file": "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/reporting.py",
+        "root": "/public/home/yueweiting/大论文/CH4-v10-spatial"
+      },
+      {
+        "file": "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/resources.py",
         "root": "/public/home/yueweiting/大论文/CH4-v10-spatial"
       },
       {
@@ -139233,13 +138822,9 @@
     "warmup_updates": 5,
     "measured_updates": 20,
     "max_unstable_timing_repeats": 1,
-    "gpu_hours_cap": 4,
-    "concurrency_sequence": [
-      1,
-      2,
-      4
-    ],
-    "q8_requires": "measured headroom and continuing total throughput benefit",
+    "resource_selection": "user_approved_q1_T2_after_completed_thread24_probe",
+    "additional_probes": false,
+    "formal_wall_clock_cap": null,
     "concurrency_numerical_equivalence": {
       "status": "not_executed_by_user_policy",
       "statement": "本轮按用户批准不执行；基于任务独立执行机制、既有证据及差异风险评估接受"
@@ -139263,20 +138848,984 @@
       "threads",
       "task_order"
     ],
-    "concurrency_only_oom": "reduce_concurrency_first_keep_scientific_batch",
-    "singleton_oom": "approved_domain_wide_batch_halving"
+    "formal_oom": "stop_all_preserve_evidence_diagnose_review_no_automatic_batch_or_q_change"
   },
-  "resource_frozen": false,
-  "resource_plan": null,
+  "resource_frozen": true,
+  "resource_plan": {
+    "schema": "m7-formal-q1-t2-v1",
+    "concurrency": 1,
+    "threads_per_worker": 2,
+    "interop_threads": 1,
+    "loader_workers": 0,
+    "thread_environment": {
+      "OMP_NUM_THREADS": "2",
+      "MKL_NUM_THREADS": "2",
+      "OPENBLAS_NUM_THREADS": "1",
+      "NUMBA_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "waves": [
+      [
+        "UrbanEV-H3-AMD-s2024"
+      ],
+      [
+        "UrbanEV-H3-DLinear-s2024"
+      ],
+      [
+        "UrbanEV-H3-ModernTCN-s2024"
+      ],
+      [
+        "UrbanEV-H3-PatchTST-s2024"
+      ],
+      [
+        "UrbanEV-H3-TimeMixer-s2024"
+      ],
+      [
+        "UrbanEV-H3-TimeXer-s2024"
+      ],
+      [
+        "UrbanEV-H3-iTransformer-s2024"
+      ],
+      [
+        "UrbanEV-H3-PDFormer-s2024"
+      ],
+      [
+        "UrbanEV-H3-HimNet-s2024"
+      ],
+      [
+        "UrbanEV-H3-TESTAM-s2024"
+      ],
+      [
+        "UrbanEV-H3-D2STGNN-s2024"
+      ],
+      [
+        "UrbanEV-H3-MegaCRN-s2024"
+      ],
+      [
+        "UrbanEV-H3-STDN-s2024"
+      ],
+      [
+        "UrbanEV-H3-STAEformer-s2024"
+      ],
+      [
+        "UrbanEV-H3-GraphWaveNet-s2024"
+      ],
+      [
+        "UrbanEV-H3-AGCRN-s2024"
+      ],
+      [
+        "UrbanEV-H3-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "UrbanEV-H3-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "UrbanEV-H6-AMD-s2024"
+      ],
+      [
+        "UrbanEV-H6-DLinear-s2024"
+      ],
+      [
+        "UrbanEV-H6-ModernTCN-s2024"
+      ],
+      [
+        "UrbanEV-H6-PatchTST-s2024"
+      ],
+      [
+        "UrbanEV-H6-TimeMixer-s2024"
+      ],
+      [
+        "UrbanEV-H6-TimeXer-s2024"
+      ],
+      [
+        "UrbanEV-H6-iTransformer-s2024"
+      ],
+      [
+        "UrbanEV-H6-PDFormer-s2024"
+      ],
+      [
+        "UrbanEV-H6-HimNet-s2024"
+      ],
+      [
+        "UrbanEV-H6-TESTAM-s2024"
+      ],
+      [
+        "UrbanEV-H6-D2STGNN-s2024"
+      ],
+      [
+        "UrbanEV-H6-MegaCRN-s2024"
+      ],
+      [
+        "UrbanEV-H6-STDN-s2024"
+      ],
+      [
+        "UrbanEV-H6-STAEformer-s2024"
+      ],
+      [
+        "UrbanEV-H6-GraphWaveNet-s2024"
+      ],
+      [
+        "UrbanEV-H6-AGCRN-s2024"
+      ],
+      [
+        "UrbanEV-H6-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "UrbanEV-H6-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "UrbanEV-H9-AMD-s2024"
+      ],
+      [
+        "UrbanEV-H9-DLinear-s2024"
+      ],
+      [
+        "UrbanEV-H9-ModernTCN-s2024"
+      ],
+      [
+        "UrbanEV-H9-PatchTST-s2024"
+      ],
+      [
+        "UrbanEV-H9-TimeMixer-s2024"
+      ],
+      [
+        "UrbanEV-H9-TimeXer-s2024"
+      ],
+      [
+        "UrbanEV-H9-iTransformer-s2024"
+      ],
+      [
+        "UrbanEV-H9-PDFormer-s2024"
+      ],
+      [
+        "UrbanEV-H9-HimNet-s2024"
+      ],
+      [
+        "UrbanEV-H9-TESTAM-s2024"
+      ],
+      [
+        "UrbanEV-H9-D2STGNN-s2024"
+      ],
+      [
+        "UrbanEV-H9-MegaCRN-s2024"
+      ],
+      [
+        "UrbanEV-H9-STDN-s2024"
+      ],
+      [
+        "UrbanEV-H9-STAEformer-s2024"
+      ],
+      [
+        "UrbanEV-H9-GraphWaveNet-s2024"
+      ],
+      [
+        "UrbanEV-H9-AGCRN-s2024"
+      ],
+      [
+        "UrbanEV-H9-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "UrbanEV-H9-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "UrbanEV-H12-AMD-s2024"
+      ],
+      [
+        "UrbanEV-H12-DLinear-s2024"
+      ],
+      [
+        "UrbanEV-H12-ModernTCN-s2024"
+      ],
+      [
+        "UrbanEV-H12-PatchTST-s2024"
+      ],
+      [
+        "UrbanEV-H12-TimeMixer-s2024"
+      ],
+      [
+        "UrbanEV-H12-TimeXer-s2024"
+      ],
+      [
+        "UrbanEV-H12-iTransformer-s2024"
+      ],
+      [
+        "UrbanEV-H12-PDFormer-s2024"
+      ],
+      [
+        "UrbanEV-H12-HimNet-s2024"
+      ],
+      [
+        "UrbanEV-H12-TESTAM-s2024"
+      ],
+      [
+        "UrbanEV-H12-D2STGNN-s2024"
+      ],
+      [
+        "UrbanEV-H12-MegaCRN-s2024"
+      ],
+      [
+        "UrbanEV-H12-STDN-s2024"
+      ],
+      [
+        "UrbanEV-H12-STAEformer-s2024"
+      ],
+      [
+        "UrbanEV-H12-GraphWaveNet-s2024"
+      ],
+      [
+        "UrbanEV-H12-AGCRN-s2024"
+      ],
+      [
+        "UrbanEV-H12-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "UrbanEV-H12-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "AMS-H1-AMD-s2024"
+      ],
+      [
+        "AMS-H1-DLinear-s2024"
+      ],
+      [
+        "AMS-H1-ModernTCN-s2024"
+      ],
+      [
+        "AMS-H1-PatchTST-s2024"
+      ],
+      [
+        "AMS-H1-TimeMixer-s2024"
+      ],
+      [
+        "AMS-H1-TimeXer-s2024"
+      ],
+      [
+        "AMS-H1-iTransformer-s2024"
+      ],
+      [
+        "AMS-H1-PDFormer-s2024"
+      ],
+      [
+        "AMS-H1-HimNet-s2024"
+      ],
+      [
+        "AMS-H1-TESTAM-s2024"
+      ],
+      [
+        "AMS-H1-D2STGNN-s2024"
+      ],
+      [
+        "AMS-H1-MegaCRN-s2024"
+      ],
+      [
+        "AMS-H1-STDN-s2024"
+      ],
+      [
+        "AMS-H1-STAEformer-s2024"
+      ],
+      [
+        "AMS-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "AMS-H1-AGCRN-s2024"
+      ],
+      [
+        "AMS-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "AMS-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "JHB-H1-AMD-s2024"
+      ],
+      [
+        "JHB-H1-DLinear-s2024"
+      ],
+      [
+        "JHB-H1-ModernTCN-s2024"
+      ],
+      [
+        "JHB-H1-PatchTST-s2024"
+      ],
+      [
+        "JHB-H1-TimeMixer-s2024"
+      ],
+      [
+        "JHB-H1-TimeXer-s2024"
+      ],
+      [
+        "JHB-H1-iTransformer-s2024"
+      ],
+      [
+        "JHB-H1-PDFormer-s2024"
+      ],
+      [
+        "JHB-H1-HimNet-s2024"
+      ],
+      [
+        "JHB-H1-TESTAM-s2024"
+      ],
+      [
+        "JHB-H1-D2STGNN-s2024"
+      ],
+      [
+        "JHB-H1-MegaCRN-s2024"
+      ],
+      [
+        "JHB-H1-STDN-s2024"
+      ],
+      [
+        "JHB-H1-STAEformer-s2024"
+      ],
+      [
+        "JHB-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "JHB-H1-AGCRN-s2024"
+      ],
+      [
+        "JHB-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "JHB-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "LOA-H1-AMD-s2024"
+      ],
+      [
+        "LOA-H1-DLinear-s2024"
+      ],
+      [
+        "LOA-H1-ModernTCN-s2024"
+      ],
+      [
+        "LOA-H1-PatchTST-s2024"
+      ],
+      [
+        "LOA-H1-TimeMixer-s2024"
+      ],
+      [
+        "LOA-H1-TimeXer-s2024"
+      ],
+      [
+        "LOA-H1-iTransformer-s2024"
+      ],
+      [
+        "LOA-H1-PDFormer-s2024"
+      ],
+      [
+        "LOA-H1-HimNet-s2024"
+      ],
+      [
+        "LOA-H1-TESTAM-s2024"
+      ],
+      [
+        "LOA-H1-D2STGNN-s2024"
+      ],
+      [
+        "LOA-H1-MegaCRN-s2024"
+      ],
+      [
+        "LOA-H1-STDN-s2024"
+      ],
+      [
+        "LOA-H1-STAEformer-s2024"
+      ],
+      [
+        "LOA-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "LOA-H1-AGCRN-s2024"
+      ],
+      [
+        "LOA-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "LOA-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "MEL-H1-AMD-s2024"
+      ],
+      [
+        "MEL-H1-DLinear-s2024"
+      ],
+      [
+        "MEL-H1-ModernTCN-s2024"
+      ],
+      [
+        "MEL-H1-PatchTST-s2024"
+      ],
+      [
+        "MEL-H1-TimeMixer-s2024"
+      ],
+      [
+        "MEL-H1-TimeXer-s2024"
+      ],
+      [
+        "MEL-H1-iTransformer-s2024"
+      ],
+      [
+        "MEL-H1-PDFormer-s2024"
+      ],
+      [
+        "MEL-H1-HimNet-s2024"
+      ],
+      [
+        "MEL-H1-TESTAM-s2024"
+      ],
+      [
+        "MEL-H1-D2STGNN-s2024"
+      ],
+      [
+        "MEL-H1-MegaCRN-s2024"
+      ],
+      [
+        "MEL-H1-STDN-s2024"
+      ],
+      [
+        "MEL-H1-STAEformer-s2024"
+      ],
+      [
+        "MEL-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "MEL-H1-AGCRN-s2024"
+      ],
+      [
+        "MEL-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "MEL-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "SPO-H1-AMD-s2024"
+      ],
+      [
+        "SPO-H1-DLinear-s2024"
+      ],
+      [
+        "SPO-H1-ModernTCN-s2024"
+      ],
+      [
+        "SPO-H1-PatchTST-s2024"
+      ],
+      [
+        "SPO-H1-TimeMixer-s2024"
+      ],
+      [
+        "SPO-H1-TimeXer-s2024"
+      ],
+      [
+        "SPO-H1-iTransformer-s2024"
+      ],
+      [
+        "SPO-H1-PDFormer-s2024"
+      ],
+      [
+        "SPO-H1-HimNet-s2024"
+      ],
+      [
+        "SPO-H1-TESTAM-s2024"
+      ],
+      [
+        "SPO-H1-D2STGNN-s2024"
+      ],
+      [
+        "SPO-H1-MegaCRN-s2024"
+      ],
+      [
+        "SPO-H1-STDN-s2024"
+      ],
+      [
+        "SPO-H1-STAEformer-s2024"
+      ],
+      [
+        "SPO-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "SPO-H1-AGCRN-s2024"
+      ],
+      [
+        "SPO-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "SPO-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "SZH-H1-AMD-s2024"
+      ],
+      [
+        "SZH-H1-DLinear-s2024"
+      ],
+      [
+        "SZH-H1-ModernTCN-s2024"
+      ],
+      [
+        "SZH-H1-PatchTST-s2024"
+      ],
+      [
+        "SZH-H1-TimeMixer-s2024"
+      ],
+      [
+        "SZH-H1-TimeXer-s2024"
+      ],
+      [
+        "SZH-H1-iTransformer-s2024"
+      ],
+      [
+        "SZH-H1-PDFormer-s2024"
+      ],
+      [
+        "SZH-H1-HimNet-s2024"
+      ],
+      [
+        "SZH-H1-TESTAM-s2024"
+      ],
+      [
+        "SZH-H1-D2STGNN-s2024"
+      ],
+      [
+        "SZH-H1-MegaCRN-s2024"
+      ],
+      [
+        "SZH-H1-STDN-s2024"
+      ],
+      [
+        "SZH-H1-STAEformer-s2024"
+      ],
+      [
+        "SZH-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "SZH-H1-AGCRN-s2024"
+      ],
+      [
+        "SZH-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "SZH-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "PEMS04-H1-AMD-s2024"
+      ],
+      [
+        "PEMS04-H1-DLinear-s2024"
+      ],
+      [
+        "PEMS04-H1-ModernTCN-s2024"
+      ],
+      [
+        "PEMS04-H1-PatchTST-s2024"
+      ],
+      [
+        "PEMS04-H1-TimeMixer-s2024"
+      ],
+      [
+        "PEMS04-H1-TimeXer-s2024"
+      ],
+      [
+        "PEMS04-H1-iTransformer-s2024"
+      ],
+      [
+        "PEMS04-H1-PDFormer-s2024"
+      ],
+      [
+        "PEMS04-H1-HimNet-s2024"
+      ],
+      [
+        "PEMS04-H1-TESTAM-s2024"
+      ],
+      [
+        "PEMS04-H1-D2STGNN-s2024"
+      ],
+      [
+        "PEMS04-H1-MegaCRN-s2024"
+      ],
+      [
+        "PEMS04-H1-STDN-s2024"
+      ],
+      [
+        "PEMS04-H1-STAEformer-s2024"
+      ],
+      [
+        "PEMS04-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "PEMS04-H1-AGCRN-s2024"
+      ],
+      [
+        "PEMS04-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "PEMS04-H1-ch4_v10_pdformer_him_v1-s2024"
+      ],
+      [
+        "PEMS08-H1-AMD-s2024"
+      ],
+      [
+        "PEMS08-H1-DLinear-s2024"
+      ],
+      [
+        "PEMS08-H1-ModernTCN-s2024"
+      ],
+      [
+        "PEMS08-H1-PatchTST-s2024"
+      ],
+      [
+        "PEMS08-H1-TimeMixer-s2024"
+      ],
+      [
+        "PEMS08-H1-TimeXer-s2024"
+      ],
+      [
+        "PEMS08-H1-iTransformer-s2024"
+      ],
+      [
+        "PEMS08-H1-PDFormer-s2024"
+      ],
+      [
+        "PEMS08-H1-HimNet-s2024"
+      ],
+      [
+        "PEMS08-H1-TESTAM-s2024"
+      ],
+      [
+        "PEMS08-H1-D2STGNN-s2024"
+      ],
+      [
+        "PEMS08-H1-MegaCRN-s2024"
+      ],
+      [
+        "PEMS08-H1-STDN-s2024"
+      ],
+      [
+        "PEMS08-H1-STAEformer-s2024"
+      ],
+      [
+        "PEMS08-H1-GraphWaveNet-s2024"
+      ],
+      [
+        "PEMS08-H1-AGCRN-s2024"
+      ],
+      [
+        "PEMS08-H1-ModernTCN-UV-v10-s2024"
+      ],
+      [
+        "PEMS08-H1-ch4_v10_pdformer_him_v1-s2024"
+      ]
+    ],
+    "test_task_ids": [
+      "UrbanEV-H3-AMD-s2024",
+      "UrbanEV-H3-DLinear-s2024",
+      "UrbanEV-H3-ModernTCN-s2024",
+      "UrbanEV-H3-PatchTST-s2024",
+      "UrbanEV-H3-TimeMixer-s2024",
+      "UrbanEV-H3-TimeXer-s2024",
+      "UrbanEV-H3-iTransformer-s2024",
+      "UrbanEV-H3-PDFormer-s2024",
+      "UrbanEV-H3-HimNet-s2024",
+      "UrbanEV-H3-TESTAM-s2024",
+      "UrbanEV-H3-D2STGNN-s2024",
+      "UrbanEV-H3-MegaCRN-s2024",
+      "UrbanEV-H3-STDN-s2024",
+      "UrbanEV-H3-STAEformer-s2024",
+      "UrbanEV-H3-GraphWaveNet-s2024",
+      "UrbanEV-H3-AGCRN-s2024",
+      "UrbanEV-H3-ModernTCN-UV-v10-s2024",
+      "UrbanEV-H3-ch4_v10_pdformer_him_v1-s2024",
+      "UrbanEV-H6-AMD-s2024",
+      "UrbanEV-H6-DLinear-s2024",
+      "UrbanEV-H6-ModernTCN-s2024",
+      "UrbanEV-H6-PatchTST-s2024",
+      "UrbanEV-H6-TimeMixer-s2024",
+      "UrbanEV-H6-TimeXer-s2024",
+      "UrbanEV-H6-iTransformer-s2024",
+      "UrbanEV-H6-PDFormer-s2024",
+      "UrbanEV-H6-HimNet-s2024",
+      "UrbanEV-H6-TESTAM-s2024",
+      "UrbanEV-H6-D2STGNN-s2024",
+      "UrbanEV-H6-MegaCRN-s2024",
+      "UrbanEV-H6-STDN-s2024",
+      "UrbanEV-H6-STAEformer-s2024",
+      "UrbanEV-H6-GraphWaveNet-s2024",
+      "UrbanEV-H6-AGCRN-s2024",
+      "UrbanEV-H6-ModernTCN-UV-v10-s2024",
+      "UrbanEV-H6-ch4_v10_pdformer_him_v1-s2024",
+      "UrbanEV-H9-AMD-s2024",
+      "UrbanEV-H9-DLinear-s2024",
+      "UrbanEV-H9-ModernTCN-s2024",
+      "UrbanEV-H9-PatchTST-s2024",
+      "UrbanEV-H9-TimeMixer-s2024",
+      "UrbanEV-H9-TimeXer-s2024",
+      "UrbanEV-H9-iTransformer-s2024",
+      "UrbanEV-H9-PDFormer-s2024",
+      "UrbanEV-H9-HimNet-s2024",
+      "UrbanEV-H9-TESTAM-s2024",
+      "UrbanEV-H9-D2STGNN-s2024",
+      "UrbanEV-H9-MegaCRN-s2024",
+      "UrbanEV-H9-STDN-s2024",
+      "UrbanEV-H9-STAEformer-s2024",
+      "UrbanEV-H9-GraphWaveNet-s2024",
+      "UrbanEV-H9-AGCRN-s2024",
+      "UrbanEV-H9-ModernTCN-UV-v10-s2024",
+      "UrbanEV-H9-ch4_v10_pdformer_him_v1-s2024",
+      "UrbanEV-H12-AMD-s2024",
+      "UrbanEV-H12-DLinear-s2024",
+      "UrbanEV-H12-ModernTCN-s2024",
+      "UrbanEV-H12-PatchTST-s2024",
+      "UrbanEV-H12-TimeMixer-s2024",
+      "UrbanEV-H12-TimeXer-s2024",
+      "UrbanEV-H12-iTransformer-s2024",
+      "UrbanEV-H12-PDFormer-s2024",
+      "UrbanEV-H12-HimNet-s2024",
+      "UrbanEV-H12-TESTAM-s2024",
+      "UrbanEV-H12-D2STGNN-s2024",
+      "UrbanEV-H12-MegaCRN-s2024",
+      "UrbanEV-H12-STDN-s2024",
+      "UrbanEV-H12-STAEformer-s2024",
+      "UrbanEV-H12-GraphWaveNet-s2024",
+      "UrbanEV-H12-AGCRN-s2024",
+      "UrbanEV-H12-ModernTCN-UV-v10-s2024",
+      "UrbanEV-H12-ch4_v10_pdformer_him_v1-s2024",
+      "AMS-H1-AMD-s2024",
+      "AMS-H1-DLinear-s2024",
+      "AMS-H1-ModernTCN-s2024",
+      "AMS-H1-PatchTST-s2024",
+      "AMS-H1-TimeMixer-s2024",
+      "AMS-H1-TimeXer-s2024",
+      "AMS-H1-iTransformer-s2024",
+      "AMS-H1-PDFormer-s2024",
+      "AMS-H1-HimNet-s2024",
+      "AMS-H1-TESTAM-s2024",
+      "AMS-H1-D2STGNN-s2024",
+      "AMS-H1-MegaCRN-s2024",
+      "AMS-H1-STDN-s2024",
+      "AMS-H1-STAEformer-s2024",
+      "AMS-H1-GraphWaveNet-s2024",
+      "AMS-H1-AGCRN-s2024",
+      "AMS-H1-ModernTCN-UV-v10-s2024",
+      "AMS-H1-ch4_v10_pdformer_him_v1-s2024",
+      "JHB-H1-AMD-s2024",
+      "JHB-H1-DLinear-s2024",
+      "JHB-H1-ModernTCN-s2024",
+      "JHB-H1-PatchTST-s2024",
+      "JHB-H1-TimeMixer-s2024",
+      "JHB-H1-TimeXer-s2024",
+      "JHB-H1-iTransformer-s2024",
+      "JHB-H1-PDFormer-s2024",
+      "JHB-H1-HimNet-s2024",
+      "JHB-H1-TESTAM-s2024",
+      "JHB-H1-D2STGNN-s2024",
+      "JHB-H1-MegaCRN-s2024",
+      "JHB-H1-STDN-s2024",
+      "JHB-H1-STAEformer-s2024",
+      "JHB-H1-GraphWaveNet-s2024",
+      "JHB-H1-AGCRN-s2024",
+      "JHB-H1-ModernTCN-UV-v10-s2024",
+      "JHB-H1-ch4_v10_pdformer_him_v1-s2024",
+      "LOA-H1-AMD-s2024",
+      "LOA-H1-DLinear-s2024",
+      "LOA-H1-ModernTCN-s2024",
+      "LOA-H1-PatchTST-s2024",
+      "LOA-H1-TimeMixer-s2024",
+      "LOA-H1-TimeXer-s2024",
+      "LOA-H1-iTransformer-s2024",
+      "LOA-H1-PDFormer-s2024",
+      "LOA-H1-HimNet-s2024",
+      "LOA-H1-TESTAM-s2024",
+      "LOA-H1-D2STGNN-s2024",
+      "LOA-H1-MegaCRN-s2024",
+      "LOA-H1-STDN-s2024",
+      "LOA-H1-STAEformer-s2024",
+      "LOA-H1-GraphWaveNet-s2024",
+      "LOA-H1-AGCRN-s2024",
+      "LOA-H1-ModernTCN-UV-v10-s2024",
+      "LOA-H1-ch4_v10_pdformer_him_v1-s2024",
+      "MEL-H1-AMD-s2024",
+      "MEL-H1-DLinear-s2024",
+      "MEL-H1-ModernTCN-s2024",
+      "MEL-H1-PatchTST-s2024",
+      "MEL-H1-TimeMixer-s2024",
+      "MEL-H1-TimeXer-s2024",
+      "MEL-H1-iTransformer-s2024",
+      "MEL-H1-PDFormer-s2024",
+      "MEL-H1-HimNet-s2024",
+      "MEL-H1-TESTAM-s2024",
+      "MEL-H1-D2STGNN-s2024",
+      "MEL-H1-MegaCRN-s2024",
+      "MEL-H1-STDN-s2024",
+      "MEL-H1-STAEformer-s2024",
+      "MEL-H1-GraphWaveNet-s2024",
+      "MEL-H1-AGCRN-s2024",
+      "MEL-H1-ModernTCN-UV-v10-s2024",
+      "MEL-H1-ch4_v10_pdformer_him_v1-s2024",
+      "SPO-H1-AMD-s2024",
+      "SPO-H1-DLinear-s2024",
+      "SPO-H1-ModernTCN-s2024",
+      "SPO-H1-PatchTST-s2024",
+      "SPO-H1-TimeMixer-s2024",
+      "SPO-H1-TimeXer-s2024",
+      "SPO-H1-iTransformer-s2024",
+      "SPO-H1-PDFormer-s2024",
+      "SPO-H1-HimNet-s2024",
+      "SPO-H1-TESTAM-s2024",
+      "SPO-H1-D2STGNN-s2024",
+      "SPO-H1-MegaCRN-s2024",
+      "SPO-H1-STDN-s2024",
+      "SPO-H1-STAEformer-s2024",
+      "SPO-H1-GraphWaveNet-s2024",
+      "SPO-H1-AGCRN-s2024",
+      "SPO-H1-ModernTCN-UV-v10-s2024",
+      "SPO-H1-ch4_v10_pdformer_him_v1-s2024",
+      "SZH-H1-AMD-s2024",
+      "SZH-H1-DLinear-s2024",
+      "SZH-H1-ModernTCN-s2024",
+      "SZH-H1-PatchTST-s2024",
+      "SZH-H1-TimeMixer-s2024",
+      "SZH-H1-TimeXer-s2024",
+      "SZH-H1-iTransformer-s2024",
+      "SZH-H1-PDFormer-s2024",
+      "SZH-H1-HimNet-s2024",
+      "SZH-H1-TESTAM-s2024",
+      "SZH-H1-D2STGNN-s2024",
+      "SZH-H1-MegaCRN-s2024",
+      "SZH-H1-STDN-s2024",
+      "SZH-H1-STAEformer-s2024",
+      "SZH-H1-GraphWaveNet-s2024",
+      "SZH-H1-AGCRN-s2024",
+      "SZH-H1-ModernTCN-UV-v10-s2024",
+      "SZH-H1-ch4_v10_pdformer_him_v1-s2024",
+      "PEMS04-H1-AMD-s2024",
+      "PEMS04-H1-DLinear-s2024",
+      "PEMS04-H1-ModernTCN-s2024",
+      "PEMS04-H1-PatchTST-s2024",
+      "PEMS04-H1-TimeMixer-s2024",
+      "PEMS04-H1-TimeXer-s2024",
+      "PEMS04-H1-iTransformer-s2024",
+      "PEMS04-H1-PDFormer-s2024",
+      "PEMS04-H1-HimNet-s2024",
+      "PEMS04-H1-TESTAM-s2024",
+      "PEMS04-H1-D2STGNN-s2024",
+      "PEMS04-H1-MegaCRN-s2024",
+      "PEMS04-H1-STDN-s2024",
+      "PEMS04-H1-STAEformer-s2024",
+      "PEMS04-H1-GraphWaveNet-s2024",
+      "PEMS04-H1-AGCRN-s2024",
+      "PEMS04-H1-ModernTCN-UV-v10-s2024",
+      "PEMS04-H1-ch4_v10_pdformer_him_v1-s2024",
+      "PEMS08-H1-AMD-s2024",
+      "PEMS08-H1-DLinear-s2024",
+      "PEMS08-H1-ModernTCN-s2024",
+      "PEMS08-H1-PatchTST-s2024",
+      "PEMS08-H1-TimeMixer-s2024",
+      "PEMS08-H1-TimeXer-s2024",
+      "PEMS08-H1-iTransformer-s2024",
+      "PEMS08-H1-PDFormer-s2024",
+      "PEMS08-H1-HimNet-s2024",
+      "PEMS08-H1-TESTAM-s2024",
+      "PEMS08-H1-D2STGNN-s2024",
+      "PEMS08-H1-MegaCRN-s2024",
+      "PEMS08-H1-STDN-s2024",
+      "PEMS08-H1-STAEformer-s2024",
+      "PEMS08-H1-GraphWaveNet-s2024",
+      "PEMS08-H1-AGCRN-s2024",
+      "PEMS08-H1-ModernTCN-UV-v10-s2024",
+      "PEMS08-H1-ch4_v10_pdformer_him_v1-s2024"
+    ],
+    "domain_batches": {
+      "UrbanEV": [
+        32,
+        32
+      ],
+      "AMS": [
+        4,
+        4
+      ],
+      "JHB": [
+        32,
+        32
+      ],
+      "LOA": [
+        32,
+        32
+      ],
+      "MEL": [
+        32,
+        32
+      ],
+      "SPO": [
+        32,
+        32
+      ],
+      "SZH": [
+        8,
+        8
+      ],
+      "PEMS04": [
+        16,
+        16
+      ],
+      "PEMS08": [
+        16,
+        16
+      ]
+    },
+    "visible_devices": "GPU-3d365efd-300b-f527-e8fe-703fb0cfb738",
+    "expected_gpu_uuid": "GPU-3d365efd-300b-f527-e8fe-703fb0cfb738",
+    "startup_min_free_mib": 8192,
+    "global_lock": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/m7-v10-spatial-global.lock",
+    "formal_wall_clock_cap": null,
+    "automatic_batch_change": false,
+    "additional_probes": false,
+    "evidence": {
+      "probe_plan": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r2/resource-plan.json",
+        "sha256": "dd4adb2b99b865c700276f3eeb773723b8756fd728e9dd1318262dfdcc605b23"
+      },
+      "group_results": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r2/run-r2/group-results.json",
+        "sha256": "afa59ea9a7b8f342cdfc5ba1e9437ce4334f174f8c905732adc2de29b1e8b5ef"
+      },
+      "complete": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r2/run-r2/complete.json",
+        "sha256": "310b37128ed71066b0c14b02af900d8dbff7cb21d6ec590ecd16c4874bd4ceb3"
+      },
+      "adoption": {
+        "path": "/public/home/yueweiting/大论文/amd-execution-evidence/m7/M7-q1-t2-resource-adoption-and-formal-preparation-r1/resource-adoption.json",
+        "sha256": "b64106cd98bc4ab8dda47ee2c9eccbe09c60974909bc7e7968cc428bb99d6677"
+      }
+    },
+    "selection_basis": "measured_resources_and_throughput",
+    "concurrency_numerical_equivalence": {
+      "status": "not_executed_by_user_policy",
+      "statement": "本轮按用户批准不执行；基于任务独立执行机制、既有证据及差异风险评估接受"
+    },
+    "persistent_step_state_dumps": false,
+    "selection_decision": "user approved uniform q1/T2, not universal throughput optimum",
+    "cpu_affinity_evidence": [
+      8,
+      9,
+      10,
+      11,
+      40,
+      41,
+      42,
+      43
+    ],
+    "parent_quota": "unknown_not_exposed"
+  },
   "execution_authorized": false,
   "preparation_blockers": [
-    "GPU capacity/throughput and final batch/concurrency not yet reviewed",
-    "finite resource probe/review",
-    "Git closure and actual AUTH",
-    "lifecycle/test accounting repair engineering review and exact Git closure pending"
+    "q1/T2 wiring engineering review pending",
+    "exact Git closure and actual AUTH pending"
   ],
   "retired": [
     "PatchSTG"
   ],
-  "budget_note": "candidate batches; freeze after capacity admission; no extra training scope"
+  "budget_note": "216 tasks / 16200 run-epochs; resource q1/T2 fixed; no formal wall-clock hard cap",
+  "resource_selection_reference": {
+    "path": "/public/home/yueweiting/大论文/CH4-v10-spatial/ch4/formal_resources.json",
+    "sha256": "00482bc7ba8c074df27c0dfc96e5bfe6bcec6b7f7691f30d2310d1ed95f458b2"
+  }
 }

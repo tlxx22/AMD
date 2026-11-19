@@ -1,12 +1,12 @@
 # 大论文 07｜M7 第四章开发与实验
 
-状态：**补充并发效率r2已技术完成并获用户转交完成审核；本轮资源审计/216项调度候选及正式控制JSON原子发布窄修复待ChatGPT复审**。基点`ee9110140a7cd2ee8c0cadbc766ea9d156ead8be`。保留原失败、213历史成功及296新波；未冻结资源、未创建正式AUTH或启动正式训练。comparison-plan只同步必要runtime_io绑定，科学任务与训练字段不改；本轮无stage/commit/push。B1恢复证据边界不变，详见§5.O.4。
+状态：**联合探针r2全覆盖完成；用户已批准正式q1/T2，资源选择固定，新接线及正式启动材料待ChatGPT工程审核。** HEAD `3e387a9a3b52af4f0ab02763977ac399c475a6f9`，本轮不stage/commit/push、无可启动AUTH、未启动正式训练/test。详见§5.P。
 
 ## 1. 权威分工、现场与保护
 
 [canonical](../AMD_EV_Thesis_Final_Implementation_Plan_v2.1.md)§0/§1.2/§4.2/§10–16规定研究合同；本文件是唯一M7执行/审核账；docs/README只导航，第三章实验索引CURRENT_ADOPTED_RESULTS保持原结果入口。本轮不会创建第二milestone或平行current_status。论文围绕城市EV充电需求，第三章时间建模→第四章空间扩展；六城CHARGED独立域和PEMS跨域比较不改变主研究对象。M8正文/图表/分析，M9终稿/复现/答辩。
 
-hostname=b82673a648b4。工作区`/public/home/yueweiting/大论文/CH4-v10-spatial`，branch=`M7-v10-spatial-v1`，初始parent=`ee8ea3f32e87ed48608d21991a4fc60d06891c23`。79路径closure后原基点为`75158a60956fadea9ad6d1c08caf8dbd4e3a284c`；r4精确9路径closure后的本轮HEAD/tracking/实际origin均为`ee9110140a7cd2ee8c0cadbc766ea9d156ead8be`、0/0，upstream为origin/M7-v10-spatial-v1。准入clean；本轮只更新canonical/M7，index保持空。原创建前M6基点及无upstream状态仅为历史。`amd_reproduced_baseline_v1`保持`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
+hostname=b82673a648b4。工作区`/public/home/yueweiting/大论文/CH4-v10-spatial`，branch=`M7-v10-spatial-v1`，初始parent=`ee8ea3f32e87ed48608d21991a4fc60d06891c23`。79路径closure后原基点为`75158a60956fadea9ad6d1c08caf8dbd4e3a284c`；r4精确9路径closure后的当时HEAD/tracking/实际origin均为`ee9110140a7cd2ee8c0cadbc766ea9d156ead8be`、0/0，upstream为origin/M7-v10-spatial-v1。上述为此前closure现场；本轮入口HEAD为3e387a9a3b52af4f0ab02763977ac399c475a6f9，仅canonical/M7已有未提交修改，当前新增q1/T2接线待审，index保持空。原创建前M6基点及无upstream状态仅为历史。`amd_reproduced_baseline_v1`保持`fa9665627e6fcfb1d0c2bc22d943ca9666304fd6`。
 
 第三章工作区、v1/v3/v9/v10冻结实现、正式配置、models/tsAMD.py、M6和采用产物不修改。前后SHA/import绑定核验见外置初始身份和最终检查。集中包原producer、v9/P1/V3复用链、54缓存/235逻辑来源、Goal1/2 Met与Goal3 Not met以及test开发反馈限制保持，不因新会话失效。
 
@@ -325,3 +325,76 @@ CPU定向验收、真实少量CPU子进程、历史采用、正式队列只读�
 r2成本文件累计10439.124434339814秒，complete稍晚采样对应保守累计10439.34133428149秒，0.216899941675秒差是一次收尾采样差，不是第二次执行。全局余3960.6586657185107秒，阶段余base277.55403361003846/mixed1217.6791812898591/confirm484.95573597215116秒，仍留60秒；没有新增占卡成本。
 
 正式修复仅runtime_io.write_new：同目录唯一临时文件完整写入、flush/fsync/关闭后原子hardlink，不覆盖已有文件，仅清理自有inode；owner/runtime/STOP字段及所有调用方保持。新增5项CPU原子发布测试通过（0.076秒），受影响既有成功监督/封存/claim及STOP/损坏日志/信号成本2项合成测试通过（3.926秒），未重跑模型/r4保护测试。comparison-plan仅source_binding及dependency_identity两处runtime_io SHA变更，仍343绑定、216任务、16200run-epochs、6667200updates。未查询GPU、未运行真实模型/optimizer/训练/validation/test、未读取checkpoint；正式源码修复尚未审核/closure，不stage/commit/push。
+
+
+## 5.O.5 原子发布精确closure与q1/q2/q4缺项补测准备（2026-11-19，补测包待审核）
+
+用户明确批准原子发布修复closure，不代表采用§5.O.4的189.48小时候选。allowlist SHA `d70256d4b2555842b7505d9e74579829d10c2488d11c6c6bb07be633f4f38ab3`的精确5路径已逐字节核验、stage、提交并正常推送：`3e387a9a3b52af4f0ab02763977ac399c475a6f9`，父`ee9110140a7cd2ee8c0cadbc766ea9d156ead8be`。提交blob与审核SHA一致；当时HEAD=tracking=实时origin、0/0、worktree/index clean，M6及不可变tag不变。外置closure-receipt保存完整证据；复用5项新增CPU与2项受影响队列测试，不重跑模型或探针。此后本节及canonical为任务二未提交的新修改，不夹带入已审closure。
+
+用户最新范围固定162单元×q1/q2/q4=486条件，取消新增高q、混合和强制重复确认。重新核验q1 162、q2 156、q4 91项同工作量初筛，共409原生产者引用；余6q2＋71q4共77，其中15旧容量投影排除没有OOM实测，重新列待处理。保留旧高q/混合/确认历史，不用于三档选档。单元按既有顺序、内按q1→q2→q4，成功不重测。原协议5准备/20校准/20–100计时，跨q复用同单元q1准确次数与工作量，完整OneCycle/seed/batch/训练步开销不变。
+
+新外置scope为`amd-execution-evidence/m7/M7-q124-coverage-completion-r1`。仅明确结构化CUDA OOM可使当前波失败、清理/退出/归属及空闲确认后局部淘汰并继续；原失败收据与部分进度保留，不将部分成功采用整波成功。其它技术错误、安全余量违规或清理未确认仍停止；不降batch、不重试、不以137或模糊字符串判OOM。最终表独立列实测最快档与5%内较小建议档，单次短测不称统计显著/全局最优，未重复不自动退q1。
+
+按r2较晚complete采样，历史保守占卡10439.34133428149秒、余额3960.6586657185107秒，至少60秒收尾。旧阶段剩余额度明确撤销隔离，统一用于缺项；同一次cost/complete采样差0.216899941675秒不相加。逐项最近同单元实测q墙钟外推，77项低/中/高情景约1759.13/3973.16/6729.74秒（不是置信区间；并发争用/OOM/启动/身份哈希开销未知），中间情景已逼近余额，不能保证补齐。按波超时及清理准入，预算不足正常列未覆盖；本轮无新增GPU成本。
+
+定向CPU测试与完整采用、绑定、SHA及保护结果见新scope REPORT和preparation-receipt；只测新增复用/局部OOM/预算逻辑，不重新运行模型、GPU或既有r4全回归。正式comparison-plan、216任务/343绑定/16200run-epochs/6667200updates及训练字段保持closure字节。本轮不创建approved=true、运行attempt或正式AUTH；仅为审核后用户一次启动准备命令草案。不stage/commit/push，不代称ChatGPT已审新补测实现。原§5.O.1–4为生产时点历史，不倒改。
+
+
+## 5.O.6 真实任务组端到端三档对照及4线程补充（2026-11-19，待审）
+
+用户撤换§5.O.5尚未启动的同构缺项路线，保留`M7-q124-coverage-completion-r1`原包与49项校验清单，不再用其启动命令。当前五路径closure不重做；入场HEAD 3e387a9a3b52af4f0ab02763977ac399c475a6f9、index空，仅canonical/M7原未提交两份修改；canonical入场SHA9b5e05f8f056cae65a0f0eb1c1da4951793f76c0693d77e3adf74c8100085359，M7入场SHA194297880797e1f2cda5e15e4aaaae4f3ff67f1925d186cfbce0b83037e84250。先保存改前文件再更新，不reset/stash/覆盖旧证据。
+
+新scope `amd-execution-evidence/m7/M7-real-task-q124-probe-r1`。按当前216实际task固定54个四任务组，18组Urban同模型四H，36组非Urban跨域同模型；AMS/SZH分开，依据旧1线程q1显存与成本离线轻重搭配，q2两对预先确定。精确task ID/顺序/来源/评分与分组表保存在group-table-54.json，比较成员和任务配置在q1四波、q2两波、q4一波完全相同。满覆盖162组级条件、378波、648worker、25×648=16200探针更新，不是新增正式实验或旧162单元。
+
+用户最新明确每worker PyTorch/OMP/MKL=4，覆盖上一指令的1；interop=1，OPENBLAS/NUMBA/NUMEXPR/VECLIB=1，loader=0。已核对第三章v10 training_config.py threads=4及worker实际设置、launcher继承环境；不假称其所有辅助库均显式设置。可见8逻辑CPU、父quota未知，q4最多16配置计算线程，允许超额订阅而不声称16独立核；所有q均保持单worker4线程。正式216配置线程尚不改，后续冻结再同步。旧1线程仅辅助，不充当新主对照。
+
+协议real-task-e2e-25-t4-v1：fresh同seed/数据RNG/完整OneCycle，只5准备+20计时，删旧校准和自适应确认，step公式/辅助loss/clip/必要标量日志保持。整包核验只在controller准入一次且计总成本，worker核当前controller准入和逐slot任务/数据/GO身份；单task原loader及实际import身份检查仍保留。主量是四任务完整端到端T1/T2/T4及S2/S4，并列实际训练块/最慢尾部/CPU和GPU采样；不把短测加速比直接外推正式天数。新主对照直接复用0项。
+
+组q内任一波明确CUDA OOM后拒绝整组该q成功，停止其剩余波，清场/身份/资源恢复通过才继续其它q；原失败、部分更新和成本保留。非OOM继续硬失败。单列待审差异：运行期8GiB由异常改为预警，启动及OOM清场后的空闲要求、外来进程/归属和预算硬门禁保持；批准文件必须显式认可此差异，不会在未审情况下运行。
+
+旧保守累计10439.34133428149秒、余3960.6586657185107秒、最终60秒保留不变；新估算低/中/高约5269.22/7218.71/13365.60秒，均含一次准入情景30秒；4线程与并发争用未知，非统计保证。低情景也超余额；按高情景+清理建议另批9480秒（158分钟），建议累计23880秒，仅建议未授权。完整54组计划已准备，按组高情景+20秒准入，实际累计原14400秒硬线不变；预算不足不开始下一组，不能漏档伪装覆盖。没有为塞进余额删任务、改batch或改线程。
+
+定向CPU验收、源码差异/前后SHA、历史保护、固定环境和完整操作草案以本scope REPORT和preparation-receipt为准。测试只用回调/假时钟及普通CPU子进程环境，不构造真实模型、不查询GPU、不执行optimizer/validation/test或读取checkpoint，不重跑既有r4回归。343正式绑定、216科学字段/16200run-epochs/6667200updates保持，comparison-plan SHA35587af552c39c6d5f5083f17335f426a8c4b6152d53159efa0b87d35e5a1771不变。无approved=true、正式AUTH、run attempt或新GPU成本；本轮不stage/commit/push，待ChatGPT审核及必要预算裁决。
+
+
+## 5.O.7 双线程真实任务组联合准备（用户最新决定，待审）
+
+用户明确批准增加每worker2线程，与4线程完整同工作量比较；不再询问加入范围，不代表增加预算或批准运行。新scope `amd-execution-evidence/m7/M7-real-task-thread24-q124-probe-r1`；§5.O.6及其未获批9480秒追加建议保留为历史。旧4线程包52文件原字节保护，原计划SHA `3ffc06e49dbb433082da0bbe2c5a49a8a4d45593efaa3a13c8fb3042ed83f52d`、harness SHA `97e02b4559a1287372910c3e41f90a08ef16ee43a7d28679c77ac923cb4cd08e`核对一致。本轮文档改前canonical SHA `05b60f0a768b36f577fb2cf62f5c4eae66867cfe53989b3da7c2691dd5b83910`，M7 SHA `26ffa13224d9598de0e48842a6227fe73cd8120decb95067e76553f9f333ff7a`，已另存before。
+
+同一参数化harness，精确继承54组216真实task与q2配对；每组T2/T4各q1/q2/q4，奇数组T2先、偶数组T4先，同q相邻，条件串行。324条件/756波/1296短worker/32400更新（6480准备+25920计时）。每task六次均原task SHA/batch/seed/train窗口/RNG/full OneCycle/5+20更新，只线程override不同。torch/OMP/MKL=T，interop与辅助池1，loader0；真实环境/torch getter校验，线程贯穿GO/slot/目录/结果/OOM/成本身份，不能跨T混用。正式training.threads不改。T4/q4可配置16线程但可见8逻辑CPU、父quota未知；超额订阅与运行期8GiB预警仍待审，不宣称新实测。
+
+汇总按同q配对R=T4/T2及共同成功组总时间比，再分别列全T2/全T4各组选最快成功q的完整任务集成本；缺组时总时间为null、明确覆盖不完整，胜负数仅辅助，不用均值比选线程。运行结束自动产生coverage与joint-summary；仅候选供ChatGPT资源采用审查，不能自动冻结线程/并发或开216训练。
+
+历史占卡10439.34133428149秒只计一次，现余3960.6586657185107秒，60秒收尾不变。T2低/中/高5558.71/6826.01/14386.44秒，T4 5239.22/7188.71/13335.60秒，共享准入30秒后合计10827.92/14044.72/27752.04秒；均为基于旧1线程证据的情景，不是新实测或置信区间。T2可能较快或较慢；完整追加建议23880秒，累计建议38280秒，仅待裁决。实际代码硬限仍14400秒，组准入覆盖其全部六条件，不先跑完所有q1。任何预算/技术中止保留未覆盖，不称线程选择完成。
+
+增量CPU使用stdlib回调、假时钟及普通CPU环境子进程；覆盖计数/顺序、task与25步一致、线程设置与实际环境、错线程GO/结果、局部OOM、非OOM停止、全组六条件预算和配对/完整覆盖汇总。本次15项增量CPU验收全部通过，最终源码对应日志用时1.291秒；结果、日志、源码对应及保护检查以本scope REPORT/preparation-receipt为准；不导入真实模型/torch、不查询GPU，不重跑不受影响的原15项及r4保护测试。训练step、两块同步、原子发布、进程身份/有界退出/所属清理/数据边界保留AST证据。正式comparison-plan SHA `35587af552c39c6d5f5083f17335f426a8c4b6152d53159efa0b87d35e5a1771`及343绑定不变；无approved=true/正式AUTH/运行attempt，不stage/commit/push。停止于ChatGPT工程审核和具体预算裁决；不代称修订字节已审核。
+
+
+## 5.O.8 已批准资源合同与最终成本计账修订（待增量工程复审）
+
+用户本次完整授权替代未发送的最小修订：原14400秒追加23880秒，累计38280秒；已用10439.34133428149秒，余额27840.65866571851秒，至少60秒最终收尾。旧T4单方案9480秒不叠加。独占归属核验后的运行期8GiB仅预警/记录、T4/q4可见8逻辑CPU上16线程对照均已批准；启动/清场8GiB及外来进程/归属/nonfinite/其它技术错误/总预算继续硬门禁。不再将资源决定写作待用户裁决；新代码整体工程审核仍Pending。
+
+本轮起点plan SHA `954b304d1f299819f48b9cc89c61f9d4f8e9e4be3355c3f16ecc4ba7df810a05`、harness `aa4571c1a295afc02ba94834c8afdc6be914bde1618eac476a76f046dba3248b`、REPORT `12c1835d185e07c4ee708d7381c8b83a4b6dd0cd64a06f94f70c3136bf9b07d2`一致。已将原包55文件及两份当前文档共57份逐字节保存于本scope revisions/final-r2-before，原T4包及历史运行目录不改。旧plan SHA与旧启动命令作废，新的绝对路径命令仍只能增量工程审核后使用。
+
+新增窄职责resource_accounting.py共享获批资源身份核对、deadline及终端成本校验。资源决定JSON只表用户批准，不是overall工程批准或正式AUTH；未来resource-review须精确绑定plan、harness、accounting、资源决定SHA及38280秒。运行期预警、原子发布、进程归属/退出/清理、线程身份和train边界计算机制保持；正式comparison-plan及343绑定不变，54组/324条件/756波/1296worker/32400更新、奇偶顺序、每task5+20与完整OneCycle均不变。
+
+成功成本在payload封存、系统checksum及result-seal身份检查之后采样，最终complete.json内final_cost为唯一成功成本来源；原cumulative-cost改标非最终执行快照。失败路径保留原异常，计入部分汇总/失败记录耗时，最终final-cost.json绑定原失败；整理错误、退出未确认明确计账不完整，不覆盖原异常或制造成功。最后回执自身发布不递归计时，历史一次计入，不累计wave、不直接加预留、不裁剪真实超限。成功inspect读取新最终口径，不能再用封存前快照。
+
+本轮只运行受修改影响的CPU假时钟/小文件/合成回执及必要普通CPU子进程检查；非零seal和失败整理耗时、新额度/批准身份/截止、原异常保护、低显存预警及硬归属/清场保持的结果记录于本scope cpu-final-r2日志与修订REPORT。原15项及r4证据按未变代码复用，不机械重跑历史模型/GPU验收。无GPU查询、模型/optimizer/validation/test或checkpoint解码；实际新增占卡0秒。预算和资源规则已批准，工程复审后用户一次启动，之后仍仅生成资源采用候选，不自动进入216正式训练。
+
+
+## 5.P q1/T2正式资源采用与启动准备（2026-11-19，新字节待审）
+
+用户明确结束资源选型，统一q1、torch intra-op/OMP/MKL=2，interop及辅助池1、loader0，各域已批batch/eval_batch不变。前§5.O系列是原时点历史；旧189.48小时候选未采用，本次不是倒改旧q1草案。原子发布五路径closure实际HEAD=tracking=实时origin=3e387a9a3b52af4f0ab02763977ac399c475a6f9、0/0，index空；入口仅canonical/M7 modified，两份改前SHA为0794629967d99cee78b0dd893010cb213445d43e4709de57daeda8de836bfdc6及14b75581e04c21b6d4f689417f001144152e44408dc8b29537193426a016b9c2，保存在新scope before。
+
+r2导入修复经ChatGPT增量审核后用户启动：resource-plan SHA dd4adb2b99b865c700276f3eeb773723b8756fd728e9dd1318262dfdcc605b23；group-results SHA afa59ea9a7b8f342cdfc5ba1e9437ce4334f174f8c905732adc2de29b1e8b5ef；complete SHA 310b37128ed71066b0c14b02af900d8dbff7cb21d6ec590ecd16c4874bd4ceb3。封存完整性只读核验通过：54组216真实task、324条件756波1296worker、32400更新均完成，无OOM/技术失败/预算未覆盖。本次terminal-card-cost-v2为8271.264713955112秒、累计18718.58358510118秒，包含此前r1导入失败7.977536864578724秒一次；原失败、not_admitted、producer、日志和成本不改。独立资源采用记录在M7-q1-t2-resource-adoption-and-formal-preparation-r1；不将探针38280秒预算移植为正式运行截止。
+
+216原task ID和原顺序精确保留，train波次每项一个；全训练/validation→全best冻结→原序test各一次→seal。逐task除training.threads=2和已解决readiness外科学字段零变化；16200最大run-epochs/6667200更新、50/20与200/40保持。resource_frozen=true、execution_authorized=false；本轮新工程审核、精确closure、实际AUTH未完成。已完成探针、生命周期及原子发布修复不再保留机械Pending。外置AUTH绑定未来实际commit，不预填，不通过修改已提交文件回填。
+
+新增窄职责ch4/resources.py及formal_resources.json：启动环境、实际torch getter、q1顺序、batch/资源身份、合法单GPU分配/UUID-minor与启动空闲检查；queue在原-m ch4.queue/cwd工作区的独立进程中调用，train/test同线程入口，记录各phase线程身份。生成器使用T2并绑定采用证据。原worker训练计算、optimizer/scheduler、模型、数据、test claim和首失败停止逻辑不改；正式OOM不局部跳档。源绑定343→349：新增resources.py、formal_resources.json、独立adoption和原探针plan/group-results/complete共6项，不删旧项。资源接线/初始GPU身份查询的代码是新增待审字节；本轮未实际查询GPU。
+
+定向CPU六项通过（7.249秒）：同task科学与预算/q1覆盖、负向资源/线程、train/test真实空载CPU子进程线程getter及包导入、缺少/未审核AUTH、合成GPU分配拒绝、真实supervisor少量合成任务全训练/冻结/test-once/seal及环境传递。不构造真实模型、不调用CUDA、optimizer或真实观测数组，不重跑无关模型与历史探针。旧恢复证据仍仅helper/worker接口。新日志、diff、SHA及closure候选清单以本scope材料为准，不代称新字节已审。
+
+逐task同T2/q1的20步直接证据映射全部216任务，按6667200最大更新外推纯训练约192.995小时；50%/75%/100%更新量只是排期情景，不假定某固定epoch早停。validation训练量10–30%、checkpoint/I/O 5–20%、test全上限训练量1–3%均明确为未实测假设；加一次性初始化/收尾后最大情景约224–295小时，非保证区间或硬截止，不因此补探针。q1/T2是用户选择，不宣称baseline普遍无并发收益或GPU必满载。
+
+启动草案使用固定环境和绝对路径tmux，queue.start仅初始联网准入一次，后台worker不逐task联网；返回前确认owner/runtime及首worker线程身份。未生成可启动正式AUTH，不创建运行attempt。下一步ChatGPT工程审核→精确closure→实际commit绑定及AUTH→轻量preflight/用户一次启动，不另加机械回填审批。

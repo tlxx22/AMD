@@ -67,7 +67,7 @@ def execution_assets(root,source_root,temporal):
     root=Path(root);source_root=Path(source_root)
     files={}
     for name in ('ch4/temporal_sources.json','ch4/pattern_registry.json','configs/ch3_baseline_ms_u96_oc01_v3.json',
-                 'moderntcn_dev_v1/source_binding.json'):
+                 'moderntcn_dev_v1/source_binding.json','ch4/formal_resources.json'):
         files[str(root/name)]=sha(root/name)
     native=json.loads((root/'moderntcn_dev_v1/source_binding.json').read_text())['ModernTCN']
     files.update(native['files'])  # frozen load_author verifies every listed byte
